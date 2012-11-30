@@ -53,20 +53,20 @@ def read_simlib(filename):
     supported here.
     """
 
-    # internal list of known keywords
+    # known keywords
     KEY_FIELDID = 'LIBID'
     KEY_TELESCOPE = 'TELESCOPE'
-    KEY_PIXSCALE = 'PIXSCALE'
+    KEY_PIXSIZE = 'PIXSIZE'
     KEYS_FIELD = ['RA', 'DECL', 'MWEBV']
-    KEYS_IGNORE = ['FIELD']
+    KEYS_IGNORE = ['FIELD', 'NOBS', 'END_LIBID', 'END_OF_SIMLIB']
 
     header = OrderedDict()
     fields = OrderedDict()
     obs = OrderedDict()
     for col in ['field', 'search', 'date', 'idexpt', 'telescope', 'band',
-                'pixscale', 'gain', 'noise', 'skysig', 'psf1', 'psf2',
-                'psf21ratio', 'zptavg', 'zptsig', 'mag']:
-        observations[col] = []
+                'pixsize', 'gain', 'noise', 'skysig', 'psf1', 'psf2',
+                'psfratio', 'zptavg', 'zptsig', 'mag']:
+        obs[col] = []
 
     # Initialize a few variables to None to indicated that they have not
     # yet been encountered when reading the file.
@@ -94,17 +94,17 @@ def read_simlib(filename):
             if telescope is None:
                 raise ValueError("Observation line comes before TELESCOPE "
                                  "keyword")
-            if pixscale is None:
-                raise ValueError("Observation line comes before PIXSCALE "
+            if pixsize is None:
+                raise ValueError("Observation line comes before PIXSIZE "
                                  "keyword")
 
             for key, val in [
                 ('field', fieldid), ('search', words[0] == 'S:'),
                 ('date', float(words[1])), ('idexpt', int(words[2])),
                 ('telescope', telescope), ('band', words[3]),
-                ('pixscale', pixscale), ('gain', float(words[4])),
+                ('pixsize', pixsize), ('gain', float(words[4])),
                 ('noise', float(words[5])), ('skysig', float(words[6])),
-                ('psf1', float(words[7]), ('psf2', float(words[8])),
+                ('psf1', float(words[7])), ('psf2', float(words[8])),
                 ('psfratio', float(words[9])), ('zptavg', float(words[10])),
                 ('zptsig', float(words[11])), ('mag', float(words[12]))]:
                 obs[key].append(val)
@@ -137,8 +137,8 @@ def read_simlib(filename):
                 # Set current telescope or pixel scale
                 elif key == KEY_TELESCOPE:
                     telescope = val
-                elif key == KEY_PIXSCALE:
-                    pixscale = float(val)
+                elif key == KEY_PIXSIZE:
+                    pixsize = float(val)
 
                 # Set some values for the current field
                 elif key in KEYS_FIELD:
