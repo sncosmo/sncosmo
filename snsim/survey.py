@@ -3,14 +3,14 @@
 """Class to represent an astronomical survey."""
 
 import numpy as np
-from astropy import table
-from astropy.io import ascii
+from astropy.table import Table
 from astropy import cosmology
 
 from .bandpass import Bandpass
 from .spectrum import Spectrum
 from . import models
 
+# Constants defined for convenience
 wholesky_sqdeg = 4. * np.pi * (180. / np.pi) ** 2
 
 drange_pad = (20., 20.)
@@ -22,37 +22,43 @@ class Survey(object):
     ----------
     fields: dict
         Information about the observed fields, indexed by field id (int)
-    obs : astropy.table.Table, numpy.ndarray, or dict
+    obs : astropy.table.Table, numpy.ndarray, or dict of list_like
         Table of observations in the survey. This table must have certain
         field names. See "Notes" section.
+    bands : dict of Bandpass
+        Dictionary of bandpasses that the survey should know about.
+        The keys should be strings. In the `obs` table, `band` entries are
+        strings corresponding to these keys.
 
     Notes
     -----
-    Recognized fields in observations:
+    The following data fields **must** be in the `obs` table:
 
         field
-            integer id of observation field
+            integer id of observed field
         date
             Date of observations in days (e.g., MJD)
         band
-            Bandpass of observation
+            Bandpass of observation (string)
         ccdgain
-            CCD gain of observations (e-/ADU)
+            CCD gain of observations in e-/ADU
         ccdnoise
             CCD noise of observations in ADU
         skysig
             Pixel-to-pixel standard deviation in background in ADU
-        psf1
-            TODO description
+        psffwhm
+            Full-with at half max (FWHM) of PSF in pixels.
+        zp
+            Zeropoint of observations (float).
+        zpsys
+            Zeropoint system (string).
+
+    The following are **optional** fields in the `obs` table
+    (not yet implemented - for now these are ignored).
+
         psf2
             TODO description
-        pixelscale
-            Pixel scale in arcseconds.
-        zp
-            Zeropoint of observations
-        zpsys
-            Zeropoint system.
-        zpsyserr
+        zperr
             Systematic uncertainty in zeropoint.
     """
 
@@ -60,34 +66,25 @@ class Survey(object):
         self.fields = fields
         self.obs = Table(obs)
         
-        # TODO: check that obs includes all necessary fields
+        # TODO: check that obs includes all necessary data fields
 
 
-        #if 'filename' in kwargs and kwargs['filename'] is not None:
-        #    self._init_from_file(kwargs['filename'])
-        #else:
-        #    self._init_from_dict(kwargs)
-        
+        # Check that
 
-    #def _init_from_file(self, filename):
-    #    """Initialize from a text file."""
-    #    t = ascii.read(filename, guess=False)
-    #    self._obs = table._data
-
-
-    def simulate(self, tmodel, param=None, vrate=1.e-4, cosmo=None,
-                 z_min=0., z_max=2., z_step=0.05):
+    def simulate(self, tmodel, params={}, vrate=1.e-4, cosmo=None,
+                 z_range=(0., 2.), z_bins=40):
         """Run a simulation of the survey.
         
         Parameters
         ----------
         tmodel : A TransientModel instance
             The transient we're interested in.
-        param : dictionary or callable, optional
+        params : dictionary or callable, optional
             Dictionary of parameters to pass to the model or
             a callable that returns such a dictionary on each call. 
-            Typically the parameters would be randomly selected
-            from some underlying distribution on each call. 
+            Typically the callable would randomly select parameters
+            from some underlying distribution on each call. The default is
+            no parameters.
         vrate : float or callable, optional
             The volumetric rate in (comoving Mpc)^{-3} yr^{-1} or
             a callable that returns the rate as a function of redshift.
@@ -96,12 +93,11 @@ class Survey(object):
             Callable returning a dictionary of parameters (randomly selected
             from some underlying distribution) to pass to the model. 
             (The default is `None`, which implies the WMAP7 cosmology.)
-        z_min : float
-            Lowest redshift to generate transients at
-        z_max : float
-            Highest redshift to generate transients at.
-        z_step : float
-            Redshift step
+        z_range : (float, float), optional
+            Redshift range in which to generate transients.
+            The default is (0., 2.).
+        z_bins : float, optional
+            Number of redshift bins (the default is 40).
         """
 
         # Check the transient model.
@@ -109,7 +105,8 @@ class Survey(object):
             raise ValueError('tmodel must be a TransientModel instance')
 
         # Check the model parameters.
-        
+        if params is None:
+            params = {}
 
         # Check the volumetric rate.
         if not callable(vrate):
@@ -122,14 +119,18 @@ class Survey(object):
             raise ValueError('cosmo must be a Cosmology instance')
 
         # Check the redshifts
+        if len(z_range) != 2:
+            raise ValueError('z_range must be length 2')
+        z_min, z_max = z_range
         if not (z_max > z_min):
             raise ValueError('z_max must be greater than z_min')
-        
-        # TODO: be more careful abut how steps are constructed.
+        z_bins = int(z_bins)
+        if z_bins < 1:
+            raise ValueError('z_bins must be greater than 0')
 
         # Get volumes in each redshift shell over whole sky
-        z_bins = np.arange(z_min, z_max, z_step) 
-        sphere_vols = cosmo.comoving_volume(z_bins) 
+        z_binedges = np.linspace(z_min, z_max, z_bins + 1) 
+        sphere_vols = cosmo.comoving_volume(z_binedges) 
         shell_vols = sphere_volumes[1:] - sphere_volumes[:-1]
 
         # Get list of unique bandpasses used in survey
@@ -145,13 +146,16 @@ class Survey(object):
 
         # Loop over fields
         for fid in fids:
-            fobs = self.obs(self.obs == fid)  # observations for this field
+
+            # Observations in just this field
+            fobs = self.obs(self.obs['field'] == fid)
             
             # Get range of observation dates.
             drange = (fobs['date'].min(), fobs['date'].max())
 
             # Loop over redshift bins in this field
-            for z_lo, z_hi, shell_vol in zip(z_bins[:-1], z_bins[1:],
+            for z_lo, z_hi, shell_vol in zip(z_binedges[:-1],
+                                             z_binedges[1:],
                                              shell_vols):
                 z_mid = (z_lo + z_hi) / 2.
                 bin_vol = shell_vol * area / wholesky_sqdeg
@@ -161,7 +165,7 @@ class Survey(object):
 
                 # Number of transients in this bin
                 intrinsic_rate = vrate(z_mid) * bin_vol * time_rframe
-                ntrans = np.random.poisson(intrinsic_rate , 1)[0]
+                ntrans = np.random.poisson(intrinsic_rate, 1)[0]
                 if ntrans == 0: continue
 
                 # Where are they in time and redshift?
