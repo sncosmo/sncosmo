@@ -9,11 +9,9 @@ from astropy import cosmology
 
 from .bandpass import Bandpass
 from .spectrum import Spectrum
+from . import models
 
-cosmo = cosmology.LambdaCDM(H0=70., Om0=0.3, Ode0=0.7)
-
-sqdeg_per_steradian = (180. / np.pi) ** 2
-wholesky_sqdeg = 4. * np.pi * sqdeg_per_steradian
+wholesky_sqdeg = 4. * np.pi * (180. / np.pi) ** 2
 
 drange_pad = (20., 20.)
 
@@ -22,14 +20,17 @@ class Survey(object):
 
     Parameters
     ----------
-    filename : str, optional
-        File from which to read survey information. If given, observation
-        parameters are read from file and other keywords are ignored.
-    observations : dict or numpy.ndarray
-        Parameters describing observations in dictionary or structured ndarray.
-        Recognized fields are:
+    fields: dict
+        Information about the observed fields, indexed by field id (int)
+    obs : astropy.table.Table, numpy.ndarray, or dict
+        Table of observations in the survey. This table must have certain
+        field names. See "Notes" section.
 
-        fieldid
+    Notes
+    -----
+    Recognized fields in observations:
+
+        field
             integer id of observation field
         date
             Date of observations in days (e.g., MJD)
@@ -41,8 +42,10 @@ class Survey(object):
             CCD noise of observations in ADU
         skysig
             Pixel-to-pixel standard deviation in background in ADU
-        seeing
-            Seeing in arcseconds.
+        psf1
+            TODO description
+        psf2
+            TODO description
         pixelscale
             Pixel scale in arcseconds.
         zp
@@ -53,28 +56,26 @@ class Survey(object):
             Systematic uncertainty in zeropoint.
     """
 
-    def __init__(self, **kwargs):
-        if 'filename' in kwargs and kwargs['filename'] is not None:
-            self._init_from_file(kwargs['filename'])
-        else:
-            self._init_from_dict(kwargs)
+    def __init__(self, fields, obs):
+        self.fields = fields
+        self.obs = Table(obs)
+        
+        # TODO: check that obs includes all necessary fields
+
+
+        #if 'filename' in kwargs and kwargs['filename'] is not None:
+        #    self._init_from_file(kwargs['filename'])
+        #else:
+        #    self._init_from_dict(kwargs)
         
 
-    def _init_from_file(self, filename):
-        """Initialize from a text file."""
-        t = ascii.read(filename, guess=False)
-        self._obs = table._data
+    #def _init_from_file(self, filename):
+    #    """Initialize from a text file."""
+    #    t = ascii.read(filename, guess=False)
+    #    self._obs = table._data
 
 
-    def _init_from_dict(self, d):
-        """Initialize from a dictionary of parameters."""
-        t = table.Table(d)
-        self._obs = t._data
-
-    def __str__(self):
-        return str(table.Table(self._obs))
-
-    def simulate(self, tmodel, vrate, param_gen,
+    def simulate(self, tmodel, param=None, vrate=1.e-4, cosmo=None,
                  z_min=0., z_max=2., z_step=0.05):
         """Run a simulation of the survey.
         
@@ -82,12 +83,19 @@ class Survey(object):
         ----------
         tmodel : A TransientModel instance
             The transient we're interested in.
-        vrate : callable
-            Function giving the volumetric rate in (comoving Mpc)^{-3} yr^{-1}
-            as a function of redshift.
-        param_gen : callable
+        param : dictionary or callable, optional
+            Dictionary of parameters to pass to the model or
+            a callable that returns such a dictionary on each call. 
+            Typically the parameters would be randomly selected
+            from some underlying distribution on each call. 
+        vrate : float or callable, optional
+            The volumetric rate in (comoving Mpc)^{-3} yr^{-1} or
+            a callable that returns the rate as a function of redshift.
+            (The default is 1.e-4.)
+        cosmo : astropy.cosmology.Cosmology, optional
             Callable returning a dictionary of parameters (randomly selected
-            from some underlying distribution) to pass to the model.
+            from some underlying distribution) to pass to the model. 
+            (The default is `None`, which implies the WMAP7 cosmology.)
         z_min : float
             Lowest redshift to generate transients at
         z_max : float
@@ -96,15 +104,28 @@ class Survey(object):
             Redshift step
         """
 
-        # Temporary stuff
-        area = 1.
-        def trate(z):
-            if z < 1:
-                return 0.25e-4 * (1 + 2.5 * z)
-            else:
-                return 0.25e-4 * 3.5
+        # Check the transient model.
+        if not isinstance(tmodel, models.TransientModel):
+            raise ValueError('tmodel must be a TransientModel instance')
 
-        # Check tmodel.
+        # Check the model parameters.
+        
+
+        # Check the volumetric rate.
+        if not callable(vrate):
+            vrate = lambda z: float(vrate)
+
+        # Check the cosmology.
+        if cosmo is None:
+            cosmo = cosmology.WMAP7
+        elif not isinstance(cosmo, cosmology.Cosmology):
+            raise ValueError('cosmo must be a Cosmology instance')
+
+        # Check the redshifts
+        if not (z_max > z_min):
+            raise ValueError('z_max must be greater than z_min')
+        
+        # TODO: be more careful abut how steps are constructed.
 
         # Get volumes in each redshift shell over whole sky
         z_bins = np.arange(z_min, z_max, z_step) 
@@ -112,7 +133,7 @@ class Survey(object):
         shell_vols = sphere_volumes[1:] - sphere_volumes[:-1]
 
         # Get list of unique bandpasses used in survey
-        bands = np.unique(self._obs['band'])
+        bands = np.unique(self.obs['band'])
 
         # Load bandpasses.
         bandpasses = {}
@@ -120,11 +141,11 @@ class Survey(object):
             bandpasses[band] = Bandpass.get(band)
 
         # Get list of unique field id's
-        fieldids = np.unique(self._obs['fieldid'])
+        fids = np.unique(self.obs['field'])
 
         # Loop over fields
-        for fid in fieldids:
-            fobs = self._obs(self._obs == fid)  # observations for this field
+        for fid in fids:
+            fobs = self.obs(self.obs == fid)  # observations for this field
             
             # Get range of observation dates.
             drange = (fobs['date'].min(), fobs['date'].max())
@@ -139,7 +160,7 @@ class Survey(object):
                 time_rframe = (simdrange[1] - simdrange[0]) / (1 + z_mid)
 
                 # Number of transients in this bin
-                intrinsic_rate = trate(z_mid) * bin_vol * time_rframe
+                intrinsic_rate = vrate(z_mid) * bin_vol * time_rframe
                 ntrans = np.random.poisson(intrinsic_rate , 1)[0]
                 if ntrans == 0: continue
 
