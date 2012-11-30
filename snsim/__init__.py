@@ -2,6 +2,7 @@
 from .bandpass import *
 from .spectrum import *
 from .survey import *
+from . import io
 
 try:
     from .version import version as __version__
