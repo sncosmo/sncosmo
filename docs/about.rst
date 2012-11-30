@@ -1,6 +1,9 @@
+About SNSim
+===========
+
 
 Relationship to other packages
-==============================
+------------------------------
 
 SNSim is one of many software packages for Type Ia supernova analysis.
 The most prominent package used for simulation of Type Ia surveys is
