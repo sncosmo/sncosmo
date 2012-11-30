@@ -7,18 +7,21 @@ import os
 import glob
 import numpy as np
 
-__all__ = ['model', 'SALT2Model']
+__all__ = ['SALT2Model']
 
-def model(modelname, modelpath=None):
-    """Create and return a Model class instance."""
+# Not yet sure the best way to implement the model() function to return
+# a specific model based on strings, so for now I'm commenting this out:
 
-    _builtin_models = {'salt2': SALT2Model}
-
-    if modelname in _builtin_models:
-        Model = _builtin_models[modelname]
-        return Model(modelpath)
-    else:
-        raise ValueError('model name "{}" is not a built-in model.')
+#def model(modelname, modelpath=None):
+#    """Create and return a Model class instance."""
+#
+#    _builtin_models = {'salt2': SALT2Model}
+#
+#    if modelname in _builtin_models:
+#        Model = _builtin_models[modelname]
+#        return Model(modelpath)
+#    else:
+#        raise ValueError('model name "{}" is not a built-in model.')
 
 
 class TransientModel(object):
