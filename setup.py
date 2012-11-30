@@ -63,8 +63,12 @@ generate_version_py(PACKAGENAME, version, release,
 packagenames = find_packages()
 
 # Treat everything in scripts except README.rst as a script to be installed
-scripts = glob.glob(os.path.join('scripts', '*'))
-scripts.remove(os.path.join('scripts', 'README.rst'))
+if os.path.exists(os.path.join('scripts', '*')):
+    scripts = glob.glob(os.path.join('scripts', '*'))
+    readme = os.path.join('scripts', 'README.rst')
+    if readme in scripts: scripts.remove(readme)
+else:
+    scripts = None
 
 # This dictionary stores the command classes used in setup below
 cmdclassd = {'test': setup_helpers.setup_test_command(PACKAGENAME),
