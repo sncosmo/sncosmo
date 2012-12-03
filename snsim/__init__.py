@@ -1,8 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from .bandpass import *
-from .spectrum import *
-from .survey import *
+from .core import *
+from .builtin import *
 from . import io
+from . import models
+from . import utils
 
 try:
     from .version import version as __version__

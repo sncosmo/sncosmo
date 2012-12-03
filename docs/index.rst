@@ -12,6 +12,8 @@ Contents
    quickexample
    snsim API <api/core>
    snsim.models API <api/models>
+   snsim.utils API <api/utils>
+   snsim.io API <api/io>
    about
 
 

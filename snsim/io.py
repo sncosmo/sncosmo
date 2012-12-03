@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from astropy.table import Table
 
+__all__ = ['read_simlib']
+
 def read_simlib(filename):
     """Read an SNANA 'simlib' file.
 
