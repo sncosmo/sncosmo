@@ -14,8 +14,9 @@ class GridData(object):
     
     Parameters
     ----------
-    filename : str
-        ASCII file with grid data in the form `x0 x1 y`
+    x0 : numpy.ndarray
+    x1 : numpy.ndarray
+    y : numpy.ndarray
     """
     
     def __init__(self, x0, x1, y):
@@ -25,58 +26,6 @@ class GridData(object):
         self._yfuncs = []
         for i in range(len(self._x0)):
             self._yfuncs.append(lambda x: np.interp(x, self._x1, y[i,:]))
-
-    @classmethod
-    def loadtxt(cls, filename, fmt='singleval'):
-        """Read grid data from a text file.
-
-        Parameters
-        ----------
-        filename : str
-        fmt : {'singleval'}
-            format of text file. Possible values are:
-
-            'singleval'
-                Each line has values `x0 x1 y`. Space separated, no comments.
-                x1 values are only read for first x0 value. Others are assumed
-                to match.
-        """
-
-        if fmt != 'singleval':
-            raise ValueError('Requested format {} not implemented.'
-                             .format(fmt))
-
-        x0 = []    # x0 values.
-        x1 = None  # x1 values for first x0 value, assume others are the same.
-        y = []     # 2-d array of internal values
-
-        x0_current = None
-        x1_current = []
-        y1_current = []
-        for line in open(filename):
-            x0_tmp, x1_tmp, y_tmp = map(float, line.split())
-            if x0_current is None: x0_current = x0_tmp  #Initialize first time
-
-            # If there is a new x0 value, ingest the old one and reset values
-            if x0_tmp != x0_current:
-                x0.append(x0_current)
-                if x1 is None: x1 = x1_current
-                y.append(y1_current)
-
-                x0_current = x0_tmp
-                x1_current = []
-                y1_current = []
-
-            x1_current.append(x1_tmp)
-            y1_current.append(y_tmp)
-
-        # Ingest the last x0 value and y1 array
-        x0.append(x0_current)
-        y.append(y1_current)
-
-        # Create and return a GridData instance.
-        return cls(x0, x1, y)
-
 
     def x0(self, copy=False):
         """Native x0 values."""
@@ -113,7 +62,7 @@ class GridData(object):
             raise ValueError("Requested x0 {:.2f} out of range ({:.2f}, "
                              "{:.2f})".format(x0, self._x0[0], self._x0[-1]))
 
-        # Use default wavelengths if none are specified
+        # Use default x1 if none are specified
         if x1 is None: x1 = self._x1
 
         # Check if requested x0 is out of bounds or exactly in the list

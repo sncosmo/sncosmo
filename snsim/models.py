@@ -107,25 +107,34 @@ class SALT2(Transient):
 
     Parameters
     ----------
-    modeldir : str
-        Path to directory containing model files.
-    """
-
-    def __init__(self, modeldir):
-        self._model = {}
-        self._model['M0'] = GridData(modeldir + '/salt2_template_0.dat')
-        self._model['M1'] = GridData(modeldir + '/salt2_template_1.dat')
-        self._model['V00'] = GridData(modeldir + '/salt2_spec_variance_0.dat')
-        self._model['V11'] = GridData(modeldir + '/salt2_spec_variance_1.dat')
-        self._model['V01'] = GridData(modeldir +
-                                      '/salt2_spec_covariance_01.dat')
-
-        errorscalefile = modeldir + '/salt2_spec_dispersion_scaling.dat'
-        if os.path.exists(errorscalefile):
-            self._model['errorscale'] = GridData(errorscalefile)
+    phases : numpy.ndarray
+    wavelengths : numpy.ndarray
+    M0, M1 : numpy.ndarray
+        First and second model components.
+        Shape must be (len(phases), len(wavelengths)).
+    V00, V11, V01 : numpy.ndarray
+        Variance of first component, second component and covariance.
+        Shape must be (len(phases), len(wavelengths)).
+    errorscale : numpy.ndarray, optional
         
-        self._phases = self._model['M0'].x0()
-        self._wavelengths = self._model['M0'].x1()
+
+"""
+
+    def __init__(self, phases, wavelengths, M0, M1, V00, V11, V01,
+                 errorscale=None):
+
+        self._phases = phases
+        self._wavelengths = wavelengths
+        self._M0 = GridData(phases, wavelengths, M0)
+        self._M1 = GridData(phases, wavelengths, M1)
+        self._V00 = GridData(phases, wavelengths, V00)
+        self._V11 = GridData(phases, wavelengths, V11)
+        self._V01 = GridData(phases, wavelengths, V01)
+        if errorscale is not None:
+            self._errorscale = GridData(phases, wavelengths, errorscale)
+        
+        self._phases = phases
+        self._wavelengths = wavelengths
 
     def phases(self):
         return self._phases.copy()
@@ -136,8 +145,8 @@ class SALT2(Transient):
     def flux(self, phase, wavelengths=None, x0=1.0, x1=0.0, c=0.0):
         """The model flux spectrum for the given parameters."""
 
-        f0 = self._model['M0'].y(phase, x1=wavelengths)
-        f1 = self._model['M1'].y(phase, x1=wavelengths)
+        f0 = self._M0.y(phase, x1=wavelengths)
+        f1 = self._M1.y(phase, x1=wavelengths)
         flux = x0 * (f0 + x1 * f1)
         flux *= self._extinction(wavelengths, c)
 
@@ -147,15 +156,15 @@ class SALT2(Transient):
         """The flux error spectrum for the given parameters.
 
         """
-        v00 = self._model['V00'].y(phase, x1=wavelengths)
-        v11 = self._model['V11'].y(phase, x1=wavelengths)
-        v01 = self._model['V01'].y(phase, x1=wavelengths)
+        v00 = self._V00.y(phase, x1=wavelengths)
+        v11 = self._V11.y(phase, x1=wavelengths)
+        v01 = self._V01.y(phase, x1=wavelengths)
         sigma = x0 * np.sqrt(v00 + x1*x1*v11 + 2*x1*v01)
         sigma *= self._extinction(wavelengths, c)
         ### sigma *= 1e-12   #- Magic constant from SALT2 code
         
-        if 'errorscale' in self._model:
-            sigma *= self._model['errorscale'].y(phase, x1=wavelengths)
+        if self._errorscale is not None:
+            sigma *= self._errorscale.y(phase, x1=wavelengths)
         
         # Hack adjustment to error (from SALT2 code)
         if phase < -7 or phase > 12:

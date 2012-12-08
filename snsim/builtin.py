@@ -13,16 +13,15 @@ from astropy.io import ascii
 
 from .core import Bandpass, Spectrum
 from . import models
+from . import io
 
 bandpass_dir = 'bandpasses'
 model_dir = 'models'
 spectrum_dir = 'spectra'
 
 builtin_models = {
-    'hsiao': {'class': models.SpectralTimeSeries,
-              'versions': ['1', '2', '3']},
-    'salt2': {'class': models.SALT2,
-              'versions': ['2.2.0', '2.1.0']}}
+    'hsiao': {'versions': ['1.0', '2.0', '3.0']},
+    'salt2': {'versions': ['2.2.0', '2.1.0']}}
 
 builtin_bandpasses = {
     'DECam::DESg': {'file': os.path.join('DECam', 'DESg.dat')},
@@ -37,6 +36,11 @@ builtin_spectra = {
 
 
 def datadir():
+    """Return full path to root level of data directory.
+
+    Raises ``ValueError`` if SNSIM_DATA environment variable not set.
+    """
+
     if 'SNSIM_DATA' not in os.environ:
         raise ValueError('Data directory not defined.')
     return os.environ['SNSIM_DATA']
@@ -81,7 +85,7 @@ def spectrum(name):
     return result
 
 
-def model(name, version='latest', modelpath=None):
+def model(name, version='latest'):
     """Create and return a Transient class instance."""
 
     if modelpath is None:
@@ -95,24 +99,63 @@ def model(name, version='latest', modelpath=None):
         raise ValueError('No model {}. Available models:\n'.format(name) +
                          ' '.join(_builtin_models.keys()))
         
-    if not (version in _builtin_models[name]['versions'] or
-            version == 'latest'):
+    if (version not in _builtin_models[name]['versions'] and
+        version != 'latest'):
         raise ValueError('No version {} for that model.'.format(version) +
-                         'Available versions are:\n' +
-                         builtin_models_str())
+                         'Available versions are:' +
+                         ','.join(_builtin_models[name]['versions']))
     
     if version == 'latest':
         version = sorted(_builtin_models[name]['versions'])[-1]
 
-    modeldir = os.path.join(modelpath, name, version)
-    return _builtin_models[name]['class'](modeldir)
+    modeldir = os.path.join(datadir(), model_dir, name, version)
 
+    if name == 'salt2':
+        files = {'M0': 'salt2_template_0.dat',
+                 'M1': 'salt2_template_1.dat',
+                 'V00': 'salt2_spec_variance_0.dat',
+                 'V01': 'salt2_spec_variance_1.dat',
+                 'V11': 'salt2_spec_covariance_01.dat',
+                 'errorscale': 'salt2_spec_dispersion_scaling.dat'}
 
+        phases = None
+        wavelengths = None
+        components = {}
 
-#def builtin_models_str():
-#    """Return string listing built-in models"""
-#    s = ""
-#    for name, model in _builtin_models.iteritems():
-#        for version in model['versions']:
-#            s.append("{} {}\n".format(name, version))
-#    return s
+        phases, wavelengths, M0 = io.read_griddata_txt(
+            os.path.join(modeldir, 'salt2_template_0.dat'))
+
+        # Read grid data from each component file.
+        for key in files:
+            full_filename = os.path.join(modeldir, files[key])
+            if not os.path.exists(full_filename):
+                if key == 'errorscale':
+                    components[key] = None
+                    continue
+                else:
+                    raise ValueError("File not found: '{}'"
+                                     .format(full_filename))
+
+            x0, x1, y = io.read_griddata_txt(full_filename)
+
+            # The first component determines the phase and wavelength
+            if phases is None:
+                phases = x0
+                wavelengths = x1
+
+            # Others must match
+            elif (x0 != phases or x1 != wavelengths):
+                raise ValueError('Model components must have matching phases'
+                                 ' and wavelengths.')
+
+            components[key] = y
+
+        # Return the SALT2 model
+        return models.SALT2(phases, wavelengths, components['M0'], 
+                            components['M1'], components['V00'],
+                            components['V11'], components['V01'],
+                            errorscale=components['errorscale'])
+
+    elif name == 'hsiao':
+        print "not implemented yet"
+        exit()
