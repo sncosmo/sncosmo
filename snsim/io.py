@@ -2,7 +2,7 @@ from collections import OrderedDict
 import numpy as np
 from astropy.table import Table
 
-__all__ = ['read_simlib', 'read_griddata']
+__all__ = ['read_simlib', 'read_griddata_txt']
 
 def _stripcomment(line, char='#'):
     pos = line.find(char)

@@ -10,6 +10,7 @@ TransientModel objects from the built-in data."""
 import os
 
 from astropy.io import ascii
+from astropy.io import fits
 
 from .core import Bandpass, Spectrum
 from . import models
@@ -20,8 +21,8 @@ model_dir = 'models'
 spectrum_dir = 'spectra'
 
 builtin_models = {
-    'hsiao': {'versions': ['1.0', '2.0', '3.0']},
-    'salt2': {'versions': ['2.2.0', '2.1.0']}}
+    'hsiao': {'versions': ['3.0', '2.0', '1.0']},
+    'salt2': {'versions': ['2.0', '1.1']}}
 
 builtin_bandpasses = {
     'DECam::DESg': {'file': os.path.join('DECam', 'DESg.dat')},
@@ -30,9 +31,8 @@ builtin_bandpasses = {
     'DECam::DESz': {'file': os.path.join('DECam', 'DESz.dat')},
     'DECam::DESy': {'file': os.path.join('DECam', 'DESy.dat')}}
 
-builtin_spectra = {
-    'vega': {'file': 'AB.dat'},
-    'ab': {'file': 'vega.dat'}}
+builtin_spectra = ['vega', 'ab']
+
 
 
 def datadir():
@@ -64,28 +64,33 @@ def bandpass(name):
     _checkfile(filename)
 
     t = ascii.read(filename, names=['wl', 'trans'])
-    result = Bandpass(t['wl'], t['trans'], copy=True)
-    del t
-    return result
+    return Bandpass(t['wl'], t['trans'])
 
 
 def spectrum(name):
     """Create and return a built-in Spectrum."""
 
     if name not in builtin_spectra:
-        raise ValueError('{} is not a built-in spectrum.')
+        raise ValueError("'{}' is not a built-in spectrum.".format(name))
 
-    filename = os.path.join(datadir(), spectrum_dir,
-                            builtin_spectra[name]['file'])
-    _checkfile(filename)
+    spectrumdir = os.path.join(datadir(), spectrum_dir)
 
-    t = ascii.read(filename, names=['wl', 'f'])
-    result = Spectrum(t['wl'], t['f'], copy=True)
-    del t
-    return result
+    if name == 'ab':
+        filename = os.path.join(spectrumdir, 'AB.dat')
+        _checkfile(filename)
+        t = ascii.read(filename, names=['wl', 'f'])
+        return Spectrum(t['wl'], t['f'])
+
+    if name == 'vega':
+        filename = os.path.join(spectrumdir, 'alpha_lyr_stis_003.fits')
+        _checkfile(filename)
+        hdulist = fits.open(filename)
+        tbdata = hdulist[1].data
+        return Spectrum(tbdata.field('WAVELENGTH'),
+                        tbdata.field('FLUX'))
 
 
-def model(name, version='latest'):
+def model(name, version='latest', modelpath=None):
     """Create and return a Transient class instance."""
 
     if modelpath is None:
@@ -95,18 +100,18 @@ def model(name, version='latest'):
             raise ValueError('If modelpath is not given, environment '
                              'variable SNSIM_DATA must be defined.')
 
-    if (name not in _builtin_models):
+    if (name not in builtin_models):
         raise ValueError('No model {}. Available models:\n'.format(name) +
-                         ' '.join(_builtin_models.keys()))
+                         ' '.join(builtin_models.keys()))
         
-    if (version not in _builtin_models[name]['versions'] and
+    if (version not in builtin_models[name]['versions'] and
         version != 'latest'):
-        raise ValueError('No version {} for that model.'.format(version) +
-                         'Available versions are:' +
-                         ','.join(_builtin_models[name]['versions']))
+        raise ValueError("No version '{}' for that model. \n".format(version) +
+                         "Available versions: " +
+                         ", ".join(builtin_models[name]['versions']))
     
     if version == 'latest':
-        version = sorted(_builtin_models[name]['versions'])[-1]
+        version = sorted(builtin_models[name]['versions'])[-1]
 
     modeldir = os.path.join(datadir(), model_dir, name, version)
 
@@ -116,45 +121,20 @@ def model(name, version='latest'):
                  'V00': 'salt2_spec_variance_0.dat',
                  'V01': 'salt2_spec_variance_1.dat',
                  'V11': 'salt2_spec_covariance_01.dat',
-                 'errorscale': 'salt2_spec_dispersion_scaling.dat'}
+                 'errscale': None}
+        if version == '1.1':
+            files['errscale'] = 'salt2_spec_dispersion_scaling.dat'
 
-        phases = None
-        wavelengths = None
-        components = {}
-
-        phases, wavelengths, M0 = io.read_griddata_txt(
-            os.path.join(modeldir, 'salt2_template_0.dat'))
-
-        # Read grid data from each component file.
+        # Change to full paths and check that they exist.
         for key in files:
-            full_filename = os.path.join(modeldir, files[key])
-            if not os.path.exists(full_filename):
-                if key == 'errorscale':
-                    components[key] = None
-                    continue
-                else:
-                    raise ValueError("File not found: '{}'"
-                                     .format(full_filename))
+            if files[key] is None: continue
+            files[key] = os.path.join(modeldir, files[key])
+            _checkfile(files[key])
 
-            x0, x1, y = io.read_griddata_txt(full_filename)
+        return models.SALT2(files['M0'], files['M1'], files['V00'],
+                            files['V11'], files['V01'],
+                            errscalefile=files['errscale'])
 
-            # The first component determines the phase and wavelength
-            if phases is None:
-                phases = x0
-                wavelengths = x1
-
-            # Others must match
-            elif (x0 != phases or x1 != wavelengths):
-                raise ValueError('Model components must have matching phases'
-                                 ' and wavelengths.')
-
-            components[key] = y
-
-        # Return the SALT2 model
-        return models.SALT2(phases, wavelengths, components['M0'], 
-                            components['M1'], components['V00'],
-                            components['V11'], components['V01'],
-                            errorscale=components['errorscale'])
 
     elif name == 'hsiao':
         print "not implemented yet"

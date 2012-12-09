@@ -8,6 +8,7 @@ import math
 
 import numpy as np
 
+from . import io
 from .utils import GridData
 
 __all__ = ['Transient', 'SpectralTimeSeries', 'SALT2']
@@ -107,46 +108,64 @@ class SALT2(Transient):
 
     Parameters
     ----------
-    phases : numpy.ndarray
-    wavelengths : numpy.ndarray
-    M0, M1 : numpy.ndarray
-        First and second model components.
-        Shape must be (len(phases), len(wavelengths)).
-    V00, V11, V01 : numpy.ndarray
-        Variance of first component, second component and covariance.
-        Shape must be (len(phases), len(wavelengths)).
-    errorscale : numpy.ndarray, optional
+    m0file, m1file, v00file, v11file, v01file : str
+        Path to files containing model components. Each file should have
+        the format ``phase wavelength value`` on each line.
+    errscalefile : str, optional
+        Path to error scale file, same format as model component files.
+        The default is ``None``, which means that the error scale will
+        not be applied in the ``fluxerr()`` method.
+
+    Notes
+    -----
+    The phase and wavelength values of the various components don't necessarily
+    need to match. (In the most recent salt2 model data, they do not all 
+    match.) The phase and wavelength values of the first model component
+    (in ``m0file``) are taken as the "native" sampling of the model, even
+    though these values might require interpolation of the other model
+    components.
+    """
+
+    def __init__(self, m0file, m1file, v00file, v11file, v01file, 
+                 errscalefile=None):
+
+        self._model = {}
+
+        components = ['M0', 'M1', 'V00', 'V11', 'V01', 'errscale']
+        filenames = [m0file, m1file, v00file, v11file, v01file, errscalefile]
+        for component, filename in zip(components, filenames):
+
+            # If the filename is None, that component is left out of the model
+            if filename is None: continue
+
+            # Get the model component from the file
+            phases, wavelengths, values = io.read_griddata_txt(filename)
+            self._model[component] = GridData(phases, wavelengths, values)
+
+            # The "native" phases and wavelengths of the model are those
+            # of the first model component.
+            if component == 'M0':
+                self._phases = phases
+                self._wavelengths = wavelengths    
+
+
+    def phases(self, copy=False):
+        """Return native phases of the model in days."""
+        if copy: return self._phases.copy()
+        else: return self._phases
+
+
+    def wavelengths(self, copy=False):
+        """Return native wavelengths of the model in Angstroms."""
+        if copy: return self._wavelengths.copy()
+        else: return self._wavelengths
+
         
-
-"""
-
-    def __init__(self, phases, wavelengths, M0, M1, V00, V11, V01,
-                 errorscale=None):
-
-        self._phases = phases
-        self._wavelengths = wavelengths
-        self._M0 = GridData(phases, wavelengths, M0)
-        self._M1 = GridData(phases, wavelengths, M1)
-        self._V00 = GridData(phases, wavelengths, V00)
-        self._V11 = GridData(phases, wavelengths, V11)
-        self._V01 = GridData(phases, wavelengths, V01)
-        if errorscale is not None:
-            self._errorscale = GridData(phases, wavelengths, errorscale)
-        
-        self._phases = phases
-        self._wavelengths = wavelengths
-
-    def phases(self):
-        return self._phases.copy()
-
-    def wavelengths(self):
-        return self._wavelengths.copy()
-
     def flux(self, phase, wavelengths=None, x0=1.0, x1=0.0, c=0.0):
         """The model flux spectrum for the given parameters."""
 
-        f0 = self._M0.y(phase, x1=wavelengths)
-        f1 = self._M1.y(phase, x1=wavelengths)
+        f0 = self._model['M0'].y(phase, x1=wavelengths)
+        f1 = self._model['M1'].y(phase, x1=wavelengths)
         flux = x0 * (f0 + x1 * f1)
         flux *= self._extinction(wavelengths, c)
 
@@ -156,15 +175,15 @@ class SALT2(Transient):
         """The flux error spectrum for the given parameters.
 
         """
-        v00 = self._V00.y(phase, x1=wavelengths)
-        v11 = self._V11.y(phase, x1=wavelengths)
-        v01 = self._V01.y(phase, x1=wavelengths)
+        v00 = self._model['V00'].y(phase, x1=wavelengths)
+        v11 = self._model['V11'].y(phase, x1=wavelengths)
+        v01 = self._model['V01'].y(phase, x1=wavelengths)
         sigma = x0 * np.sqrt(v00 + x1*x1*v11 + 2*x1*v01)
         sigma *= self._extinction(wavelengths, c)
         ### sigma *= 1e-12   #- Magic constant from SALT2 code
         
-        if self._errorscale is not None:
-            sigma *= self._errorscale.y(phase, x1=wavelengths)
+        if 'errscale' in self._model:
+            sigma *= self._model['errscale'].y(phase, x1=wavelengths)
         
         # Hack adjustment to error (from SALT2 code)
         if phase < -7 or phase > 12:
@@ -188,7 +207,7 @@ class SALT2(Transient):
         const = math.log(10)/2.5
 
         if wavelengths is None: wavelengths = self._wavelengths
-        wavelengths = np.array(wavelengths)
+        wavelengths = np.asarray(wavelengths)
 
         wB = 4302.57
         wV = 5428.55

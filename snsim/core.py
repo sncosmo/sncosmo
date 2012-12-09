@@ -2,6 +2,9 @@
 
 """Class to represent an astronomical survey."""
 
+from collections import OrderedDict
+from copy import deepcopy
+
 import numpy as np
 from astropy.table import Table
 from astropy import cosmology
@@ -22,9 +25,7 @@ drange_pad = (20., 20.)
 h_erg_s = 6.626068e-27  # Planck constant (erg * s)
 c_AA_s = 2.9979e+18  # Speed of light ( AA / sec)
 
-cosmo = cosmology.LambdaCDM(H0=70., Om0=0.3, Ode0=0.7)
-
-
+default_cosmology = cosmology.WMAP7
 
 class Bandpass(object):
     """A bandpass, e.g., filter. ('filter' is a built-in python function.)
@@ -39,10 +40,10 @@ class Bandpass(object):
         Copy input arrays.
     """
 
-    def __init__(self, wavelength, transmission, copy=False):
+    def __init__(self, wavelength, transmission):
         
-        wavelength = np.array(wavelength, copy=copy)
-        transmission = np.array(transmission, copy=copy)
+        wavelength = np.asarray(wavelength)
+        transmission = np.asarray(transmission)
         if wavelength.shape != transmission.shape:
             raise ValueError('shape of wavelength and transmission must match')
         if wavelength.ndim != 1:
@@ -80,20 +81,21 @@ class Spectrum(object):
         Copy input arrays.
     """
 
-    def __init__(self, wavelength, flux, z=None, dist=None, variance=None,
-                 meta=None, copy=False):
+    def __init__(self, wavelengths, flux, z=None, dist=None, variance=None,
+                 meta=None):
         
-        self.wavelength = np.array(wavelength, copy=copy)
-        self.flux = np.array(flux, copy=copy)
-        if self.wavelength.shape != self.flux.shape:
+        self.wavelengths = np.asarray(wavelengths)
+        self.flux = np.asarray(flux)
+        
+        if self.wavelengths.shape != self.flux.shape:
             raise ValueError('shape of wavelength and flux must match')
-        if self.wavelength.ndim != 1:
+        if self.wavelengths.ndim != 1:
             raise ValueError('only 1-d arrays supported')
         self.z = z
         self.dist = dist
         if variance is not None:
-            self.variance = np.array(variance, copy=copy)
-            if self.wavelength.shape != self.variance.shape:
+            self.variance = np.asarray(variance)
+            if self.wavelengths.shape != self.variance.shape:
                 raise ValueError('shape of wavelength and variance must match')
         else:
             self.variance = None
@@ -118,16 +120,16 @@ class Spectrum(object):
 
         # If the bandpass is not fully inside the defined region of the spectrum
         # return None.
-        if (band.wavelength[0] < spec.wavelength[0] or
-            band.wavelength[-1] > spec.wavelength[-1]):
+        if (band.wavelength[0] < spec.wavelengths[0] or
+            band.wavelength[-1] > spec.wavelengths[-1]):
             return None
 
         # Get the spectrum index range to use
-        idx = ((spec.wavelength > band.wavelength[0]) & 
-               (spec.wavelength < band.wavelength[-1]))
+        idx = ((spec.wavelengths > band.wavelength[0]) & 
+               (spec.wavelengths < band.wavelength[-1]))
 
         # Spectrum quantities in this wavelength range
-        wave = spec.wavelength[idx]
+        wave = spec.wavelengths[idx]
         flux = spec.flux[idx]
         binwidth = np.gradient(wave) # Width of each bin
 
@@ -179,10 +181,13 @@ class Spectrum(object):
             A new spectrum object at redshift z.
         """
 
+        if cosmo is None:
+            cosmo = default_cosmology
+
         # Shift wavelengths, adjust flux so that bolometric flux
         # remains constant.
         factor =  (1. + z_out) / (1. + z_in)
-        new_wave = spec.wavelength * factor
+        new_wave = spec.wavelengths * factor
         new_flux = spec.flux / factor
         if spec.variance is not None:
             new_var = spec.variance / factor ** 2
@@ -232,7 +237,7 @@ class Survey(object):
     obs : astropy.table.Table, numpy.ndarray, or dict of list_like
         Table of observations in the survey. This table must have certain
         field names. See "Notes" section.
-    bands : dict of Bandpass
+    bandpasses : dict of Bandpass
         Dictionary of bandpasses that the survey should know about.
         The keys should be strings. In the `obs` table, `band` entries are
         strings corresponding to these keys.
@@ -269,16 +274,40 @@ class Survey(object):
             Systematic uncertainty in zeropoint.
     """
 
-    def __init__(self, fields, obs):
+    def __init__(self, fields, obs, bandpasses, zpspectra):
         self.fields = fields
         self.obs = Table(obs)
+        self.bandpasses = bandpasses
+        self.zpspectra = zpspectra
         
-        # TODO: check that obs includes all necessary data fields
+        # Check that required keys are in the observation table
+        required_keys = ['field', 'date', 'band', 'ccdgain', 'ccdnoise',
+                         'skysig', 'psffwhm', 'zp', 'zpsys']
+        for key in required_keys:
+            if not key in self.obs.colnames:
+                raise ValueError("observations missing required key: '{}'"
+                                 .format(key))
+
+        # Check that observed bands are in self.bandpasses
+        for name in self.obs['band']:
+            if not name in self.bandpasses:
+                raise ValueError("Bandpass '{}' is in observations, but not"
+                                 " in 'bandpasses' dictionary.")
+
+        # Check that zeropoint systems are in self.zpspectra
+        for name in self.obs['zpsys']:
+            if not name in self.zpspectra:
+                raise ValueError("zeropoint system '{}' is in observations, "
+                                 "but not in 'zpspectra' dictionary.")
+
+        # get the zp synthetic flux for all bandpass, zpsys combinations.
+        self._zpflux = {}
+        for bandname, bandpass in self.bandpasses.iteritems():
+            for zpsys, zpspec in self.zpspectra.iteritems():
+                self._zpflux[(bandname, zpsys)] = zpspec.synphot(bandpass)
 
 
-        # Check that
-
-    def simulate(self, tmodel, params={}, vrate=1.e-4, cosmo=None,
+    def simulate(self, tmodel, params, mband, zpspec, vrate=1.e-4, cosmo=None,
                  z_range=(0., 2.), z_bins=40):
         """Run a simulation of the survey.
         
@@ -286,19 +315,24 @@ class Survey(object):
         ----------
         tmodel : A TransientModel instance
             The transient we're interested in.
-        params : dictionary or callable, optional
-            Dictionary of parameters to pass to the model or
+        params : dictionary or callable
+            Dictionary of parameters to pass to the model *or*
             a callable that returns such a dictionary on each call. 
             Typically the callable would randomly select parameters
-            from some underlying distribution on each call. The default is
-            no parameters.
+            from some underlying distribution on each call.
+            The parameters must include 'm', the absolute magnitude.
+        mband : str
+            The rest-frame bandpass in which the absolute magnitude is 
+            measured. Must be in the Survey's ``bandpasses`` dictionary.
+        zpsys : str
+            The zeropoint system of the absolute magnitude ``m``. Must be
+            in the Survey's ``zpspectra`` dictionary.
         vrate : float or callable, optional
             The volumetric rate in (comoving Mpc)^{-3} yr^{-1} or
             a callable that returns the rate as a function of redshift.
             (The default is 1.e-4.)
         cosmo : astropy.cosmology.Cosmology, optional
-            Callable returning a dictionary of parameters (randomly selected
-            from some underlying distribution) to pass to the model. 
+            Cosmology used to determine volumes and luminosity distances.
             (The default is `None`, which implies the WMAP7 cosmology.)
         z_range : (float, float), optional
             Redshift range in which to generate transients.
@@ -311,9 +345,15 @@ class Survey(object):
         if not isinstance(tmodel, models.TransientModel):
             raise ValueError('tmodel must be a TransientModel instance')
 
-        # Check the model parameters.
-        if params is None:
-            params = {}
+        # Make params a callable if it isn't already.
+        if callable(params):
+            getparams = params
+        else:
+            def getparams(): return params
+
+        # Check that 'm' is in the dictionary that getparams() returns.
+        if 'm' not in getparams():
+            raise ValueError("params must include 'm'")
 
         # Check the volumetric rate.
         if not callable(vrate):
@@ -321,7 +361,7 @@ class Survey(object):
 
         # Check the cosmology.
         if cosmo is None:
-            cosmo = cosmology.WMAP7
+            cosmo = default_cosmology
         elif not isinstance(cosmo, cosmology.Cosmology):
             raise ValueError('cosmo must be a Cosmology instance')
 
