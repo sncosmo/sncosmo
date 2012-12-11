@@ -9,12 +9,9 @@ Contents
 .. toctree::
    :maxdepth: 1
 
-   quickexample
-   snsim API <api/core>
-   snsim.models API <api/models>
-   snsim.utils API <api/utils>
-   snsim.io API <api/io>
+   examples
    about
+   reference
 
 
 Indices and tables
