@@ -25,6 +25,7 @@ builtin_models = {
     'salt2': {'versions': ['2.0', '1.1']}}
 
 builtin_bandpasses = {
+    'Bessell::B': {'file': os.path.join('Bessell', 'B.dat')},
     'DECam::DESg': {'file': os.path.join('DECam', 'DESg.dat')},
     'DECam::DESr': {'file': os.path.join('DECam', 'DESr.dat')},
     'DECam::DESi': {'file': os.path.join('DECam', 'DESi.dat')},
