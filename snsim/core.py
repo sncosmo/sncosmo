@@ -15,13 +15,8 @@ __all__ = ['Bandpass', 'Spectrum', 'Survey']
 
 # Constants for Survey
 wholesky_sqdeg = 4. * np.pi * (180. / np.pi) ** 2
-drange_pad = (20., 20.)
-
 
 # Constants for Spectrum
-
-#h_erg_s = cgs.h
-#c_AA_s = cgs.c * 1.e8
 h_erg_s = 6.626068e-27  # Planck constant (erg * s)
 c_AA_s = 2.9979e+18  # Speed of light ( AA / sec)
 
@@ -32,7 +27,7 @@ class Bandpass(object):
 
     Parameters
     ----------
-    wavelength : list_like
+    wavelengths : list_like
         Wavelength values, in angstroms
     transmission : list_like
         Transmission values.
@@ -40,66 +35,103 @@ class Bandpass(object):
         Copy input arrays.
     """
 
-    def __init__(self, wavelength, transmission):
+    def __init__(self, wavelengths, transmission):
         
-        wavelength = np.asarray(wavelength)
-        transmission = np.asarray(transmission)
-        if wavelength.shape != transmission.shape:
-            raise ValueError('shape of wavelength and transmission must match')
-        if wavelength.ndim != 1:
+        self._wavelengths = np.asarray(wavelengths)
+        self._transmission = np.asarray(transmission)
+        if self._wavelengths.shape != self._transmission.shape:
+            raise ValueError('shape of wavelengths and transmission must match')
+        if self._wavelengths.ndim != 1:
             raise ValueError('only 1-d arrays supported')
-        self.wavelength = wavelength
-        self.transmission = transmission
 
+    @property
+    def wavelengths(self):
+        """Wavelengths in Angstroms"""
+        return self._wavelengths
 
-    def size(self):
-        return self.wavelength.shape[0]
-
-
-    def range(self):
-        return (self.wavelength[0], self.wavelength[-1])
+    @property
+    def transmission(self):
+        """Transmission fraction"""
+        return self._transmission
 
 
 class Spectrum(object):
-    """A spectrum.
+    """A spectrum, representing wavelength and flux values.
 
     Parameters
     ----------
     wavelength : list_like
         Wavelength values, in angstroms
     flux : list_like
-        Flux values, in units f_lambda (ergs/s/cm^2/AA)
-    variance : list_like, optional
-        Variance on flux values.
+        Flux values, in units :math:`F_\lambda` (ergs/s/cm^2/Angstrom)
+    fluxerr : list_like, optional
+        1 standard deviation uncertainty on flux values.
     z : float, optional
-        Redshift of spectrum (default is `None`)
+        Redshift of spectrum (default is ``None``)
     dist : float, optional
-        Luminosity distance in Mpc, used to adjust flux (default is `None`)
+        Luminosity distance in Mpc, used to adjust flux upon redshifting.
+        The default is ``None``.
     meta : OrderedDict, optional
         Metadata.
     copy : bool, optional
         Copy input arrays.
     """
 
-    def __init__(self, wavelengths, flux, z=None, dist=None, variance=None,
+    def __init__(self, wavelengths, flux, fluxerr=None, z=None, dist=None,
                  meta=None):
         
-        self.wavelengths = np.asarray(wavelengths)
-        self.flux = np.asarray(flux)
+        self._wavelengths = np.asarray(wavelengths)
+        self._flux = np.asarray(flux)
         
-        if self.wavelengths.shape != self.flux.shape:
+        if self._wavelengths.shape != self._flux.shape:
             raise ValueError('shape of wavelength and flux must match')
-        if self.wavelengths.ndim != 1:
+        if self._wavelengths.ndim != 1:
             raise ValueError('only 1-d arrays supported')
-        self.z = z
-        self.dist = dist
-        if variance is not None:
-            self.variance = np.asarray(variance)
-            if self.wavelengths.shape != self.variance.shape:
+        self._z = z
+        self._dist = dist
+        if fluxerr is not None:
+            self._fluxerr = np.asarray(fluxerr)
+            if self._wavelengths.shape != self._fluxerr.shape:
                 raise ValueError('shape of wavelength and variance must match')
         else:
-            self.variance = None
-        self.meta = OrderedDict() if meta is None else deepcopy(meta)
+            self._fluxerr = None
+        if meta is not None:
+            self.meta = deepcopy(meta)
+        else:
+            self.meta = None
+
+    @property
+    def wavelengths(self):
+        """Wavelengths of spectrum in Angstroms"""
+        return self._wavelengths
+        
+    @property
+    def flux(self):
+        """Fluxes in ergs/s/cm^2/Angstrom"""
+        return self._flux
+
+    @property
+    def fluxerr(self):
+        """Fluxes in ergs/s/cm^2/Angstrom"""
+        return self._fluxerr
+
+    @property
+    def z(self):
+        """Redshift of spectrum."""
+        return self._z
+
+    @z.setter
+    def z(self, value):
+        self._z = value
+
+    @property
+    def dist(self):
+        """Distance to object."""
+        return self._dist
+
+    @dist.setter
+    def dist(self, value):
+        self._dist = value
 
 
     def synphot(self, band):
@@ -108,72 +140,77 @@ class Spectrum(object):
         Parameters
         ----------
         band : Bandpass object
-            Self explanatory.
 
         Returns
         -------
         flux : float
             Total flux in photons/sec/cm^2
         fluxerr : float
-            Error on flux, only returned if spectrum.variance is not `None`
+            Error on flux. Only returned if spectrum.fluxerr is not `None`.
         """
 
         # If the bandpass is not fully inside the defined region of the spectrum
         # return None.
-        if (band.wavelength[0] < spec.wavelengths[0] or
-            band.wavelength[-1] > spec.wavelengths[-1]):
+        if (band.wavelengths[0] < self._wavelengths[0] or
+            band.wavelengths[-1] > self._wavelengths[-1]):
             return None
 
         # Get the spectrum index range to use
-        idx = ((spec.wavelengths > band.wavelength[0]) & 
-               (spec.wavelengths < band.wavelength[-1]))
+        idx = ((self._wavelengths > band.wavelength[0]) & 
+               (self._wavelengths < band.wavelength[-1]))
 
         # Spectrum quantities in this wavelength range
-        wave = spec.wavelengths[idx]
-        flux = spec.flux[idx]
-        binwidth = np.gradient(wave) # Width of each bin
+        wl = self._wavelengths[idx]
+        f = self._flux[idx]
+        binwidth = np.gradient(wl) # Width of each bin
 
         # Interpolate bandpass transmission to these wavelength values
-        trans = np.interp(wave, band.wavelength, band.transmission)
+        trans = np.interp(wl, band.wavelengths, band.transmission)
 
         # Convert flux from erg/s/cm^2/AA to photons/s/cm^2/AA
-        factor = (wave / (h_erg_s * c_AA_s))
-        flux *= factor
+        factor = wl / (h_erg_s * c_AA_s)
+        f *= factor
 
         # Get total erg/s/cm^2
-        totflux = np.sum(flux * trans * binwidth)
+        ftot = np.sum(f * trans * binwidth)
 
-        if spec.variance is None:
-            return totflux
-
+        if self._fluxerr is None:
+            return ftot
         else:
-            var = spec.variance[idx]
-            var *= factor ** 2  # Convert from erg/s/cm^2/AA to photons/s/cm^2/AA
-            totvar = np.sum(var * trans ** 2 * binwidth) # Total variance
-            return totflux, np.sqrt(totvar)
+            fe = self._fluxerr[idx]
+            fe *= factor  # Convert from erg/s/cm^2/AA to photons/s/cm^2/AA
+            fetot = np.sum((fe * trans) ** 2 * binwidth)
+            return totflux, fetot
 
 
-    def redshifted_to(self, z, dist=None, adjust_flux=False, cosmo=None):
+    def redshifted_to(self, z, adjust_flux=False, dist=None, cosmo=None):
         """Return a new Spectrum object at a new redshift.
 
-        The current redshift must be defined (spec.z cannot be `None`).
-
+        The current redshift must be defined (self.z cannot be `None`).
+        A factor of (1 + z) / (1 + self.z) is applied to the wavelength. 
+        The inverse factor is applied to the flux so that the bolometric
+        flux remains the same.
+        
         Parameters
         ----------
         z : float
-            A factor of (1 + z) / (1 + self.z) is applied to the wavelength. 
-            The inverse factor is applied to the flux so that the bolometric
-            flux remains the same.
-        dist : 
-
-        dist_in OR zdist_in : float
-            Input distance in Mpc or input redshift (> 0). Used to adjust
-            bolometric flux, as F_out = F_in * (D_in / D_out) ** 2,
-            where D is luminosity distance. D is given by dist_in or calculated
-            for the redshift zdist_in. 
-        dist_out OR zdist_out :float
-            Output distance in Mpc or redshift (> 0). Used to adjust bolometric
-            flux. See above.
+            Target redshift.
+        adjust_flux : bool, optional
+            If True, the bolometric flux is adjusted by
+            ``F_out = F_in * (D_in / D_out) ** 2``, where ``D_in`` and
+            ``D_out`` are current and target luminosity distances,
+            respectively. ``D_in`` is self.dist. If self.dist is ``None``,
+            the distance is calculated from the current redshift and
+            given cosmology.
+        dist : float, optional
+            Output distance in Mpc. Used to adjust bolometric flux if
+            ``adjust_flux`` is ``True``. Default is ``None`` which means
+            that the distance is calculated from the redshift and the
+            cosmology.
+        cosmology : `~astropy.cosmology.Cosmology` instance, optional
+            The cosmology used to estimate distances if dist is not given.
+            Default is ``None``, which results in using the default
+            cosmology.
 
         Returns
         -------
@@ -181,50 +218,48 @@ class Spectrum(object):
             A new spectrum object at redshift z.
         """
 
-        if cosmo is None:
-            cosmo = default_cosmology
+        if cosmology is None:
+            cosmology = default_cosmology
 
         # Shift wavelengths, adjust flux so that bolometric flux
         # remains constant.
-        factor =  (1. + z_out) / (1. + z_in)
-        new_wave = spec.wavelengths * factor
-        new_flux = spec.flux / factor
-        if spec.variance is not None:
-            new_var = spec.variance / factor ** 2
-        else:
-            new_var = None
+        factor =  (1. + z) / (1. + self._z)
+        wl = self._wavelengths * factor
+        f = self._flux / factor
+        if self._fluxerr is not None: fe = self._fluxerr / factor
+        else: fe = None
 
-        # Check flux distance inputs
-        if (dist_in is not None) and (zdist_in is not None):
-            raise ValueError("cannot specify both zdist_in and dist_in")
-        if zdist_in is not None:
-            if zdist_in <= 0.:
-                raise ValueError("zdist_in must be greater than 0")
-            dist_in = cosmo.luminosity_distance(zdist_in)
+        if adjust_flux:
+            # Check current distance
+            if self._dist is None and self._z == 0.:
+                raise ValueError("When current redshift is 0 and adjust_flux "
+                                 "is requested, current distance must be "
+                                 "defined")
 
-        # Check flux distance outputs
-        if (dist_out is not None) and (zdist_out is not None):
-            raise ValueError("cannot specify both zdist_out and dist_out")
-        if zdist_out is not None:
-            if zdist_out <= 0.:
-                raise ValueError("zdist_out must be greater than 0")
-            dist_out = cosmo.luminosity_distance(zdist_out)
+            # Check requested distance
+            if dist is None and z == 0.:
+                raise ValueError("When redshift is 0 and adjust_flux "
+                                 "is requested, dist must be defined")
 
-        # Check for only one being specified.
-        if (((dist_in is None) and (dist_out is not None)) or
-            ((dist_in is not None) and (dist_out is None))):
-            raise ValueError("Only input or only output flux distance specified")
+            if dist <= 0. or self._dist <= 0.:
+                raise ValueError("Distances must be greater than 0.")
 
-        # If both are specified, adjust the flux.
-        if dist_in is not None and dist_out is not None:
-            factor = (dist_in / dist_out) ** 2
-            new_flux *= factor
-            if new_var is not None:
-                new_var *= factor ** 2
+            if self._dist is None:
+                dist_in = cosmo.luminosity_distance(self._z)
+            else:
+                dist_in = self._dist
 
-        return Spectrum(new_wave, new_flux, variance=new_var, meta=spec.meta)
+            if dist is None:
+                dist_out = cosmo.luminosity_distance(z)
+            else:
+                dist_out = dist
 
+            # Adjust the flux
+            factor = (dist_in / dist) ** 2
+            f *= factor
+            if fe is not None: fe *= factor ** 2
 
+        return Spectrum(wl, f, fluxerr=fe, z=z, dist=dist, meta=self.meta)
 
 
 class Survey(object):
@@ -239,8 +274,11 @@ class Survey(object):
         field names. See "Notes" section.
     bandpasses : dict of Bandpass
         Dictionary of bandpasses that the survey should know about.
-        The keys should be strings. In the `obs` table, `band` entries are
+        The keys should be strings. In the ``obs`` table, ``'band'`` entries are
         strings corresponding to these keys.
+    zpspectra : dict of Spectrum
+        Dictionary of zeropoint spectra. The keys should be strings. In
+        the ``obs`` table, the ``'zpsys'`` field corresponds to these keys.
 
     Notes
     -----
@@ -289,16 +327,19 @@ class Survey(object):
                                  .format(key))
 
         # Check that observed bands are in self.bandpasses
-        for name in self.obs['band']:
-            if not name in self.bandpasses:
+        uniquebands = np.unique(self.obs['band'])
+        for band in uniquebands:
+            if not band in self.bandpasses:
                 raise ValueError("Bandpass '{}' is in observations, but not"
-                                 " in 'bandpasses' dictionary.")
+                                 " in 'bandpasses' dictionary."
+                                 .format(band))
 
         # Check that zeropoint systems are in self.zpspectra
         for name in self.obs['zpsys']:
             if not name in self.zpspectra:
                 raise ValueError("zeropoint system '{}' is in observations, "
-                                 "but not in 'zpspectra' dictionary.")
+                                 "but not in 'zpspectra' dictionary."
+                                 .format(name))
 
         # get the zp synthetic flux for all bandpass, zpsys combinations.
         self._zpflux = {}
@@ -355,6 +396,16 @@ class Survey(object):
         if 'm' not in getparams():
             raise ValueError("params must include 'm'")
 
+        # Check that mband is in bandpasses
+        if not mband in self.bandpasses:
+            raise ValueError("Requested 'mband' {} not in survey bandpasses."
+                             .format(mband))
+
+        # Check that zpsys is in the survey's zpspectra
+        if not zpsys in self.zpspectra:
+            raise ValueError("Requested 'zpsys' {} not in survey zpspectra."
+                             .format(zpsys))
+
         # Check the volumetric rate.
         if not callable(vrate):
             vrate = lambda z: float(vrate)
@@ -380,14 +431,6 @@ class Survey(object):
         sphere_vols = cosmo.comoving_volume(z_binedges) 
         shell_vols = sphere_volumes[1:] - sphere_volumes[:-1]
 
-        # Get list of unique bandpasses used in survey
-        bands = np.unique(self.obs['band'])
-
-        # Load bandpasses.
-        bandpasses = {}
-        for band in bands:
-            bandpasses[band] = Bandpass.get(band)
-
         # Get list of unique field id's
         fids = np.unique(self.obs['field'])
 
@@ -406,8 +449,12 @@ class Survey(object):
                                              shell_vols):
                 z_mid = (z_lo + z_hi) / 2.
                 bin_vol = shell_vol * area / wholesky_sqdeg
-                simdrange = (drange[0] - drange_pad[0] * (1 + z_mid),
-                             drange[1] + drange_pad[1] * (1 + z_mid))
+
+                # Simulate transients in a wider date range than the
+                # observations. This is the range of dates that phase=0 
+                # will be placed at.
+                simdrange = (drange[0] - tmodel.phases[-1] * (1 + z_mid),
+                             drange[1] - tmodel.phases[0] * (1 + z_mid))
                 time_rframe = (simdrange[1] - simdrange[0]) / (1 + z_mid)
 
                 # Number of transients in this bin
@@ -421,21 +468,38 @@ class Survey(object):
 
                 # Loop over the transients that occured in this bin
                 for i in range(ntrans):
-                    
-                    # Get randomly selected parameters for this transient
-                    params = param_gen()
-                    transient = {'date_max': dates[i], 'z': zs[i],
-                                 'date': [], 'mag': [],
+                    date0 = dates[i] # date corresponding to phase = 0
+                    z = zs[i]  # redshift of transient
+
+                    # Get a random selection of model parameters.
+                    # Do a deep copy in case getparams() returns the same
+                    # object each time (we will modify our copy below).
+                    params = deepcopy(getparams())
+
+                    # Initialize a data table for this transient
+                    transient = {'date0': date0, 'z': z, 'date': [], 'mag': [],
                                  'flux': [], 'fluxerr':[]}
                     
-
                     # Get mag, flux, fluxerr in each observation in `fobs`
                     for j in range(len(fobs)):
                         
-                        phase = (fobs[j]['date'] - date_max) / (z + 1)
+                        phase = (fobs[j]['date'] - date0) / (z + 1)
+                        if (phase < tmodel.phases[0] or
+                            phase > tmodel.phases[-1]):
+                            continue
+
+                        absmag = params.pop('m')
                         spec = Spectrum(tmodel.wavelengths(),
                                         tmodel.flux(phase, **params))
                         
+                        # Do synthetic photometry in rest-frame normalizing
+                        # band.
+                        flux = spec.synphot(self.bandpasses[mband])
+                        mag = -2.5 * math.log10(flux /
+                                                self._zpflux[(mband, zpsys)])
+                        magdiff = absmag - mag
+
                         # redshift the spectrum
+                        #spec.
                         # do synthetic photometry
                         # save results to dict
