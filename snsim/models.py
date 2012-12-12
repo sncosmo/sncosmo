@@ -164,6 +164,8 @@ class SALT2(Transient):
     def flux(self, phase, wavelengths=None, x0=1.0, x1=0.0, c=0.0):
         """The model flux spectrum for the given parameters."""
 
+        if wavelengths is None:
+            wavelengths = self._wavelengths
         f0 = self._model['M0'].y(phase, x1=wavelengths)
         f1 = self._model['M1'].y(phase, x1=wavelengths)
         flux = x0 * (f0 + x1 * f1)
@@ -173,8 +175,10 @@ class SALT2(Transient):
 
     def fluxerr(self, phase, wavelengths=None, x0=1.0, x1=0.0, c=0.0):
         """The flux error spectrum for the given parameters.
-
         """
+        if wavelengths is None:
+            wavelengths = self._wavelengths
+
         v00 = self._model['V00'].y(phase, x1=wavelengths)
         v11 = self._model['V11'].y(phase, x1=wavelengths)
         v01 = self._model['V01'].y(phase, x1=wavelengths)
@@ -206,7 +210,8 @@ class SALT2(Transient):
 
         const = math.log(10)/2.5
 
-        if wavelengths is None: wavelengths = self._wavelengths
+        if wavelengths is None:
+            wavelengths = self._wavelengths
         wavelengths = np.asarray(wavelengths)
 
         wB = 4302.57
