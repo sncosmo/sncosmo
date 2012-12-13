@@ -207,7 +207,7 @@ class Spectrum(object):
             ``adjust_flux`` is ``True``. Default is ``None`` which means
             that the distance is calculated from the redshift and the
             cosmology.
-        cosmology : `~astropy.cosmology.Cosmology` instance, optional
+        cosmo : `~astropy.cosmology.Cosmology` instance, optional
             The cosmology used to estimate distances if dist is not given.
             Default is ``None``, which results in using the default
             cosmology.
@@ -218,8 +218,8 @@ class Spectrum(object):
             A new spectrum object at redshift z.
         """
 
-        if cosmology is None:
-            cosmology = default_cosmology
+        if cosmo is None:
+            cosmo = default_cosmology
 
         # Shift wavelengths, adjust flux so that bolometric flux
         # remains constant.
@@ -267,7 +267,7 @@ class Survey(object):
 
     Parameters
     ----------
-    fields: dict
+    fields : dict
         Information about the observed fields, indexed by field id (int)
     obs : astropy.table.Table, numpy.ndarray, or dict of list_like
         Table of observations in the survey. This table must have certain
@@ -282,34 +282,25 @@ class Survey(object):
 
     Notes
     -----
-    The following data fields **must** be in the `obs` table:
 
-        field
-            integer id of observed field
-        date
-            Date of observations in days (e.g., MJD)
-        band
-            Bandpass of observation (string)
-        ccdgain
-            CCD gain of observations in e-/ADU
-        ccdnoise
-            CCD noise of observations in ADU
-        skysig
-            Pixel-to-pixel standard deviation in background in ADU
-        psffwhm
-            Full-with at half max (FWHM) of PSF in pixels.
-        zp
-            Zeropoint of observations (float).
-        zpsys
-            Zeropoint system (string).
+    The following data fields are recognized in the `obs` table:
 
-    The following are **optional** fields in the `obs` table
-    (not yet implemented - for now these are ignored).
+    * ``'field'``: Integer id of observed field **(required)**
+    * ``'date'``: Date of observations (e.g., MJD) [days]
+    * ``'band'``: Bandpass of observation (string)
+    * ``'ccdgain'``: CCD gain of observations in [e-/ADU]
+    * ``'ccdnoise'``: CCD noise of observations [ADU]
+    * ``'skyskig'``: Pixel-to-pixel standard deviation in background. [ADU]
+    * ``'psfsig'``: 1-sigma width of gaussian PSF. [pixels]
+    * ``'zp'``: Zeropoint of observations (float).
+    * ``'zpsys'``: Zeropoint system (string).
+    * ``'psf2'``: No description **(optional)**
+    * ``'zperr'``: Systematic uncertainty in zeropoint. **(optional)**
 
-        psf2
-            TODO description
-        zperr
-            Systematic uncertainty in zeropoint.
+    The following data fields are recognized in the "fields" dictionary:
+
+    * ``'area'``: Area in square degrees. **(required)** 
+
     """
 
     def __init__(self, fields, obs, bandpasses, zpspectra):
@@ -320,7 +311,7 @@ class Survey(object):
         
         # Check that required keys are in the observation table
         required_keys = ['field', 'date', 'band', 'ccdgain', 'ccdnoise',
-                         'skysig', 'psffwhm', 'zp', 'zpsys']
+                         'skysig', 'psfsig', 'zp', 'zpsys']
         for key in required_keys:
             if not key in self.obs.colnames:
                 raise ValueError("observations missing required key: '{}'"
@@ -349,7 +340,7 @@ class Survey(object):
 
 
     def simulate(self, tmodel, params, mband, zpspec, vrate=1.e-4, cosmo=None,
-                 z_range=(0., 2.), z_bins=40):
+                 z_range=(0., 2.), z_bins=40, verbose=False):
         """Run a simulation of the survey.
         
         Parameters
@@ -426,21 +417,22 @@ class Survey(object):
         if z_bins < 1:
             raise ValueError('z_bins must be greater than 0')
 
+        # Initialize output transients (list)
+        transients = []
+
         # Get volumes in each redshift shell over whole sky
         z_binedges = np.linspace(z_min, z_max, z_bins + 1) 
         sphere_vols = cosmo.comoving_volume(z_binedges) 
         shell_vols = sphere_volumes[1:] - sphere_volumes[:-1]
 
-        # Get list of unique field id's
-        fids = np.unique(self.obs['field'])
-
         # Loop over fields
+        fids = np.unique(self.obs['field']) # unique field ids
         for fid in fids:
 
             # Observations in just this field
             fobs = self.obs(self.obs['field'] == fid)
             
-            # Get range of observation dates.
+            # Get range of observation dates for this field
             drange = (fobs['date'].min(), fobs['date'].max())
 
             # Loop over redshift bins in this field
@@ -448,7 +440,7 @@ class Survey(object):
                                              z_binedges[1:],
                                              shell_vols):
                 z_mid = (z_lo + z_hi) / 2.
-                bin_vol = shell_vol * area / wholesky_sqdeg
+                bin_vol = shell_vol * fields[fid]['area'] / wholesky_sqdeg
 
                 # Simulate transients in a wider date range than the
                 # observations. This is the range of dates that phase=0 
@@ -468,6 +460,8 @@ class Survey(object):
 
                 # Loop over the transients that occured in this bin
                 for i in range(ntrans):
+                    
+
                     date0 = dates[i] # date corresponding to phase = 0
                     z = zs[i]  # redshift of transient
 
@@ -477,7 +471,8 @@ class Survey(object):
                     params = deepcopy(getparams())
 
                     # Initialize a data table for this transient
-                    transient = {'date0': date0, 'z': z, 'date': [], 'mag': [],
+                    transient = {'date0': date0, 'z': z, params: None, 
+                                 'date': [], 'mag': [],
                                  'flux': [], 'fluxerr':[]}
                     
                     # Get mag, flux, fluxerr in each observation in `fobs`
@@ -488,18 +483,54 @@ class Survey(object):
                             phase > tmodel.phases[-1]):
                             continue
 
+                        # Get absolute mag from 
                         absmag = params.pop('m')
+
+                        # Spectrum from the model for selected model parameters.
                         spec = Spectrum(tmodel.wavelengths(),
-                                        tmodel.flux(phase, **params))
+                                        tmodel.flux(phase, **params),
+                                        z=0., dist=1.e-5)
                         
                         # Do synthetic photometry in rest-frame normalizing
                         # band.
                         flux = spec.synphot(self.bandpasses[mband])
-                        mag = -2.5 * math.log10(flux /
-                                                self._zpflux[(mband, zpsys)])
-                        magdiff = absmag - mag
+                        zpflux = self._zpflux[(mband, zpsys)]
 
+                        # Amount to add to mag to make it the target rest-frame
+                        # absolute magnitude.
+                        magdiff = absmag + 2.5 * math.log10(flux / zpflux)
+                        
                         # redshift the spectrum
-                        #spec.
-                        # do synthetic photometry
-                        # save results to dict
+                        spec = spec.redshifted_to(z, adjust_flux=True,
+                                                  cosmo=cosmo)
+
+                        # Get mag in observed band.
+                        flux = spec.synphot(self.bandpasses[fobj[j]['band']])
+                        zpflux = self._zpflux[(fobj[j]['band'],
+                                               fobj[j]['zpsys'])]
+                        mag = magdiff - 2.5 * math.log10(flux / zpflux)
+                        
+                        # ADU on the image.
+                        flux = 10 ** (0.4 * (fobs[j]['zp'] - mag))
+
+                        # calculate uncertainty in flux based on ccdgain,
+                        # ccdnoise, skysig, psfsig.
+                        noise_area = 4. * math.pi * fobs[j]['psfsig']
+                        bkgpixnoise = fobs[j]['ccdnoise'] + fobs[j]['skysig']
+                        fluxerr = math.sqrt((noise_area * bkgpixnoise) ** 2 +
+                                            flux / fobj[j]['ccdgain'])
+
+                        # Scatter fluxes by the fluxerr
+                        #np.gauss or something
+
+
+                        transient['date'].append(fobs[j]['date'])
+                        transient['mag'].append(mag)
+                        transient['flux'].append(flux)
+                        transient['fluxerr'].append(fluxerr)
+                        if len(params) > 0:
+                            transient['params'] = params
+                        
+                        # save transient.
+                        transients.append(transient)
+                        if verbose: print len(transients)
