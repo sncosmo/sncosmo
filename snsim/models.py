@@ -11,7 +11,7 @@ import numpy as np
 from . import io
 from .utils import GridData
 
-__all__ = ['Transient', 'SpectralTimeSeries', 'SALT2']
+__all__ = ['Transient', 'TimeSeries', 'SALT2']
 
 
 class Transient(object):
@@ -65,7 +65,7 @@ class Transient(object):
         return
 
 
-class SpectralTimeSeries(Transient):
+class TimeSeries(Transient):
     """A spectrum for each phase, optionally with error.
 
     Parameters

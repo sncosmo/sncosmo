@@ -2,8 +2,10 @@
 
 """Class to represent an astronomical survey."""
 
-from collections import OrderedDict
+import sys
+import math
 from copy import deepcopy
+from collections import OrderedDict
 
 import numpy as np
 from astropy.table import Table
@@ -156,8 +158,8 @@ class Spectrum(object):
             return None
 
         # Get the spectrum index range to use
-        idx = ((self._wavelengths > band.wavelength[0]) & 
-               (self._wavelengths < band.wavelength[-1]))
+        idx = ((self._wavelengths > band.wavelengths[0]) & 
+               (self._wavelengths < band.wavelengths[-1]))
 
         # Spectrum quantities in this wavelength range
         wl = self._wavelengths[idx]
@@ -241,9 +243,6 @@ class Spectrum(object):
                 raise ValueError("When redshift is 0 and adjust_flux "
                                  "is requested, dist must be defined")
 
-            if dist <= 0. or self._dist <= 0.:
-                raise ValueError("Distances must be greater than 0.")
-
             if self._dist is None:
                 dist_in = cosmo.luminosity_distance(self._z)
             else:
@@ -254,10 +253,13 @@ class Spectrum(object):
             else:
                 dist_out = dist
 
+            if dist_in <= 0. or dist_out <= 0.:
+                raise ValueError("Distances must be greater than 0.")
+
             # Adjust the flux
-            factor = (dist_in / dist) ** 2
+            factor = (dist_in / dist_out) ** 2
             f *= factor
-            if fe is not None: fe *= factor ** 2
+            if fe is not None: fe *= factor
 
         return Spectrum(wl, f, fluxerr=fe, z=z, dist=dist, meta=self.meta)
 
@@ -339,13 +341,13 @@ class Survey(object):
                 self._zpflux[(bandname, zpsys)] = zpspec.synphot(bandpass)
 
 
-    def simulate(self, tmodel, params, mband, zpspec, vrate=1.e-4, cosmo=None,
+    def simulate(self, tmodel, params, mband, zpsys, vrate=1.e-4, cosmo=None,
                  z_range=(0., 2.), z_bins=40, verbose=False):
         """Run a simulation of the survey.
         
         Parameters
         ----------
-        tmodel : A TransientModel instance
+        tmodel : A models.Transient instance
             The transient we're interested in.
         params : dictionary or callable
             Dictionary of parameters to pass to the model *or*
@@ -374,14 +376,15 @@ class Survey(object):
         """
 
         # Check the transient model.
-        if not isinstance(tmodel, models.TransientModel):
-            raise ValueError('tmodel must be a TransientModel instance')
+        if not isinstance(tmodel, models.Transient):
+            raise ValueError('tmodel must be a snsim.models.Transient instance')
 
         # Make params a callable if it isn't already.
         if callable(params):
             getparams = params
         else:
-            def getparams(): return params
+            constant_params = deepcopy(params)
+            def getparams(): return constant_params
 
         # Check that 'm' is in the dictionary that getparams() returns.
         if 'm' not in getparams():
@@ -399,7 +402,8 @@ class Survey(object):
 
         # Check the volumetric rate.
         if not callable(vrate):
-            vrate = lambda z: float(vrate)
+            constant_vrate = float(vrate)
+            vrate = lambda z: constant_vrate
 
         # Check the cosmology.
         if cosmo is None:
@@ -423,30 +427,31 @@ class Survey(object):
         # Get volumes in each redshift shell over whole sky
         z_binedges = np.linspace(z_min, z_max, z_bins + 1) 
         sphere_vols = cosmo.comoving_volume(z_binedges) 
-        shell_vols = sphere_volumes[1:] - sphere_volumes[:-1]
+        shell_vols = sphere_vols[1:] - sphere_vols[:-1]
 
         # Loop over fields
         fids = np.unique(self.obs['field']) # unique field ids
         for fid in fids:
 
             # Observations in just this field
-            fobs = self.obs(self.obs['field'] == fid)
+            fobs = self.obs[self.obs['field'] == fid]
             
             # Get range of observation dates for this field
             drange = (fobs['date'].min(), fobs['date'].max())
 
             # Loop over redshift bins in this field
+            if verbose: print "Redshift Range     Transient"
             for z_lo, z_hi, shell_vol in zip(z_binedges[:-1],
                                              z_binedges[1:],
                                              shell_vols):
                 z_mid = (z_lo + z_hi) / 2.
-                bin_vol = shell_vol * fields[fid]['area'] / wholesky_sqdeg
+                bin_vol = shell_vol * self.fields[fid]['area'] / wholesky_sqdeg
 
                 # Simulate transients in a wider date range than the
                 # observations. This is the range of dates that phase=0 
                 # will be placed at.
-                simdrange = (drange[0] - tmodel.phases[-1] * (1 + z_mid),
-                             drange[1] - tmodel.phases[0] * (1 + z_mid))
+                simdrange = (drange[0] - tmodel.phases()[-1] * (1 + z_mid),
+                             drange[1] - tmodel.phases()[0] * (1 + z_mid))
                 time_rframe = (simdrange[1] - simdrange[0]) / (1 + z_mid)
 
                 # Number of transients in this bin
@@ -458,9 +463,16 @@ class Survey(object):
                 dates = np.random.uniform(simdrange[0], simdrange[1], ntrans)
                 zs = np.random.uniform(z_lo, z_hi, ntrans)
 
+                if verbose:
+                    print ("{:5.3f} < z < {:5.3f} {:5d}/{:5d}"
+                           .format(z_lo, z_hi, 0, ntrans)),
+
                 # Loop over the transients that occured in this bin
                 for i in range(ntrans):
                     
+                    if verbose: 
+                        print 12 * "\b" + "{:5d}/{:5d}".format(i + 1, ntrans),
+                        sys.stdout.flush()
 
                     date0 = dates[i] # date corresponding to phase = 0
                     z = zs[i]  # redshift of transient
@@ -469,9 +481,10 @@ class Survey(object):
                     # Do a deep copy in case getparams() returns the same
                     # object each time (we will modify our copy below).
                     params = deepcopy(getparams())
-
+                    absmag = params.pop('m') # Get absolute mag out of it.
+                    
                     # Initialize a data table for this transient
-                    transient = {'date0': date0, 'z': z, params: None, 
+                    transient = {'date0': date0, 'z': z, 'params': None, 
                                  'date': [], 'mag': [],
                                  'flux': [], 'fluxerr':[]}
                     
@@ -479,12 +492,9 @@ class Survey(object):
                     for j in range(len(fobs)):
                         
                         phase = (fobs[j]['date'] - date0) / (z + 1)
-                        if (phase < tmodel.phases[0] or
-                            phase > tmodel.phases[-1]):
+                        if (phase < tmodel.phases()[0] or
+                            phase > tmodel.phases()[-1]):
                             continue
-
-                        # Get absolute mag from 
-                        absmag = params.pop('m')
 
                         # Spectrum from the model for selected model parameters.
                         spec = Spectrum(tmodel.wavelengths(),
@@ -505,9 +515,10 @@ class Survey(object):
                                                   cosmo=cosmo)
 
                         # Get mag in observed band.
-                        flux = spec.synphot(self.bandpasses[fobj[j]['band']])
-                        zpflux = self._zpflux[(fobj[j]['band'],
-                                               fobj[j]['zpsys'])]
+                        flux = spec.synphot(self.bandpasses[fobs[j]['band']])
+                        if flux is None: continue
+                        zpflux = self._zpflux[(fobs[j]['band'],
+                                               fobs[j]['zpsys'])]
                         mag = magdiff - 2.5 * math.log10(flux / zpflux)
                         
                         # ADU on the image.
@@ -518,7 +529,7 @@ class Survey(object):
                         noise_area = 4. * math.pi * fobs[j]['psfsig']
                         bkgpixnoise = fobs[j]['ccdnoise'] + fobs[j]['skysig']
                         fluxerr = math.sqrt((noise_area * bkgpixnoise) ** 2 +
-                                            flux / fobj[j]['ccdgain'])
+                                            flux / fobs[j]['ccdgain'])
 
                         # Scatter fluxes by the fluxerr
                         #np.gauss or something
@@ -528,9 +539,9 @@ class Survey(object):
                         transient['mag'].append(mag)
                         transient['flux'].append(flux)
                         transient['fluxerr'].append(fluxerr)
-                        if len(params) > 0:
-                            transient['params'] = params
+                        transient['params'] = params
                         
-                        # save transient.
-                        transients.append(transient)
-                        if verbose: print len(transients)
+                    # save transient.
+                    transients.append(transient)
+
+                if verbose: print ""
