@@ -24,13 +24,16 @@ A quick example
   >>> survey.simulate(snmodel, params, mband='Bessell::B', vrate=1.e-4)
 
 
-Vary SN rate with redshift
---------------------------
+Vary the SN rate with redshift
+------------------------------
 
-Define a function that returns rate as a function of redshift:
+Define a function that returns the rate as a function of redshift:
 
   >>> def sn1a_rate(z):
-  >>>     return 0.25e-4 * (1. + 2. * z)
+  >>>     if z < 1:
+  >>>         return 0.25e-4 * (1 + 2.5 * z)
+  >>>     else:
+  >>>         return 0.25e-4 * 3.5
   >>> 
   >>> survey.simulate(sn1a_model, params, vrate=sn1a_vrate)
 
