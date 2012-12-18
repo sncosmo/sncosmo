@@ -66,8 +66,8 @@ class GridData(object):
         if x1 is None: x1 = self._x1
 
         # Check if requested x0 is out of bounds or exactly in the list
-        if x0 in self._x0:
-            idx = self._x0.index(x0)
+        if (self._x0 == x0).any():
+            idx = np.flatnonzero(self._x0 == x0)[0]
             return self._yfuncs[idx](x1)
         elif x0 < self._x0[0]:
             return self._yfuncs[0](x1)
