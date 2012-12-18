@@ -429,22 +429,28 @@ class Survey(object):
         sphere_vols = cosmo.comoving_volume(z_binedges) 
         shell_vols = sphere_vols[1:] - sphere_vols[:-1]
 
-        # Loop over fields
-        fids = np.unique(self.obs['field']) # unique field ids
-        for fid in fids:
+        fids = np.unique(self.obs['field'])  # Unique field IDs.
 
-            # Observations in just this field
-            fobs = self.obs[self.obs['field'] == fid]
+        # Loop over redshift bins.
+        if verbose: print "Redshift Range     Transient"
+        for z_lo, z_hi, shell_vol in zip(z_binedges[:-1], z_binedges[1:],
+                                         shell_vols):
+            z_mid = (z_lo + z_hi) / 2.
+
+            ntrans_bin = 0
+            if verbose:
+                print "{:5.3f} < z < {:5.3f} {:5d}".format(z_lo, z_hi, 0),
+                sys.stdout.flush()
+
+            # Loop over fields
+            for fid in fids:
+
+                # Observations in just this field
+                fobs = self.obs[self.obs['field'] == fid]
             
-            # Get range of observation dates for this field
-            drange = (fobs['date'].min(), fobs['date'].max())
+                # Get range of observation dates for this field
+                drange = (fobs['date'].min(), fobs['date'].max())
 
-            # Loop over redshift bins in this field
-            if verbose: print "Redshift Range     Transient"
-            for z_lo, z_hi, shell_vol in zip(z_binedges[:-1],
-                                             z_binedges[1:],
-                                             shell_vols):
-                z_mid = (z_lo + z_hi) / 2.
                 bin_vol = shell_vol * self.fields[fid]['area'] / wholesky_sqdeg
 
                 # Simulate transients in a wider date range than the
@@ -463,17 +469,9 @@ class Survey(object):
                 dates = np.random.uniform(simdrange[0], simdrange[1], ntrans)
                 zs = np.random.uniform(z_lo, z_hi, ntrans)
 
-                if verbose:
-                    print ("{:5.3f} < z < {:5.3f} {:5d}/{:5d}"
-                           .format(z_lo, z_hi, 0, ntrans)),
-
                 # Loop over the transients that occured in this bin
                 for i in range(ntrans):
                     
-                    if verbose: 
-                        print 12 * "\b" + "{:5d}/{:5d}".format(i + 1, ntrans),
-                        sys.stdout.flush()
-
                     date0 = dates[i] # date corresponding to phase = 0
                     z = zs[i]  # redshift of transient
 
@@ -483,10 +481,26 @@ class Survey(object):
                     params = deepcopy(getparams())
                     absmag = params.pop('m') # Get absolute mag out of it.
                     
+
+                    # Normalize the spectral surface based on `absmag`.
+                    # Spectrum at phase = 0:
+                    spec = Spectrum(tmodel.wavelengths(),
+                                    tmodel.flux(0., **params),
+                                    z=0., dist=1.e-5)
+
+                    # Do synthetic photometry in rest-frame normalizing band.
+                    flux = spec.synphot(self.bandpasses[mband])
+                    zpflux = self._zpflux[(mband, zpsys)]
+
+                    # Amount to add to mag to make it the target rest-frame
+                    # absolute magnitude.
+                    magdiff = absmag + 2.5 * math.log10(flux / zpflux)
+
                     # Initialize a data table for this transient
-                    transient = {'date0': date0, 'z': z, 'params': None, 
-                                 'date': [], 'mag': [],
-                                 'flux': [], 'fluxerr':[]}
+                    transient_meta = {'date0': date0, 'z': z}
+                    for p, val in params.iteritems(): transient_meta[p] = val
+                    transient_data = {'date': [], 'band': [], 'mag': [],
+                                      'flux': [], 'fluxerr':[]}
                     
                     # Get mag, flux, fluxerr in each observation in `fobs`
                     for j in range(len(fobs)):
@@ -496,21 +510,12 @@ class Survey(object):
                             phase > tmodel.phases()[-1]):
                             continue
 
-                        # Spectrum from the model for selected model parameters.
+                        # Get model spectrum for selected phase and parameters.
                         spec = Spectrum(tmodel.wavelengths(),
                                         tmodel.flux(phase, **params),
                                         z=0., dist=1.e-5)
-                        
-                        # Do synthetic photometry in rest-frame normalizing
-                        # band.
-                        flux = spec.synphot(self.bandpasses[mband])
-                        zpflux = self._zpflux[(mband, zpsys)]
 
-                        # Amount to add to mag to make it the target rest-frame
-                        # absolute magnitude.
-                        magdiff = absmag + 2.5 * math.log10(flux / zpflux)
-                        
-                        # redshift the spectrum
+                        # Redshift it.
                         spec = spec.redshifted_to(z, adjust_flux=True,
                                                   cosmo=cosmo)
 
@@ -532,16 +537,22 @@ class Survey(object):
                                             flux / fobs[j]['ccdgain'])
 
                         # Scatter fluxes by the fluxerr
-                        #np.gauss or something
+                        flux = np.random.normal(flux, fluxerr)
 
-
-                        transient['date'].append(fobs[j]['date'])
-                        transient['mag'].append(mag)
-                        transient['flux'].append(flux)
-                        transient['fluxerr'].append(fluxerr)
-                        transient['params'] = params
+                        transient_data['date'].append(fobs[j]['date'])
+                        transient_data['band'].append(fobs[j]['band'])
+                        transient_data['mag'].append(mag)
+                        transient_data['flux'].append(flux)
+                        transient_data['fluxerr'].append(fluxerr)
                         
                     # save transient.
-                    transients.append(transient)
+                    transients.append(Table(transient_data, 
+                                            meta=transient_meta))
+                    ntrans_bin += 1
+                    if verbose:
+                        print 6 * "\b" + "{:5d}".format(ntrans_bin),
+                        sys.stdout.flush()
 
-                if verbose: print ""
+            if verbose: print ""
+                
+        return transients
