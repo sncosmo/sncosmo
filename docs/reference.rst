@@ -21,7 +21,7 @@ Models (:mod:`snsim.models`)
    :toctree: _generated/
 
    models.Transient
-   models.SpectralTimeSeries
+   models.TimeSeries
    models.SALT2
    
 

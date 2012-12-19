@@ -98,6 +98,8 @@ html_title = '{0} v{1}'.format(project, release)
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + 'doc'
 
+# Add local templates path to modify autosummary templates
+templates_path = ['_templates']
 
 # -- Options for LaTeX output --------------------------------------------------
 
