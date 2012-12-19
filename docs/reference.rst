@@ -51,7 +51,10 @@ Utilities for reading and writing file formats not convered by :mod:`astropy`.
 
    io.read_griddata_txt
    io.read_simlib
-
+   io.salt2.read
+   io.salt2.write
+   io.salt2.readdir
+   io.salt2.writedir
 
 General Utilities (:mod:`snsim.utils`)
 --------------------------------------
