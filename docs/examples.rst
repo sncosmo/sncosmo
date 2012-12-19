@@ -1,8 +1,8 @@
 Examples
 ========
 
-A quick example
----------------
+A simple example
+----------------
 
   >>> import numpy as np
   >>> import snsim
@@ -11,6 +11,8 @@ A quick example
   >>> survey_observations = {'date': [53100., 53100., ... ], 
   >>>                        'band': ['DECam::DESg', 'DECam::DESr', ... ], 
   >>>                        ... }
+  >>> 
+  >>> # Load some built-in bandpasses
   >>> survey = snsim.Survey(fields=survey_fields,
   >>>                       obs=survey_observations,
   >>>                       bandpasses=survey_bandpasses
@@ -21,7 +23,7 @@ A quick example
   >>> params = {'m': -19.3}
   >>> 
   >>> 
-  >>> survey.simulate(snmodel, params, mband='Bessell::B', vrate=1.e-4)
+  >>> sne = survey.simulate(snmodel, params={'m': -19.3}, mband='Bessell::B', vrate=1.e-4)
 
 
 Vary the SN rate with redshift
@@ -44,7 +46,7 @@ Using a distribution of SN model parameters
 Define a function that returns the parameters:
 
   >>> def param_gen():
-  >>>   return {'m': -19.3,
-  >>>           'x1': np.random.uniform(),
-  >>>           'c': np.random.uniform()}
+  >>>   return {'m': np.random.normal(-19.3, 0.15),
+  >>>           'x1': np.random.normal(0., 1.),
+  >>>           'c': np.random.normal(0.3, 0.3)}
 
