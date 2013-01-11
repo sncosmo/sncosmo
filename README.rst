@@ -1,5 +1,5 @@
 SNSim
 =====
 
-* A Python package to simulate astronomical transient surveys
-* Based on `astropy`
+A Python package for supernova cosmology based on AstroPy. kbarbary.github.com/snsim
+

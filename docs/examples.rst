@@ -1,6 +1,8 @@
 Examples
 ========
 
+.. note:: These examples are not complete/accurate right now.
+
 A simple example
 ----------------
 
