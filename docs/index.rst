@@ -1,13 +1,13 @@
 SNSim Documentation
 ===================
+A python package for supernova cosmology based on NumPy_ and `AstroPy <http://www.astropy.org>`_.
 
-SNSim is a python package for simulating astrophysical transient
-surveys. It includes utilities for interacting with several types of
-supernova models. Although it was written mainly for simulating
-supernova surveys, it can be used to simulate the detection of any
-transient that has a defined spectral time-series template.
+It currently includes:
 
-It depends on NumPy_ and `AstroPy <http://www.astropy.org>`_.
+* An interface to various SN model templates, such as the Hsiao and Nugent spectral time series templates, and the SALT2 model (:mod:`snsim.models`)
+* Redshift spectra and Perform synthetic photometry (:mod:`snsim.Spectrum`)
+* Simulate transient surveys: the detected transients and their lightcurves (:mod:`snsim.Survey`)
+* I/O functions for writing to SALT2-format photometry files.
 
 Contents
 --------

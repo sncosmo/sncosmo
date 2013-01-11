@@ -4,26 +4,20 @@ Reference/API
 
 .. currentmodule:: snsim
 
-Core Classes
-------------
+Classes
+-------
+
+These classes contain the core functionality of the library. 
 
 .. autosummary::
    :toctree: _generated/
 
    Bandpass
    Spectrum
-   Survey
-
-Models (:mod:`snsim.models`)
-----------------------------
-
-.. autosummary::
-   :toctree: _generated/
-
    models.Transient
    models.TimeSeries
    models.SALT2
-   
+   Survey
 
 
 Factory Functions

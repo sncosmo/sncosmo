@@ -1,13 +1,16 @@
 Installation
 ============
 
-Requirements:
+Requirements
+------------
 
 * Python 2.6 or greater
 * NumPy 1.5 or greater
 * AstroPy 0.2 or greater
 
-Install NumPy and AstroPy following the instructions on the relevant sites. To install :mod:`SNSim`, download the latest tarball, using ::
+Install from source
+-------------------
+:mod:`SNSim` is only available from source. Either download the latest tarball, using ::
 
   $ wget https://github.com/kbarbary/snsim/archive/master.zip
   $ unzip master.zip
@@ -15,7 +18,7 @@ Install NumPy and AstroPy following the instructions on the relevant sites. To i
   $ setup.py build
   $ setup.py install
 
-or ::
+or clone the repository using ::
 
   $ git clone git://github.com/kbarbary/snsim.git
   $ cd snsim
@@ -26,13 +29,15 @@ If you don't have root access, install using ::
 
   $ setup.py install --user
 
-Getting Package Data
---------------------
+Or, if you want to contribute, fork the `GitHub repostory <https://github.com/kbarbary/snsim>`_!
+
+Package Data
+------------
 
 :mod:`SNSim` includes "factory functions" for generating ``Spectrum``, ``Bandpass`` and ``TransientModel`` instances from built-in data. For these to work, the data must be downloaded ::
 
-  $ wget https://www.dropbox.com/s/m9irlhe7oq6a3ho/snsim-data.tar.gz
-  $ tar xvzf snsim-data.tar.gz
+  $ wget www.hep.anl.gov/kbarbary/project-data/snsim/snsim-data-v0.1.dev.tar.gz
+  $ tar xvzf snsim-data-v0.1.dev.tar.gz
 
 When the factory functions are called, the relevant data is located using the path given in the user's ``SNSIM_DATA`` environment variable. In bash, ::
 
