@@ -2,7 +2,7 @@
 Reference/API
 =============
 
-.. currentmodule:: snsim
+.. currentmodule:: sncosmo
 
 Classes
 -------
@@ -23,7 +23,7 @@ These classes contain the core functionality of the library.
 Factory Functions
 -----------------
 
-Read built-in data (from the path given by the user's ``$SNSIM_DATA``
+Read built-in data (from the path given by the user's ``$SNCOSMO_DATA``
 environment variable) and create a class instance based on that data.
 For a list of available built-ins, see the function documentation.
 
@@ -35,8 +35,8 @@ For a list of available built-ins, see the function documentation.
    model
 
 
-I/O Utilities (:mod:`snsim.io`)
--------------------------------
+I/O Utilities (:mod:`sncosmo.io`)
+---------------------------------
 
 Utilities for reading and writing file formats not convered by :mod:`astropy`.
 
@@ -50,10 +50,10 @@ Utilities for reading and writing file formats not convered by :mod:`astropy`.
    io.salt2.readdir
    io.salt2.writedir
 
-General Utilities (:mod:`snsim.utils`)
---------------------------------------
+General Utilities (:mod:`sncosmo.utils`)
+----------------------------------------
 
-Utilities with functionality not specific to the :mod:`snsim` package.
+Utilities with functionality not specific to the :mod:`sncosmo` package.
 
 .. autosummary::
    :toctree: _generated/

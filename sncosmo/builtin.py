@@ -3,7 +3,7 @@
 """Orchestration of built-in data.
 
 This module keeps track of what built-in bandpasses, spectra and models exist,
-where that data lives, and how to read it (using functions in snsim.io).
+where that data lives, and how to read it (using functions in `io` module).
 It provides factory functions for generating Bandpass, Spectrum and
 TransientModel objects from the built-in data."""
 
@@ -50,12 +50,12 @@ builtin_spectra = ['vega', 'ab']
 def datadir():
     """Return full path to root level of data directory.
 
-    Raises ``ValueError`` if SNSIM_DATA environment variable not set.
+    Raises ``ValueError`` if SNCOSMO_DATA environment variable not set.
     """
 
-    if 'SNSIM_DATA' not in os.environ:
-        raise ValueError('Data directory (SNSIM_DATA) not defined.')
-    return os.environ['SNSIM_DATA']
+    if 'SNCOSMO_DATA' not in os.environ:
+        raise ValueError('Data directory (SNCOSMO_DATA) not defined.')
+    return os.environ['SNCOSMO_DATA']
 
     # If data is included in path.
     #datadir = path.join(path.dirname(path.abspath(__file__)), 'data')
@@ -160,11 +160,11 @@ def model(name, version='latest', modelpath=None):
 """
 
     if modelpath is None:
-        if 'SNSIM_DATA' in os.environ:
-            modelpath = os.path.join(os.environ['SNSIM_DATA'], 'models')
+        if 'SNCOSMO_DATA' in os.environ:
+            modelpath = os.path.join(os.environ['SNCOSMO_DATA'], 'models')
         else:
             raise ValueError('If modelpath is not given, environment '
-                             'variable SNSIM_DATA must be defined.')
+                             'variable SNCOSMO_DATA must be defined.')
 
     if (name not in builtin_models):
         raise ValueError('No model {}. Available models:\n'.format(name) +

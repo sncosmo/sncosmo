@@ -1,4 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-This package contains tests for SNSim.
+This package contains tests.
 """

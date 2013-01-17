@@ -30,4 +30,8 @@ pip-log.txt
 docs/_build
 docs/_generated
 
-snsim/version.py
+# Auto-generated version module
+*/version.py
+
+# data upload script
+push-data

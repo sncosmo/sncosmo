@@ -377,7 +377,8 @@ class Survey(object):
 
         # Check the transient model.
         if not isinstance(tmodel, models.Transient):
-            raise ValueError('tmodel must be a snsim.models.Transient instance')
+            raise ValueError('tmodel must be a sncosmo.models.Transient '
+                             'instance')
 
         # Make params a callable if it isn't already.
         if callable(params):

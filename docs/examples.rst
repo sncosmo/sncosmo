@@ -38,14 +38,14 @@ of the observed fields, but minimally we have to define the area
 
 Our observations were made through certain bandpasses, which we have
 labelled as ``'DECam::DESg'``, for example. We have to define the
-bandpass implied by each label, using a :mod:`snsim.Bandpass` object
+bandpass implied by each label, using a :mod:`sncosmo.Bandpass` object
 for each one. If the bandpasses are built-in ones, we can get them
-using the factory function ``snsim.bandpass``::
+using the factory function ``sncosmo.bandpass``::
 
-  import snsim
+  import sncosmo
   bandpasses = {}
   for name in ['DECam::DESg', 'DECam::DESr', 'Bessell::B']:
-      bandpasses[name] = snsim.bandpass(name)
+      bandpasses[name] = sncosmo.bandpass(name)
 
 Note that we have also read in the Bessell B bandpass. We'll need that later.
 
@@ -54,20 +54,20 @@ is also defined by a simple label, such as ``'ab'``. We need to read
 in the spectrum that defines each zeropoint system. The built-in
 spectra are ``'ab'`` and ``'vega'``. ::
 
-  zpspectra = {'ab': snsim.spectrum('ab')}
+  zpspectra = {'ab': sncosmo.spectrum('ab')}
 
 We can now initialize our survey object::
 
-  short_survey = snsim.Survey(fields, obs, bandpasses, zpspectra)
+  short_survey = sncosmo.Survey(fields, obs, bandpasses, zpspectra)
 
 This object contains information on all our observations and observed
-fields, and it knows about the :mod:`snsim.Bandpass` and
-:mod:`snsim.Spectrum` objects that define our observed filters and
+fields, and it knows about the :mod:`sncosmo.Bandpass` and
+:mod:`sncosmo.Spectrum` objects that define our observed filters and
 zeropoint systems.
 
-Before simulating what is detected by the survey, we need to define what kind of transients we are trying to find! This is done using a ``snsim.Model`` object. To get a simple built-in Type Ia supernova model::
+Before simulating what is detected by the survey, we need to define what kind of transients we are trying to find! This is done using a ``sncosmo.Model`` object. To get a simple built-in Type Ia supernova model::
 
-  snmodel = snsim.model('hsiao')
+  snmodel = sncosmo.model('hsiao')
 
 We can now run the simulation::
 

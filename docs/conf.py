@@ -46,19 +46,19 @@ rst_epilog += """
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = u'SNSim'
-author = u'SNSim developers'
-copyright = u'2012, ' + author
+project = u'sncosmo'
+author = u'Kyle Barbary'
+copyright = u'2013, ' + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-import snsim
+import sncosmo
 # The short X.Y version.
-version = snsim.__version__.split('-', 1)[0]
+version = sncosmo.__version__.split('-', 1)[0]
 # The full version, including alpha/beta/rc tags.
-release = snsim.__version__
+release = sncosmo.__version__
 
 
 # -- Options for HTML output ---------------------------------------------------
