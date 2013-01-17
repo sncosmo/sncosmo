@@ -9,6 +9,7 @@ TransientModel objects from the built-in data."""
 
 import os
 
+import numpy as np
 from astropy.io import ascii
 from astropy.io import fits
 
