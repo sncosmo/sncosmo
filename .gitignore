@@ -33,5 +33,8 @@ docs/_generated
 # Auto-generated version module
 */version.py
 
+# emacs files
+*~
+
 # data upload script
 push-data
