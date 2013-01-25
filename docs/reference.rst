@@ -44,7 +44,8 @@ Utilities for reading and writing file formats not convered by :mod:`astropy`.
    :toctree: _generated/
 
    io.read_griddata_txt
-   io.read_simlib
+   io.snana.write_lc
+   io.snana.read_simlib
    io.salt2.read
    io.salt2.write
    io.salt2.readdir
@@ -59,3 +60,4 @@ Utilities with functionality not specific to the :mod:`sncosmo` package.
    :toctree: _generated/
 
    utils.GridData
+   utils.mwebv
