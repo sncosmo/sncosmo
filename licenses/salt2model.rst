@@ -26,11 +26,3 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-This license does not apply to the SALT2 template files which are
-also publicly available at:
-
-    http://supernovae.in2p3.fr/~guy/salt/download_templates.html
-
-They are included here for convenience with the permission of the original
-author, Julien Guy.
