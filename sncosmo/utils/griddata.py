@@ -1,31 +1,60 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-
-"""Utilities with functionality not specific to this package."""
-
 import numpy as np
 
 __all__ = ['GridData']
 
-IRSA_BASE_URL = \
-    'http://irsa.ipac.caltech.edu/cgi-bin/DUST/nph-dust?locstr={:.5f}+{:.5f}'
-
 class GridData(object):
     """Interpolate over uniform 2-D grid.
 
-    Similar to `scipy.interpolate.iterp2d` but with methods for returning
+    Similar to `scipy.interpolate.interp2d` but with methods for returning
     native sampling.
     
     Parameters
     ----------
-    x0 : numpy.ndarray
-    x1 : numpy.ndarray
-    y : numpy.ndarray
+    x0 : numpy.ndarray (1d)
+    x1 : numpy.ndarray (1d)
+    y : numpy.ndarray (2d)
+
+    Examples
+    --------
+    Initialize the interpolator.
+
+    >>> x0 = np.arange(-5., 5.01, 2.)
+    >>> x1 = np.arange(-5., 5.01, 2.)
+    >>> xx0, xx1 = np.meshgrid(x, y)
+    >>> y = np.sin(xx0**2+xx1**2)
+    >>> gd = GridData(x0, x1, y)
+
+    Get the native sampling.
+
+    >>> gd.x0()
+    array([-5., -3., -1.,  1.,  3.,  5.])
+    >>> gd.x1()
+    array([-5., -3., -1.,  1.,  3.,  5.])
+
+    Get interpolated values.
+
+    >>> gd.y(0.)
+    array([-0.26237485,  0.52908269,  0.76255845,  0.76255845,  0.52908269,
+           -0.26237485])
+    >>> gd.y(0., x1=[-2., 0., 2.])
+    array([ 0.64582057,  0.76255845,  0.64582057])
+    >>> gd.y(0., x1=-2)
+    0.64582056829981327
+    
     """
     
     def __init__(self, x0, x1, y):
         self._x0 = np.asarray(x0)
         self._x1 = np.asarray(x1)
         self._y = np.asarray(y)
+
+        # Check shapes.
+        if not (self._x0.ndim == 1 and self._x1.ndim == 1):
+            raise ValueError("x0 and x1 must be 1-d")
+        if not (self._y.ndim == 2):
+            raise ValueError("y must be 2-d")
+
         self._yfuncs = []
         for i in range(len(self._x0)):
             self._yfuncs.append(lambda x: np.interp(x, self._x1, y[i,:]))
@@ -85,50 +114,3 @@ class GridData(object):
                (self._x0[i] - self._x0[i - 1]))
         dy = y1 - y0
         return y0 + dx0 * dy
-
-
-def mwebv(ra, dec, source='irsa'):
-    """Return Milky Way E(B-V) at given coordinates.
-
-    Parameters
-    ----------
-    ra : float
-    dec : float
-    source : {'irsa'}, optional
-        Default is 'irsa', which means to make a web query of the IRSA 
-        Schlegel dust map calculator. No other sources are currently
-        supported.
-
-    Returns
-    -------
-    mwebv : float
-        Milky Way E(B-V) at given coordinates.
-    """
-
-    import urllib
-    from xml.dom.minidom import parse
-
-    # Check coordinates
-    if ra < 0. or ra > 360. or dec < -90. or dec > 90.:
-        raise ValueError('coordinates out of range')
-
-    if source == 'irsa':
-        try:
-            u = urllib.urlopen(IRSA_BASE_URL.format(ra, dec))
-            if not u:
-                raise ValueError('URL query returned false')
-        except:
-            print 'E(B-V) web query failed'
-            raise
-
-        dom = parse(u)
-        u.close()
-
-        try:
-            EBVstr = dom.getElementsByTagName('meanValue')[0].childNodes[0].data
-            result = float(EBVstr.strip().split()[0])
-        except:
-            print "E(B-V) query failed. Do you have internet access?"
-            raise
-
-        return result
