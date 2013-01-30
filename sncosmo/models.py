@@ -90,15 +90,25 @@ class SALT2(Transient):
 
     Parameters
     ----------
-    m0file, m1file, v00file, v11file, v01file : str
+    modeldir : str
         Path to files containing model components. Each file should have
         the format:
  
         ``phase wavelength value`` 
 
-        on each line.
+        on each line. If you want to give the absolute path to each file,
+        set to ``None``.
+    m0file, m1file, v00file, v11file, v01file : str, optional
+        Filenames of various model components. Defaults are:
+
+        * m0file = 'salt2_template_0.dat'
+        * m1file = 'salt2_template_1.dat'
+        * v00file = 'salt2_spec_variance_0.dat'
+        * v11file = 'salt2_spec_variance_1.dat'
+        * v01file = 'salt2_spec_covariance_01.dat'
+
     errscalefile : str, optional
-        Path to error scale file, same format as model component files.
+        Name of error scale file, same format as model component files.
         The default is ``None``, which means that the error scale will
         not be applied in the ``fluxerr()`` method. This is only used for
         template versions 1.1 and 1.0, not 2.0+.
@@ -114,9 +124,10 @@ class SALT2(Transient):
 
     Examples
     --------
-    Initialize a SALT2 model from built-in data files:
+    There are two ways to initialize the model.
 
-    >>> m = sncosmo.builtin.model('salt2')
+    >>> m = sncosmo.builtin.model('salt2', version='2.0')  # from built-in data
+    >>> m = sncosmo.models.SALT2('/path/to/model/dir')  # or directly from files
 
     Get the flux spectrum at an arbitrary phase, say -10.23 days
 
@@ -130,17 +141,34 @@ class SALT2(Transient):
 
     """
 
-    def __init__(self, m0file, m1file, v00file, v11file, v01file, 
+    def __init__(self, modeldir,
+                 m0file='salt2_template_0.dat',
+                 m1file='salt2_template_1.dat',
+                 v00file='salt2_spec_variance_0.dat',
+                 v11file='salt2_spec_variance_1.dat',
+                 v01file='salt2_spec_covariance_01.dat',
                  errscalefile=None):
 
         self._model = {}
 
         components = ['M0', 'M1', 'V00', 'V11', 'V01', 'errscale']
         filenames = [m0file, m1file, v00file, v11file, v01file, errscalefile]
+
+        # Make filenames into full paths.
+        if modeldir is not None:
+            for i in range(len(filenames)):
+                if filenames[i] is not None:
+                    filenames[i] = os.path.join(modeldir, filenames[i])
+
         for component, filename in zip(components, filenames):
 
             # If the filename is None, that component is left out of the model
             if filename is None: continue
+
+            # Check that file exists.
+            if not os.path.exists(filename):
+                raise ValueError("Model component file not found: {}"
+                                 .format(filename))
 
             # Get the model component from the file
             phases, wavelengths, values = io.read_griddata_txt(filename)

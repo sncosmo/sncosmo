@@ -192,14 +192,17 @@ def model(name, version='latest', modelpath=None):
         if version == '1.1':
             files['errscale'] = 'salt2_spec_dispersion_scaling.dat'
 
-        # Change to full paths and check that they exist.
+        # Check that files exist.
         for key in files:
             if files[key] is None: continue
-            files[key] = os.path.join(modeldir, files[key])
-            _checkfile(files[key])
+            _checkfile(os.path.join(modeldir, files[key]))
 
-        return models.SALT2(files['M0'], files['M1'], files['V00'],
-                            files['V11'], files['V01'],
+        return models.SALT2(modeldir,
+                            m0file=files['M0'],
+                            m1file=files['M1'],
+                            v00file=files['V00'],
+                            v11file=files['V11'],
+                            v01file=files['V01'],
                             errscalefile=files['errscale'])
 
 
