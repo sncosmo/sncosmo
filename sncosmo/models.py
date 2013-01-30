@@ -23,27 +23,15 @@ class Transient(object):
 
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractmethod
+    @property
     def wavelengths(self):
-        """Return wavelength coverage array of the model (as a copy).
-        
-        Returns
-        -------
-        wavelengths : numpy.ndarray
-            Wavelength values in Angstroms.
-        """
-        return
+        """Native wavelength values of model in Angstroms."""
+        return self._wavelengths
 
-    @abc.abstractmethod
+    @property
     def phases(self):
-        """Return array of phases sampled in the model. 
- 
-        Returns
-        -------
-        phases : numpy.ndarray
-            Phases in days.
-        """
-        return
+        """Native phase sampling of model in days."""
+        return self._phases
 
     @abc.abstractmethod
     def flux(phase, wavelengths=None):
@@ -86,20 +74,14 @@ class TimeSeries(Transient):
         if fluxerr is not None:
             self._modelerr = GridData(phase, wavelength, fluxerr)
 
-    def phases(self):
-        return self._phases.copy()
-
-    def wavelengths(self):
-        return self._wavelengths.copy()
-
     def flux(self, phase, wavelengths=None):
         """The model flux spectrum for the given parameters."""
-        return self._model.y(phase, x1=wavelengths)
+        return self._model(phase, x1=wavelengths)
 
     def fluxerr(self, phase, wavelengths=None):
         """The flux error spectrum for the given parameters.
         """
-        return self._modelerr.y(phase, x1=wavelengths)
+        return self._modelerr(phase, x1=wavelengths)
 
 
 class SALT2(Transient):
@@ -110,11 +92,16 @@ class SALT2(Transient):
     ----------
     m0file, m1file, v00file, v11file, v01file : str
         Path to files containing model components. Each file should have
-        the format ``phase wavelength value`` on each line.
+        the format:
+ 
+        ``phase wavelength value`` 
+
+        on each line.
     errscalefile : str, optional
         Path to error scale file, same format as model component files.
         The default is ``None``, which means that the error scale will
-        not be applied in the ``fluxerr()`` method.
+        not be applied in the ``fluxerr()`` method. This is only used for
+        template versions 1.1 and 1.0, not 2.0+.
 
     Notes
     -----
@@ -124,6 +111,23 @@ class SALT2(Transient):
     (in ``m0file``) are taken as the "native" sampling of the model, even
     though these values might require interpolation of the other model
     components.
+
+    Examples
+    --------
+    Initialize a SALT2 model from built-in data files:
+
+    >>> m = sncosmo.builtin.model('salt2')
+
+    Get the flux spectrum at an arbitrary phase, say -10.23 days
+
+    >>> print m.flux(-10.23, x1=0.5, c=0.2)
+    array([ -1.21149095e-13,  -1.22263231e-05,  -4.93535016e-05, ... ])
+
+    Get the flux spectrum at given arbitrary wavelengths.
+    
+    >>> print m.flux(-10.23, wavelengths=[3000., 5000.], x1=0.5, c=0.2)
+    array([ 0.0545761 ,  0.12347552])
+
     """
 
     def __init__(self, m0file, m1file, v00file, v11file, v01file, 
@@ -148,26 +152,13 @@ class SALT2(Transient):
                 self._phases = phases
                 self._wavelengths = wavelengths    
 
-
-    def phases(self, copy=False):
-        """Return native phases of the model in days."""
-        if copy: return self._phases.copy()
-        else: return self._phases
-
-
-    def wavelengths(self, copy=False):
-        """Return native wavelengths of the model in Angstroms."""
-        if copy: return self._wavelengths.copy()
-        else: return self._wavelengths
-
-        
     def flux(self, phase, wavelengths=None, x0=1.0, x1=0.0, c=0.0):
         """The model flux spectrum for the given parameters."""
 
         if wavelengths is None:
             wavelengths = self._wavelengths
-        f0 = self._model['M0'].y(phase, x1=wavelengths)
-        f1 = self._model['M1'].y(phase, x1=wavelengths)
+        f0 = self._model['M0'](phase, x1=wavelengths)
+        f1 = self._model['M1'](phase, x1=wavelengths)
         flux = x0 * (f0 + x1 * f1)
         flux *= self._extinction(wavelengths, c)
 
@@ -179,15 +170,15 @@ class SALT2(Transient):
         if wavelengths is None:
             wavelengths = self._wavelengths
 
-        v00 = self._model['V00'].y(phase, x1=wavelengths)
-        v11 = self._model['V11'].y(phase, x1=wavelengths)
-        v01 = self._model['V01'].y(phase, x1=wavelengths)
+        v00 = self._model['V00'](phase, x1=wavelengths)
+        v11 = self._model['V11'](phase, x1=wavelengths)
+        v01 = self._model['V01'](phase, x1=wavelengths)
         sigma = x0 * np.sqrt(v00 + x1*x1*v11 + 2*x1*v01)
         sigma *= self._extinction(wavelengths, c)
         ### sigma *= 1e-12   #- Magic constant from SALT2 code
         
         if 'errscale' in self._model:
-            sigma *= self._model['errscale'].y(phase, x1=wavelengths)
+            sigma *= self._model['errscale'](phase, x1=wavelengths)
         
         # Hack adjustment to error (from SALT2 code)
         if phase < -7 or phase > 12:

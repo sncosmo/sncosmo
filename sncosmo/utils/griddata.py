@@ -1,5 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
+from copy import deepcopy
 
 __all__ = ['GridData']
 
@@ -27,20 +28,21 @@ class GridData(object):
 
     Get the native sampling.
 
-    >>> gd.x0()
+    >>> gd.x0
     array([-5., -3., -1.,  1.,  3.,  5.])
-    >>> gd.x1()
+    >>> gd.x1
     array([-5., -3., -1.,  1.,  3.,  5.])
 
     Get interpolated values.
 
-    >>> gd.y(0.)
-    array([-0.26237485,  0.52908269,  0.76255845,  0.76255845,  0.52908269,
-           -0.26237485])
-    >>> gd.y(0., x1=[-2., 0., 2.])
-    array([ 0.64582057,  0.76255845,  0.64582057])
+    >>> gd(0.)
+    array([ 0.76255845, -0.54402111, 0.90929743, 0.90929743, -0.54402111,
+           0.76255845])
+    >>> gd(0., x1=[-2., 0., 2.])
+    array([ 0.18263816, 0.90929743, 0.18263816])
     >>> gd.y(0., x1=-2)
-    0.64582056829981327
+    0.182638157968
+
     
     """
     
@@ -54,22 +56,20 @@ class GridData(object):
             raise ValueError("x0 and x1 must be 1-d")
         if not (self._y.ndim == 2):
             raise ValueError("y must be 2-d")
+        if not self._y.shape == (len(self._x0), len(self._x1)):
+            raise ValueError("y must have shape (len(x0), len(x1))")
 
-        self._yfuncs = []
-        for i in range(len(self._x0)):
-            self._yfuncs.append(lambda x: np.interp(x, self._x1, y[i,:]))
-
-    def x0(self, copy=False):
+    @property
+    def x0(self):
         """Native x0 values."""
-        if copy: return self._x0.copy()
-        else: return self._x0
+        return self._x0
 
-    def x1(self, copy=False):
+    @property
+    def x1(self):
         """Native x1 values."""
-        if copy: return self._x1.copy()
-        else: return self._x1
+        return self._x1
 
-    def y(self, x0, x1=None, extend=True):
+    def __call__(self, x0, x1=None, extend=True):
         """Return y values at requested x0 and x1 values.
 
         Parameters
@@ -100,16 +100,16 @@ class GridData(object):
         # Check if requested x0 is out of bounds or exactly in the list
         if (self._x0 == x0).any():
             idx = np.flatnonzero(self._x0 == x0)[0]
-            return self._yfuncs[idx](x1)
+            return np.interp(x1, self._x1, self._y[idx, :])
         elif x0 < self._x0[0]:
-            return self._yfuncs[0](x1)
+            return np.interp(x1, self._x1, self._y[0, :])
         elif x0 > self._x0[-1]:
-            return self._yfuncs[-1](x1)
+            return np.interp(x1, self._x1, self._y[-1, :])
             
         # If we got this far, we need to interpolate between x0 values
         i = np.searchsorted(self._x0, x0)
-        y0 = self._yfuncs[i - 1](x1)
-        y1 = self._yfuncs[i](x1)
+        y0 = np.interp(x1, self._x1, self._y[i - 1, :])
+        y1 = np.interp(x1, self._x1, self._y[i, :])
         dx0 = ((x0 - self._x0[i - 1]) /
                (self._x0[i] - self._x0[i - 1]))
         dy = y1 - y0
