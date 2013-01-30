@@ -30,9 +30,9 @@ For a list of available built-ins, see the function documentation.
 .. autosummary::
    :toctree: _generated/
 
-   bandpass
-   spectrum
-   model
+   builtin.bandpass
+   builtin.spectrum
+   builtin.model
 
 
 I/O Utilities (:mod:`sncosmo.io`)

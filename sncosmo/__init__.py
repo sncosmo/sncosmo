@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from .core import *
-from .builtin import *
+from . import builtin
 from . import io
 from . import models
 from . import utils
