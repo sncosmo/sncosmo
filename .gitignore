@@ -36,5 +36,6 @@ docs/_generated
 # emacs files
 *~
 
-# data upload script
+# server upload scripts
 push-data
+docs/push-docs
