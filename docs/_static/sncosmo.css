@@ -1,0 +1,12 @@
+
+@import url("bootstrap-astropy.css");
+
+div.topbar .brand {
+  float: left;
+  display: block;
+  width: 100px;
+  height: 32px;
+  padding: 8px 0px 0px 62px;
+  margin-left: -10px;
+  background: transparent url("sncosmo_logo_word_32.png") no-repeat 10px 4px;
+}

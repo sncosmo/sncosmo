@@ -101,6 +101,10 @@ htmlhelp_basename = project + 'doc'
 # Add local templates path to modify autosummary templates
 templates_path = ['_templates']
 
+# Static files to copy after template files
+html_static_path = ['_static']
+html_style = 'sncosmo.css'
+
 # -- Options for LaTeX output --------------------------------------------------
 
 # Grouping the document tree into LaTeX files. List of tuples
