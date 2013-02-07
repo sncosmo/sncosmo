@@ -2,6 +2,9 @@
 Examples
 ********
 
+.. note:: Disregard these examples for now. They are out of date with the
+          rapidly changing API.
+
 Use supernova models
 ====================
 

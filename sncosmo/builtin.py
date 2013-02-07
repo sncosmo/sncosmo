@@ -123,31 +123,31 @@ def model(name, version='latest', modelpath=None):
 
     Available models:
 
-    ============= ======= ======= ========== ============= ======= ======== ===========
-    Name          Version Type    Class      References    Website Data URL Retrieved
-    ============= ======= ======= ========== ============= ======= ======== ===========
-    salt2         1.1     SN Ia   SALT2      [#0]_ [#1]_   `a`_    `b`_     20 Dec 2012
-    salt2         2.0     SN Ia   SALT2                    `a`_    `c`_     20 Dec 2012
-    hsiao         1.0     SN Ia   TimeSeries [#2]_         `d`_    [#3]_    23 Nov 2012
-    hsiao         2.0     SN Ia   TimeSeries               `d`_    [#3]_    23 Nov 2012
-    hsiao         3.0     SN Ia   TimeSeries               `d`_    [#3]_    23 Nov 2012
-    nugent-sn1a   1.2     SN Ia   TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-sn91bg 1.1     SN Ia   TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-sn91t  1.1     SN Ia   TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-sn1bc  1.1     SN Ib/c TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-hyper  1.2     SN Ib/c TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-sn2p   1.2     SN IIp  TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-sn2l   1.2     SN IIL  TimeSeries               `e`_    `f`_     20 Dec 2012
-    nugent-sn2n   2.1     SN IIn  TimeSeries               `e`_    `f`_     20 Dec 2012
-    ============= ======= ======= ========== ============= ======= ======== ===========
+    ============= ======= ======= ========== ============== ======= ======== ===========
+    Name          Version Type    Class      References     Website Data URL Retrieved
+    ============= ======= ======= ========== ============== ======= ======== ===========
+    salt2         1.1     SN Ia   SALT2      [G07]_ [G10]_  `a`_    `b`_     20 Dec 2012
+    salt2         2.0     SN Ia   SALT2      [G07]_ [G10]_  `a`_    `c`_     20 Dec 2012
+    hsiao         1.0     SN Ia   TimeSeries [H07]_         `d`_    [#snpy]_ 23 Nov 2012
+    hsiao         2.0     SN Ia   TimeSeries [H07]_         `d`_    [#snpy]_ 23 Nov 2012
+    hsiao         3.0     SN Ia   TimeSeries [H07]_         `d`_    [#snpy]_ 23 Nov 2012
+    nugent-sn1a   1.2     SN Ia   TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-sn91bg 1.1     SN Ia   TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-sn91t  1.1     SN Ia   TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-sn1bc  1.1     SN Ib/c TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-hyper  1.2     SN Ib/c TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-sn2p   1.2     SN IIp  TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-sn2l   1.2     SN IIL  TimeSeries                `e`_    `f`_     20 Dec 2012
+    nugent-sn2n   2.1     SN IIn  TimeSeries                `e`_    `f`_     20 Dec 2012
+    ============= ======= ======= ========== ============== ======= ======== ===========
 
 
 
-    .. [#0] Guy et al. 2007 `[ADS] <http://adsabs.harvard.edu/abs/2007A%26A...466...11G>`_
-    .. [#1] Guy et al. 2010 `[ADS] <http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>`_
-    .. [#2] Hsiao et al. 2007 `[ADS] <http://adsabs.harvard.edu/abs/2007ApJ...663.1187H>`_
+    .. [G07] `Guy et al. 2007 <http://adsabs.harvard.edu/abs/2007A%26A...466...11G>`__
+    .. [G10] `Guy et al. 2010 <http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>`__
+    .. [H07] `Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/2007ApJ...663.1187H>`__
 
-    .. [#3] Extracted from the ``snpy`` package source.
+    .. [#snpy] Extracted from the ``snpy`` package source.
 
     .. _`a`: http://supernovae.in2p3.fr/~guy/salt/download_templates.html
     .. _`b`: http://supernovae.in2p3.fr/~guy/salt/download/salt2_model_data-1-1.tar.gz

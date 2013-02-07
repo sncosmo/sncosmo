@@ -1,6 +1,6 @@
 SNCosmo Documentation
 =====================
-A python package for supernova cosmology based on NumPy_ and `AstroPy <http://www.astropy.org>`_.
+A python package for supernova cosmology based on NumPy_ and AstroPy_.
 
 It currently includes:
 
