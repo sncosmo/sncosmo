@@ -44,7 +44,7 @@ import astropy
 from astropy.setup_helpers import (register_commands, adjust_compiler,
                                    filter_packages, update_package_files,
                                    get_debug_option)
-from astropy.version_helper import get_git_devstr, generate_version_py
+from astropy.version_helpers import get_git_devstr, generate_version_py
 
 # Set affiliated package-specific settings
 PACKAGENAME = 'sncosmo'
