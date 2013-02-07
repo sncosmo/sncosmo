@@ -11,7 +11,7 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="910"
+   width="920"
    height="220"
    id="svg2"
    version="1.1"
@@ -136,7 +136,7 @@
      pagecolor="#000000"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.1372549"
+     inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
      inkscape:cx="464.72203"
@@ -148,7 +148,7 @@
      inkscape:snap-grids="true"
      inkscape:window-width="1869"
      inkscape:window-height="1079"
-     inkscape:window-x="49"
+     inkscape:window-x="124"
      inkscape:window-y="24"
      inkscape:window-maximized="0"
      fit-margin-top="5"
@@ -164,7 +164,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -187,7 +187,7 @@
          style="font-size:185px;font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Source Sans Pro;-inkscape-font-specification:Source Sans Pro Semi-Bold"><tspan
            style="font-size:185px;font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#ff5000;fill-opacity:1;font-family:Source Sans Pro;-inkscape-font-specification:Source Sans Pro Light"
            id="tspan3796"><tspan
-   style="fill:#ffffff;-inkscape-font-specification:Source Sans Pro Semi-Bold;font-family:Source Sans Pro;font-weight:600;font-style:normal;font-stretch:normal;font-variant:normal;font-size:185px;text-anchor:start;text-align:start;writing-mode:lr;line-height:125%"
+   style="font-size:185px;font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;font-family:Source Sans Pro;-inkscape-font-specification:Source Sans Pro Semi-Bold"
    id="tspan3111">sn</tspan>cosmo</tspan></tspan></text>
     <path
        sodipodi:type="arc"

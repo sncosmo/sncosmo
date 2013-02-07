@@ -2,5 +2,4 @@
 
 """Utilities with functionality not specific to this package."""
 
-from griddata import GridData
-from mwdust import mwdust
+from .griddata import GridData

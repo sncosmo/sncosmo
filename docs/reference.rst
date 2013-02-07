@@ -4,35 +4,78 @@ Reference/API
 
 .. currentmodule:: sncosmo
 
-Classes
--------
+Synthetic Photometry
+--------------------
 
-These classes contain the core functionality of the library. 
+Currently this contains minimal functionality necessary to perform
+basic operations on spectra, such as redshifting and synthetic
+photometry. These operations are accomplished with the `Spectrum`
+class. This functionality could eventually be replaced by `astropy`
+if implemented there.
 
 .. autosummary::
    :toctree: _generated/
 
    Bandpass
    Spectrum
-   models.Transient
-   models.TimeSeries
-   models.SALT2
-   Survey
 
 
-Factory Functions
------------------
+Supernova Models (:mod:`sncosmo.models`)
+----------------------------------------
 
-Read built-in data (from the path given by the user's ``$SNCOSMO_DATA``
-environment variable) and create a class instance based on that data.
-For a list of available built-ins, see the function documentation.
+Models of astrophysical transient sources. A model is anything where
+the spectrum as a function of phase can be parameterized by an
+arbitrary number of parameters. For example, the Hsiao and Nugent SN
+templates are zero parameter models (not counting amplitude): there is
+a single spectrum for a given phase. The SALT2 model has two
+parameters (:math:`x1` and :math:`c`) that determine a unique spectrum
+as a function of phase. The Hsiao and Nugent models can be described
+using a single class (`models.TimeSeries`) whereas the SALT2 model
+needs a separate subclass (`models.SALT2`). All models derive from a
+common abstract base class (`models.Transient`).
 
 .. autosummary::
    :toctree: _generated/
 
+   models.Transient
+   models.TimeSeries
+   models.SALT2
+
+
+Simulation (:mod:`sncosmo.sim`)
+-------------------------------
+
+Classes and functions for simulating SNe in surveys will live in this
+subpackage. Functionality will be split between (at least) two steps:
+"realizing" a set of SNe and simulating the observations of those SNe.
+
+* *Realizing a set of SNe* Simulating the locations and properties of
+  SNe given things like the intrinsic SN rate, distribution of SN
+  properties, and correlations with properties and SN hosts. Here, the
+  "properties of a SN" means the model and parameters that completely
+  describe the full SED, independent of what observations might be
+  made of that SN.
+
+* *Simulating observations* Given properties of survey observations
+  (simulated or actual) simulate the SN flux and flux error for an SN
+  with some given properties (or set of SNe).
+
+
+
+Factory Functions / Registry (:mod:`sncosmo.builtin`)
+-----------------------------------------------------
+
+Automatically create Bandpass, Spectrum and Model objects from
+built-in data.  This is essentially a registry that ties a string
+identifier (such as ``'salt2'`` to a class and data (such as the
+`models.SALT2` class and some model data).
+
+.. autosummary::
+   :toctree: _generated/
+
+   builtin.model
    builtin.bandpass
    builtin.spectrum
-   builtin.model
 
 
 I/O Utilities (:mod:`sncosmo.io`)
@@ -44,22 +87,14 @@ Utilities for reading and writing file formats not convered by :mod:`astropy`.
    :toctree: _generated/
 
    io.read_griddata_txt
-   io.asciimeta.read
-   io.asciimeta.write
-   io.snana.write_lc
-   io.snana.read_simlib
-   io.salt2.read
-   io.salt2.write
-   io.salt2.readdir
-   io.salt2.writedir
+
 
 General Utilities (:mod:`sncosmo.utils`)
 ----------------------------------------
 
-Utilities with functionality not specific to the :mod:`sncosmo` package.
+Utilities with functionality not specific to this package.
 
 .. autosummary::
    :toctree: _generated/
 
    utils.GridData
-   utils.mwdust
