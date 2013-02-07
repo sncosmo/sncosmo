@@ -41,6 +41,8 @@ common abstract base class (`models.Transient`).
    models.TimeSeries
    models.SALT2
 
+.. inheritance-diagram:: models
+
 
 Simulation (:mod:`sncosmo.sim`)
 -------------------------------
