@@ -66,7 +66,24 @@ def _checkfile(filename):
 
 
 def bandpass(name):
-    """Create and return a built-in Bandpass."""
+    """Create and return a built-in Bandpass.
+
+    Notes
+    -----
+
+    Avaiable built-in bandpasses:
+
+    =========== ============
+    Name        Description
+    =========== ============
+    Bessell::B
+    DECam::DESg
+    DECam::DESr
+    DECam::DESi
+    DECam::DESz
+    DECam::DESy
+    =========== ============
+"""
 
     if name not in builtin_bandpasses:
         raise ValueError('{} is not a built-in bandpass.')
@@ -80,7 +97,20 @@ def bandpass(name):
 
 
 def spectrum(name):
-    """Create and return a built-in Spectrum."""
+    """Create and return a built-in Spectrum.
+
+    Notes
+    -----
+    
+    Available spectra:
+
+    ==== ===========
+    Name Description
+    ==== ===========
+    vega Vega
+    ab   ab
+    ==== ===========
+"""
 
     if name not in builtin_spectra:
         raise ValueError("'{}' is not a built-in spectrum.".format(name))
