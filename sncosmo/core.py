@@ -174,8 +174,9 @@ class Spectrum(object):
         else:
             fe = self._fluxerr[idx]
             fe *= factor  # Convert from erg/s/cm^2/AA to photons/s/cm^2/AA
-            fetot = np.sum((fe * trans) ** 2 * binwidth)
-            return ftot, fetot
+            fv = fe ** 2 # variance on f
+            fvtot = np.sum(fv * trans * binwidth)  # sum variance like flux
+            return ftot, np.sqrt(fvtot)
 
 
     def redshifted_to(self, z, adjust_flux=False, dist=None, cosmo=None):
