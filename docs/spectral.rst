@@ -14,11 +14,3 @@ Here are the built-in bandpasses:
 .. plot:: pyplots/bandpasses.py
 
 
-.. currentmodule:: sncosmo.spectral
-
-.. autosummary::
-   :toctree: _generated/
-
-   Bandpass
-   Spectrum
-   MagnitudeSystem

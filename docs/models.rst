@@ -20,13 +20,3 @@ Examples
 Reference / API
 ---------------
 
-.. currentmodule:: sncosmo
-
-.. autosummary::
-   :toctree: _generated/
-
-   Model
-   TimeSeriesModel
-   SALT2Model
-
-.. inheritance-diagram:: Model

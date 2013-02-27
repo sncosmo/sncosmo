@@ -99,11 +99,14 @@ html_title = '{0} v{1}'.format(project, release)
 htmlhelp_basename = project + 'doc'
 
 # Add local templates path to modify autosummary templates
-templates_path = ['_templates']
+#templates_path = ['_templates']
+if 'templates_path' not in locals():  # in case parent conf.py defines it
+    templates_path = []
+templates_path.append('_templates')
 
 # Static files to copy after template files
-html_static_path = ['_static']
-html_style = 'sncosmo.css'
+#html_static_path = ['_static']
+#html_style = 'sncosmo.css'
 
 # -- Options for LaTeX output --------------------------------------------------
 
