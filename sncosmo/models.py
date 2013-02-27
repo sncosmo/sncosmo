@@ -5,15 +5,19 @@
 import abc
 import os
 import math
+from textwrap import dedent
 
 import numpy as np
 from astropy.utils.misc import isiterable
+from astropy import cosmology
 
 from .utils import GridData, read_griddata
 from .spectral import Spectrum
 from . import registry
 
 __all__ = ['get_model', 'Model', 'TimeSeriesModel', 'SALT2Model']
+
+cosmology.set_current(cosmology.WMAP9)
 
 def get_model(name, version=None):
     """Retrieve a model from the registry by name.
@@ -40,12 +44,12 @@ class Model(object):
         self._refphase = 0.
         self._cosmo = cosmology.get_current()
 
-    @abc.abstractmethod
     def set(self, **params):
         """Set the parameters of the model.
 
         `z`, `absmag`, `fluxscaling` are common to all models."""
-        pass
+        for key in self._params:
+            if key in params: self._params[key] = params[key]
 
     @abc.abstractmethod
     def _model_fluxdensity(self, phase=None, dispersion=None, extend=False):
@@ -100,7 +104,7 @@ class Model(object):
                     restframe=False):
         """The model flux spectral density."""
 
-        if restframe or self.params['z'] == 0.:
+        if restframe or self._params['z'] == 0.:
             return (self._params['fluxscaling'] *
                     self._model_fluxdensity(phase, dispersion, extend=extend))
         if self._params['z'] is None:
@@ -122,7 +126,7 @@ class Model(object):
                          restframe=False):
         """The error on the model flux spectral density."""
 
-        if restframe or self.params['z'] == 0.:
+        if restframe or self._params['z'] == 0.:
             f = self._model_fluxdensityerror(phase, dispersion, extend=extend)
             if f is None: return f
             return self._params['fluxscaling'] * f
@@ -206,24 +210,26 @@ class Model(object):
         return "<{}>".format(self.__class__.__name__)
 
     def __str__(self):
-        result = """
+        result = """\
         Model class: {}
         Model name: {}
         Model version: {}
-        Restframe phases: {:.6g}..{:.6g} ({:d} points)
-        Restframe dipsersion: {:.6g}..{:.6g} ({:d} points) 
-        Reference phase: {}
+        Restframe phases: [{:.6g}, .., {:.6g}] days ({:d} points)
+        Restframe dipsersion: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
+        Reference phase: {} days
         Cosmology: {}
-        Parameters: {}
-        """.format(self.__class__.__name__,
-                   self._name, self._version,
-                   self._phase[0], self._phase[-1], len(self._phase),
-                   self._dispersion[0], self._dispersion[-1],
-                   len(self._dispersion),
-                   self._refphase,
-                   self._cosmo,
-                   self._params)
-        return result
+        Parameters: {}""".format(
+            self.__class__.__name__,
+            self._name, self._version,
+            self._phase[0], self._phase[-1], len(self._phase),
+            self._dispersion[0], self._dispersion[-1],
+            len(self._dispersion),
+            self._refphase,
+            self._cosmo,
+            self._params
+            )
+
+        return dedent(result)
 
 
 class TimeSeriesModel(Model):
@@ -245,7 +251,7 @@ class TimeSeriesModel(Model):
 
     def __init__(self, phase, dispersion, fluxdensity,
                  fluxdensityerror=None, name=None, version=None):
-        super()
+        super(TimeSeriesModel, self).__init__()
         self._name = name
         self._version = version
         self._phase = phase
@@ -317,7 +323,8 @@ class SALT2Model(Model):
                  v11file='salt2_spec_variance_1.dat',
                  v01file='salt2_spec_covariance_01.dat',
                  errscalefile=None, name=None, version=None):
-        super()
+
+        super(SALT2Model, self).__init__()
         self._params['c'] = 0.
         self._params['x1'] = 0.
         self._name = name
@@ -349,6 +356,7 @@ class SALT2Model(Model):
             if component == 'M0':
                 self._phase = phase
                 self._dispersion = wavelength
+
 
     def _model_fluxdensity(self, phase=None, dispersion=None, extend=False):
         """Return the model flux density (without any scaling or redshifting).
