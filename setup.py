@@ -24,6 +24,7 @@ from setuptools import setup, find_packages
 
 # Need a recursive glob to find all package data files if there are
 # subdirectories
+import fnmatch
 def recursive_glob(basedir, pattern):
     matches = []
     for root, dirnames, filenames in os.walk(basedir):

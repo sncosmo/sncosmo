@@ -2,4 +2,5 @@
 
 """Utilities with functionality not specific to this package."""
 
-from .griddata import GridData
+from .griddata import *
+from .io import *

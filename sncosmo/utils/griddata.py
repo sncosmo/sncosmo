@@ -1,6 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
-from copy import deepcopy
 
 __all__ = ['GridData']
 
@@ -69,14 +68,15 @@ class GridData(object):
         """Native x1 values."""
         return self._x1
 
-    def __call__(self, x0, x1=None, extend=True):
+    def __call__(self, x0=None, x1=None, extend=True):
         """Return y values at requested x0 and x1 values.
 
         Parameters
         ----------
-        x0 : float
-        x1 : numpy.ndarray, optional
-            Default value is None, which is interpreted as native x1 values.
+        x0 : float or `~numpy.ndarray`, optional
+            Default is `None`, which is interpreted as the native values.
+        x1 : float or `~numpy.ndarray`, optional
+            Default is `None`, which is interpreted as the native values.
         extend : bool, optional
             The function raises ValueError if x0 is outside of native grid,
             unless extend is True, in which case it returns values at nearest
@@ -89,28 +89,42 @@ class GridData(object):
             x1 values.
         """
 
-        # Bounds check first
-        if (x0 < self._x0[0] or x0 > self._x0[-1]) and not extend:
-            raise ValueError("Requested x0 {:.2f} out of range ({:.2f}, "
-                             "{:.2f})".format(x0, self._x0[0], self._x0[-1]))
+        if x0 is None and x1 is None:
+            return self._y
 
-        # Use default x1 if none are specified
+        if x0 is None: x0 = self._x0
+        else: x0 = np.asarray(x0)
         if x1 is None: x1 = self._x1
+        else: x1 = np.asarray(x1)            
+        if x0.ndim > 1 or x1.ndim > 1:
+                raise ValueError("x0 and x1 can be at most 1-d")
 
-        # Check if requested x0 is out of bounds or exactly in the list
-        if (self._x0 == x0).any():
-            idx = np.flatnonzero(self._x0 == x0)[0]
-            return np.interp(x1, self._x1, self._y[idx, :])
-        elif x0 < self._x0[0]:
-            return np.interp(x1, self._x1, self._y[0, :])
-        elif x0 > self._x0[-1]:
-            return np.interp(x1, self._x1, self._y[-1, :])
-            
-        # If we got this far, we need to interpolate between x0 values
-        i = np.searchsorted(self._x0, x0)
-        y0 = np.interp(x1, self._x1, self._y[i - 1, :])
-        y1 = np.interp(x1, self._x1, self._y[i, :])
-        dx0 = ((x0 - self._x0[i - 1]) /
-               (self._x0[i] - self._x0[i - 1]))
-        dy = y1 - y0
-        return y0 + dx0 * dy
+        in_dims = (x0.ndim, x1.ndim)
+        x0 = x0.ravel()
+        x1 = x1.ravel()
+
+        if not extend:
+            if (x0[0] < self._x0[0] or x0[-1] > self._x0[-1]):
+                raise ValueError("x0 out of range ({:f}, {:f})"
+                                 .format(self._x0[0], self._x0[-1]))
+            if (x1[0] < self._x1[0] or x1[-1] > self._x1[-1]):
+                raise ValueError("x1 out of range ({:f}, {:f})"
+                                 .format(self._x1[0], self._x1[-1]))
+
+        y = np.empty((x0.shape[0], x1.shape[0]))
+        for i, j in enumerate(np.searchsorted(self._x0, x0)):
+            if j == 0:
+                y[i, :] = np.interp(x1, self._x1, self._y[0, :])
+            elif j == self._x0.shape[0]:
+                y[i, :] = np.interp(x1, self._x1, self._y[-1, :])
+            else:
+                y0 = np.interp(x1, self._x1, self._y[j - 1, :])
+                y1 = np.interp(x1, self._x1, self._y[j, :])
+                dx0 = (x0[i] - self._x0[j-1]) / (self._x0[j] - self._x0[j-1])
+                y[i, :] = y0 + dx0 * (y1 - y0)
+
+        if in_dims[0] == 0:
+            if in_dims[1] == 0:
+                return y[0, 0]
+            return y[0]
+        return y

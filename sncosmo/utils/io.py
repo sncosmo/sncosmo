@@ -2,14 +2,14 @@ from collections import OrderedDict
 import numpy as np
 from astropy.table import Table
 
-__all__ = ['read_griddata_txt']
+__all__ = ['read_griddata']
 
 def _stripcomment(line, char='#'):
     pos = line.find(char)
     if pos == -1: return line
     else: return line[:pos]
 
-def read_griddata_txt(filename):
+def read_griddata(name_or_obj):
     """Read 2-d grid data from a text file.
 
     Each line has values `x0 x1 y`. Space separated.
@@ -18,7 +18,7 @@ def read_griddata_txt(filename):
 
     Parameters
     ----------
-    filename : str
+    filename : str or file-like object
 
     Returns
     -------
@@ -30,6 +30,11 @@ def read_griddata_txt(filename):
         2-d array of shape (len(x0), len(x1)).
     """
 
+    if isinstance(name_or_obj, basestring):
+        f = open(filename, 'rb')
+    else:
+        f = name_or_obj
+
     x0 = []    # x0 values.
     x1 = None  # x1 values for first x0 value, assume others are the same.
     y = []     # 2-d array of internal values
@@ -37,7 +42,7 @@ def read_griddata_txt(filename):
     x0_current = None
     x1_current = []
     y1_current = []
-    for line in open(filename):
+    for line in f:
         stripped_line = _stripcomment(line)
         if len(stripped_line) == 0: continue
         x0_tmp, x1_tmp, y_tmp = map(float, stripped_line.split())
@@ -60,4 +65,5 @@ def read_griddata_txt(filename):
     x0.append(x0_current)
     y.append(y1_current)
 
+    f.close()
     return np.array(x0), np.array(x1), np.array(y)

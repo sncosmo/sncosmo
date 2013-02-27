@@ -1,9 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from .core import *
-from . import builtin
-from . import io
-from . import models
+from .spectral import *
+from .models import *
+from . import registry
 from . import utils
+from . import _builtin
+
 
 try:
     from .version import version as __version__

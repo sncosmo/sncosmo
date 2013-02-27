@@ -1,25 +1,36 @@
-SNCosmo Documentation
-=====================
-A python package for supernova cosmology based on NumPy_ and AstroPy_.
+#######
+SNCosmo
+#######
 
-It currently includes:
+A python package for supernova cosmology based on :mod:`~astropy`.
+This is currently a "working implementation", intended to demonstrate
+the functionality and a possible API.
 
-* An interface to various SN model templates, such as the Hsiao and Nugent spectral time series templates, and the SALT2 model (:mod:`sncosmo.models`)
-* Redshift spectra and Perform synthetic photometry (:mod:`sncosmo.Spectrum`)
-* Simulate transient surveys: the detected transients and their lightcurves (:mod:`sncosmo.Survey`)
-* I/O functions for writing to SALT2-format photometry files.
+A quick example
+---------------
 
-Contents
---------
+There are a variety of built-in models for several types of SNe
+(but mainly Type Ia). Built-in models are retrievable by name:
+
+   >>> from sncosmo import Model
+   >>> m = Model.from_name('hsiao')
+
+Get the model spectrum at phase 5.3 days and calculate the AB magnitude in
+the DES g bandpass (bandpasses and magnitude systems can also be specified
+by name):
+
+   >>> s = m.spectrum(5.3)
+   >>> s.mag('desg', 'ab')
+
+
+Documentation
+-------------
 
 .. toctree::
    :maxdepth: 1
 
-   examples
    install
-   reference
-   about
-
-
-.. _NumPy: http://www.numpy.org
-
+   models
+   spectral
+   utils
+   registry
