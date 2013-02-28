@@ -11,47 +11,9 @@ from astropy.utils.data import (download_file, get_pkg_data_filename,
 from astropy.utils import OrderedDict
 from astropy.config import ConfigurationItem
 
-from . import registry
-from . import Bandpass
-from . import Model, TimeSeriesModel, SALT2Model
-from . import utils
-
-# -------------------------------------------------------------------------
-# Bandpasses
-
-def load_bandpass_ascii(pkg_data_name):
-    """Read two-column bandpass. First column is assumed to be wavelength
-    in Angstroms."""
-    
-    filename = get_pkg_data_filename(pkg_data_name)
-    t = ascii.read(filename, names=['disp', 'trans'])
-    return Bandpass(t['disp'], t['trans'], dispersion_unit=u.AA)
-
-registry.register_loader(Bandpass, 'desg', load_bandpass_ascii,
-                         ['data/bandpasses/des_g.dat'], filterset='des')
-registry.register_loader(Bandpass, 'desr', load_bandpass_ascii,
-                         ['data/bandpasses/des_r.dat'], filterset='des')
-registry.register_loader(Bandpass, 'desi', load_bandpass_ascii,
-                         ['data/bandpasses/des_i.dat'], filterset='des')
-registry.register_loader(Bandpass, 'desz', load_bandpass_ascii,
-                         ['data/bandpasses/des_z.dat'], filterset='des')
-registry.register_loader(Bandpass, 'desy', load_bandpass_ascii,
-                         ['data/bandpasses/des_y.dat'], filterset='des')
-
-
-lines = [
-    'The following bandpasses are available:',
-    '========== ========================= ==============================',
-    '   Name     Description               Source',
-    '========== ========================= ==============================']
-for d in registry.get_loaders_metadata(Bandpass):
-    lines.append('{0:^10} {1:^25} {1:^25}'.format(d['name'], '', ''))
-lines.append(lines[1])
-bandpass_table = '\n'.join(lines)
-
-
-# --------------------------------------------------------------------------
-# Models
+from .. import registry
+from .. import Model, TimeSeriesModel, SALT2Model
+from .. import utils
 
 def load_timeseries_ascii(remote_url):
     with get_readable_fileobj(remote_url, cache=True) as f:
@@ -79,12 +41,18 @@ def load_salt2model(remote_url, topdir):
     return m
 
 
+# ------------------------------------------------------------------------
+# Nugent models
+
 registry.register_loader(
     Model, 'nugent-sn1a', load_timeseries_ascii, 
     ['http://supernova.lbl.gov/~nugent/templates/sn1a_flux.v1.2.dat.gz'],
     version='1.2',
     sourceurl='http://supernova.lbl.gov/~nugent/templates')
 
+
+# -----------------------------------------------------------------------
+# SALT models
 
 baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
 registry.register_loader(

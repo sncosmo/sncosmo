@@ -3,7 +3,9 @@ from .spectral import *
 from .models import *
 from . import registry
 from . import utils
-from . import _builtin
+
+from ._builtin import bandpasses
+from ._builtin import models
 
 
 try:

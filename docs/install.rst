@@ -4,14 +4,19 @@ Installation
 Requirements
 ------------
 
-* Python 2.6 or greater
-* NumPy 1.5 or greater
-* AstroPy 0.2 or greater
+SNCosmo depends on AstroPy and its dependencies. The requirements
+are:
+
+- `Python <http://www.python.org/>`_ 2.6, 2.7, 3.1 or 3.2
+
+- `NumPy <http://www.numpy.org/>`_ 1.4 or later
+
+- AstroPy_ 0.2 or later
 
 Install from source
 -------------------
 
-:mod:`sncosmo` is only available from source. Either download the latest
+SNCosmo is only available from source. Either download the latest
 tarball, using ::
 
   $ wget https://github.com/kbarbary/sncosmo/archive/master.zip
