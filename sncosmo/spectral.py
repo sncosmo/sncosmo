@@ -383,6 +383,11 @@ class MagnitudeSystem(object):
         self._zpflux[band] = self._refspectrum.flux(band)
         return self._zpflux[band]
 
+@classmethod
+def from_name(cls, name):
+    """Return an instance from the registry"""
+    return registry.retrieve(MagnitudeSystem, name)
+
 
 class ABSystem(MagnitudeSystem):
     

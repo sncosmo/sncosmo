@@ -12,7 +12,7 @@ from astropy.utils.misc import isiterable
 from astropy import cosmology
 
 from .utils import GridData, read_griddata
-from .spectral import Spectrum
+from .spectral import Spectrum, Bandpass, MagnitudeSystem
 from . import registry
 
 __all__ = ['get_model', 'Model', 'TimeSeriesModel', 'SALT2Model']
@@ -40,16 +40,27 @@ class Model(object):
 
     @abc.abstractmethod
     def __init__(self):
-        self._params = dict(z=0., fluxscaling=1.)
+        self._params = dict(z=None, fluxscaling=1., absmag=None)
         self._refphase = 0.
         self._cosmo = cosmology.get_current()
 
     def set(self, **params):
-        """Set the parameters of the model.
+        """Set the parameters of the model."""
 
-        `z`, `absmag`, `fluxscaling` are common to all models."""
-        for key in self._params:
-            if key in params: self._params[key] = params[key]
+        if 'absmag' in params and 'fluxscaling' in params:
+            raise ValueError("cannot simulaneously set 'absmag' and"
+                             "'fluxscaling'")
+        for key in params:
+            if key in self._params:
+                self._params[key] = params[key]
+            else:
+                raise ValueError("unknown parameter: '{}'".format(key))
+        
+        if 'absmag' in params:
+            if params['absmag'] is None or len(params['absmag']) != 3:
+                raise ValueError("'absmag' must be an interable of length 3'")
+            _adjust_fluxscaling_from_absmag(*params['absmag'])
+
 
     @abc.abstractmethod
     def _model_fluxdensity(self, phase=None, dispersion=None, extend=False):
@@ -162,34 +173,78 @@ class Model(object):
         if include_error:
             fe = self.fluxdensityerror(phase, dispersion=dispersion,
                                        restframe=restframe)
-        return Spectrum(d, f, error=fe, z=self._params['z'])
+        else:
+            fe = None
+        if restframe:
+            z = None
+        else:
+            z = self._params['z']
+        return Spectrum(d, f, error=fe, z=z)
 
     def flux(self, phase, band):
         """Flux (ph/cm^2/s) at the given phase(es) through the given 
-        bandpass(es)"""
+        bandpass(es)
+
+        Parameters
+        ----------
+        phase : float or `~numpy.ndarray`
+            Phase in days
+        band : str, `Bandpass` or list_like thereof
+        
+        Returns
+        -------
+        flux : float or `~numpy.ndarray`
+            float if both phase and band are not interables.
+            `~numpy.ndarray` if either is an interable.
+        """
 
         phase, band = np.broadcast_arrays(phase, band)
         ndim = phase.ndim
         phase = phase.ravel()
         band = band.ravel()
 
-        flux_values = np.empty(phase.shape, dtype=np.float)
+        result = np.empty(phase.shape, dtype=np.float)
 
         for i, ph, b in zip(range(len(phase)), phase, band):
-            s = spectrum(ph)
-            flux_values[i] = s.flux(b)
+            s = self.spectrum(ph)
+            result[i] = s.flux(b)
             
         if ndim == 0:
-            return flux_values[0]
-        return flux_values
+            return result[0]
+        return result
             
-        
-
-    def magnitude(self, phase, band, magsys):
+    def magnitude(self, phase, band, magsys, restframe=False):
         """Magnitudes at the given phase(es) through the given 
-        bandpass(es), and for the given magnitude systems."""
-        pass
+        bandpass(es), and for the given magnitude system(s)."""
 
+        phase, band, magsys = np.broadcast_arrays(phase, band, magsys)
+        ndim = phase.ndim
+        phase = phase.ravel()
+        band = band.ravel()
+        magsys = magsys.ravel()
+
+        result = np.empty(phase.shape, dtype=np.float)
+        for i, ph, b, ms in zip(range(len(phase), phase, band, magsys)):
+            ms = MagnitudeSystem.from_name(ms)
+            s = self.spectrum(ph, restframe=restrame)
+            f = s.flux(b)
+            zpf = ms.zpflux(b)
+            result[i] = -2.5 * np.log10(f / zpf)
+
+        if ndim == 0:
+            return result[0]
+        return result
+
+
+    def _adjust_fluxscaling_from_absmag(mag, band, magsys):
+        """Determine the fluxscaling that when applied to the model
+        (with current parameters), will result in the desired absolute
+        magnitude at the reference phase."""
+
+        self._params['fluxscaling'] = 1.
+        m_current = self.magnitude(self._refphase, band, magsys,
+                                   restframe=True)
+        self._params['fluxscaling'] = 10.**(0.4 * (m_current - mag))
 
     def __call__(self, **params):
         """Return a shallow copy of the model with parameters set.

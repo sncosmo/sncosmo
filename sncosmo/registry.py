@@ -8,7 +8,7 @@ __all__ = ['register_loader', 'retrieve', 'get_loaders_metadata']
 _loaders = OrderedDict()
 _instances = OrderedDict()
 
-def register_loader(data_class, name, function, function_args=[],
+def register_loader(data_class, name, function, function_args=None,
                     version=None, force=False, **meta):
     """Register a data reading function.
 
@@ -27,12 +27,13 @@ def register_loader(data_class, name, function, function_args=[],
         ``'1.0'``, ``'1.0.0'``, etc. Default is `None`. 
     force : bool, optional
         Whether to override any existing function if already present.
-
-    Other Parameters
-    ----------------
-    Any additional keyword arguments are saved as a dictionary of metadata
-    describing this loader.
+    **kwargs : optional
+        Any additional keyword arguments are assumed to be metadata and
+        are saved as a dictionary describing this loader.
     """
+
+    if function_args is None:
+        function_args = []
 
     if version is None:
         key = (data_class, name)
@@ -54,16 +55,6 @@ def register_loader(data_class, name, function, function_args=[],
 def retrieve(data_class, name, version=None):
     """Retrieve a class instance from a registered identifier.
 
-    The following are tried in this order:
-
-    * If `name` is an instance of `data_class`, `name` is returned.
-    * If an instance of (`data_class`, `name`) is already in the registry,
-      that instance is returned.
-    * If there is a loader defined for (`data_class`, `name`), it is used
-      to create an instance, save it to the registry and return it.
-    * An Exception is raised listing the available registered names for
-      the requested data class.
-
     Parameters
     ----------
     data_class : classobj
@@ -71,18 +62,19 @@ def retrieve(data_class, name, version=None):
     name : str
         Identifier of the specific instance.
     version : str
-        Sub-identifier. If None, default to highest or only version.
+        Sub-identifier. If `None`, default to highest or only version.
 
     Returns
     -------
-    instance : object
+    instance : data_class (or subclass thereof)
 
     Notes
     -----
-    The following are tried in this order:
+    **Precedence** The following are tried in this order:
 
-    1. If `name` is an instance of `data_class`, `name` is returned.
-    2. If an instance of (`data_class`, `name`) is already in the registry,
+    1. If `name` is already an instance of `data_class`
+       (rather than a string), it is immediately returned.
+    2. If (`data_class`, `name`) is already in the registry,
        that instance is returned.
     3. If there is a loader defined for (`data_class`, `name`), it is used
        to create an instance, save it to the registry and return it.
@@ -90,12 +82,15 @@ def retrieve(data_class, name, version=None):
        the requested data class.
 
     **Versioning** There is support for multiple versions of data for the
-    same `name`. If `version` is specified, the registry and its loaders are
-    searched for (`data_class`, `name`, `version`). If `version` is not
-    specified but there are loaders for (`data_class`, `name`, `version`), 
-    the latest version is used, and both (`data_class`, `name`) and
-    (`data_class`, `name`, `version`) are saved to the registry. Latest is
-    defined by string comparision.
+    same `name`.
+
+    1. If `version` is specified, the registry and its loaders are
+       searched for (`data_class`, `name`, `version`).
+    2. If `version` is not specified but there are registered loaders for
+       (`data_class`, `name`, `version`), the latest version is used,
+       and both (`data_class`, `name`) and (`data_class`, `name`,
+       `version`) are saved to the registry. "Latest" is defined by
+       string comparision.
 
     """
 
@@ -137,9 +132,8 @@ def retrieve(data_class, name, version=None):
             "No {0:s} named '{1:s}' in registry. Registered names: '{2:s}'"
             .format(data_class.__name__, name, "', '".join(registered_names)))
 
-    registered_versions = [regkey[2] for regkey in _loaders.keys()
-                           if key[0:2] == regkey[0:2]]
-
+    registered_versions = [
+        regkey[2] for regkey in _loaders.keys() if key[0:2] == regkey[0:2]]
     raise Exception(
         "No {0:s} named '{1:s}' with version='{2:s}' in registry. Registered"
         " versions: '{3:s}'".format(data_class.__name__, name, version,
