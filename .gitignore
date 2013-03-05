@@ -31,7 +31,9 @@ docs/_build
 docs/_generated
 
 # Auto-generated version module
-*/version.py
+sncosmo/version.py
+sncosmo/cython_version.py
+sncosmo/sncosmo.cfg
 
 # emacs files
 *~

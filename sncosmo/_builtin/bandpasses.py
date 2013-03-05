@@ -34,54 +34,103 @@ decam_retrieved = '19 June 2012'
 registry.register_loader(Bandpass, 'desg', load_bandpass_ascii,
                          ['../data/bandpasses/des_g.dat'], filterset='des',
                          description='Dark Energy Camera g band',
-                         source=decam_url, retrieved=decam_retrieved)
+                         dataurl=decam_url, retrieved=decam_retrieved)
 registry.register_loader(Bandpass, 'desr', load_bandpass_ascii,
                          ['../data/bandpasses/des_r.dat'], filterset='des',
                          description='Dark Energy Camera r band',
-                         source=decam_url, retrieved=decam_retrieved)
+                         dataurl=decam_url, retrieved=decam_retrieved)
 registry.register_loader(Bandpass, 'desi', load_bandpass_ascii,
                          ['../data/bandpasses/des_i.dat'], filterset='des',
                          description='Dark Energy Camera i band',
-                         source=decam_url, retrieved=decam_retrieved)
+                         dataurl=decam_url, retrieved=decam_retrieved)
 registry.register_loader(Bandpass, 'desz', load_bandpass_ascii,
                          ['../data/bandpasses/des_z.dat'], filterset='des',
                          description='Dark Energy Camera z band',
-                         source=decam_url, retrieved=decam_retrieved)
+                         dataurl=decam_url, retrieved=decam_retrieved)
 registry.register_loader(Bandpass, 'desy', load_bandpass_ascii,
                          ['../data/bandpasses/des_y.dat'], filterset='des',
                          description='Dark Energy Camera y band',
-                         source=decam_url, retrieved=decam_retrieved)
-
+                         dataurl=decam_url, retrieved=decam_retrieved)
 del decam_url
 del decam_retrieved
 
 # --------------------------------------------------------------------------
+# Bessel 1990
+
+bessell_ref = (
+    'B90', 'Bessell 1990 <http://adsabs.harvard.edu/abs/1990PASP..102.1181B>')
+bessell_desc = 'Representation of Johnson-Cousins UBVRI system from Bessell (1990), Table 2'
+
+registry.register_loader(
+    Bandpass, 'bessellux', load_bandpass_ascii,
+    ['../data/bandpasses/bessell_ux.dat'], filterset='bessell',
+    description=bessell_desc, reference=bessell_ref)
+registry.register_loader(
+    Bandpass, 'bessellb', load_bandpass_ascii,
+    ['../data/bandpasses/bessell_b.dat'], filterset='bessell',
+    description=bessell_desc, reference=bessell_ref)
+registry.register_loader(
+    Bandpass, 'bessellv', load_bandpass_ascii,
+    ['../data/bandpasses/bessell_v.dat'], filterset='bessell',
+    description=bessell_desc, reference=bessell_ref)
+registry.register_loader(
+    Bandpass, 'bessellr', load_bandpass_ascii,
+    ['../data/bandpasses/bessell_r.dat'], filterset='bessell',
+    description=bessell_desc, reference=bessell_ref)
+registry.register_loader(
+    Bandpass, 'besselli', load_bandpass_ascii,
+    ['../data/bandpasses/bessell_i.dat'], filterset='bessell',
+    description=bessell_desc, reference=bessell_ref)
+
+del bessell_ref
+del bessell_desc
+
+# --------------------------------------------------------------------------
 # Generate docstring
 
-lines = ['',
-    '==========  =========================  ========  ====================',
-    'Name        Description                Source    Retrieved',
-    '==========  =========================  ========  ====================']
-sourcenums = {}
-for d in registry.get_loaders_metadata(Bandpass):
-    if d['source'] in sourcenums:
-        sourcenum = sourcenums[d['source']]
-    else:
-        if len(sourcenums) == 0:
-            sourcenum = 0
-        else:
-            sourcenum = max(sourcenums.values()) + 1
-        sourcenums[d['source']] = sourcenum
+lines = [
+    '',
+    '  '.join([11*'=', 80*'=', 14*'=', 8*'=', 12*'=']),
+    '{:11}  {:80}  {:14}  {:8}  {:12}'
+    .format('Name', 'Description', 'Reference', 'Data URL', 'Retrieved')
+    ]
+lines.append(lines[1])
 
-    sourceletter = string.letters[sourcenum]
-    lines.append("{0:^10}  {1:^25}  {2:^8}  {3:20}".format(
-            d['name'], d['description'], '`' + sourceletter + '`_', d['retrieved']))
-lines.extend([lines[1], '', ''])
+urlnums = {}
+allrefs = []
+for m in registry.get_loaders_metadata(Bandpass):
 
-for source, sourcenum in sourcenums.iteritems():
-    lines.append('.. _`{}`: {}'.format(string.letters[sourcenum], source))
+    reflink = ''
+    urllink = ''
+    retrieved = ''
 
+    if 'reference' in m:
+        reflink = '[{}]_'.format(m['reference'][0])
+        if m['reference'] not in allrefs:
+            allrefs.append(m['reference'])
+
+    if 'dataurl' in m:
+        dataurl = m['dataurl']
+        if dataurl not in urlnums:
+            if len(urlnums) == 0: urlnums[dataurl] = 0
+            else: urlnums[dataurl] = max(urlnums.values()) + 1
+        urllink = '`{}`_'.format(string.letters[urlnums[dataurl]])
+
+    if 'retrieved' in m:
+        retrieved = m['retrieved']
+
+    lines.append("{0!r:11}  {1:80}  {2:14}  {3:8}  {4:12}".format(
+            m['name'], m['description'], reflink, urllink, retrieved))
+
+lines.extend([lines[1], ''])
+for refkey, ref in allrefs:
+    lines.append('.. [{}] `{}`__'.format(refkey, ref))
+lines.append('')
+for url, urlnum in urlnums.iteritems():
+    lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
+lines.append('')
 __doc__ = '\n'.join(lines)
 
 del lines
-del sourcenums
+del urlnums
+del allrefs

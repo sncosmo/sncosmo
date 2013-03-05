@@ -42,7 +42,7 @@ class Bandpass(object):
         if meta is None:
             self.meta = OrderedDict()
         else:
-            self.meta = copy.deepcopy(meta)
+            self.meta = deepcopy(meta)
 
     @property
     def dispersion(self):
@@ -59,7 +59,7 @@ class Bandpass(object):
         """Dispersion unit"""
         return self._dunit
 
-    def to_unit(new_unit):
+    def to_unit(self, new_unit):
         """Return a new bandpass instance with the requested dispersion units.
         
         A new instance is necessary because the dispersion and transmission
@@ -70,8 +70,9 @@ class Bandpass(object):
         returned.
         """
 
-        if dunit == self._dunit:
+        if new_unit == self._dunit:
             return self
+
         d = self._dunit.to(new_unit, self._dispersion, u.spectral())
         t = self._transmission
         if d[0] > d[-1]:
@@ -117,8 +118,6 @@ class Spectrum(object):
         The default is ``None``.
     meta : OrderedDict, optional
         Metadata.
-    copy : bool, optional
-        Copy input arrays.
     """
 
     def __init__(self, dispersion, fluxdensity, error=None,
@@ -142,7 +141,7 @@ class Spectrum(object):
         if meta is None:
             self.meta = OrderedDict()
         else:
-            self.meta = copy.deepcopy(meta)
+            self.meta = deepcopy(meta)
 
         if self._dispersion.shape != self._fluxdensity.shape:
             raise ValueError('shape of wavelength and fluxdensity must match')
@@ -222,10 +221,10 @@ class Spectrum(object):
             band.dispersion[-1] > self._dispersion[-1]):
             return None
 
-        i0, i1 = np.flatnonzero((self._dispersion>band.dispersion[0]) & 
-                                (self._dispersion<band.dispersion[-1]))[0, -1]
-        d = self._dispersion[i0:i1]
-        f = self._fluxdensity[i0:i1]
+        idx = ((self._dispersion > band.dispersion[0]) & 
+               (self._dispersion < band.dispersion[-1]))
+        d = self._dispersion[idx]
+        f = self._fluxdensity[idx]
 
         #TODO: use spectral density equivalencies once they can do photons.
         # first convert to ergs / s /cm^2 / (dispersion unit)
@@ -383,10 +382,10 @@ class MagnitudeSystem(object):
         self._zpflux[band] = self._refspectrum.flux(band)
         return self._zpflux[band]
 
-@classmethod
-def from_name(cls, name):
-    """Return an instance from the registry"""
-    return registry.retrieve(MagnitudeSystem, name)
+    @classmethod
+    def from_name(cls, name):
+        """Return an instance from the registry"""
+        return registry.retrieve(MagnitudeSystem, name)
 
 
 class ABSystem(MagnitudeSystem):

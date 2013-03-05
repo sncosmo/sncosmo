@@ -55,21 +55,24 @@ class Model(object):
                 self._params[key] = params[key]
             else:
                 raise ValueError("unknown parameter: '{}'".format(key))
+
+        if 'fluxscaling' in params:
+            self._params['absmag'] = None
         
         if 'absmag' in params:
             if params['absmag'] is None or len(params['absmag']) != 3:
                 raise ValueError("'absmag' must be an interable of length 3'")
-            _adjust_fluxscaling_from_absmag(*params['absmag'])
+            self._adjust_fluxscaling_from_absmag(*params['absmag'])
 
 
     @abc.abstractmethod
-    def _model_fluxdensity(self, phase=None, dispersion=None, extend=False):
+    def _model_flux_density(self, phase=None, dispersion=None, extend=False):
         """Return the model flux density (without any scaling or redshifting).
         """
         pass
 
     @abc.abstractmethod
-    def _model_fluxdensityerror(self, phase=None, dispersion=None,
+    def _model_flux_density_error(self, phase=None, dispersion=None,
                                 extend=False):
         """Return the model flux density error (without any scaling or
         redshifting. Return `None` if the error is undefined.
@@ -111,13 +114,13 @@ class Model(object):
         else:
             return self._dispersion * (1. + self._params['z'])
 
-    def fluxdensity(self, phase=None, dispersion=None, extend=False,
+    def flux_density(self, phase=None, dispersion=None, extend=False,
                     restframe=False):
         """The model flux spectral density."""
 
         if restframe or self._params['z'] == 0.:
             return (self._params['fluxscaling'] *
-                    self._model_fluxdensity(phase, dispersion, extend=extend))
+                    self._model_flux_density(phase, dispersion, extend=extend))
         if self._params['z'] is None:
             raise ValueError('observer frame requested, but redshift '
                              'undefined.')
@@ -126,19 +129,20 @@ class Model(object):
         if dispersion is not None:
             dispersion /= (1. + self._params['z'])
 
-        f = self._model_fluxdensity(phase, dispersion, extend=extend)
+        f = self._model_flux_density(phase, dispersion, extend=extend)
 
         # Apply rest-frame flux scaling, then redshift
         dist = self._cosmo.luminosity_distance(self._params['z'])
         f *= (self._params['fluxscaling'] *
               (1.e-5 / dist) ** 2 / (1. + self._params['z']))
+        return f
 
-    def fluxdensityerror(self, phase=None, dispersion=None, extend=False,
+    def flux_density_error(self, phase=None, dispersion=None, extend=False,
                          restframe=False):
         """The error on the model flux spectral density."""
 
         if restframe or self._params['z'] == 0.:
-            f = self._model_fluxdensityerror(phase, dispersion, extend=extend)
+            f = self._model_flux_density_error(phase, dispersion, extend=extend)
             if f is None: return f
             return self._params['fluxscaling'] * f
 
@@ -151,7 +155,7 @@ class Model(object):
         if dispersion is not None:
             dispersion /= (1. + self._params['z'])
 
-        f = self._model_fluxdensityerror(phase, dispersion, extend=extend)
+        f = self._model_flux_density_error(phase, dispersion, extend=extend)
         if f is None: return f
 
         # Apply rest-frame flux scaling, then redshift
@@ -159,19 +163,20 @@ class Model(object):
         f *= (self._params['fluxscaling'] *
               (1.e-5 / dist) ** 2 / (1. + self._params['z']))
 
+        return f
+
     def spectrum(self, phase, dispersion=None, restframe=False, 
                  include_error=False):
         """Return a `Spectrum` generated from the model at the given phase.
 
         This is equivalent to
 
-            >>> Spectrum(m.dispersion(), m.fluxdensity(phase))
+            >>> Spectrum(m.dispersion(), m.flux_density(phase))
 
         """
-        d = self.dispersion(restframe=restframe)
-        f = self.fluxdensity(phase, dispersion=dispersion, restframe=restframe)
+        f = self.flux_density(phase, dispersion=dispersion, restframe=restframe)
         if include_error:
-            fe = self.fluxdensityerror(phase, dispersion=dispersion,
+            fe = self.flux_density_error(phase, dispersion=dispersion,
                                        restframe=restframe)
         else:
             fe = None
@@ -179,18 +184,22 @@ class Model(object):
             z = None
         else:
             z = self._params['z']
-        return Spectrum(d, f, error=fe, z=z)
+
+        if dispersion is None:
+            dispersion = self.dispersion(restframe=restframe)
+        return Spectrum(dispersion, f, error=fe, z=z)
 
     def flux(self, phase, band):
-        """Flux (ph/cm^2/s) at the given phase(es) through the given 
-        bandpass(es)
+        """Flux (photons / cm^2 / s) at the given phase(s) through the given 
+        bandpass(es).
 
         Parameters
         ----------
-        phase : float or `~numpy.ndarray`
-            Phase in days
-        band : str, `Bandpass` or list_like thereof
-        
+        phase : float (or list_like)
+            Phase(s) in days.
+        band : str or `Bandpass` (or list_like)
+            Bandpass or name of bandpass in registry.
+
         Returns
         -------
         flux : float or `~numpy.ndarray`
@@ -215,7 +224,24 @@ class Model(object):
             
     def magnitude(self, phase, band, magsys, restframe=False):
         """Magnitudes at the given phase(es) through the given 
-        bandpass(es), and for the given magnitude system(s)."""
+        bandpass(es), and for the given magnitude system(s).
+
+        Parameters
+        ----------
+        phase : float (or list_like)
+            Phase(s) in days.
+        band : `Bandpass` or str (or list_like)
+            Bandpass or name of bandpass in registry.
+        magsys : `MagnitudeSystem` or str (or list_like)
+            MagnitudeSystem or name of MagnitudeSystem in registry.
+
+        Returns
+        -------
+        mag : float or `~numpy.ndarray`
+            Magnitude for each item in phase, band, magsys.
+            The return value is a float if all parameters are not interables.
+            The return value is an `~numpy.ndarray` if any are interable.
+        """
 
         phase, band, magsys = np.broadcast_arrays(phase, band, magsys)
         ndim = phase.ndim
@@ -224,9 +250,9 @@ class Model(object):
         magsys = magsys.ravel()
 
         result = np.empty(phase.shape, dtype=np.float)
-        for i, ph, b, ms in zip(range(len(phase), phase, band, magsys)):
+        for i, ph, b, ms in zip(range(len(phase)), phase, band, magsys):
             ms = MagnitudeSystem.from_name(ms)
-            s = self.spectrum(ph, restframe=restrame)
+            s = self.spectrum(ph, restframe=restframe)
             f = s.flux(b)
             zpf = ms.zpflux(b)
             result[i] = -2.5 * np.log10(f / zpf)
@@ -236,7 +262,7 @@ class Model(object):
         return result
 
 
-    def _adjust_fluxscaling_from_absmag(mag, band, magsys):
+    def _adjust_fluxscaling_from_absmag(self, mag, band, magsys):
         """Determine the fluxscaling that when applied to the model
         (with current parameters), will result in the desired absolute
         magnitude at the reference phase."""
@@ -249,14 +275,25 @@ class Model(object):
     def __call__(self, **params):
         """Return a shallow copy of the model with parameters set.
 
-            >>> m2 = m(**params)
+        Parameters
+        ----------
+        params : keyword arguments
+            Model parameters
         
-        is equivalent to:
+        Returns
+        -------
+        m : `Model`
+            Model instance with parameters set as requested.
 
-            >>> m2 = copy.copy(m)
-            >>> m2.set(**params)
-
+        Examples
+        --------        
+        >>> salt2model = sncosmo.get_model('salt2')
+        >>> sn = salt2model(c=0.1, x1=0.5, absmag=(-19.3, 'bessellb', 'ab'),
+        ...                 z=0.68)
+        >>> sn.magnitude(0., 'desg', 'ab')
+        25.59
         """
+
         m = copy.copy(self)
         m.set(**params)
         return m
@@ -273,18 +310,27 @@ class Model(object):
         Restframe dipsersion: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
         Reference phase: {} days
         Cosmology: {}
-        Parameters: {}""".format(
+        Parameters:
+        """.format(
             self.__class__.__name__,
             self._name, self._version,
             self._phase[0], self._phase[-1], len(self._phase),
             self._dispersion[0], self._dispersion[-1],
             len(self._dispersion),
             self._refphase,
-            self._cosmo,
-            self._params
-            )
+            self._cosmo)
+        result = dedent(result)
 
-        return dedent(result)
+        parameter_lines = []
+        for key, val in self._params.iteritems():
+            if key == 'absmag':
+                continue
+
+            line = '    {}={}'.format(key, val)
+            if key == 'fluxscaling':
+                line += ' [ absmag=' + str(self._params['absmag']) + ' ]'
+            parameter_lines.append(line)
+        return result + '\n'.join(parameter_lines)
 
 
 class TimeSeriesModel(Model):
@@ -296,34 +342,35 @@ class TimeSeriesModel(Model):
         Phases in days.
     dispersion : `~numpy.ndarray`
         Wavelengths in Angstroms.
-    fluxdensity : `~numpy.ndarray`
+    flux_density : `~numpy.ndarray`
         Model spectral flux density in (erg/s/cm^2/Angstrom).
         Must have shape `(num_phases, num_dispersion)`.
-    fluxdensityerror : `~numpy.ndarray`, optional
-        Model error on `fluxdensity`. Must have same shape as `fluxdensity`.
+    flux_density_error : `~numpy.ndarray`, optional
+        Model error on `flux_density`. Must have same shape as `flux_density`.
         Default is `None`.
     """
 
-    def __init__(self, phase, dispersion, fluxdensity,
-                 fluxdensityerror=None, name=None, version=None):
+    def __init__(self, phase, dispersion, flux_density,
+                 flux_density_error=None, name=None, version=None):
         super(TimeSeriesModel, self).__init__()
         self._name = name
         self._version = version
         self._phase = phase
         self._dispersion = dispersion
-        self._model = GridData(phase, dispersion, fluxdensity)
+        self._model = GridData(phase, dispersion, flux_density)
 
-        if fluxdensityerror is None:
+        if flux_density_error is None:
             self._modelerror = None
         else:
-            self._modelerror = GridData(phase, dispersion, fluxdensityerror)
+            self._modelerror = GridData(phase, dispersion, flux_density_error)
 
-    def _model_fluxdensity(self, phase=None, dispersion=None, extend=False):
+    def _model_flux_density(self, phase=None, dispersion=None, extend=False):
         """Return the model flux density (without any scaling or redshifting).
         """
         return self._model(phase, dispersion, extend=extend)
 
-    def _model_fluxdensityerror(self, phase=None, dispersion=None, extend=True):
+    def _model_flux_density_error(self, phase=None, dispersion=None,
+                                  extend=True):
         """Return the model flux density error (without any scaling or
         redshifting. Return `None` if the error is undefined.
         """
@@ -413,7 +460,7 @@ class SALT2Model(Model):
                 self._dispersion = wavelength
 
 
-    def _model_fluxdensity(self, phase=None, dispersion=None, extend=False):
+    def _model_flux_density(self, phase=None, dispersion=None, extend=False):
         """Return the model flux density (without any scaling or redshifting).
         """
 
@@ -427,7 +474,8 @@ class SALT2Model(Model):
         flux *= self._extinction(dispersion, self._params['c'])
         return flux
 
-    def _model_fluxdensityerror(self, phase=None, dispersion=None, extend=True):
+    def _model_flux_density_error(self, phase=None, dispersion=None,
+                                  extend=True):
         """Return the model flux density error (without any scaling or
         redshifting. Return `None` if the error is undefined.
         """

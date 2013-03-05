@@ -5,6 +5,7 @@ from . import registry
 from . import utils
 
 from ._builtin import bandpasses
+from ._builtin import magsystems
 from ._builtin import models
 
 
