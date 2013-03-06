@@ -12,7 +12,7 @@ from astropy.utils.misc import isiterable
 from astropy import cosmology
 
 from .utils import GridData, read_griddata
-from .spectral import Spectrum, Bandpass, MagnitudeSystem
+from .spectral import Spectrum, Bandpass, MagSystem
 from . import registry
 
 __all__ = ['get_model', 'Model', 'TimeSeriesModel', 'SALT2Model']
@@ -232,8 +232,8 @@ class Model(object):
             Phase(s) in days.
         band : `Bandpass` or str (or list_like)
             Bandpass or name of bandpass in registry.
-        magsys : `MagnitudeSystem` or str (or list_like)
-            MagnitudeSystem or name of MagnitudeSystem in registry.
+        magsys : `MagSystem` or str (or list_like)
+            MagSystem or name of MagSystem in registry.
 
         Returns
         -------
@@ -251,7 +251,7 @@ class Model(object):
 
         result = np.empty(phase.shape, dtype=np.float)
         for i, ph, b, ms in zip(range(len(phase)), phase, band, magsys):
-            ms = MagnitudeSystem.from_name(ms)
+            ms = MagSystem.from_name(ms)
             s = self.spectrum(ph, restframe=restframe)
             f = s.flux(b)
             zpf = ms.zpflux(b)

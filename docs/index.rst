@@ -22,6 +22,6 @@ Documentation
 
    install
    models
-   spectral
+   bandpasses
    registry
    reference

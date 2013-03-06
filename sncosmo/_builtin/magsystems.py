@@ -5,10 +5,7 @@
 # after all the bandpasses are registered.
 
 from .. import registry
-from .. import MagnitudeSystem, ABSystem
+from .. import MagSystem, ABMagSystem
 
 
-def load_ab():
-    return ABSystem()
-
-registry.register_loader(MagnitudeSystem, 'ab', load_ab)
+registry.register_loader(MagSystem, 'ab', lambda: ABMagSystem())

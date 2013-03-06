@@ -1,10 +1,8 @@
-**********************************
-Registry (:mod:`sncosmo.registry`)
-**********************************
+********
+Registry
+********
 
-Keep track of Bandpass objects by name, and automatically generate
-from built-in data. Ties a string identifier (such as ``'landoltb'``)
-to a class and data (such as the `Bandpass` class and the data that
-defines the model.
+Ties a string identifier (such as `'landoltb'`) to a class instance
+(such as a `Bandpass` object with the data defining the Landolt B bandpass.)
 
 

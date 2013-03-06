@@ -23,10 +23,11 @@ Spectral tools
 
    sncosmo.Bandpass
    sncosmo.Spectrum
-   sncosmo.MagnitudeSystem
-   sncosmo.ABSystem
-
-.. inheritance-diagram:: sncosmo.ABSystem
+   sncosmo.MagSystem
+   sncosmo.SpectralMagSystem
+   sncosmo.ABMagSystem
+   
+.. inheritance-diagram:: sncosmo.ABMagSystem sncosmo.SpectralMagSystem
 
 Registry (:mod:`sncosmo.registry`)
 ----------------------------------

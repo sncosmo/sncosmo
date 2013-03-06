@@ -1,6 +1,6 @@
-**********************
-Using Supernova Models
-**********************
+****************
+Supernova Models
+****************
 
 Models of astrophysical transient sources. A model is anything where
 the spectrum as a function of phase can be parameterized by an
@@ -13,10 +13,8 @@ using a single class (`models.TimeSeries`) whereas the SALT2 model
 needs a separate subclass (`models.SALT2`). All models derive from a
 common abstract base class (`models.Transient`).
 
-Examples
---------
 
+Built-in Models
+```````````````
 
-Reference / API
----------------
-
+.. automodule:: sncosmo._builtin.models

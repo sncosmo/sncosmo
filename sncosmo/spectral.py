@@ -11,7 +11,8 @@ import astropy.constants as const
 
 from . import registry
 
-__all__ = ['Bandpass', 'Spectrum', 'MagnitudeSystem', 'ABSystem']
+__all__ = ['Bandpass', 'Spectrum', 'MagSystem', 'SpectralMagSystem',
+           'ABMagSystem']
 
 class Bandpass(object):
     """Transmission as a function of spectral dispersion.
