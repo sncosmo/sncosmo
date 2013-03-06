@@ -1,9 +1,6 @@
-*******************
-Spectral operations
-*******************
-
+**********
 Bandpasses
-----------
+**********
 
 You can get a built-in bandpass using the class method `Bandpass.from_name()`:
 
@@ -24,7 +21,7 @@ string, the registry is used to return a `Bandpass` if one is
 registered with that string identifier.
 
 Built-in Bandpasses
-```````````````````
+-------------------
 
 .. automodule:: sncosmo._builtin.bandpasses
 

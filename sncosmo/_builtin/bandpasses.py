@@ -57,9 +57,10 @@ del decam_retrieved
 # --------------------------------------------------------------------------
 # Bessel 1990
 
-bessell_ref = (
-    'B90', 'Bessell 1990 <http://adsabs.harvard.edu/abs/1990PASP..102.1181B>')
-bessell_desc = 'Representation of Johnson-Cousins UBVRI system from Bessell (1990), Table 2'
+bessell_ref = ('B90',
+               '`Bessell 1990 <http://adsabs.harvard.edu/'
+               'abs/1990PASP..102.1181B>`__, Table 2')
+bessell_desc = 'Representation of Johnson-Cousins UBVRI system'
 
 registry.register_loader(
     Bandpass, 'bessellux', load_bandpass_ascii,
@@ -84,6 +85,39 @@ registry.register_loader(
 
 del bessell_ref
 del bessell_desc
+
+# --------------------------------------------------------------------------
+# SDSS
+
+sdss_ref = ('D10', 
+            '`Doi et al. 2010 '
+            '<http://adsabs.harvard.edu/abs/2010AJ....139.1628D>`__, Table 4')
+sdss_desc = \
+    'SDSS 2.5m imager at airmass 1.3 (including atmosphere), normalized.'
+
+registry.register_loader(
+    Bandpass, 'sdssu', load_bandpass_ascii,
+    ['../data/bandpasses/sdss_u.dat'], filterset='sdss',
+    description=sdss_desc, reference=sdss_ref)
+registry.register_loader(
+    Bandpass, 'sdssg', load_bandpass_ascii,
+    ['../data/bandpasses/sdss_g.dat'], filterset='sdss',
+    description=sdss_desc, reference=sdss_ref)
+registry.register_loader(
+    Bandpass, 'sdssr', load_bandpass_ascii,
+    ['../data/bandpasses/sdss_r.dat'], filterset='sdss',
+    description=sdss_desc, reference=sdss_ref)
+registry.register_loader(
+    Bandpass, 'sdssi', load_bandpass_ascii,
+    ['../data/bandpasses/sdss_i.dat'], filterset='sdss',
+    description=sdss_desc, reference=sdss_ref)
+registry.register_loader(
+    Bandpass, 'sdssz', load_bandpass_ascii,
+    ['../data/bandpasses/sdss_z.dat'], filterset='sdss',
+    description=sdss_desc, reference=sdss_ref)
+
+del sdss_ref
+del sdss_desc
 
 # --------------------------------------------------------------------------
 # Generate docstring
@@ -124,7 +158,7 @@ for m in registry.get_loaders_metadata(Bandpass):
 
 lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
-    lines.append('.. [{}] `{}`__'.format(refkey, ref))
+    lines.append('.. [{}] {}'.format(refkey, ref))
 lines.append('')
 for url, urlnum in urlnums.iteritems():
     lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
