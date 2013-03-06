@@ -1,5 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
+import abc
 from copy import deepcopy
 from collections import OrderedDict
 
@@ -340,29 +341,24 @@ class Spectrum(object):
                         unit=self._unit, dispersion_unit=self._dispersion_unit)
 
 
-class MagnitudeSystem(object):
-    """A class for defining a translation between magnitudes and physical
-    flux values. 
+class MagSystem(object):
+    """An abstract base class for magnitude systems."""
 
-    Parameters
-    ----------
-    refspectrum : `Spectrum`
-        Reference spectrum.
+    __metaclass__ = abc.ABCMeta
 
-    Examples
-    --------
-    >>> vegasys = MagnitudeSystem(vega_spec)  # `vega_spec` is a Spectrum
-    >>> vegasys.zpflux('desu')  # photons/s/cm^2 through given bandpass
-    >>> 
-
-    """
-    def __init__(self, refspectrum):
-
-        self._refspectrum = refspectrum
+    @abc.abstractmethod
+    def __init__(self, offsets=None):
         self._zpflux = {}
+        self._offsets = offsets
+
+    @abc.abstractmethod
+    def _refspectrum_flux(self, band):
+        """Flux of the fundamental spectrophotometric standard."""
+        pass
 
     def zpflux(self, band):
-        """Return flux of an object with magnitude zero in the given bandpass.
+        """Flux (photons / s / cm^2) of an object with
+        magnitude zero in this magnitude system in the given bandpass.
 
         Parameters
         ----------
@@ -373,57 +369,62 @@ class MagnitudeSystem(object):
         flux : float
             Flux in some units.
         """
+
         band = Bandpass.from_name(band)
         try:
             return self._zpflux[band]
         except KeyError:
             pass
 
-        self._zpflux[band] = self._refspectrum.flux(band)
-        return self._zpflux[band]
+        zpflux = self._refspectrum_flux(self, band)
+        if self._offsets is not None:
+            if band not in self._offsets:
+                raise Exception('Band offset not defined')
+            zpflux *= 10 ** (0.4 * self._offsets[band])
+    
+        self._zpflux[band] = zpflux
+        return zpflux
 
     @classmethod
     def from_name(cls, name):
         """Return an instance from the registry"""
-        return registry.retrieve(MagnitudeSystem, name)
+        return registry.retrieve(MagSystem, name)
 
 
-class ABSystem(MagnitudeSystem):
+class SpectralMagSystem(MagSystem):
+    """A class for defining a translation between magnitudes and physical
+    flux values. 
+
+    Parameters
+    ----------
+    refspectrum : `Spectrum`
+        Reference spectrum.
+    offsets : dict
+    """
+    def __init__(self, refspectrum, offsets=None):
+        super(SpectralMagSystem, self).__init__(offsets)
+        self._refspectrum = refspectrum
+
+    def _refspectrum_flux(self, band):
+        return self._refspectrum.flux(band)
+
+
+class ABMagSystem(MagSystem):
+    """Magnitude system where a source with F_nu = 3631 Jansky at all
+    frequencies has magnitude 0 in all bands."""
     
-    def __init__(self):
-        self._zpflux = {}
+    def __init__(self, offsets=None):
+        super(ABMagSystem, self).__init__(offsets)
 
-    def zpflux(self, band):
-        """Return flux of an object with magnitude zero in the given bandpass.
-
-        Parameters
-        ----------
-        bandpass : `~sncosmo.spectral.Bandpass` or str
-
-        Returns
-        -------
-        flux : float
-            Flux in ph/s/cm^2
-
-        Examples
-        --------
-        >>> ab = ABSystem()
-        >>> f = ab.zpflux('desg')
-
-        """
-        band = Bandpass.from_name(band)
-        try:
-            return self._zpflux[band]
-        except KeyError:
-            pass
+    def _refspectrum_flux(self, band):
         b = band.to_unit(u.Hz)
         f = 3631. / const.h.cgs.value / b.dispersion  # convert to photons
         binw = np.gradient(b.dispersion)
-        self._zpflux[band] = np.sum(f * b.transmission * binw)
-        return self._zpflux[band]    
+        return np.sum(f * b.transmission * binw)
 
 
-#class LocalMagSystem(MagnitudeSystem):
+
+#class LocalMagSystem(MagSystem):
 #    """A "local magnitude system" is defined by an absolute flux standard
 #    and the magnitude of that standard in one or more bandpasses. The
 #    magnitude system is therefore only defined for the given bandpasses.
@@ -436,10 +437,5 @@ class ABSystem(MagnitudeSystem):
 #    >>> chft.zp_cflux('megacamu') # flux an object 9.7688 mag brighter than bd17
 #    >>> chft.zp_cflux('desg') # Exception
 #    """
-    
-
-#class ABSystem(MagnitudeSystem):
-#    """Magnitude system where a source with F_nu = 3631 Jansky at all
-#    frequencies has magnitude 0 in all bands."""
 
 
