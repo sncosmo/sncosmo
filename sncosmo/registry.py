@@ -19,7 +19,8 @@ def register_loader(data_class, name, function, function_args=None,
     name : str
         The data identifier.
     function : function
-        The function to read in the data.
+        The function to read in the data. Should accept a name and version
+        keyword argument.
     function_args : list, optional
         Arguments to pass to the function. Default is an empty list.
     version : str, optional
@@ -27,7 +28,7 @@ def register_loader(data_class, name, function, function_args=None,
         ``'1.0'``, ``'1.0.0'``, etc. Default is `None`. 
     force : bool, optional
         Whether to override any existing function if already present.
-    **kwargs : optional
+    **meta : optional
         Any additional keyword arguments are assumed to be metadata and
         are saved as a dictionary describing this loader.
     """
@@ -51,6 +52,46 @@ def register_loader(data_class, name, function, function_args=None,
                         "defined. Use force=True to override."
                         .format(data_class.__name__, name, versionstr))
 
+
+def register(instance, name=None, data_class=None, force=False):
+    """Register a class instance.
+
+    Parameters
+    ----------
+    instance : object
+        The object to be registered.
+    name : str, optional
+        Identifier. If `None`, the name is taken from the `name` attribute
+        of the instance, if it exists and is a string.
+    data_class : classobj, optional
+        If given, the instance is registered as an instance of this class
+        rather the the class of the instance itself. Use this for registering
+        subclasses when you wish them to be accessible from their superclass.
+    force : bool, optional
+        Whether to override any existing instance of the same name. Note: this
+        may not play well with versioned instances.
+    """
+
+    if name is None:
+        try:
+            name = instance.name
+        except AttributeError:
+            raise ValueError("name not given and instance has no 'name' "
+                             "attribute")
+        if not isinstance(name, basestring):
+            raise ValueError("name attribute of {0!r:s} is not a string.")
+
+    if data_class is None:
+        data_class = instance.__class__
+        
+    key = (data_class, name)
+    
+    already_present = (key in _instances) or (key in _loaders)
+    if not already_present or force:
+        _loaders[key] = instance
+    else:
+        raise Exception("{0:s} named {1:s} already in registry. Use force=True"
+                        " to override.".format(dat_class.__name__, name))
 
 def retrieve(data_class, name, version=None):
     """Retrieve a class instance from a registered identifier.
@@ -107,7 +148,12 @@ def retrieve(data_class, name, version=None):
 
     if key in _loaders:
         function, function_args, meta = _loaders[key]
-        _instances[key] = function(*function_args)
+        if version is None:
+            _instances[key] = function(*function_args, name=name)
+        else:
+            _instances[key] = function(*function_args, name=name, 
+                                        version=version)
+            
         return _instances[key]
 
     if version is None:
@@ -119,11 +165,12 @@ def retrieve(data_class, name, version=None):
         if latest_version is not None:
             regkey = (key[0], key[1], latest_version)
             function, function_args, meta = _loaders[regkey]
-            _instances[regkey] = function(*function_args)
+            _instances[regkey] = function(
+                *function_args, name=name, version=latest_version)
             _instances[key] = _instances[regkey]
             return _instances[key]
 
-        
+    # At this point we will raise an exception.
     registered_names = [regkey[1] for regkey in _loaders.keys()
                         if regkey[0] is data_class]
 

@@ -1,7 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
 
-__all__ = ['GridData']
+__all__ = ['GridData', 'GridData1d']
 
 class GridData(object):
     """Interpolate over uniform 2-D grid.
@@ -37,9 +37,9 @@ class GridData(object):
     >>> gd(0.)
     array([ 0.76255845, -0.54402111, 0.90929743, 0.90929743, -0.54402111,
            0.76255845])
-    >>> gd(0., x1=[-2., 0., 2.])
+    >>> gd(0., [-2., 0., 2.])
     array([ 0.18263816, 0.90929743, 0.18263816])
-    >>> gd.y(0., x1=-2)
+    >>> gd(0., -2.)
     0.182638157968
 
     
@@ -68,7 +68,7 @@ class GridData(object):
         """Native x1 values."""
         return self._x1
 
-    def __call__(self, x0=None, x1=None, extend=True):
+    def __call__(self, x0=None, x1=None, extend=False):
         """Return y values at requested x0 and x1 values.
 
         Parameters
@@ -80,7 +80,7 @@ class GridData(object):
         extend : bool, optional
             The function raises ValueError if x0 is outside of native grid,
             unless extend is True, in which case it returns values at nearest
-            native x0 value.
+            native x0 value. Default is False.
 
         Returns
         -------
@@ -127,4 +127,64 @@ class GridData(object):
             if in_dims[1] == 0:
                 return y[0, 0]
             return y[0]
+        return y
+
+
+class GridData1d(object):
+    """Interpolate over uniform 1-D grid.
+
+    Similar to `numpy.interp`, but it is a class.
+
+    Parameters
+    ----------
+    x : numpy.ndarray (1d)
+    y : numpy.ndarray (1d)
+    """
+
+    def __init__(self, x, y):
+        self._x = np.asarray(x)
+        self._y = np.asarray(y)
+
+        if not (self._x.ndim == 1):
+            raise ValueError("x must be 1-d")
+        if not (self._y.shape == self._x.shape):
+            raise ValueError("x and y must have same shape")
+
+    @property
+    def x(self):
+        """Native x values."""
+        return self._x
+
+    def __call__(self, x=None, extend=False):
+        """Return y values at requested x value.
+
+        Parameters
+        ----------
+        x : float or `~numpy.ndarray`, optional
+            Default is `None`, which is interpreted as the native values.
+        extend : bool, optional
+            The function raises ValueError if x is outside of native grid,
+            unless extend is True, in which case it returns values at nearest
+            native x value. Default is False.
+
+        Returns
+        -------
+        y : numpy.ndarray
+            1-D array of interpolated y values at requested x value.
+        """
+
+        if x is None:
+            return self._y
+
+        x = np.asarray(x)
+        in_dim = x.ndim
+        x = x.ravel()
+
+        if not extend and (x[0] < self._x[0] or x[-1] > self._x[-1]):
+            raise ValueError("x out of range ({:f}, {:f})"
+                             .format(self._x[0], self._x[-1]))
+
+        y = np.interp(x, self._x, self._y)
+
+        if in_dim == 0: return y[0]
         return y

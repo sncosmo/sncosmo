@@ -3,11 +3,7 @@ from .spectral import *
 from .models import *
 from . import registry
 from . import utils
-
-from ._builtin import bandpasses
-from ._builtin import magsystems
-from ._builtin import models
-
+from . import _builtin
 
 try:
     from .version import version as __version__

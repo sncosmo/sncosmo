@@ -2,20 +2,11 @@
 SNCosmo
 #######
 
-SNCosmo is a python package for supernova cosmology based on the
-`astropy`_ project. It provides a generalized class for empirical
-supernova models and an interface for extracting things like their
-spectra, wavelength coverage, and synthetic photometry.
-
-You can initialize your own model from a set of model data, but a
-number of models commonly used in the literature are available by name::
-
-   >>> import sncosmo
-   >>> model = sncosmo.get_model('nugent-sn1a')
-
-
-Documentation
--------------
+SNCosmo is a python library for supernova cosmology. It provides a
+class for empirical supernova models, allowing you to extract things
+like the model phase coverage, wavelength coverage, spectra and
+synthetic photometry using a common interface for several different
+types of models. For example usage, see :doc:`models`.
 
 .. toctree::
    :maxdepth: 1
@@ -23,5 +14,6 @@ Documentation
    install
    models
    bandpasses
+   magsystems
    registry
    reference

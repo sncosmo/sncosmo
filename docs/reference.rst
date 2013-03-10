@@ -10,10 +10,11 @@ Models
    sncosmo.get_model
    sncosmo.Model
    sncosmo.TimeSeriesModel
+   sncosmo.StretchModel
    sncosmo.SALT2Model
 
 
-.. inheritance-diagram:: sncosmo.TimeSeriesModel sncosmo.SALT2Model
+.. inheritance-diagram:: sncosmo.StretchModel sncosmo.SALT2Model 
 
 Spectral tools
 --------------
@@ -38,6 +39,7 @@ Registry (:mod:`sncosmo.registry`)
    :toctree: _generated
 
    registry.register_loader
+   registry.register
    registry.retrieve
 
 Utilities (:mod:`sncosmo.utils`)
@@ -48,3 +50,4 @@ Utilities (:mod:`sncosmo.utils`)
 
    utils.read_griddata
    utils.GridData
+   utils.extinction_ratio_ccm

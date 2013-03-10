@@ -4,7 +4,7 @@ Installation
 Requirements
 ------------
 
-SNCosmo depends on AstroPy and its dependencies. The requirements
+SNCosmo depends on AstroPy and its dependencies. The full requirements
 are:
 
 - `Python <http://www.python.org/>`_ 2.6, 2.7, 3.1 or 3.2

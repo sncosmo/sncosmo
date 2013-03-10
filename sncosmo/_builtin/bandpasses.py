@@ -18,13 +18,13 @@ from .. import registry
 from .. import Bandpass
 from .. import utils
 
-def load_bandpass_ascii(pkg_data_name):
+def load_bandpass_ascii(pkg_data_name, name=None):
     """Read two-column bandpass. First column is assumed to be wavelength
     in Angstroms."""
     
     filename = get_pkg_data_filename(pkg_data_name)
     t = ascii.read(filename, names=['disp', 'trans'])
-    return Bandpass(t['disp'], t['trans'], dispersion_unit=u.AA)
+    return Bandpass(t['disp'], t['trans'], dunit=u.AA, name=name)
 
 # --------------------------------------------------------------------------
 # DES

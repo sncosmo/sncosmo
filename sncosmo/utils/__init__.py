@@ -4,3 +4,4 @@
 
 from .griddata import *
 from .io import *
+from .extinction import *
