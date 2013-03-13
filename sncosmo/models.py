@@ -10,11 +10,12 @@ from textwrap import dedent
 
 
 import numpy as np
+from astropy.utils import OrderedDict
 from astropy.utils.misc import isiterable
 from astropy import cosmology
 
 from .utils import GridData, GridData1d, read_griddata, extinction_ratio_ccm
-from .spectral import Spectrum, Bandpass, MagSystem
+from .spectral import Spectrum, Bandpass, MagSystem, get_magsystem
 from . import registry
 
 __all__ = ['get_model', 'Model', 'TimeSeriesModel', 'StretchModel',
@@ -52,9 +53,13 @@ class Model(object):
 
     @abc.abstractmethod
     def __init__(self, name=None, version=None):
-        self._params = OrderedDict(z=None, flux_scale=1., absmag=None)
+        self._params = OrderedDict()
+        self._params['flux_scale'] = 1.
+        self._params['absmag'] = None
+        self._params['z'] = None
         self._refphase = 0.
         self._cosmo = cosmology.get_current()
+        self._lumdist=None  #luminosity distance in Mpc
         self._name = name
         self._version = version
 
@@ -89,13 +94,20 @@ class Model(object):
                 update_absmag = True
             self._params[key] = params[key]
 
+        # If we set the redshift, update the luminosity distance.
+        if 'z' in params:
+            if params['z'] is None:
+                self._lumdist = None
+            elif self._cosmo is not None:
+                self._lumdist = self._cosmo.luminosity_distance(params['z'])
+
+        # If we set the flux scale, absolute mag becomes unknown.
         if 'flux_scale' in params:
             self._params['absmag'] = None
             update_absmag = False
         
         if update_absmag and self._params['absmag'] is not None:
             self._adjust_flux_scale_from_absmag(params['absmag'])
-
 
     @abc.abstractmethod
     def _model_flux_density(self, phase=None, dispersion=None):
@@ -109,10 +121,10 @@ class Model(object):
         """
         return None
 
-
     @property
     def params(self):
-        """Dictionary of model parameters."""
+        """Dictionary of model parameters. (Read-only.) Use `set` method to
+        set parameters."""
         return copy.copy(self._params)
 
     @property
@@ -122,10 +134,15 @@ class Model(object):
 
     @cosmo.setter
     def cosmo(self, new_cosmology):
-        if not isinstance(new_cosmology, cosmology.Cosmology):
-            raise ValueError('cosmology must be an '
-                             '`astropy.cosmology.Cosmology` instance.')
+        if (new_cosmology is not None and 
+            not isinstance(new_cosmology, cosmology.FLRW)):
+            raise ValueError('cosmology must be None or '
+                             'astropy.cosmology.FLRW instance.')
         self._cosmo = new_cosmology
+        if self._cosmo is None:
+            self._lumdist = None
+        elif self._params['z'] is not None:
+            self._lumdist = self._cosmo.luminosity_distance(self._params['z'])
 
     @property
     def refphase(self):
@@ -184,6 +201,8 @@ class Model(object):
             Model dispersion values in Angstroms. Interpreted to be in the
             observer frame unless `restframe` is True. If `None` (default)
             the native dispersion of the model is used.
+        restframe : bool, optional
+            If True, return
         """
 
         if restframe or self._params['z'] is None:
@@ -197,10 +216,12 @@ class Model(object):
 
         f = self._model_flux_density(phase, dispersion)
 
-        # Apply rest-frame flux scaling, then redshift
-        dist = self._cosmo.luminosity_distance(self._params['z'])
-        f *= (self._params['flux_scale'] *
-              (1.e-5 / dist) ** 2 / (1. + self._params['z']))
+        # Apply rest-frame flux scaling and redshift
+        factor = self._params['flux_scale'] / (1. + self._params['z'])
+        if self._lumdist is not None:
+            factor *= (1.e-5 / self._lumdist) ** 2
+
+        f *= factor
         return f
 
     def flux_density_error(self, phase=None, dispersion=None, restframe=False):
@@ -219,11 +240,12 @@ class Model(object):
         f = self._model_flux_density_error(phase, dispersion)
         if f is None: return f
 
-        # Apply rest-frame flux scaling, then redshift
-        dist = self._cosmo.luminosity_distance(self._params['z'])
-        f *= (self._params['flux_scale'] *
-              (1.e-5 / dist) ** 2 / (1. + self._params['z']))
+        # Apply rest-frame flux scaling, redshift factor, and lum distance.
+        factor = self._params['flux_scale'] / (1. + self._params['z'])
+        if self._lumdist is not None:
+            factor *= (1.e-5 / self._lumdist) ** 2
 
+        f *= factor
         return f
 
     def spectrum(self, phase, dispersion=None, restframe=False, 
@@ -335,7 +357,7 @@ class Model(object):
 
         result = np.empty(phase.shape, dtype=np.float)
         for i, ph, b, ms in zip(range(len(phase)), phase, band, magsys):
-            ms = MagSystem.from_name(ms)
+            ms = get_magsystem(ms)
             s = self.spectrum(ph, restframe=restframe)
             f = s.flux(b)
             zpf = ms.zpflux(b)
@@ -385,10 +407,13 @@ class Model(object):
 
     def __repr__(self):
         name = ''
+        version = ''
         if self._name is not None:
             name = ' {0!r:s}'.format(self._name)
-        return "<{0:s}{1:s} at 0x{2:x}>".format(
-            self.__class__.__name__, name, id(self))
+        if self._version is not None:
+            version = ' version={0!r:s}'.format(self._version)
+        return "<{0:s}{1:s}{2:s} at 0x{3:x}>".format(
+            self.__class__.__name__, name, version, id(self))
 
 
     def __str__(self):
@@ -438,13 +463,13 @@ class TimeSeriesModel(Model):
     flux_density_error : `~numpy.ndarray`, optional
         Model error on `flux_density`. Must have same shape as `flux_density`.
         Default is `None`.
-    extinction_ratio_func : function, optional
+    extinction_func : function, optional
         A function that accepts an array of wavelengths in Angstroms
         and returns an array representing the ratio of total extinction
         (in magnitudes) to the parameter `c` at each wavelength. Default
         is `sncosmo.utils.extinction_ratio_ccm`
-    extinction_ratio_kwargs : dict
-        A dictionary of keyword arguments to pass to `extinction_ratio_func`.
+    extinction_kwargs : dict
+        A dictionary of keyword arguments to pass to `extinction_func`.
         Default is `None`.
     name : str, optional
         Name of the model. Default is `None`.
@@ -454,8 +479,8 @@ class TimeSeriesModel(Model):
 
     def __init__(self, phase, dispersion, flux_density,
                  flux_density_error=None, name=None, version=None,
-                 extinction_ratio_func=extinction_ratio_ccm,
-                 extinction_ratio_kwargs=None):
+                 extinction_func=extinction_ratio_ccm,
+                 extinction_kwargs=None):
 
         super(TimeSeriesModel, self).__init__(name, version)
         self._params['c'] = None
@@ -464,8 +489,7 @@ class TimeSeriesModel(Model):
         self._dispersion = dispersion
         self._model = GridData(phase, dispersion, flux_density)
 
-        self.set_extinction_ratio_func(extinction_ratio_func,
-                                       **extinction_ratio_kwargs)
+        self.set_extinction_func(extinction_func, extinction_kwargs)
 
         if flux_density_error is None:
             self._modelerror = None
@@ -494,20 +518,24 @@ class TimeSeriesModel(Model):
         dust_trans = self._dust_trans_base(dispersion) ** self._params['c']
         return dust_trans * self._modelerror(phase, dispersion)
 
-    def set_extinction_ratio_func(func, extra_params):
+    def set_extinction_func(self, func, extra_params):
         """Set the extinction ratio function to use in the model.
 
         Parameters
         ----------
         func : function
             A function that accepts an array of wavelengths in Angstroms
-            and returns an array representing the ratio of total extinction
+            and returns the ratio of total extinction
             (in magnitudes) to the parameter `c` at each wavelength.
         extra_params : dict
             A dictionary of keyword arguments to pass to the function.
             Default is `None`.
         """
         
+        # set these parameters for info
+        self._extinction_func = func
+        self._extinction_kwargs = extra_params
+
         if extra_params is None:
             ext_ratio = func(self._dispersion)
         else:

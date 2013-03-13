@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import Grid
 from sncosmo import registry
-from sncosmo import Bandpass
+from sncosmo import Bandpass, get_bandpass
 
 
 bandpass_meta = registry.get_loaders_metadata(Bandpass)
@@ -18,7 +18,7 @@ for ax, filterset in zip(grid, filtersets):
 
     for m in bandpass_meta:
         if m['filterset'] != filterset: continue
-        b = Bandpass.from_name(m['name'])
+        b = get_bandpass(m['name'])
         ax.plot(b.dispersion, b.transmission, label=m['name'])
     ax.set_xlabel('Angstroms')
     ax.set_ylabel('Transmission')

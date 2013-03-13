@@ -11,8 +11,17 @@ import astropy.constants as const
 
 from . import registry
 
-__all__ = ['Bandpass', 'Spectrum', 'MagSystem', 'SpectralMagSystem',
-           'ABMagSystem']
+__all__ = ['get_bandpass', 'get_magsystem', 'Bandpass', 'Spectrum',
+           'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
+
+def get_bandpass(name):
+    """Get a Bandpass from the registry by name."""
+    return registry.retrieve(Bandpass, name)
+
+def get_magsystem(name):
+    """Get a MagSystem from the registery by name."""
+    return registry.retrieve(MagSystem, name)
+
 
 class Bandpass(object):
     """Transmission as a function of spectral dispersion.
@@ -40,7 +49,7 @@ class Bandpass(object):
             raise ValueError('only 1-d arrays supported')
         self._dunit = dunit
         self._name = name
-
+        
     @property
     def name(self):
         """Name of bandpass."""
@@ -91,12 +100,6 @@ class Bandpass(object):
         if self._name is not None:
             name = ' {0!r:s}'.format(self._name)
         return "<Bandpass{0:s} at 0x{1:x}>".format(name, id(self))
-
-
-    @classmethod
-    def from_name(cls, name):
-        """Get a bandpass from the registry by name."""
-        return registry.retrieve(cls, name)
 
 
 class Spectrum(object):
@@ -217,7 +220,7 @@ class Spectrum(object):
             `None`.
         """
 
-        band = Bandpass.from_name(band)
+        band = get_bandpass(band)
         band = band.to_unit(self._dunit)
 
         if (band.dispersion[0] < self._dispersion[0] or
@@ -374,7 +377,7 @@ class MagSystem(object):
 
         self._refmags = OrderedDict()
         for band, offset in new_refmags:
-            self._refmags[Bandpass.from_name(band)] = offset
+            self._refmags[get_bandpass(band)] = offset
 
     def zpflux(self, band):
         """Flux of an object with magnitude zero in the given bandpass.
@@ -389,7 +392,7 @@ class MagSystem(object):
             Flux in photons / s / cm^2.
         """
 
-        band = Bandpass.from_name(band)
+        band = get_bandpass(band)
         try:
             return self._zpflux[band]
         except KeyError:
@@ -411,12 +414,6 @@ class MagSystem(object):
     def mag_to_flux(self, mag, band):
         """Convert magnitude to flux in photons / s / cm^2"""
         return self.zpflux(band) * 10.**(-0.4 * mag)
-
-
-    @classmethod
-    def from_name(cls, name):
-        """Return an instance from the registry"""
-        return registry.retrieve(MagSystem, name)
 
 
 class SpectralMagSystem(MagSystem):

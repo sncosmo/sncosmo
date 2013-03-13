@@ -3,7 +3,7 @@
 
 from astropy.utils import OrderedDict
 
-__all__ = ['register_loader', 'retrieve', 'get_loaders_metadata']
+__all__ = ['register_loader', 'register', 'retrieve', 'get_loaders_metadata']
 
 _loaders = OrderedDict()
 _instances = OrderedDict()
@@ -195,7 +195,7 @@ def get_loaders_metadata(data_class):
 
     Returns
     -------
-    loadermeta : list
+    loadermeta : list of dict
         Each item in the list is a dictionary containing a 'name'
         keyword, a 'version' keyword (if applicable), and the metadata
         keywords for the given loader.

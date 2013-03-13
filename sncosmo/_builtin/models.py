@@ -26,7 +26,7 @@ def load_timeseries_ascii(remote_url, name=None, version=None):
 
 nugent_baseurl = 'http://supernova.lbl.gov/~nugent/templates/'
 nugent_website = 'http://supernova.lbl.gov/~nugent/nugent_templates.html'
-nugent_subclass = '`sncosmo.TimeSeriesModel`'
+nugent_subclass = '`~sncosmo.TimeSeriesModel`'
 
 registry.register_loader(
     Model, 'nugent-sn1a', load_timeseries_ascii, 
@@ -120,7 +120,7 @@ def load_timeseries_fits(remote_url, name=None, version=None):
 
 hsiao_baseurl = 'http://kbarbary.github.com/data/models/'
 hsiao_website = 'http://csp.obs.carnegiescience.edu/data/snpy'
-hsiao_subclass = '`sncosmo.TimeSeriesModel`'
+hsiao_subclass = '`~sncosmo.TimeSeriesModel`'
 hsiao_ref = ('H07', 'Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/'
              '2007ApJ...663.1187H>')
 
@@ -171,12 +171,12 @@ salt2_reference = ('G07', 'Guy et al. 2007 '
 registry.register_loader(
     Model, 'salt2', load_salt2model,
     [salt2_baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
-    version='1.1', type='SN Ia', subclass='`sncosmo.SALT2Model`', 
+    version='1.1', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2_website, reference=salt2_reference)
 registry.register_loader(
     Model, 'salt2', load_salt2model,
     [salt2_baseurl + 'salt2_model_data-2-0.tar.gz', 'salt2-2-0'],
-    version='2.0', type='SN Ia', subclass='`sncosmo.SALT2Model`', 
+    version='2.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2_website, reference=salt2_reference)
 
 

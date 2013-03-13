@@ -47,7 +47,7 @@ rst_epilog += """
 
 # This does not *have* to match the package name, but typically does
 project = u'sncosmo'
-author = u'Kyle Barbary'
+author = u'the developers'
 copyright = u'2013, ' + author
 
 # The version info for the project you're documenting, acts as replacement for

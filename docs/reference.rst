@@ -22,6 +22,8 @@ Spectral tools
 .. autosummary::
    :toctree: _generated
 
+   sncosmo.get_bandpass
+   sncosmo.get_magsystem
    sncosmo.Bandpass
    sncosmo.Spectrum
    sncosmo.MagSystem

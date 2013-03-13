@@ -4,6 +4,8 @@
 # The module docstring, a table of the magnitude systems, is generated at the
 # after all the magnitude systems are registered.
 
+import string
+
 from astropy.io import fits
 from astropy.utils.data import download_file
 from astropy import units as u
@@ -17,7 +19,9 @@ from .. import Spectrum, MagSystem, SpectralMagSystem, ABMagSystem
 def load_ab(name=None):
     return ABMagSystem(name=name)
 
-registry.register_loader(MagSystem, 'ab', load_ab)
+registry.register_loader(
+    MagSystem, 'ab', load_ab, subclass='`~sncosmo.ABMagSystem`',
+    description='Source of 3631 Jy has magnitude 0 in all bands')
 
 
 # ---------------------------------------------------------------------------
@@ -35,10 +39,50 @@ def load_spectral_magsys_fits(remote_url, name=None):
 
 calspec_url = 'ftp://ftp.stsci.edu/cdbs/current_calspec/'
 vega_url = calspec_url + 'alpha_lyr_stis_005.fits'
-registry.register_loader(MagSystem, 'vega', load_spectral_magsys_fits,
-                         [vega_url], sourceurl=calspec_url)
+registry.register_loader(
+    MagSystem, 'vega', load_spectral_magsys_fits, [vega_url],
+    subclass='`~sncosmo.SpectralMagSystem`', url=calspec_url,
+    description='Vega (alpha lyrae) has magnitude 0 in all bands')
 
 bd17_url = calspec_url + 'bd_17d4708_stisnic_003.fits'
-registry.register_loader(MagSystem, 'bd17', load_spectral_magsys_fits,
-                         [bd17_url], sourceurl=calspec_url)
+registry.register_loader(
+    MagSystem, 'bd17', load_spectral_magsys_fits, [bd17_url],
+    subclass='`~sncosmo.SpectralMagSystem`', url=calspec_url,
+    description='BD+17d4708 has magnitude 0 in all bands.')
 
+# --------------------------------------------------------------------------
+# Generate docstring
+
+lines = ['',
+         '  '.join([10*'=', 60*'=', 35*'=', 15*'=']),
+         '{:10}  {:60}  {:35}  {:15}'
+         .format('Name', 'Description', 'Subclass', 'Spectrum Source')]
+lines.append(lines[1])
+
+urlnums = {}
+for m in registry.get_loaders_metadata(MagSystem):
+
+    urllink = ''
+    description = ''
+
+    if 'description' in m:
+        description = m['description']
+
+    if 'url' in m:
+        url = m['url']
+        if url not in urlnums:
+            if len(urlnums) == 0: urlnums[url] = 0
+            else: urlnums[url] = max(urlnums.values()) + 1
+        urllink = '`{}`_'.format(string.letters[urlnums[url]])
+
+    lines.append("{0!r:10}  {1:60}  {2:35}  {3:15}"
+                 .format(m['name'], description, m['subclass'], urllink))
+
+lines.extend([lines[1], ''])
+for url, urlnum in urlnums.iteritems():
+    lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
+lines.append('')
+__doc__ = '\n'.join(lines)
+
+del lines
+del urlnums

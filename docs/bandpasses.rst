@@ -7,13 +7,16 @@ Constructing a Bandpass
 
 Bandpass objects represent the transmission fraction of an
 astronomical filter as a function of dispersion (photon wavelength,
-frequency or energy). To create a Bandpass:
+frequency or energy). They are basically simple containers for these values,
+with a couple special features. To create a Bandpass:
 
     >>> import numpy as np
     >>> from sncosmo import Bandpass
     >>> dispersion = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
     >>> trans = np.array([0., 1., 1., 1., 1., 0.])
-    >>> band = Bandpass(dispersion, trans)
+    >>> band = Bandpass(dispersion, trans, name='tophatg')
+    >>> band
+    <Bandpass 'tophatg' at 0x37869d0>
 
 By default, the dispersion is assumed to be wavelengths with units of
 Angstroms. It must be monotonically increasing. To specify a different
@@ -21,20 +24,9 @@ dispersion unit, use a unit from the `astropy.units` package:
 
     >>> import astropy.units as u
     >>> dispersion = np.array([400., 420., 440., 460., 480., 500.])
+    >>> trans = np.array([0., 1., 1., 1., 1., 0.])
     >>> band = Bandpass(dispersion, trans, dunit=u.nm)
 
-You can specify a name upon construction, and the bandpass will save it
-internally:
-
-    >>> band = Bandpass(dispersion, trans, name='tophatg')
-    >>> band
-    <Bandpass 'tophatg' at 0x37869d0>
-
-It can also be set using the `name` attribute:
-
-    >>> band.name = 'tophatg'
-    >>> band.name
-    'tophatg'
 
 Using a Bandpass
 ----------------
@@ -61,10 +53,13 @@ To convert the dispersion to a different unit:
     >>> band2.dunit
     Unit("Hz")
 
-This generally creates a new bandpass object, unless the requested
-units are the same as the current units:
+This generally creates a new bandpass object, becuase the dispersion
+and transmission arrays sometimes need to be reordered to ensure that
+dispersion *values* remain monotonically increasing. However, if the
+requested units are the same as the current units, a new Bandpass
+object is *not* created: units are the same as the current units:
 
-    >>> band2 = band.to_unit(u.AA)
+    >>> band2 = band.to_unit(u.AA)  # band already has units of u.AA
     >>> band
     <Bandpass 'tophatg' at 0x37869d0>
     >>> band2
@@ -76,10 +71,10 @@ units are the same as the current units:
 Built-in Bandpasses
 -------------------
 
-You can get a built-in bandpass using the class method
-`Bandpass.from_name()`:
+You can get a built-in bandpass using the function
+`sncosmo.get_bandpass`:
 
-    >>> band = Bandpass.from_name('bessellb')
+    >>> band = sncosmo.get_bandpass('bessellb')
 
 If there are no built-in bandpass with that name, an exception is raised.
 See the :ref:`list-of-built-in-bandpasses` below.
@@ -94,7 +89,7 @@ Internally, these functions call the above-mentioned method
 `from_name`, like this:
 
     >>> def some_function(band):
-    >>>     band = Bandpass.from_name(band)
+    >>>     band = sncosmo.get_bandpass(band)
     >>>     ... use band ...
 
 If `band` is a `Bandpass`, it is directly returned. If `band` is a
