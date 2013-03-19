@@ -14,7 +14,7 @@ from astropy.utils import OrderedDict
 from astropy.utils.misc import isiterable
 from astropy import cosmology
 
-from .utils import GridData, GridData1d, read_griddata, extinction_ratio_ccm
+from .utils import GridData1d, GridData2d, read_griddata, extinction_ratio_ccm
 from .spectral import Spectrum, Bandpass, MagSystem, get_magsystem
 from . import registry
 
@@ -59,7 +59,7 @@ class Model(object):
         self._params['z'] = None
         self._refphase = 0.
         self._cosmo = cosmology.get_current()
-        self._lumdist=None  #luminosity distance in Mpc
+        self._lumdist = None  # luminosity distance in Mpc
         self._name = name
         self._version = version
 
@@ -107,7 +107,7 @@ class Model(object):
             update_absmag = False
         
         if update_absmag and self._params['absmag'] is not None:
-            self._adjust_flux_scale_from_absmag(params['absmag'])
+            self._adjust_flux_scale_from_absmag()
 
     @abc.abstractmethod
     def _model_flux_density(self, phase=None, dispersion=None):
@@ -367,12 +367,12 @@ class Model(object):
             return result[0]
         return result
 
-    def _adjust_flux_scale_from_absmag(self, absmag):
+    def _adjust_flux_scale_from_absmag(self):
         """Determine the flux_scale that when applied to the model
         (with current parameters), will result in the desired absolute
         magnitude at the reference phase."""
 
-        mag, band, magsys = absmag
+        mag, band, magsys = self._params['absmag']
         self._params['flux_scale'] = 1.
         m_current = self.mag(self._refphase, band, magsys,
                              restframe=True)
@@ -487,14 +487,14 @@ class TimeSeriesModel(Model):
 
         self._phase = phase
         self._dispersion = dispersion
-        self._model = GridData(phase, dispersion, flux_density)
+        self._model = GridData2d(phase, dispersion, flux_density)
 
         self.set_extinction_func(extinction_func, extinction_kwargs)
 
         if flux_density_error is None:
             self._modelerror = None
         else:
-            self._modelerror = GridData(phase, dispersion, flux_density_error)
+            self._modelerror = GridData2d(phase, dispersion, flux_density_error)
 
     def _model_flux_density(self, phase=None, dispersion=None):
         """Return the model flux density (without any scaling or redshifting).
@@ -615,7 +615,7 @@ class StretchModel(TimeSeriesModel):
 
         s = self._params['s']
         self._params['s'] = None # temporarily remove stretch
-        super(StretchModel, self)._adjust_flux_scale_from_absmag(absmag)
+        super(StretchModel, self)._adjust_flux_scale_from_absmag()
         self._params['s'] = s # put it back.
 
 
@@ -714,7 +714,7 @@ class SALT2Model(Model):
 
             # Get the model component from the file
             phase, wavelength, values = read_griddata(name_or_obj)
-            self._model[component] = GridData(phase, wavelength, values)
+            self._model[component] = GridData2d(phase, wavelength, values)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.

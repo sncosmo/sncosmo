@@ -12,18 +12,8 @@ retrieved using the `sncosmo.get_model` function:
     >>> model = sncosmo.get_model('hsiao')
     >>> model
     <TimeSeriesModel 'hsiao' version='3.0' at 0x3daf8d0>
-    >>> print model
-    Model class: TimeSeriesModel
-    Model name: hsiao
-    Model version: 3.0
-    Restframe phases: [-20, .., 85] days (106 points)
-    Restframe dispersion: [1000, .., 25000] Angstroms (2401 points) 
-    Reference phase: 0.0 days
-    Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
-    Parameters:
-        flux_scale=1.0 [ absmag=None ]
-        z=None
-	c=None
+
+
 
 .. note:: In fact, the model data is hosted remotely, downloaded
           as needed, and cached locally. So the first time you
@@ -38,6 +28,31 @@ version, you can do:
 
 If ``version`` is excluded, the latest version is used. 
 See the :ref:`list-of-built-in-models` below.
+
+Print a summary of the model
+----------------------------
+
+    >>> print model
+    Model class: TimeSeriesModel
+    Model name: hsiao
+    Model version: 3.0
+    Restframe phases: [-20, .., 85] days (106 points)
+    Restframe dispersion: [1000, .., 25000] Angstroms (2401 points) 
+    Reference phase: 0.0 days
+    Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
+    Parameters:
+        flux_scale=1.0 [ absmag=None ]
+        z=None
+	c=None
+
+Retrieve native model phases and wavelengths
+--------------------------------------------
+
+    >>> model.phases() # native model phase values (in days)
+    array([-20., -19., -18., ..., 83.,  84.,  85.])
+    >>> model.dispersion() # native model wavelength values (in angstroms)
+    array([  1000.,   1010.,   1020., ...,  24980.,  24990.,  25000.])
+
 
 Retrieving Model Spectral Values
 --------------------------------
@@ -108,13 +123,6 @@ subsequent calls setting the absolute magnitude:
     >>> model.params['flux_scale']
     47183480.795604385
 
-Retrieving model phases and wavelengths
----------------------------------------
-
-    >>> model.phases() # native model phase values (in days)
-    array([-20., -19., -18., ..., 83.,  84.,  85.])
-    >>> model.dispersion() # native model wavelength values (in angstroms)
-    array([  1000.,   1010.,   1020., ...,  24980.,  24990.,  25000.])
 
 Redshifting the model
 ---------------------
@@ -128,6 +136,11 @@ and flux values will be adjusted appropriately.
     >>> model.dispersion()  # observer frame dispersion.
     array([  2000.,   2020.,   2040., ...,  49960.,  49980.,  50000.])
 
+You can still get the rest-frame values for the phases and dispersion by using
+the restframe keyword:
+
+    >>> model.phases(restframe=True)
+    array([ -20.,  -19.,  -18., ..., 83.,  84.,  85.])
 
 The flux density has been scaled as if the source was at a luminosity distance
 corresponding to ``z=1`` (and note that the wavelength input is 4000 Angstroms
@@ -136,8 +149,8 @@ in the observer frame (2000 Angstroms rest-frame):
     >>> model.flux_density(0., 4000.)
     2.4289400099571839e-20
 
-The luminosity distance is calculated using a `~astropy.cosmology.Cosmology`
-instance. You can see the current cosmology:
+The luminosity distance is calculated using the `astropy.cosmology` package.
+By default, the cosmology is set to a flat WMAP9 cosmology.
 
     >>> model.cosmo
     WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
@@ -146,14 +159,123 @@ You can also set the current cosmology:
 
     >>> from astropy.cosmology import FlatLambdaCDM
     >>> model.cosmo = FlatLambdaCDM(H0=70., Om0=0.3)
+    >>> model.cosmo
+    FlatLambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
 
 You can also set the cosmology to `None`, which will make it so that the 
-luminosity distance is not applied. The model will still be redshifted, but
-the flux will be scaled so that the bolometric flux (ergs / s / cm^2) remains
-constant:
+luminosity distance is not applied.
 
     >>> model.cosmo = None
-   
+
+The model will still be redshifted, but the flux will be scaled so
+that the bolometric flux (ergs / s / cm^2) remains constant.
+
+
+Setting other model parameters
+------------------------------
+
+Some types of models have more parameters. For example, take the SALT2
+model, where parameters ``x1`` and ``c`` determine the shape of the
+spectral time series:
+
+    >>> model = sncosmo.get_model('salt2')
+    >>> print model
+    Model class: SALT2Model
+    Model name: salt2
+    Model version: 2.0
+    Restframe phases: [-20, .., 50] days (71 points)
+    Restframe dipsersion: [2000, .., 9200] Angstroms (721 points) 
+    Reference phase: 0.0 days
+    Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
+    Current Parameters:
+        flux_scale=1.0 [ absmag=None ]
+        z=None
+        c=0.0
+        x1=0.0
+
+You can see that in addition to ``flux_scale``, ``absmag``, and ``z``, there
+are also ``c`` and ``x1`` (both set to 0. by default). To set these parameters
+to other values, use the ``set`` method:
+
+    >>> model.set(c=0.1, x1=-0.5)
+
+To get the current value of any of the parameters:
+
+    >>> model.params
+    OrderedDict([('flux_scale', 1.0), ('absmag', None), ('z', None),
+                 ('c', 0.1), ('x1', -0.5)])
+    >>> model.params['c']
+    0.1
+
+Note that the ``params`` attribute *accesses* the parameter values,
+but cannot be used to set them. This will not complain:
+
+    >>> model.params['c'] = 0.2  # wrong; doesn't change model params
+
+but the model's parameters will remain unchanged:
+
+    >>> model.params['c']
+    >>> 0.1
+
+Instead, to *set* the parameters, the ``set`` method must be used.
+
+Generating synthetic photometry
+-------------------------------
+
+There are two methods that generate synthetic photometry from the model
+spectra: ``flux`` and ``mag``. Continuing on with our SALT2 model, let's
+set the absolute magnitude and redshift:
+
+    >>> model.set(absmag=(-19.3, 'bessellb', 'ab'), z=0.5)
+
+Flux
+````
+
+To get the flux (photons / s / cm^2) in the SDSS i band at a phase of 0 days:
+
+    >>> model.flux(0., 'sdssi')
+    0.00032041370572056057
+
+This method also accepts numpy arrays or lists:
+
+    >>> model.flux([0., 0., 1., 1.], ['sdssi', 'sdssz', 'sdssi', 'sdssz'])
+    array([  3.20413706e-04,   5.72410077e-05,   3.20367693e-04,
+             5.74384657e-05])
+
+Broadcasting is also supported:
+
+    >>> model.flux([0., 1.], 'sdssi')
+    array([ 0.00032041,  0.00032037])
+
+We have been specifying the bandpasses as strings (``'sdssi'`` and
+``'sdssz'``).  This works because these bandpasses are built-in: these
+are strings that correspond to built-in `~sncosmo.Bandpass` objects
+(see the :ref:`list-of-built-in-bandpasses`). The flux method also
+directly accepts actual `~sncosmo.Bandpass` objects. First, we
+construct a custom bandpass:
+
+    >>> from sncosmo import Bandpass
+    >>> dispersion = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
+    >>> trans = np.array([0., 1., 1., 1., 1., 0.])
+    >>> band = Bandpass(dispersion, trans, name='tophatg')
+    >>> model.flux([0., 1.], band)
+    array([ 0.00013845,  0.0001293 ])
+
+Magnitude
+`````````
+
+Magnitude works very similarly to flux. The only difference is that in
+addition to a bandpass, a magnitude system must also be specified.
+
+    >>> model.mag([0., 1.], 'sdssi', 'ab')
+    array([ 22.6255077 ,  22.62566363])
+    >>> model.mag([0., 1.], 'sdssi', 'vega')
+    array([ 22.26843273,  22.26858865])
+
+The magnitude systems work similarly to bandpasses: ``'ab'`` and
+``'vega'`` refer to built-in `~sncosmo.MagSystem` objects, but you can
+also directly supply custom `~sncosmo.MagSystem` objects.
+
 
 Creating New Models
 -------------------

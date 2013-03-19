@@ -105,8 +105,8 @@ if 'templates_path' not in locals():  # in case parent conf.py defines it
 templates_path.append('_templates')
 
 # Static files to copy after template files
-#html_static_path = ['_static']
-#html_style = 'sncosmo.css'
+html_static_path = ['_static']
+html_style = 'sncosmo.css'
 
 # -- Options for LaTeX output --------------------------------------------------
 

@@ -1,9 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
 
-__all__ = ['GridData', 'GridData1d']
+__all__ = ['GridData1d', 'GridData2d']
 
-class GridData(object):
+class GridData2d(object):
     """Interpolate over uniform 2-D grid.
 
     Similar to `scipy.interpolate.interp2d` but with methods for returning
@@ -23,7 +23,7 @@ class GridData(object):
     >>> x1 = np.arange(-5., 5.01, 2.)
     >>> xx0, xx1 = np.meshgrid(x, y)
     >>> y = np.sin(xx0**2+xx1**2)
-    >>> gd = GridData(x0, x1, y)
+    >>> gd = GridData2d(x0, x1, y)
 
     Get the native sampling.
 

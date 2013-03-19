@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from ..griddata import GridData
+from ..griddata import GridData2d
 
 def test_shapes():
 
@@ -11,7 +11,7 @@ def test_shapes():
     b = np.arange(10.)
     y = np.ones((10, 10))
     
-    d = GridData(a, b, y)
+    d = GridData2d(a, b, y)
     assert d(1, 1).shape == ()
     assert d(a, 1).shape == (len(a), 1)
     assert d(1, b).shape == (len(b),)

@@ -51,5 +51,6 @@ Utilities (:mod:`sncosmo.utils`)
    :toctree: _generated
 
    utils.read_griddata
-   utils.GridData
+   utils.GridData1d
+   utils.GridData2d
    utils.extinction_ratio_ccm
