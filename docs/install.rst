@@ -11,7 +11,13 @@ are:
 
 - `NumPy <http://www.numpy.org/>`_ 1.4 or later
 
+- `SciPy <http://www.scipy.org/>`_ 
+
 - AstroPy_ 0.2 or later
+
+Assuming you already have NumPy and SciPy, install AstroPy by
+following the `AstroPy installation instructions
+<http://astropy.readthedocs.org/en/v0.2/install.html>`_.
 
 Install from source
 -------------------
@@ -35,3 +41,8 @@ or clone the repository using ::
 If you don't have root access, install using ::
 
   $ setup.py install --user
+
+Source
+------
+
+The source code is hosted on github: https://github.com/kbarbary/sncosmo .

@@ -276,19 +276,20 @@ The magnitude systems work similarly to bandpasses: ``'ab'`` and
 ``'vega'`` refer to built-in `~sncosmo.MagSystem` objects, but you can
 also directly supply custom `~sncosmo.MagSystem` objects.
 
+Creating models directly (not from built-in data)
+-------------------------------------------------
 
-Creating New Models
--------------------
 
-A model is anything where the spectrum as a function of phase can be
-parameterized by an arbitrary number of parameters. For example, the
-Hsiao and Nugent SN templates are zero parameter models (not counting
-amplitude): there is a single spectrum for a given phase. The SALT2
-model has two parameters (`x1` and `c`) that determine a unique
-spectrum as a function of phase. The Hsiao and Nugent models can be
-described using a single class whereas the SALT2 model needs a
-separate subclass. All models derive from a common abstract base
-class.
+Creating New Models Classes
+---------------------------
+
+In this package, a "model" is something that specifies the spectral
+timeseries as a function of an arbitrary number of parameters. For
+example, the SALT2 model has two parameters (`x1` and `c`) that
+determine a unique spectrum as a function of phase. New models can be
+easily implemented by deriving from the abstract base class
+`sncosmo.Model` and inheriting most of the functionality described here.
+
 
 .. _list-of-built-in-models:
 

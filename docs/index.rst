@@ -7,15 +7,25 @@ Description
 -----------
 
 SNCosmo is a python library for supernova cosmology. It provides a
-class for empirical supernova models, allowing you to extract things
-like the model phase coverage, wavelength coverage, spectra and
-synthetic photometry using a common interface for several different
-types of models.
+class for empirical supernova models, allowing you to interact with
+a variety of models in a uniform way. You can easily:
+
+- extract model phase coverage
+- extract model wavelength coverage
+- extract model spectra
+- extract model synthetic photometry
+- redshift models
+- apply extinction
+
+Data for several models from the literature are "built-in", such as
+the Hsiao, Nugent, and SALT2 models. See the
+:ref:`list-of-built-in-models`. Inclusion of SALT2 model errors is
+work in progress.
 
 A Quick Example
 ---------------
 
-For example, suppose one wishes to simulate a SN Ia light curve at a
+Suppose you wish to simulate a SN Ia light curve at a
 redshift of ``z=1`` using the SALT2 model, with color ``c=0.05``, x1
 parameter of ``x1=0.5``, and a peak absolute AB magnitude of -19.3 in
 the Bessell B band:
