@@ -28,9 +28,9 @@ class Bandpass(object):
 
     Parameters
     ----------
-    dispersion : list_like
+    disp : list_like
         Dispersion. Monotonically increasing values.
-    transmission : list_like
+    trans : list_like
         Transmission fraction.
     dunit : `~astropy.units.Unit` or str
         Dispersion unit. Default is Angstroms.
@@ -38,14 +38,14 @@ class Bandpass(object):
         Identifier.
     """
 
-    def __init__(self, dispersion, transmission, dunit=u.AA, name=None):
+    def __init__(self, disp, trans, dunit=u.AA, name=None):
         
-        self._dispersion = np.asarray(dispersion) 
-        self._transmission = np.asarray(transmission)
-        if self._dispersion.shape != self._transmission.shape:
+        self._disp = np.asarray(disp) 
+        self._trans = np.asarray(trans)
+        if self._disp.shape != self._trans.shape:
             raise ValueError('shape of wavelengths and '
                              'transmission must match')
-        if self._dispersion.ndim != 1:
+        if self._disp.ndim != 1:
             raise ValueError('only 1-d arrays supported')
         self._dunit = dunit
         self._name = name
@@ -60,14 +60,14 @@ class Bandpass(object):
         self._name = value
 
     @property
-    def dispersion(self):
+    def disp(self):
         """Dispersion values (always monotonically increasing)."""
-        return self._dispersion
+        return self._disp
 
     @property
-    def transmission(self):
+    def trans(self):
         """Transmission values corresponding to dispersion values."""
-        return self._transmission
+        return self._trans
 
     @property
     def dunit(self):
@@ -88,8 +88,8 @@ class Bandpass(object):
         if new_unit == self._dunit:
             return self
 
-        d = self._dunit.to(new_unit, self._dispersion, u.spectral())
-        t = self._transmission
+        d = self._dunit.to(new_unit, self._disp, u.spectral())
+        t = self._trans
         if d[0] > d[-1]:
             d = np.flipud(d)
             t = np.flipud(t)
@@ -107,10 +107,10 @@ class Spectrum(object):
 
     Parameters
     ----------
-    dispersion : list_like
+    disp : list_like
         Dispersion values.
-    fluxdensity : list_like
-        Flux values.
+    flux : list_like
+        Spectral flux density values.
     error : list_like, optional
         1 standard deviation uncertainty on flux density values.
     dunit : `~astropy.units.Unit`
@@ -126,12 +126,12 @@ class Spectrum(object):
         Metadata.
     """
 
-    def __init__(self, dispersion, flux_density, error=None,
+    def __init__(self, disp, flux, error=None,
                  unit=(u.erg / u.s / u.cm**2 / u.AA), dunit=u.AA,
                  z=None, dist=None, meta=None):
         
-        self._dispersion = np.asarray(dispersion)
-        self._flux_density = np.asarray(flux_density)
+        self._disp = np.asarray(disp)
+        self._flux = np.asarray(flux)
         self._dunit = dunit
         self._unit = unit
         self._z = z
@@ -139,7 +139,7 @@ class Spectrum(object):
 
         if error is not None:
             self._error = np.asarray(error)
-            if self._dispersion.shape != self._error.shape:
+            if self._disp.shape != self._error.shape:
                 raise ValueError('shape of wavelength and variance must match')
         else:
             self._error = None
@@ -149,21 +149,21 @@ class Spectrum(object):
         else:
             self.meta = deepcopy(meta)
 
-        if self._dispersion.shape != self._flux_density.shape:
-            raise ValueError('shape of wavelength and flux_density must match')
-        if self._dispersion.ndim != 1:
+        if self._disp.shape != self._flux.shape:
+            raise ValueError('shape of wavelength and flux must match')
+        if self._disp.ndim != 1:
             raise ValueError('only 1-d arrays supported')
 
 
     @property
-    def dispersion(self):
+    def disp(self):
         """Dispersion values."""
-        return self._dispersion
+        return self._disp
         
     @property
-    def flux_density(self):
+    def flux(self):
         """Spectral flux density values"""
-        return self._flux_density
+        return self._flux
 
     @property
     def error(self):
@@ -199,7 +199,7 @@ class Spectrum(object):
         self._dist = value
 
 
-    def flux(self, band):
+    def bandflux(self, band):
         """Perform synthentic photometry in a given bandpass.
       
         The bandpass transmission is interpolated onto the dispersion grid
@@ -212,10 +212,10 @@ class Spectrum(object):
 
         Returns
         -------
-        flux : float
+        bandflux : float
             Total flux in ph/s/cm^2. If part of bandpass falls
             outside the spectrum, `None` is returned instead.
-        fluxerr : float
+        bandfluxerr : float
             Error on flux. Only returned if the `error` attribute is not
             `None`.
         """
@@ -223,14 +223,14 @@ class Spectrum(object):
         band = get_bandpass(band)
         band = band.to_unit(self._dunit)
 
-        if (band.dispersion[0] < self._dispersion[0] or
-            band.dispersion[-1] > self._dispersion[-1]):
+        if (band.disp[0] < self._disp[0] or
+            band.disp[-1] > self._disp[-1]):
             return None
 
-        idx = ((self._dispersion > band.dispersion[0]) & 
-               (self._dispersion < band.dispersion[-1]))
-        d = self._dispersion[idx]
-        f = self._flux_density[idx]
+        idx = ((self._disp > band.disp[0]) & 
+               (self._disp < band.disp[-1]))
+        d = self._disp[idx]
+        f = self._flux[idx]
 
         #TODO: use spectral density equivalencies once they can do photons.
         # first convert to ergs / s /cm^2 / (dispersion unit)
@@ -238,10 +238,11 @@ class Spectrum(object):
         if self._unit != target_unit:
             f = self._unit.to(target_unit, f, 
                               u.spectral_density(self._dunit, d))
+
         # Then convert ergs to photons: photons = Energy / (h * nu)
         f = f / const.h.cgs.value / self._dunit.to(u.Hz, d, u.spectral())
 
-        trans = np.interp(d, band.dispersion, band.transmission)
+        trans = np.interp(d, band.disp, band.trans)
         binw = np.gradient(d)
         ftot = np.sum(f * trans * binw)
 
@@ -249,14 +250,14 @@ class Spectrum(object):
             return ftot
 
         else:
-            e = self._error[i0:i1]
+            e = self._error[idx]
 
             # Do the same conversion as above
             if self._unit != target_unit:
                 e = self._unit.to(target_unit, e, 
                                   u.spectral_density(self._dunit, d))
             e = e / const.h.cgs.value / self._dunit.to(u.Hz, d, u.spectral())
-            etot = np.sqrt(np.sum(e * e * trans * binwidth))
+            etot = np.sqrt(np.sum((e * binw) ** 2 * trans))
             return ftot, etot
 
 
@@ -309,8 +310,8 @@ class Spectrum(object):
         else:
             raise ValueError('dispersion must be in wavelength or frequency')
 
-        d = self._dispersion * factor
-        f = self._flux_density / factor
+        d = self._disp * factor
+        f = self._flux / factor
         if self._error is not None:
             e = self._error / factor
         else:
@@ -352,12 +353,12 @@ class MagSystem(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, refmags=None, name=None):
-        self._zpflux = {}
+        self._zpbandflux = {}
         self._name = name
         self._refmags = refmags
 
     @abc.abstractmethod
-    def _ref_spectrum_flux(self, band):
+    def _refspectrum_bandflux(self, band):
         """Flux of the fundamental spectrophotometric standard."""
         pass
 
@@ -379,7 +380,7 @@ class MagSystem(object):
         for band, offset in new_refmags:
             self._refmags[get_bandpass(band)] = offset
 
-    def zpflux(self, band):
+    def zpbandflux(self, band):
         """Flux of an object with magnitude zero in the given bandpass.
 
         Parameters
@@ -388,32 +389,32 @@ class MagSystem(object):
 
         Returns
         -------
-        flux : float
+        bandflux : float
             Flux in photons / s / cm^2.
         """
 
         band = get_bandpass(band)
         try:
-            return self._zpflux[band]
+            return self._zpbandflux[band]
         except KeyError:
             pass
 
-        zpflux = self._ref_spectrum_flux(band)
+        bandflux = self._refspectrum_bandflux(band)
         if self._refmags is not None:
             if band not in self._refmags:
                 raise Exception('Band refmags not defined')
-            zpflux *= 10 ** (0.4 * self._refmags[band])
+            bandflux *= 10 ** (0.4 * self._refmags[band])
     
-        self._zpflux[band] = zpflux
-        return zpflux
+        self._zpbandflux[band] = bandflux
+        return bandflux
 
-    def flux_to_mag(self, flux, band):
+    def band_flux_to_mag(self, flux, band):
         """Convert flux (photons / s / cm^2) to magnitude."""
-        return -2.5 * math.log10(flux / self.zpflux(band))
+        return -2.5 * math.log10(flux / self.zpbandflux(band))
 
-    def mag_to_flux(self, mag, band):
+    def band_mag_to_flux(self, mag, band):
         """Convert magnitude to flux in photons / s / cm^2"""
-        return self.zpflux(band) * 10.**(-0.4 * mag)
+        return self.zpbandflux(band) * 10.**(-0.4 * mag)
 
 
 class SpectralMagSystem(MagSystem):
@@ -422,7 +423,7 @@ class SpectralMagSystem(MagSystem):
 
     Parameters
     ----------
-    ref_spectrum : `sncosmo.Spectrum`
+    refspectrum : `sncosmo.Spectrum`
         The spectrum of the fundamental spectrophotometric standard.
     refmags : dict, optional
         The magnitudes (in this magnitude system) of the fundamental
@@ -433,30 +434,28 @@ class SpectralMagSystem(MagSystem):
         thereof. Dictionary values are floats.
     """
 
-    def __init__(self, ref_spectrum, refmags=None, name=None):
+    def __init__(self, refspectrum, refmags=None, name=None):
         super(SpectralMagSystem, self).__init__(refmags, name)
-        self._ref_spectrum = ref_spectrum
+        self._refspectrum = refspectrum
 
-    def _ref_spectrum_flux(self, band):
-        return self._ref_spectrum.flux(band)
+    def _refspectrum_bandflux(self, band):
+        return self._refspectrum.bandflux(band)
 
 
 class ABMagSystem(MagSystem):
     """Magnitude system where a source with F_nu = 3631 Jansky at all
     frequencies has magnitude 0 in all bands."""
     
-    def _ref_spectrum_flux(self, band):
+    def _refspectrum_bandflux(self, band):
         b = band.to_unit(u.Hz)
 
         # AB spectrum is 3631 x 10^{-23} erg/s/cm^2/Hz
         # Get spectral values in photons/cm^2/s/Hz at bandpass dispersions
         # by dividing by (h \nu).
-        f = 3631.e-23 / const.h.cgs.value / b.dispersion
+        f = 3631.e-23 / const.h.cgs.value / b.disp
 
-        binw = np.gradient(b.dispersion)
-        return np.sum(f * b.transmission * binw)
-
-
+        binw = np.gradient(b.disp)
+        return np.sum(f * b.trans * binw)
 
 
 #    Examples

@@ -2,19 +2,19 @@
 """Tests for extinction curve."""
 
 import numpy as np
-from sncosmo.utils import extinction_ratio_ccm
+from sncosmo.utils import extinction_ccm
 
-def test_extinction_ratio_ccm_shapes():
+def test_extinction_ccm_shapes():
 
     # Test single value
-    extinction_ratio_ccm(1.e4)
+    extinction_ccm(1.e4)
 
     # multiple values
-    assert extinction_ratio_ccm([1.e4]).shape == (1,)
-    assert extinction_ratio_ccm([1.e4, 2.e4]).shape == (2,)
+    assert extinction_ccm([1.e4], a_v=1.).shape == (1,)
+    assert extinction_ccm([1.e4, 2.e4], a_v=1.).shape == (2,)
 
 
-def test_extinction_ratio_ccm_values():
+def test_extinction_ccm_values():
 
     r_v = 3.1
 
@@ -26,8 +26,8 @@ def test_extinction_ratio_ccm_values():
                                0.190, 0.114])
 
     wavelengths = 1.e4 / x_inv_microns  # wavelengths in Angstroms
-    ccm_ratio = extinction_ratio_ccm(wavelengths, r_v=3.1,
-                                     optical_coeffs='ccm') / 3.1
+    ccm_ratio = extinction_ccm(wavelengths, r_v=3.1, a_v=1.,
+                               optical_coeffs='ccm')
 
     # TODO:
     # So far, these are close but not exact.

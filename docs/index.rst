@@ -42,6 +42,21 @@ To get the observer-frame magnitude in the SDSS *z* band at phases of
 
 For more example usage, see :doc:`models`.
 
+It's pretty fast
+----------------
+
+An emphasis is placed on computation speed so that the models can be fit to
+data in a reasonable time. Synthetic photometry for 100 observations can be
+evaluated in ~50 milliseconds:
+
+    In [5]: ndata = 100
+    In [6]: dates = np.zeros(ndata, dtype=np.float)
+    In [7]: bands = np.array(ndata * ['sdssr'])
+    In [8]: timeit model.bandflux(bands, dates)
+    10 loops, best of 3: 49.4 ms per loop
+
+This is without cython optimization.
+
 Documentation
 -------------
 

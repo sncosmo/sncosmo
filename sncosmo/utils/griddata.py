@@ -68,7 +68,7 @@ class GridData2d(object):
         """Native x1 values."""
         return self._x1
 
-    def __call__(self, x0=None, x1=None, extend=False):
+    def __call__(self, x0=None, x1=None, extend=True):
         """Return y values at requested x0 and x1 values.
 
         Parameters
@@ -105,8 +105,9 @@ class GridData2d(object):
 
         if not extend:
             if (x0[0] < self._x0[0] or x0[-1] > self._x0[-1]):
-                raise ValueError("x0 out of range ({:f}, {:f})"
-                                 .format(self._x0[0], self._x0[-1]))
+                raise ValueError(
+                    "x0 value(s) in ({:f}, {:f}) out of range ({:f}, {:f})"
+                    .format(x0[0], x0[-1], self._x0[0], self._x0[-1]))
             if (x1[0] < self._x1[0] or x1[-1] > self._x1[-1]):
                 raise ValueError("x1 out of range ({:f}, {:f})"
                                  .format(self._x1[0], self._x1[-1]))
@@ -155,7 +156,7 @@ class GridData1d(object):
         """Native x values."""
         return self._x
 
-    def __call__(self, x=None, extend=False):
+    def __call__(self, x=None, extend=True):
         """Return y values at requested x value.
 
         Parameters

@@ -3,7 +3,7 @@
 
 import numpy as np
 
-__all__ = ['extinction_ratio_ccm']
+__all__ = ['extinction_ccm']
 
 # Optical/NIR coefficients from Cardelli (1989)
 c1_ccm = [1., 0.17699, -0.50447, -0.02427, 0.72085, 0.01979, -0.77530, 0.32999]
@@ -13,18 +13,22 @@ c2_ccm = [0., 1.41338, 2.28305, 1.07233, -5.38434, -0.62251, 5.30260, -2.09002]
 c1_odonnell = [1., 0.104, -0.609, 0.701, 1.137, -1.718, -0.827, 1.647, -0.505]
 c2_odonnell = [0., 1.952, 2.908, -3.989, -7.985, 11.102, 5.491, -10.805, 3.347]
 
-def extinction_ratio_ccm(wavelength, r_v=3.1, optical_coeffs='odonnell'):
+def extinction_ccm(wavelength, a_v=None, ebv=None, r_v=3.1,
+                   optical_coeffs='odonnell'):
     r"""Return the Cardelli, Clayton, and Mathis (1989) extinction curve.
 
-    This function returns the ratio of total extinction to selective
-    extinction: A(wavelengths)/E(B-V), where E(B-V) is the B-V color
-    excess.
+    This function returns the total extinction A(\lambda) at the given
+    wavelengths, given either the total V band extinction `a_v` or the
+    selective extinction E(B-V) `ebv`, where `a_v = r_v * ebv`.
 
     Parameters
     ----------
     wavelength : float or list_like
         Wavelength(s) in Angstroms. Values must be between 909.1 and 33,333.3,
         the range of validity of the extinction curve paramterization.
+    a_v or ebv: float
+        Total V band extinction or selective extinction E(B-V) (must specify
+        exactly one).
     r_v : float, optional
         Ratio of total to selective extinction: R_V = A_V / E(B-V).
         Default is 3.1.
@@ -51,27 +55,25 @@ def extinction_ratio_ccm(wavelength, r_v=3.1, optical_coeffs='odonnell'):
     where the coefficients a(x) and b(x) are functions of
     wavelength. At a wavelength of approximately 5494.5 Angstroms (a
     characteristic wavelength for the V band), a(x) = 1 and b(x) = 0,
-    so that A(5494.5 Angstroms) = A_V. The parameterization in terms
-    of A_V is somewhat arbitrary. In this function, the curve is
-    paramterized by selective extinction E(B-V) (color excess between
-    B and V bands) rather than A_V (total extinction in the V
-    band). By definition, A_V = R_V * E(B-V), so the relationship
-    between the two is
+    so that A(5494.5 Angstroms) = A_V. This function returns
 
     .. math::
 
-       <A(\lambda)/E(B-V)> =  R_V <A(\lambda) / A_V>  = R_V a(x) + b(x)
+       A(\lambda) = A_V * (a(x) + b(x) / R_V)
 
-    The flux transmission fraction as a function of wavelength can then be
-    obtained by
+    where `A_V` can either be specified directly or via `E(B-V)`
+    (by defintion, `A_V = R_V * E(B-V)`). The flux transmission fraction
+    as a function of wavelength can then be obtained by
 
     .. math::
 
-       T(\lambda) = (10^{-0.4 <A(\lambda)/E(B-V)>})^{E(B-V)}
+       T(\lambda) = (10^{-0.4 A(\lambda)})
 
-    or in code, ``t = np.power(10. ** (-0.4 * extinction_ratio), c)``
-    where ``c`` is E(B-V). The first term can be computed ahead of time
-    for a given set of wavelengths.
+    The extinction scales linearly with `a_v` or `ebv`, so one can compute
+    t ahead of time for a given set of wavelengths with `a_v=1` and then
+    scale by `a_v` later:
+    `t_base = 10 ** (-0.4 * extinction_ccm(wavelengths, a_v=1.))`, then later:
+    `t = np.power(t_base, a_v)`. Similarly for `ebv`.
 
     For an alternative to the CCM curve, see the extinction curve
     given in Fitzpatrick (1999) [6]_.
@@ -102,9 +104,17 @@ def extinction_ratio_ccm(wavelength, r_v=3.1, optical_coeffs='odonnell'):
     .. [6] Fitzpatrick 1999, PASP, 111, 63
     """
 
+
+    if (a_v is None) and (ebv is None):
+        raise ValueError('Must specify either a_v or ebv')
+    if (a_v is not None) and (ebv is not None):
+        raise ValueError('Cannot specify both a_v and ebv')
+    if a_v is None:
+        a_v = r_v * ebv
+
     wavelength = np.asarray(wavelength)
     in_ndim = wavelength.ndim
-    
+
     x = 1.e4 / wavelength.ravel()  # Inverse microns.
     if ((x < 0.3) | (x > 11.)).any():
         raise ValueError("extinction only defined in wavelength range"
@@ -141,25 +151,25 @@ def extinction_ratio_ccm(wavelength, r_v=3.1, optical_coeffs='odonnell'):
     idx = (x >= 3.3) & (x < 8.)
     if idx.any():
         xp = x[idx]
-        a[idx] = 1.752 - 0.316 * xp - 0.104 / ((xp - 4.67) ** 2 + 0.341)
-        b[idx] = -3.090 + 1.825 * xp + 1.206 / ((xp - 4.67) ** 2 + 0.263)
+        a[idx] = 1.752 - 0.316 * xp - 0.104 / ((xp - 4.67)**2 + 0.341)
+        b[idx] = -3.090 + 1.825 * xp + 1.206 / ((xp - 4.67)**2 + 0.263)
 
     idx = (x > 5.9) & (x < 8.)
     if idx.any():
         xp = x[idx] - 5.9
-        a[idx] += -0.04473 * xp ** 2 - 0.009779 * xp ** 3
-        b[idx] += 0.2130 * xp ** 2 + 0.1207 * xp ** 3
+        a[idx] += -0.04473 * xp**2 - 0.009779 * xp**3
+        b[idx] += 0.2130 * xp**2 + 0.1207 * xp**3
 
     # Far-UV
     idx = x >= 8.
     if idx.any():
         xp = x[idx] - 8.
-        c1 = [ -1.073, -0.628,  0.137, -0.070 ]
-        c2 = [ 13.670,  4.257, -0.420,  0.374 ]
+        c1 = [ -1.073, -0.628,  0.137, -0.070]
+        c2 = [ 13.670,  4.257, -0.420,  0.374]
         a[idx] = np.polyval(np.flipud(c1), xp)
         b[idx] = np.polyval(np.flipud(c2), xp)
 
-    extinction_ratio = a * r_v + b
+    extinction = (a + b / r_v) * a_v
     if in_ndim == 0:
-        return extinction_ratio[0]
-    return extinction_ratio
+        return extinction[0]
+    return extinction
