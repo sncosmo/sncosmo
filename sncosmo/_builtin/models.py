@@ -97,6 +97,61 @@ del nugent_baseurl
 del nugent_subclass
 
 # -----------------------------------------------------------------------
+# Sako et al 2011 models
+s11_baseurl = 'http://kbarbary.github.com/data/models/'
+s11_ref = ('S11', 'Sako et al. 2011 '
+           '<http://adsabs.harvard.edu/abs/2011ApJ...738..162S>')
+s11_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
+s11_subclass = '`~sncosmo.TimeSeriesModel`'
+s11_note = "extracted from SNANA's SNDATA_ROOT."
+
+registry.register_loader(
+    Model, 's11-2004hx', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-000018.SED'], version='1.0', url=s11_website,
+    type='SN IIL/P', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2005lc', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-001472.SED'], version='1.0', url=s11_website,
+    type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2005hl', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-002000.SED'], version='1.0', url=s11_website,
+    type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2005hm', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-002744.SED'], version='1.0', url=s11_website,
+    type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2005gi', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-003818.SED'], version='1.0', url=s11_website,
+    type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2006fo', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-013195.SED'], version='1.0', url=s11_website,
+    type='SN Ic', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2006jo', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-014492.SED'], version='1.0', url=s11_website,
+    type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+registry.register_loader(
+    Model, 's11-2006jl', load_timeseries_ascii,
+    [s11_baseurl + 'S11_SDSS-014599.SED'], version='1.0', url=s11_website,
+    type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+
+del s11_baseurl
+del s11_ref
+del s11_website
+del s11_subclass
+del s11_note
+
+# -----------------------------------------------------------------------
 # Hsiao models
 
 def load_timeseries_fits(remote_url, name=None, version=None):
@@ -123,23 +178,26 @@ hsiao_website = 'http://csp.obs.carnegiescience.edu/data/snpy'
 hsiao_subclass = '`~sncosmo.TimeSeriesModel`'
 hsiao_ref = ('H07', 'Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/'
              '2007ApJ...663.1187H>')
+hsiao_note = 'extracted from the SNooPy package.'
 
-registry.register_loader(Model, 'hsiao', load_timeseries_fits, 
-                         [hsiao_baseurl + 'Hsiao_SED.fits'],
-                         version='1.0', url=hsiao_website, type='SN Ia',
-                         subclass=hsiao_subclass, reference=hsiao_ref)
-registry.register_loader(Model, 'hsiao', load_timeseries_fits, 
-                         [hsiao_baseurl + 'Hsiao_SED_V2.fits'],
-                         version='2.0', url=hsiao_website, type='SN Ia',
-                         subclass=hsiao_subclass, reference=hsiao_ref)
-registry.register_loader(Model, 'hsiao', load_timeseries_fits, 
-                         [hsiao_baseurl + 'Hsiao_SED_V3.fits'],
-                         version='3.0', url=hsiao_website, type='SN Ia',
-                         subclass=hsiao_subclass, reference=hsiao_ref)
+registry.register_loader(
+    Model, 'hsiao', load_timeseries_fits, [hsiao_baseurl + 'Hsiao_SED.fits'],
+    version='1.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
+    reference=hsiao_ref, note=hsiao_note)
+registry.register_loader(
+    Model, 'hsiao', load_timeseries_fits,[hsiao_baseurl + 'Hsiao_SED_V2.fits'],
+    version='2.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
+    reference=hsiao_ref, note=hsiao_note)
+registry.register_loader(
+    Model, 'hsiao', load_timeseries_fits,[hsiao_baseurl + 'Hsiao_SED_V3.fits'],
+    version='3.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
+    reference=hsiao_ref, note=hsiao_note)
+
 del hsiao_baseurl
 del hsiao_website
 del hsiao_subclass
 del hsiao_ref
+del hsiao_note
 
 # -----------------------------------------------------------------------
 # SALT2 models
@@ -185,19 +243,25 @@ registry.register_loader(
 
 lines = [
     '',
-    '  '.join([16*'=', 7*'=', 8*'=', 27*'=', 14*'=', 7*'=', 50*'=']),
+    '  '.join([16*'=', 7*'=', 8*'=', 27*'=', 14*'=', 7*'=', 7*'=']),
     '{:16}  {:7}  {:8}  {:27}  {:14}  {:7}  {:50}'.format(
         'Name', 'Version', 'Type', 'Subclass', 'Reference', 'Website', 'Notes')
     ]
 lines.append(lines[1])
 
 urlnums = {}
+allnotes = []
 allrefs = []
 for m in registry.get_loaders_metadata(Model):
 
     reflink = ''
     urllink = ''
-    notes = ''
+    notelink = ''
+
+    if 'note' in m:
+        if m['note'] not in allnotes: allnotes.append(m['note'])
+        notenum = allnotes.index(m['note'])
+        notelink = '[{}]_'.format(notenum + 1)
 
     if 'reference' in m:
         reflink = '[{}]_'.format(m['reference'][0])
@@ -213,7 +277,7 @@ for m in registry.get_loaders_metadata(Model):
 
     lines.append("{0!r:16}  {1!r:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}"
                  .format(m['name'], m['version'], m['type'], m['subclass'],
-                         reflink, urllink, notes))
+                         reflink, urllink, notelink))
 
 lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
@@ -221,6 +285,9 @@ for refkey, ref in allrefs:
 lines.append('')
 for url, urlnum in urlnums.iteritems():
     lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
+lines.append('')
+for i, note in enumerate(allnotes):
+    lines.append('.. [{}] {}'.format(i + 1, note))
 lines.append('')
 __doc__ = '\n'.join(lines)
 
