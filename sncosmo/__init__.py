@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from .spectral import *
 from .models import *
+from .plot import *
 from . import registry
 from . import utils
 from . import _builtin
