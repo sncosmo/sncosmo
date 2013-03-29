@@ -57,8 +57,8 @@ class Model(object):
     @abc.abstractmethod
     def __init__(self, name=None, version=None):
         self._params = OrderedDict()
-        self._params['flux_scale'] = 1.
-        self._params['absmag'] = None
+        self._params['fscale'] = 1.
+        self._params['mabs'] = None
         self._params['t0'] = 0.
         self._params['z'] = None
         self._refphase = 0.
@@ -68,50 +68,55 @@ class Model(object):
         self._version = version
 
     def set(self, **params):
-        """Set the parameters of the model.
+        """Set the parameters of the model using keyword values.
 
         Parameters
         ----------
-        flux_scale : float
+        fscale : float
             The internal model flux spectral density values will be multiplied
-            by this factor. If set directly, `absmag` is set to `None`.
-        absmag : tuple of (float, `sncosmo.Bandpass`, `sncosmo.MagSystem`)
-            Set the `flux_scale` so that this is the absolute magnitude of
+            by this factor. If set directly, `mabs` is set to `None`.
+        mabs : tuple of (float, `sncosmo.Bandpass`, `sncosmo.MagSystem`)
+            Set the `fscale` so that this is the absolute magnitude of
             the model spectrum at the reference rest-frame phase `refphase`.
-            Cannot set at same time as `flux_scale`.
+            Cannot set at same time as `fscale`.
+        t0 : float
         z : float
             Redshift. If `None`, the model is in the rest-frame.
         """
 
-        update_absmag = False
+        update_mabs = False
 
-        if 'absmag' in params and 'flux_scale' in params:
-            raise ValueError("cannot simulaneously set 'absmag' and"
-                             "'flux_scale'")
+        if 'mabs' in params and 'fscale' in params:
+            raise ValueError("cannot simulaneously set 'mabs' and 'fscale'")
+
         for key in params:
             if key not in self._params:
                 raise ValueError("unknown parameter: '{}'".format(key))    
-            if key == 'absmag':
-                if params['absmag'] is None or len(params['absmag']) != 3:
-                    raise ValueError("'absmag' must be (value, band, magsys)")
-            if key not in ['z', 'flux_scale', 't0']:
-                update_absmag = True
+            if key == 'mabs':
+                if params['mabs'] is None or len(params['mabs']) != 3:
+                    raise ValueError("'mabs' must be (value, band, magsys)")
+            if key not in ['z', 'fscale', 't0']:
+                update_mabs = True
             self._params[key] = params[key]
 
-        # If we set the redshift, update the luminosity distance.
-        if 'z' in params:
+        # If we set the redshift, AND there is a cosmology set, we need
+        # to update luminosity distance and fscale (from the mabs).
+        # If cosmo is None, then lumdist is already None, so we don't need
+        # to worry.
+        if 'z' in params and self._cosmo is not None:
             if params['z'] is None:
                 self._lumdist = None
-            elif self._cosmo is not None:
+            else:
                 self._lumdist = self._cosmo.luminosity_distance(params['z'])
+            update_mabs = True
 
         # If we set the flux scale, absolute mag becomes unknown.
-        if 'flux_scale' in params:
-            self._params['absmag'] = None
+        if 'fscale' in params:
+            self._params['mabs'] = None
         
-        # Update flux_scale if we need to:
-        if update_absmag and self._params['absmag'] is not None:
-            self._adjust_flux_scale_from_absmag()
+        # Update fscale if we need to:
+        if update_mabs and self._params['mabs'] is not None:
+            self._set_fscale_from_mabs()
 
     @abc.abstractmethod
     def _model_flux(self, phase=None, disp=None):
@@ -143,10 +148,16 @@ class Model(object):
             raise ValueError('cosmology must be None or '
                              'astropy.cosmology.FLRW instance.')
         self._cosmo = new_cosmology
-        if self._cosmo is None:
-            self._lumdist = None
-        elif self._params['z'] is not None:
-            self._lumdist = self._cosmo.luminosity_distance(self._params['z'])
+        
+        # If z is set, we need to change lumdist and recalculate fscale.
+        if self._params['z'] is not None:
+            if self._cosmo is None:
+                self._lumdist = None
+            else:
+                ld = self._cosmo.luminosity_distance(self._params['z'])
+                self._lumdist = ld
+            if self._params['mabs'] is not None:
+                self._set_fscale_from_mabs()
 
     @property
     def refphase(self):
@@ -229,22 +240,54 @@ class Model(object):
                 disp /= (1. + z)
 
         # Determine flux scaling factor
-        factor = self._params['flux_scale']
+        factor = self._params['fscale']
         if not modelframe:
             factor /= 1. + z
-            if self._lumdist is not None:
-                factor *= (1.e-5 / self._lumdist) ** 2
 
         flux = factor * self._model_flux(time, disp)
-
         if not error:
             return flux
-
         fluxerr = self._model_flux_error(time, disp)
         if fluxerr is None:
             raise ValueError('error not defined for this model.')
         fluxerr = factor * fluxerr
         return flux, fluxerr
+
+    def bandoverlap(self, band, z=None):
+        """Return True if model dispersion range fully overlaps the band.
+
+        Parameters
+        ----------
+        band : `~sncosmo.Bandpass`, str or list_like
+            Bandpass, name of bandpass in registry, or list or array thereof.
+        z : float or list_like, optional
+            If given, evaluate the overlap when the model is at the given
+            redshifts. If `None`, use the model redshift.
+
+        Returns
+        -------
+        overlap : bool or `~numpy.ndarray`
+            
+        """
+        
+        band = np.asarray(band)
+        if z is None: z = self._params['z']
+        if z is None: z = 0
+        z = np.asarray(z)
+        ndim = (band.ndim, z.ndim)
+        band = band.ravel()
+        z = z.ravel()
+        overlap = np.empty((len(band), len(z)), dtype=np.bool)
+        for i, b in enumerate(band):
+            b = get_bandpass(b)
+            b.to_unit(u.AA)
+            overlap[i, :] = ((b.disp[0] > self._disp[0] * (1. + z)) &
+                             (b.disp[-1] < self._disp[-1] * (1. + z)))
+        if ndim == (0, 0):
+            return overlap[0, 0]
+        if ndim[1] == 0:
+            return overlap[:, 0]
+        return overlap
 
     def bandflux(self, band, time=None, zp=None, zpmagsys=None,
                  modelframe=False, error=False):
@@ -318,9 +361,9 @@ class Model(object):
             b = get_bandpass(b)
             b = b.to_unit(u.AA)
 
-            # Do something smarter later.
+            # Do something smarter here.
             if (b.disp[0] < disp[0] or b.disp[-1] > disp[-1]):
-                raise ValueError('bandpass outside model dispersion range.')
+                raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] outside model range [{3:.6g}, .., {4:.6g}]'.format(b.name, b.disp[0], b.disp[-1], disp[0], disp[-1]))
 
             idx = (disp > b.disp[0]) & (disp < b.disp[-1])
             d = disp[idx]
@@ -385,16 +428,19 @@ class Model(object):
             return result[0]
         return result
 
-    def _adjust_flux_scale_from_absmag(self):
-        """Determine the flux_scale that when applied to the model
+    def _set_fscale_from_mabs(self):
+        """Determine the fscale that when applied to the model
         (with current parameters), will result in the desired absolute
         magnitude at the reference phase."""
 
-        mag, band, magsys = self._params['absmag']
-        self._params['flux_scale'] = 1.
+        mag, band, magsys = self._params['mabs']
+        self._params['fscale'] = 1.
         m_current = self.bandmag(band, magsys, self._refphase,
                                  modelframe=True)
-        self._params['flux_scale'] = 10.**(0.4 * (m_current - mag))
+        self._params['fscale'] = 10.**(0.4 * (m_current - mag))
+        if self._lumdist is not None:
+            self._params['fscale'] *= (1.e-5 / self._lumdist) ** 2
+
 
     def __call__(self, **params):
         """Return a shallow copy of the model with parameters set.
@@ -409,11 +455,11 @@ class Model(object):
         --------
         
         >>> model = sncosmo.get_model('salt2')
-        >>> sn = model(c=0.1, x1=0.5, absmag=(-19.3, 'bessellb', 'ab'),
+        >>> sn = model(c=0.1, x1=0.5, mabs=(-19.3, 'bessellb', 'ab'),
         ...            z=0.68)
         >>> sn.magnitude(0., 'desg', 'ab')
         25.577096820065883
-        >>> sn = model(c=0., x1=0., absmag=(-19.3, 'bessellb', 'ab'),
+        >>> sn = model(c=0., x1=0., mabs=(-19.3, 'bessellb', 'ab'),
         ...            z=0.5)
         >>> sn.magnitude(0., 'desg', 'ab')
         23.73028907970092
@@ -435,6 +481,9 @@ class Model(object):
 
 
     def __str__(self):
+        lumdiststr = 'None'
+        if self._lumdist is not None:
+            lumdiststr = '{:.6g} Mpc'.format(self._lumdist)
         result = """\
         Model class: {}
         Model name: {}
@@ -443,6 +492,7 @@ class Model(object):
         Model dispersion: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
         Reference phase: {} days
         Cosmology: {}
+                   (lum. distance = {})
         Current Parameters:
         """.format(
             self.__class__.__name__,
@@ -451,17 +501,18 @@ class Model(object):
             self._disp[0], self._disp[-1],
             len(self._disp),
             self._refphase,
-            self._cosmo)
+            self._cosmo,
+            lumdiststr)
         result = dedent(result)
 
         parameter_lines = []
         for key, val in self._params.iteritems():
-            if key == 'absmag':
+            if key == 'mabs':
                 continue
 
             line = '    {}={}'.format(key, val)
-            if key == 'flux_scale':
-                line += ' [ absmag=' + str(self._params['absmag']) + ' ]'
+            if key == 'fscale':
+                line += ' [ mabs=' + str(self._params['mabs']) + ' ]'
             parameter_lines.append(line)
         return result + '\n'.join(parameter_lines)
 
@@ -623,21 +674,20 @@ class StretchModel(TimeSeriesModel):
         """
         if phase is not None and self._params['s'] is not None:
             phase = phase / self._params['s']
-        return super(StretchModel, self)._model_flux_error(
-            phase, disp)
+        return super(StretchModel, self)._model_flux_error(phase, disp)
 
-    def _adjust_flux_scale_from_absmag(self, absmag):
+    def _set_fscale_from_mabs(self, mabs):
         """Need to override this so that the refphase is applied correctly.
         We want refphase to refer to the *unstretched* phase. Otherwise the
         phase of peak will shift with s, if the peak is not at phase = 0."""
 
         s = self._params['s']
         self._params['s'] = None # temporarily remove stretch
-        super(StretchModel, self)._adjust_flux_scale_from_absmag()
+        super(StretchModel, self)._set_fscale_from_mabs()
         self._params['s'] = s # put it back.
 
 
-    def phases(self, modelframe=False):
+    def times(self, modelframe=False):
         """Return native phases of the model.
 
         Parameters
