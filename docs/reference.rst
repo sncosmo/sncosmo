@@ -32,6 +32,15 @@ Spectral tools
    
 .. inheritance-diagram:: sncosmo.ABMagSystem sncosmo.SpectralMagSystem
 
+Plotting
+--------
+
+.. autosummary::
+   :toctree: _generated
+
+   sncosmo.plotlc
+
+
 Registry (:mod:`sncosmo.registry`)
 ----------------------------------
 
@@ -53,4 +62,4 @@ Utilities (:mod:`sncosmo.utils`)
    utils.read_griddata
    utils.GridData1d
    utils.GridData2d
-   utils.extinction_ratio_ccm
+   utils.extinction_ccm
