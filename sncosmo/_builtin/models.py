@@ -16,20 +16,57 @@ from .. import Model, TimeSeriesModel, SALT2Model
 from .. import utils
 
 # ------------------------------------------------------------------------
+# Bandflux relative errors
+
+def set_bandfluxerror_sn1a(model):
+    dmin, dmax = model.disp(modelframe=True)[[0, -1]]
+    disp = np.linspace(dmin, dmax, (dmax-dmin)/100. + 1)
+    phase = model.times(modelframe=True)
+    relphase = np.abs(phase - model.refphase)
+    relerror = np.empty(relphase.shape, dtype=np.float)
+    idx = relphase < 20.
+    relerror[idx] = 0.08 + 0.04 * relphase[idx] / 20.
+    idx = np.invert(idx)
+    relerror[idx] = 0.12 + 0.08 * (relphase[idx] - 20.) / 60.
+    relerror = relerror[:, np.newaxis]
+    relerror = relerror * (((disp < 4000.) | (disp > 8300.)) + 1.)
+    model.set_bandflux_relative_error(phase, disp, relerror)
+
+def set_bandfluxerror_sncc(model):
+    dmin, dmax = model.disp(modelframe=True)[[0, -1]]
+    disp = np.linspace(dmin, dmax, (dmax-dmin)/100. + 1)
+    phase = model.times(modelframe=True)
+    relphase = phase - model.refphase
+    relerror = (0.08 + 0.08 * np.abs(relphase) / 60.)[:, np.newaxis]
+    relerror = relerror * (((disp < 4000.) | (disp > 8300.)) + 1.)
+    model.set_bandflux_relative_error(phase, disp, relerror)
+
+# ------------------------------------------------------------------------
 # Nugent models
 
-def load_timeseries_ascii(remote_url, name=None, version=None):
+def load_timeseries_ascii_sn1a(remote_url, name=None, version=None):
     with get_readable_fileobj(remote_url, cache=True) as f:
         phases, wavelengths, flux = utils.read_griddata(f)
-        return TimeSeriesModel(phases, wavelengths, flux,
-                               name=name, version=version)
+    model = TimeSeriesModel(phases, wavelengths, flux,
+                            name=name, version=version)
+    set_bandfluxerror_sn1a(model)
+
+def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
+    with get_readable_fileobj(remote_url, cache=True) as f:
+        phases, wavelengths, flux = utils.read_griddata(f)
+    model = TimeSeriesModel(phases, wavelengths, flux,
+                            name=name, version=version)
+    set_bandfluxerror_sncc(model)
+
+# ------------------------------------------------------------------------
+# Nugent models
 
 nugent_baseurl = 'http://supernova.lbl.gov/~nugent/templates/'
 nugent_website = 'http://supernova.lbl.gov/~nugent/nugent_templates.html'
 nugent_subclass = '`~sncosmo.TimeSeriesModel`'
 
 registry.register_loader(
-    Model, 'nugent-sn1a', load_timeseries_ascii, 
+    Model, 'nugent-sn1a', load_timeseries_ascii_sn1a, 
     [nugent_baseurl + 'sn1a_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN Ia',
     subclass=nugent_subclass,
@@ -37,7 +74,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>'))
 
 registry.register_loader(
-    Model, 'nugent-sn91t', load_timeseries_ascii, 
+    Model, 'nugent-sn91t', load_timeseries_ascii_sn1a, 
     [nugent_baseurl + 'sn91t_flux.v1.1.dat.gz'],
     version='1.1', url=nugent_website, type='SN Ia',
     subclass=nugent_subclass,
@@ -45,7 +82,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2004ApJ...612..690S>'))
 
 registry.register_loader(
-    Model, 'nugent-sn91bg', load_timeseries_ascii, 
+    Model, 'nugent-sn91bg', load_timeseries_ascii_sn1a, 
     [nugent_baseurl + 'sn91bg_flux.v1.1.dat.gz'],
     version='1.1', url=nugent_website, type='SN Ia',
     subclass=nugent_subclass,
@@ -53,7 +90,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>'))
 
 registry.register_loader(
-    Model, 'nugent-sn1bc', load_timeseries_ascii, 
+    Model, 'nugent-sn1bc', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn1bc_flux.v1.1.dat.gz'],
     version='1.1', url=nugent_website, type='SN Ib/c',
     subclass=nugent_subclass,
@@ -61,7 +98,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>'))
 
 registry.register_loader(
-    Model, 'nugent-hyper', load_timeseries_ascii, 
+    Model, 'nugent-hyper', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'hyper_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN Ib/c',
     subclass=nugent_subclass,
@@ -69,7 +106,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>'))
 
 registry.register_loader(
-    Model, 'nugent-sn2p', load_timeseries_ascii, 
+    Model, 'nugent-sn2p', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn2p_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN IIP',
     subclass=nugent_subclass,
@@ -77,7 +114,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
 
 registry.register_loader(
-    Model, 'nugent-sn2l', load_timeseries_ascii, 
+    Model, 'nugent-sn2l', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn2l_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN IIL',
     subclass=nugent_subclass,
@@ -85,7 +122,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
 
 registry.register_loader(
-    Model, 'nugent-sn2n', load_timeseries_ascii, 
+    Model, 'nugent-sn2n', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn2n_flux.v2.1.dat.gz'],
     version='2.1', url=nugent_website, type='SN IIn',
     subclass=nugent_subclass,
@@ -98,50 +135,51 @@ del nugent_subclass
 
 # -----------------------------------------------------------------------
 # Sako et al 2011 models
+
 s11_baseurl = 'http://kbarbary.github.com/data/models/'
 s11_ref = ('S11', 'Sako et al. 2011 '
            '<http://adsabs.harvard.edu/abs/2011ApJ...738..162S>')
 s11_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
 s11_subclass = '`~sncosmo.TimeSeriesModel`'
-s11_note = "extracted from SNANA's SNDATA_ROOT."
+s11_note = "extracted from SNANA's SNDATA_ROOT on 29 March 2013."
 
 registry.register_loader(
-    Model, 's11-2004hx', load_timeseries_ascii,
+    Model, 's11-2004hx', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-000018.SED'], version='1.0', url=s11_website,
     type='SN IIL/P', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005lc', load_timeseries_ascii,
+    Model, 's11-2005lc', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-001472.SED'], version='1.0', url=s11_website,
     type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005hl', load_timeseries_ascii,
+    Model, 's11-2005hl', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-002000.SED'], version='1.0', url=s11_website,
     type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005hm', load_timeseries_ascii,
+    Model, 's11-2005hm', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-002744.SED'], version='1.0', url=s11_website,
     type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005gi', load_timeseries_ascii,
+    Model, 's11-2005gi', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-003818.SED'], version='1.0', url=s11_website,
     type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2006fo', load_timeseries_ascii,
+    Model, 's11-2006fo', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-013195.SED'], version='1.0', url=s11_website,
     type='SN Ic', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2006jo', load_timeseries_ascii,
+    Model, 's11-2006jo', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-014492.SED'], version='1.0', url=s11_website,
     type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2006jl', load_timeseries_ascii,
+    Model, 's11-2006jl', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-014599.SED'], version='1.0', url=s11_website,
     type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
@@ -170,15 +208,17 @@ def load_timeseries_fits(remote_url, name=None, version=None):
 
     coords = np.swapaxes([np.zeros(ny), ycoords], 0, 1)
     phase = w.wcs_pix2world(coords, 0)[:,1]
-    return TimeSeriesModel(phase, dispersion, flux_density, name=name,
-                           version=version)
+    model = TimeSeriesModel(phase, dispersion, flux_density, name=name,
+                            version=version)
+    set_bandfluxerror_sn1a(model)
+    return model
 
 hsiao_baseurl = 'http://kbarbary.github.com/data/models/'
 hsiao_website = 'http://csp.obs.carnegiescience.edu/data/snpy'
 hsiao_subclass = '`~sncosmo.TimeSeriesModel`'
 hsiao_ref = ('H07', 'Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/'
              '2007ApJ...663.1187H>')
-hsiao_note = 'extracted from the SNooPy package.'
+hsiao_note = 'extracted from the SNooPy package on 21 Dec 2012.'
 
 registry.register_loader(
     Model, 'hsiao', load_timeseries_fits, [hsiao_baseurl + 'Hsiao_SED.fits'],
@@ -220,6 +260,7 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
         v01file=t.extractfile(join(topdir,'salt2_spec_covariance_01.dat')),
         errscalefile=errscalefile, name=name, version=version)
     t.close()
+    set_bandfluxerror_sn1a(m)
     return m
 
 salt2_baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'

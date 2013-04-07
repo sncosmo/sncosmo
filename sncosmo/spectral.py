@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import numpy as np
 from astropy.utils import OrderedDict
+from astropy.utils.misc import lazyproperty
 import astropy.units as u
 from astropy import cosmology
 import astropy.constants as const
@@ -73,6 +74,14 @@ class Bandpass(object):
     def dunit(self):
         """Dispersion unit"""
         return self._dunit
+
+    @lazyproperty
+    def disp_eff(self):
+        """Effective dispersion value of bandpass."""
+        if self._dunit.physical_type != u.m.physical_type:
+            raise ValueError('disp_eff only defined for wavelength dispersion')
+        weights = self._trans * np.gradient(self._disp) 
+        return np.sum(self._disp * weights) / np.sum(weights)
 
     def to_unit(self, new_unit):
         """Return a new bandpass instance with the requested dispersion units.
@@ -361,6 +370,16 @@ class MagSystem(object):
     def _refspectrum_bandflux(self, band):
         """Flux of the fundamental spectrophotometric standard."""
         pass
+
+    @property
+    def name(self):
+        """Name of magnitude system."""
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
 
     @property
     def refmags(self):

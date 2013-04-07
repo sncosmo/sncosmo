@@ -13,8 +13,6 @@ retrieved using the `sncosmo.get_model` function:
     >>> model
     <TimeSeriesModel 'hsiao' version='3.0' at 0x3daf8d0>
 
-
-
 .. note:: In fact, the model data is hosted remotely, downloaded
           as needed, and cached locally. So the first time you
           load a given model using `~sncosmo.get_model`, you need to be
@@ -41,16 +39,16 @@ Print a summary of the model
     Reference phase: 0.0 days
     Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
     Parameters:
-        flux_scale=1.0 [ absmag=None ]
+        fscale=1.0 [ absmag=None ]
         z=None
 	c=None
 
 Retrieve native model phases and wavelengths
 --------------------------------------------
 
-    >>> model.phases() # native model phase values (in days)
+    >>> model.times() # native model phase values (in days)
     array([-20., -19., -18., ..., 83.,  84.,  85.])
-    >>> model.dispersion() # native model wavelength values (in angstroms)
+    >>> model.disp() # native model wavelength values (in angstroms)
     array([  1000.,   1010.,   1020., ...,  24980.,  24990.,  25000.])
 
 
@@ -59,25 +57,25 @@ Retrieving Model Spectral Values
 To retrieve the spectral values of the model (in ergs / s / cm^2 / Angstrom)
 at a given phase: 
 
-    >>> model.flux_density(-10.5)  # returns an array of shape (2401,)
+    >>> model.flux(-10.5)  # returns an array of shape (2401,)
     array([  1.08078008e-12,   1.31328504e-12,   1.60128855e-12, ...,
              1.45621948e-11,   1.45639898e-11,   1.45656013e-11])
 
 These flux values correspond to the native model dispersion values. To specify
 different dispersion values (in Angstroms):
 
-    >>> model.flux_density(-10.5, [3000., 4000.])
+    >>> model.flux(-10.5, [3000., 4000.])
     array([  2.56244970e-09,   3.07976167e-09])
 
 You can also specify multiple phase values:
 
-    >>> model.flux_density([-10.5, -9.4], [3000., 4000.])
+    >>> model.flux([-10.5, -9.4], [3000., 4000.])
     array([[  2.56244970e-09,   3.07976167e-09],
            [  3.22637597e-09,   3.83064860e-09]])
 
 or set the phase to `None` to get all the native phase values:
 
-    >>> model.flux_density(None, 4000.)  # returns an array with shape (106, 1)
+    >>> model.flux(None, 4000.)  # returns an array with shape (106, 1)
     array([[  1.30002859e-38],
            [  9.90476473e-13],
            [  9.13543963e-11],
@@ -88,7 +86,7 @@ Note that the latter is in fact a monochromatic light curve at a wavelength of
 
 This will retrieve *all* the model flux values:
 
-    >>> model.flux_density()  # Returns an array of shape (106, 2401)
+    >>> model.flux()  # Returns an array of shape (106, 2401)
 
 
 Normalizing the Model
@@ -97,22 +95,22 @@ Normalizing the Model
 The spectral flux values returned above are the "true" model
 values. No scaling has been assumed or applied. Not all models will be
 scaled consistently, so it is convenient to be able to scale the flux
-of the model. This can be done by setting either the 'flux_scale' or
+of the model. This can be done by setting either the 'fscale' or
 'absmag' parameter of the model. For example,
 
-    >>> model.flux_density(0., 4000.)  # before scaling, 'flux_scale' is 1. 
+    >>> model.flux(0., 4000.)  # before scaling, 'fscale' is 1. 
     8.2949433988233068e-09
-    >>> model.set(flux_scale=2.)  # simply sets the parameter.
-    >>> model.flux_density(0., 4000.)  # now the values are twice as big.
+    >>> model.set(fscale=2.)  # simply sets the parameter.
+    >>> model.flux(0., 4000.)  # now the values are twice as big.
     1.6589886797646614e-08
 
 It is often more convenient to be able to normalize the model so that the peak
-magnitude in some band is some desired value. The following sets ``flux_scale``
+magnitude in some band is some desired value. The following sets ``fscale``
 so that the absolute AB magnitude is -19.3 in the Bessell B band at the
 "reference phase" of the model (in this case, the reference phase is 0 days).
 
-    >>> model.set(absmag=(-19.3, 'bessellb', 'ab'))
-    >>> model.params['flux_scale']  # flux scale has been changed.
+    >>> model.set(absmag=-19.3)
+    >>> model.params['fscale']  # flux scale has been changed.
     46846229.523142166
 
 You can change the reference phase of the model, and it will be used in 
@@ -120,7 +118,7 @@ subsequent calls setting the absolute magnitude:
 
     >>> model.refphase = -1.
     >>> model.set(absmag=(-19.3, 'bessellb', 'ab'))
-    >>> model.params['flux_scale']
+    >>> model.params['fscale']
     47183480.795604385
 
 
@@ -131,22 +129,22 @@ The redshift of the model can be set, and the model phases, wavelengths,
 and flux values will be adjusted appropriately.
 
     >>> model.set(z=1.)
-    >>> model.phases()  # observer-frame phases.
+    >>> model.times()  # observer-frame phases.
     array([ -40.,  -38.,  -36., ..., 166.,  168.,  170.])
-    >>> model.dispersion()  # observer frame dispersion.
+    >>> model.disp()  # observer frame dispersion.
     array([  2000.,   2020.,   2040., ...,  49960.,  49980.,  50000.])
 
 You can still get the rest-frame values for the phases and dispersion by using
 the restframe keyword:
 
-    >>> model.phases(restframe=True)
+    >>> model.times(modelframe=True)
     array([ -20.,  -19.,  -18., ..., 83.,  84.,  85.])
 
 The flux density has been scaled as if the source was at a luminosity distance
 corresponding to ``z=1`` (and note that the wavelength input is 4000 Angstroms
 in the observer frame (2000 Angstroms rest-frame):
 
-    >>> model.flux_density(0., 4000.)
+    >>> model.flux(0., 4000.)
     2.4289400099571839e-20
 
 The luminosity distance is calculated using the `astropy.cosmology` package.
@@ -188,12 +186,12 @@ spectral time series:
     Reference phase: 0.0 days
     Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
     Current Parameters:
-        flux_scale=1.0 [ absmag=None ]
+        fscale=1.0 [ absmag=None ]
         z=None
         c=0.0
         x1=0.0
 
-You can see that in addition to ``flux_scale``, ``absmag``, and ``z``, there
+You can see that in addition to ``fscale``, ``absmag``, and ``z``, there
 are also ``c`` and ``x1`` (both set to 0. by default). To set these parameters
 to other values, use the ``set`` method:
 
@@ -202,7 +200,7 @@ to other values, use the ``set`` method:
 To get the current value of any of the parameters:
 
     >>> model.params
-    OrderedDict([('flux_scale', 1.0), ('absmag', None), ('z', None),
+    OrderedDict([('fscale', 1.0), ('mabs', None), ('z', None),
                  ('c', 0.1), ('x1', -0.5)])
     >>> model.params['c']
     0.1
@@ -233,18 +231,18 @@ Flux
 
 To get the flux (photons / s / cm^2) in the SDSS i band at a phase of 0 days:
 
-    >>> model.flux(0., 'sdssi')
+    >>> model.bandflux(0., 'sdssi')
     0.00032041370572056057
 
 This method also accepts numpy arrays or lists:
 
-    >>> model.flux([0., 0., 1., 1.], ['sdssi', 'sdssz', 'sdssi', 'sdssz'])
+    >>> model.bandflux([0., 0., 1., 1.], ['sdssi', 'sdssz', 'sdssi', 'sdssz'])
     array([  3.20413706e-04,   5.72410077e-05,   3.20367693e-04,
              5.74384657e-05])
 
 Broadcasting is also supported:
 
-    >>> model.flux([0., 1.], 'sdssi')
+    >>> model.bandflux([0., 1.], 'sdssi')
     array([ 0.00032041,  0.00032037])
 
 We have been specifying the bandpasses as strings (``'sdssi'`` and
@@ -255,10 +253,10 @@ directly accepts actual `~sncosmo.Bandpass` objects. First, we
 construct a custom bandpass:
 
     >>> from sncosmo import Bandpass
-    >>> dispersion = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
+    >>> disp = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
     >>> trans = np.array([0., 1., 1., 1., 1., 0.])
-    >>> band = Bandpass(dispersion, trans, name='tophatg')
-    >>> model.flux([0., 1.], band)
+    >>> band = Bandpass(disp, trans, name='tophatg')
+    >>> model.bandflux([0., 1.], band)
     array([ 0.00013845,  0.0001293 ])
 
 Magnitude
@@ -267,9 +265,9 @@ Magnitude
 Magnitude works very similarly to flux. The only difference is that in
 addition to a bandpass, a magnitude system must also be specified.
 
-    >>> model.mag([0., 1.], 'sdssi', 'ab')
+    >>> model.bandmag([0., 1.], 'sdssi', 'ab')
     array([ 22.6255077 ,  22.62566363])
-    >>> model.mag([0., 1.], 'sdssi', 'vega')
+    >>> model.bandmag([0., 1.], 'sdssi', 'vega')
     array([ 22.26843273,  22.26858865])
 
 The magnitude systems work similarly to bandpasses: ``'ab'`` and

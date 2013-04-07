@@ -1,8 +1,9 @@
 import sncosmo
 
-sncosmo.get_model('hsiao')
+model = sncosmo.get_model('hsiao')
+band = sncosmo.get_bandpass('desg')
 def run():
-    model.bandflux('desg', 0.)
+    model.bandflux(band, 0.)
 
 import cProfile
-cProfile.run('run()', 'bandflux.profile')
+cProfile.run('run()', 'bandflux.pfl')

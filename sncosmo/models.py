@@ -8,8 +8,8 @@ import math
 import copy
 from textwrap import dedent
 
-
 import numpy as np
+from scipy import linalg
 import astropy.constants as const
 import astropy.units as u
 from astropy.utils import OrderedDict
@@ -37,7 +37,10 @@ def get_model(name, version=None):
         Version identifier for models with multiple versions. Default is
         `None` which corresponds to the latest, or only, version.
     """
-    return registry.retrieve(Model, name, version=version)
+    
+    # Call the one in the registry to create a copy and keep the registry
+    # copy pristine.
+    return registry.retrieve(Model, name, version=version)()
 
 
 class Model(object):
@@ -56,16 +59,16 @@ class Model(object):
 
     @abc.abstractmethod
     def __init__(self, name=None, version=None):
-        self._params = OrderedDict()
-        self._params['fscale'] = 1.
-        self._params['mabs'] = None
-        self._params['t0'] = 0.
-        self._params['z'] = None
+        self._params = OrderedDict(
+            [('fscale', 1.), ('m', None), ('mabs', None), ('t0', 0.),
+             ('z', None)])
         self._refphase = 0.
+        self._refband = get_bandpass('bessellb')
+        self._refmagsys = get_magsystem('ab')
         self._cosmo = cosmology.get_current()
         self._lumdist = None  # luminosity distance in Mpc
-        self._name = name
-        self._version = version
+        self.name = name
+        self.version = version
 
     def set(self, **params):
         """Set the parameters of the model using keyword values.
@@ -74,61 +77,82 @@ class Model(object):
         ----------
         fscale : float
             The internal model flux spectral density values will be multiplied
-            by this factor. If set directly, `mabs` is set to `None`.
-        mabs : tuple of (float, `sncosmo.Bandpass`, `sncosmo.MagSystem`)
-            Set the `fscale` so that this is the absolute magnitude of
-            the model spectrum at the reference rest-frame phase `refphase`.
-            Cannot set at same time as `fscale`.
+            by this factor. If specified, `mabs` and `m` become unknown and
+            are set to `None`.
+        m : float
+            Apparent magnitude; alternative way to set `fscale`.
+        mabs : float
+            Absolute magnitude; alternative way to set `fscale`. Apparent
+            magnitude `m` is set according to the luminosity distance.
+            Only permitted if luminosity distance is known (if cosmology is
+            not None and z is not None).
         t0 : float
+            Time offset.
         z : float
-            Redshift. If `None`, the model is in the rest-frame.
+            Redshift.
+
+        Notes
+        -----
+        `fscale` vs `mabs` vs `m` are various ways to set `fscale`;
+        only one may be used at a time.
         """
 
-        update_mabs = False
+        recalculate_mag = False
 
-        if 'mabs' in params and 'fscale' in params:
-            raise ValueError("cannot simulaneously set 'mabs' and 'fscale'")
-
-        for key in params:
-            if key not in self._params:
-                raise ValueError("unknown parameter: '{}'".format(key))    
-            if key == 'mabs':
-                if params['mabs'] is None or len(params['mabs']) != 3:
-                    raise ValueError("'mabs' must be (value, band, magsys)")
-            if key not in ['z', 'fscale', 't0']:
-                update_mabs = True
-            self._params[key] = params[key]
-
-        # If we set the redshift, AND there is a cosmology set, we need
-        # to update luminosity distance and fscale (from the mabs).
-        # If cosmo is None, then lumdist is already None, so we don't need
-        # to worry.
+        # Are multiple flux scalings methods specified?
+        if ('fscale' in params) + ('m' in params) + ('mabs' in params) > 1:
+            raise ValueError("Only one of 'fscale', 'm', 'mabs' may be set.")
+        
+        # Did the redshift (and luminosity distance) change?
         if 'z' in params and self._cosmo is not None:
             if params['z'] is None:
                 self._lumdist = None
+                self._params['mabs'] = None
             else:
                 self._lumdist = self._cosmo.luminosity_distance(params['z'])
-            update_mabs = True
+                if self._params['mabs'] is not None:
+                    recalculate_mag = True
 
-        # If we set the flux scale, absolute mag becomes unknown.
+        # Set parameters and check if (1) any affect the magnitude (2) any
+        # are unknown.
+        for key in params:
+          if key not in ['fscale', 't0', 'z']:
+              recalculate_mag = True
+          if key in self._params:
+              self._params[key] = params[key]
+          else:
+              raise ValueError("unknown parameter: '{}'".format(key))
+
+        # If the flux scale is set directly, absolute and apparent
+        # magnitude become unknown, similarly for apparent mag
         if 'fscale' in params:
+            self._params['m'] = None
             self._params['mabs'] = None
-        
+        elif 'm' in params:
+            self._params['mabs'] = None
+
         # Update fscale if we need to:
-        if update_mabs and self._params['mabs'] is not None:
-            self._set_fscale_from_mabs()
+        if recalculate_mag:
+            if self._params['mabs'] is not None:
+                self._set_fscale_from_mabs()
+            elif self._params['m'] is not None:
+                self._set_fscale_from_m()
 
     @abc.abstractmethod
     def _model_flux(self, phase=None, disp=None):
-        """Return the model spectral flux density (without any scaling or redshifting).
-        """
+        """Return the model spectral flux density (without any scaling or
+        redshifting."""
         pass
 
     def _model_flux_error(self, phase=None, disp=None):
-        """Return the model spectral flux density error (without any scaling or
-        redshifting. Return `None` if the error is undefined.
+        """Return the model spectral flux density error (without any
+        scaling or redshifting. Return `None` if the error is undefined.
         """
         return None
+
+    @property
+    def parnames(self):
+        return self._params.keys()
 
     @property
     def params(self):
@@ -168,6 +192,24 @@ class Model(object):
     def refphase(self, new_refphase):
         self._refphase = new_refphase
 
+    @property
+    def refband(self):
+        """Bandpass in absolute magnitude is evaluated."""
+        return self._refband
+
+    @refband.setter
+    def refband(self, band):
+        self._refphase = get_bandpass(band)
+
+    @property
+    def refmagsys(self):
+        """Magnitude system in which absolute magnitude is evaluated."""
+        return self._refmagsys
+
+    @refmagsys.setter
+    def refmagsys(self, magsystem):
+        self._refmagsys = get_magsystem(magsystem)
+
 
     def times(self, modelframe=False):
         """Return native time sampling of the model.
@@ -196,14 +238,14 @@ class Model(object):
             corresponds to observer-frame phases (model phases
             multiplied by 1 + z).
         """
-
         if modelframe or self._params['z'] is None:
             return self._disp
         else:
             return self._disp * (1. + self._params['z'])
 
-    def flux(self, time=None, disp=None, modelframe=False, error=False):
-        """The model flux spectral density.
+    def flux(self, time=None, disp=None, modelframe=False,
+             include_error=False):
+        """The model flux spectral density at the given dispersion values.
 
         Parameters
         ----------
@@ -217,7 +259,7 @@ class Model(object):
             the native dispersion of the model is used.
         modelframe : bool, optional
             If True, return fluxes without redshifting or time shifting.
-        error : bool, optional
+        include_error : bool, optional
             Include flux errors in return value.
 
         Returns
@@ -245,12 +287,12 @@ class Model(object):
             factor /= 1. + z
 
         flux = factor * self._model_flux(time, disp)
-        if not error:
+        if not include_error:
             return flux
-        fluxerr = self._model_flux_error(time, disp)
-        if fluxerr is None:
-            raise ValueError('error not defined for this model.')
-        fluxerr = factor * fluxerr
+
+        fluxerr = self._model_fluxerr(time, disp)
+        if fluxerr is not None:
+            fluxerr = factor * fluxerr
         return flux, fluxerr
 
     def bandoverlap(self, band, z=None):
@@ -289,8 +331,9 @@ class Model(object):
             return overlap[:, 0]
         return overlap
 
+    # NEW version: duplicate some work from flux() above.
     def bandflux(self, band, time=None, zp=None, zpmagsys=None,
-                 modelframe=False, error=False):
+                 modelframe=False, include_error=False):
         """Flux through the given bandpass(es) at the given time(s).
 
         Default return value is flux in photons / s / cm^2. If zp and zpmagsys
@@ -309,7 +352,7 @@ class Model(object):
         zpmagsys : `~sncosmo.MagSystem` or str (or list_like), optional
             Determines the magnitude system of the requested zeropoint.
             Cannot be `None` if `zp` is not `None`.
-        error : bool, optional
+        include_error : bool, optional
             Include flux errors in return value. Default is False.
 
 
@@ -323,13 +366,23 @@ class Model(object):
         bandfluxerr : float or `~numpy.ndarray`
         """
 
- 
+        z = max(0., self._params['z'])
         disp = self.disp(modelframe=modelframe)
-        if error:
-            flux, fluxerr = self.flux(time, modelframe=modelframe, error=error)
-        else:
-            flux = self.flux(time, modelframe=modelframe, error=error)
         band = np.asarray(band)
+
+        # Convert time to model frame (phase)
+        if not modelframe and time is not None:
+            time = np.asarray(time)
+            time = (time - self._params['t0']) / (1. + z)
+        if time is None:
+            time = self._phase
+
+        # Determine flux scaling factor
+        factor = self._params['fscale']
+        if not modelframe:
+            factor /= 1. + z
+        flux = factor * self._model_flux(time)
+
 
         return_scalar = (flux.ndim == 1) and (band.ndim == 0)
 
@@ -340,7 +393,7 @@ class Model(object):
         if zp is None:
             if zpmagsys is not None:
                 raise ValueError('zpmagsys given but zp not given')
-            timeidx, band = np.broadcast_arrays(timeidx, band)
+            timeidx, time, band = np.broadcast_arrays(timeidx, time, band)
         else:
             if zpmagsys is None:
                 raise ValueError('zpmagsys must be given if zp is not None')
@@ -348,46 +401,56 @@ class Model(object):
             zpmagsys = np.asarray(zpmagsys)
             return_scalar = (return_scalar and
                              (zp.ndim == 0) and (zpmagsys.ndim == 0))
-            timeidx, band, zp, zpmagsys = \
-                np.broadcast_arrays(timeidx, band, zp, zpmagsys)
+            timeidx, time, band, zp, zpmagsys = \
+                np.broadcast_arrays(timeidx, time, band, zp, zpmagsys)
 
-        # Calculate flux
+        # Initialize output arrays.
         bandflux = np.empty(timeidx.shape, dtype=np.float)
-        if error:
-            bandfluxerr = np.empty(timeidx.shape, dtype=np.float)
+        if include_error:
+            relerr = np.empty(timeidx.shape, dtype=np.float)
+
+        # loop over band/times
         for i, (ti, b) in enumerate(zip(timeidx, band)):
 
             # bandpass
             b = get_bandpass(b)
             b = b.to_unit(u.AA)
-
-            # Do something smarter here.
             if (b.disp[0] < disp[0] or b.disp[-1] > disp[-1]):
-                raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] outside model range [{3:.6g}, .., {4:.6g}]'.format(b.name, b.disp[0], b.disp[-1], disp[0], disp[-1]))
+                raise ValueError(
+                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                    'outside model range [{3:.6g}, .., {4:.6g}]'
+                    .format(b.name, b.disp[0], b.disp[-1], disp[0], disp[-1]))
 
             idx = (disp > b.disp[0]) & (disp < b.disp[-1])
             d = disp[idx]
             dd = np.gradient(d)
             t = np.interp(d, b.disp, b.trans)
             bandflux[i] = np.sum(flux[ti, idx] * d * t * dd) / HC_ERG_AA
-            if error:
-                bandfluxerr[i] = \
-                    np.sqrt(np.sum((fluxerr[ti, idx]*d*dd)**2 * t)) / HC_ERG_AA
 
             if zp is not None:
                 ms = get_magsystem(zpmagsys[i])
                 factor = 10. ** (0.4 * zp[i]) / ms.zpbandflux(b)
                 bandflux[i] *= factor
-                if error:
-                    bandfluxerr[i] *= factor
 
-        if return_scalar:
-            if error:
-                return bandflux[0], bandfluxerr[0]
-            return bandflux[0]
-        if error:
-            return bandflux, bandfluxerr
-        return bandflux
+            if include_error:
+                deff = b.disp_eff
+                if not modelframe: deff /= (1. + z)
+                relerror[i] = self._model_bandflux_relative_error(time[i], deff)
+
+        # Return result.
+        if include_error:
+            if return_scalar:
+                return bandflux[0], bandflux[0] * relerror[0]
+            return bandflux, bandflux * relerror
+        else:
+            if return_scalar:
+                return bandflux[0]
+            return bandflux
+            
+        # OLD ERROR CALCULATION:
+        #if error:
+        #    bandfluxerr[i] = \
+        #        np.sqrt(np.sum((fluxerr[ti, idx]*d*dd)**2 * t)) / HC_ERG_AA
 
 
     def bandmag(self, band, magsys, time=None, modelframe=False):
@@ -428,18 +491,58 @@ class Model(object):
             return result[0]
         return result
 
+    def set_bandflux_relative_error(self, phase, disp, relative_error):
+        """Set the relative error to be applied to the bandflux.
+
+        Parameters
+        ----------
+        phase : `~numpy.ndarray` (1d)
+            Phases in days.
+        disp : `~numpy.ndarray` (1d)
+            Wavelength values.
+        relative_error : `~numpy.ndarray` (2d)
+            Fractional error on bandflux. Must have shape ``(len(phases),
+            len(disp))``
+        """
+        self._model_bandflux_relative_error = \
+            GridData2d(phase, disp, relative_error)
+
+
+    def _set_fscale_from_m(self):
+        """Determine the fscale that when applied to the model
+        (with current parameters), will result in the desired absolute
+        magnitude at the reference phase."""
+
+        self._params['fscale'] = 1.  # set temporarily to 1.
+        m_current = self.bandmag(self._refband, self._refmagsys,
+                                 self._refphase, modelframe=True)
+        self._params['fscale'] = 10.**(0.4 * (m_current - self._params['m']))
+
     def _set_fscale_from_mabs(self):
         """Determine the fscale that when applied to the model
         (with current parameters), will result in the desired absolute
         magnitude at the reference phase."""
 
-        mag, band, magsys = self._params['mabs']
-        self._params['fscale'] = 1.
-        m_current = self.bandmag(band, magsys, self._refphase,
-                                 modelframe=True)
-        self._params['fscale'] = 10.**(0.4 * (m_current - mag))
-        if self._lumdist is not None:
-            self._params['fscale'] *= (1.e-5 / self._lumdist) ** 2
+        if self._lumdist is None:
+            raise ValueError("cannot set absolute magnitude when luminosity "
+                             "distance is unknown (when either redshift or "
+                             "cosmology is None)")
+        self._params['m'] = \
+            self._params['mabs'] + 5.*math.log10(self._lumdist) + 25.
+        self._set_fscale_from_m()
+
+    def _phase_of_max_flux(self, band):
+        """Determine phase of maximum flux in the given band, by fitting
+        a parabola to phase of maximum flux and the surrounding two
+        phases."""
+
+        fluxes = self.bandflux(band)
+        i = np.argmax(fluxes)
+        x = self._phase[i-1: i+2]
+        y = fluxes[i-1: i+2]
+        A = np.hstack([x.reshape(3,1)**2, x.reshape(3,1), np.ones((3,1))])
+        a, b, c = np.linalg.solve(A, y)
+        return -b / (2 * a)
 
 
     def __call__(self, **params):
@@ -465,17 +568,18 @@ class Model(object):
         23.73028907970092
         """
 
-        m = copy.copy(self)
-        m.set(**params)
-        return m
+        model = copy.copy(self)
+        model._params = copy.copy(self._params)
+        model.set(**params)
+        return model
 
     def __repr__(self):
         name = ''
         version = ''
-        if self._name is not None:
-            name = ' {0!r:s}'.format(self._name)
-        if self._version is not None:
-            version = ' version={0!r:s}'.format(self._version)
+        if self.name is not None:
+            name = ' {0!r:s}'.format(self.name)
+        if self.version is not None:
+            version = ' version={0!r:s}'.format(self.version)
         return "<{0:s}{1:s}{2:s} at 0x{3:x}>".format(
             self.__class__.__name__, name, version, id(self))
 
@@ -496,7 +600,7 @@ class Model(object):
         Current Parameters:
         """.format(
             self.__class__.__name__,
-            self._name, self._version,
+            self.name, self.version,
             self._phase[0], self._phase[-1], len(self._phase),
             self._disp[0], self._disp[-1],
             len(self._disp),
@@ -507,12 +611,10 @@ class Model(object):
 
         parameter_lines = []
         for key, val in self._params.iteritems():
-            if key == 'mabs':
-                continue
-
-            line = '    {}={}'.format(key, val)
-            if key == 'fscale':
-                line += ' [ mabs=' + str(self._params['mabs']) + ' ]'
+            line = '    {} = {}'.format(key, val)
+            if key in ['m', 'mabs']:
+                line += ' [{}, {}]'.format(self._refband.name,
+                                           self._refmagsys.name)
             parameter_lines.append(line)
         return result + '\n'.join(parameter_lines)
 
@@ -529,9 +631,6 @@ class TimeSeriesModel(Model):
     flux : `~numpy.ndarray`
         Model spectral flux density in erg / s / cm^2 / Angstrom.
         Must have shape `(num_phases, num_disp)`.
-    flux_error : `~numpy.ndarray`, optional
-        Model error on `flux`. Must have same shape as `flux`.
-        Default is `None`.
     extinction_func : function, optional
         A function that accepts an array of wavelengths in Angstroms
         and returns an array representing the ratio of total extinction
@@ -547,45 +646,33 @@ class TimeSeriesModel(Model):
     """
 
     def __init__(self, phase, disp, flux,
-                 flux_error=None, name=None, version=None,
                  extinction_func=extinction_ccm,
-                 extinction_kwargs=dict(ebv=1.)):
+                 extinction_kwargs=dict(ebv=1.),
+                 name=None, version=None):
 
         super(TimeSeriesModel, self).__init__(name, version)
         self._params['c'] = None
 
         self._phase = phase
         self._disp = disp
-        self._model = GridData2d(phase, disp, flux)
+        self._flux = GridData2d(phase, disp, flux)
+        self._model_bandflux_relative_error = \
+            GridData2d(np.array([phase[0], phase[-1]]),
+                       np.array([disp[0], disp[-1]]),
+                       np.zeros((2,2), dtype=np.float))
 
         self.set_extinction_func(extinction_func, extinction_kwargs)
 
-        if flux_error is None:
-            self._modelerror = None
-        else:
-            self._modelerror = GridData2d(phase, disp, flux_error)
+        self._refphase = self._phase_of_max_flux(self._refband)
 
     def _model_flux(self, phase=None, disp=None):
         """Return the model flux density (without any scaling or redshifting).
         """
         if self._params['c'] is None:
-            return self._model(phase, disp)
+            return self._flux(phase, disp)
         
         dust_trans = self._dust_trans_base(disp) ** self._params['c']
-        return dust_trans * self._model(phase, disp)
-
-    def _model_flux_error(self, phase=None, disp=None):
-        """Return the model flux density error (without any scaling or
-        redshifting. Return `None` if the error is undefined.
-        """
-        if self._modelerror is None:
-            return None
-
-        if self._params['c'] is None:
-            return self._modelerror(phase, disp)
-        
-        dust_trans = self._dust_trans_base(disp) ** self._params['c']
-        return dust_trans * self._modelerror(phase, disp)
+        return dust_trans * self._flux(phase, disp)
 
     def set_extinction_func(self, func, extra_params):
         """Set the extinction ratio function to use in the model.
@@ -668,13 +755,13 @@ class StretchModel(TimeSeriesModel):
             phase = phase / self._params['s']
         return super(StretchModel, self)._model_flux(phase, disp)
 
-    def _model_flux_error(self, phase=None, disp=None):
+    def _model_fluxerr(self, phase=None, disp=None):
         """Return the model flux density error (without any scaling or
         redshifting. Return `None` if the error is undefined.
         """
         if phase is not None and self._params['s'] is not None:
             phase = phase / self._params['s']
-        return super(StretchModel, self)._model_flux_error(phase, disp)
+        return super(StretchModel, self)._model_fluxerr(phase, disp)
 
     def _set_fscale_from_mabs(self, mabs):
         """Need to override this so that the refphase is applied correctly.
@@ -792,6 +879,14 @@ class SALT2Model(Model):
         dust_trans_base = 10. ** (-0.4 * ext_ratio)
         self._model['ext'] = GridData1d(self._disp, dust_trans_base)
 
+        # Set relative bandflux error
+        self._model_bandflux_relative_error = \
+            GridData2d(np.array([self._phase[0], self._phase[-1]]),
+                       np.array([self._disp[0], self._disp[-1]]),
+                       np.zeros((2,2), dtype=np.float))
+
+        # set refphase
+        self._refphase = self._phase_of_max_flux(self._refband)
 
     def _model_flux(self, phase=None, disp=None):
         """Return the model flux density (without any scaling or redshifting).
@@ -807,7 +902,7 @@ class SALT2Model(Model):
         flux *= self._model['ext'](disp) ** self._params['c']
         return flux
 
-    def _model_flux_error(self, phase=None, disp=None):
+    def _model_fluxerr(self, phase=None, disp=None):
         """Return the model flux density error (without any scaling or
         redshifting. Return `None` if the error is undefined.
         """
