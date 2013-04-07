@@ -18,7 +18,7 @@ def normalized_flux(data, zp=25., magsys='ab'):
     flux = np.empty(len(data['flux']), dtype=np.float)
     fluxerr = np.empty(len(data['flux']), dtype=np.float)
 
-    for i in range(len(data)):
+    for i in range(len(data['flux'])):
         ms = get_magsystem(data['zpsys'][i])
         factor = (ms.zpbandflux(data['band'][i]) /
                   magsys.zpbandflux(data['band'][i]) *
@@ -31,7 +31,6 @@ def normalized_flux(data, zp=25., magsys='ab'):
 def guess_parvals(data, model, parnames=['t0', 'fscale']):
 
     nflux, nfluxerr = normalized_flux(data, zp=25., magsys='ab')
-
     bandt0 = []
     bandfluxscale = []
     for band in np.unique(data['band']):

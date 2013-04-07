@@ -15,7 +15,7 @@ def normalized_flux(data, zp=25., magsys='ab'):
     datalen = len(data['flux'])
     magsys = get_magsystem(magsys)
     flux = np.empty(datalen, dtype=np.float)
-    fluxerr = np.array(datalen, dtype=np.float)
+    fluxerr = np.empty(datalen, dtype=np.float)
 
     for i in range(datalen):
         ms = get_magsystem(data['zpsys'][i])
@@ -86,7 +86,7 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
                          color=color, marker='.', markersize=3.)
 
             result = model.bandflux(band, zp=25., zpmagsys='ab',
-                                    include_model_error=include_model_error)
+                                    include_error=include_model_error)
             if include_model_error:
                 modelflux, modelfluxerr = result
             else:
@@ -97,7 +97,7 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
             if include_model_error:
                 plt.fill_between(model.times() - t0, modelflux - modelfluxerr,
                                  modelflux + modelfluxerr, color=color,
-                                 alpha=0.4)
+                                 alpha=0.2)
 
 
             # steal part of the axes and plot pulls

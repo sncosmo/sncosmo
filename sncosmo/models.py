@@ -435,13 +435,13 @@ class Model(object):
             if include_error:
                 deff = b.disp_eff
                 if not modelframe: deff /= (1. + z)
-                relerror[i] = self._model_bandflux_relative_error(time[i], deff)
+                relerr[i] = self._model_bandflux_relative_error(time[i], deff)
 
         # Return result.
         if include_error:
             if return_scalar:
-                return bandflux[0], bandflux[0] * relerror[0]
-            return bandflux, bandflux * relerror
+                return bandflux[0], bandflux[0] * relerr[0]
+            return bandflux, bandflux * relerr
         else:
             if return_scalar:
                 return bandflux[0]
