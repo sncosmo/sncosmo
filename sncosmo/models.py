@@ -452,7 +452,6 @@ class Model(object):
         #    bandfluxerr[i] = \
         #        np.sqrt(np.sum((fluxerr[ti, idx]*d*dd)**2 * t)) / HC_ERG_AA
 
-
     def bandmag(self, band, magsys, time=None, modelframe=False):
         """Magnitude at the given time(s) through the given 
         bandpass(es), and for the given magnitude system(s).

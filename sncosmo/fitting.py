@@ -92,6 +92,32 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
     Uses scipy's L-BFGS-B bounded minimization algorithm.
     """
 
+    # Check that if z is going to be fit, it is bounded.
+    if 'z' in parnames and (bounds is None or 'z' not in bounds):
+        raise ValueError('z must be bounded if fit.')
+
+    # Check redshift range to see which bands we can use in the fit.
+    bands = np.unique(data['band'])
+    if 'z' not in parnames:
+        valid = model.bandoverlap(data['band'])
+    else:
+        valid = model.bandoverlap(data['band'], z=bounds['z'])
+        valid = np.all(valid, axis=1)
+    if not np.all(valid):
+        print "WARNING: dropping following bands from data:"
+        print np.unique(data['band'][np.invert(valid)])
+        data = {'time': data['time'][valid],
+                'band': data['band'][valid],
+                'flux': data['flux'][valid],
+                'fluxerr': data['fluxerr'][valid],
+                'zp': data['zp'][valid],
+                'zpsys': data['zpsys'][valid]}
+
+    # If we're fitting redshift and it is bounded, set initial value
+    if 'z' in parnames:
+        model.set(z=(sum(bounds['z']) / 2.))
+
+    # Get initial guesses
     parvals0 = []
     guesses = guess_parvals(data, model, parnames=['t0', 'fscale'])
     current = model.params
@@ -113,11 +139,6 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
         else:
             bounds_list.append((None, None))
 
-    # If we're fitting redshift and it is bounded, set initial value
-    if 'z' in parnames and 'z' in bounds:
-        i = parnames.index('z')
-        parvals0[i] = sum(bounds['z']) / 2.
-
     if verbose:
         print "starting point:"
         for name, val, bound in zip(parnames, parvals0, bounds_list):
@@ -132,18 +153,6 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
         if 'fscale' in bounds:
             bounds_list[i] = (bounds_list[i][0] / fscale_factor,
                               bounds_list[i][1] / fscale_factor)
-
-    # Check redshift range to see which bands we can use in the fit.
-    bands = np.unique(data['band'])
-    if 'z' not in parnames:
-        valid = model.bandoverlap(data['band'])
-    else:
-        valid = model.bandoverlap(data['band'], z=bounds['z'])
-        valid = np.all(valid, axis=1)
-    if not np.all(valid):
-        print "WARNING: dropping following bands from data:"
-        print np.unique(data['band'][np.invert(valid)])
-        data = data[valid]
 
     def chi2(parvals):
         params = dict(zip(parnames, parvals))

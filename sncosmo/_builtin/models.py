@@ -50,6 +50,7 @@ def load_timeseries_ascii_sn1a(remote_url, name=None, version=None):
     model = TimeSeriesModel(phases, wavelengths, flux,
                             name=name, version=version)
     set_bandfluxerror_sn1a(model)
+    return model
 
 def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
     with get_readable_fileobj(remote_url, cache=True) as f:
@@ -57,6 +58,7 @@ def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
     model = TimeSeriesModel(phases, wavelengths, flux,
                             name=name, version=version)
     set_bandfluxerror_sncc(model)
+    return model
 
 # ------------------------------------------------------------------------
 # Nugent models
@@ -252,7 +254,7 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
     else:
         errscalefile = None
 
-    m = SALT2Model(
+    model = SALT2Model(
         m0file=t.extractfile(join(topdir,'salt2_template_0.dat')),
         m1file=t.extractfile(join(topdir,'salt2_template_1.dat')),
         v00file=t.extractfile(join(topdir,'salt2_spec_variance_0.dat')),
@@ -260,8 +262,8 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
         v01file=t.extractfile(join(topdir,'salt2_spec_covariance_01.dat')),
         errscalefile=errscalefile, name=name, version=version)
     t.close()
-    set_bandfluxerror_sn1a(m)
-    return m
+    set_bandfluxerror_sn1a(model)
+    return model
 
 salt2_baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
 salt2_website = 'http://supernovae.in2p3.fr/~guy/salt/download_templates.html'

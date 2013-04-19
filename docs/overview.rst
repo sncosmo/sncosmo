@@ -1,39 +1,65 @@
 ========
-Overview
+Examples
 ========
 
-A Quick Example
----------------
-
-Suppose you wish to simulate a SN Ia light curve at a
-redshift of ``z=1`` using the SALT2 model, with color ``c=0.05``, x1
-parameter of ``x1=0.5``, and a peak absolute AB magnitude of -19.3 in
-the Bessell B band:
+Create a model
+--------------
 
     >>> import sncosmo
     >>> model = sncosmo.get_model('salt2')
-    >>> model.set(c=0.05, x1=0.5, mabs=-19.3, z=1.0)
+    >>> model
+    <SALT2Model 'salt2' version='2.0' at 0x25fbb50>
 
-To get the observer-frame magnitude in the SDSS *z* band at phases of
--10, 0, 10, 20 days (observer-frame):
+Print a summary of the model
+----------------------------
 
-    >>> model.bandmag([-10., 0., 10., 20.], 'sdssz', 'ab')
-    array([ 24.26614271,  24.10994318,  24.27268101,  24.61381509])
+    >>> print model
+    Model class: SALT2Model
+    Model name: salt2
+    Model version: 2.0
+    Model phases: [-20, .., 50] days (71 points)
+    Model dispersion: [2000, .., 9200] Angstroms (721 points) 
+    Reference phase: -0.656900003922 days
+    Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
+               (lum. distance = None)
+    Current Parameters:
+        fscale = 1.0
+        m = None [bessellb, ab]
+        mabs = None [bessellb, ab]
+        t0 = 0.0
+        z = None
+        c = 0.0
+        x1 = 0.0
 
-For more example usage, see :doc:`models`.
+Set model parameters
+--------------------
+
+    >>> model.set(c=0.05, x1=0.5, mabs=-19.3, z=1.0, t0=56000.)
+
+Get a spectrum
+--------------
+
+    >>> model.flux(56010.)
+    array([  3.38760601e-31,   3.40124899e-23,   1.36596249e-22, ...
+
+Get synthetic photometry
+------------------------
+
+In photons / s / cm^2:
+
+    >>> model.bandflux('sdssr', [56010., 56020., 56030., 56040., 56050.])
+    array([  1.48745060e-05,   9.14207795e-06,   4.65357185e-06,
+             2.40957277e-06,   1.20706548e-06])
+
+Scaled to a given zeropoint (and zeropoint magnitude system):
+
+    >>> model.bandflux('sdssr', [56010., 56020., 56030., 56040., 56050.],
+    ...                zp=25., zpmagsys='ab')
+    array([ 0.30141438,  0.18525346,  0.09429916,  0.04882716,  0.02445976])
+
+
+For more detailed usage, see :doc:`models`.
 
 Many built in models such as the Hsiao, Nugent, PSNID, and SALT2 models.
 See the :ref:`list-of-built-in-models`.
 
-It's pretty fast
-----------------
-
-An emphasis is placed on computation speed so that the models can be fit to
-data in a reasonable time. Synthetic photometry for 100 observations can be
-evaluated in ~50 milliseconds::
-
-    In [5]: ndata = 100
-    In [6]: dates = np.zeros(ndata, dtype=np.float)
-    In [7]: bands = np.array(ndata * ['sdssr'])
-    In [8]: timeit model.bandflux(bands, dates)
-    10 loops, best of 3: 49.4 ms per loop
