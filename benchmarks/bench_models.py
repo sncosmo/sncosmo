@@ -58,8 +58,8 @@ niter = 50
 # models
 salt2 = sncosmo.get_model('salt2')
 hsiao = sncosmo.get_model('hsiao')
-salt2_set = salt2(z=0.5, c=0., x1=0., absmag=(-19.3, 'bessellb', 'ab'))
-hsiao_set = hsiao(z=0.5, c=0., absmag=(-19.3, 'bessellb', 'ab'))
+salt2_set = salt2(z=0.5, c=0., x1=0., mabs=-19.3)
+hsiao_set = hsiao(z=0.5, c=0., mabs=-19.3)
 models = [salt2, hsiao, salt2_set, hsiao_set]
 modelnames = ['salt2', 'hsiao', 'salt2 z=0.5', 'hsiao z=0.5']
 

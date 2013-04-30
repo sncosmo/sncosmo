@@ -65,8 +65,9 @@ class Model(object):
         self._refphase = 0.
         self._refband = get_bandpass('bessellb')
         self._refmagsys = get_magsystem('ab')
+        self._refm = None
         self._cosmo = cosmology.get_current()
-        self._lumdist = None  # luminosity distance in Mpc
+        self._distmod = None  # Distance modulus
         self.name = name
         self.version = version
 
@@ -98,18 +99,19 @@ class Model(object):
         """
 
         recalculate_mag = False
+        recalculate_refm = False
 
         # Are multiple flux scalings methods specified?
         if ('fscale' in params) + ('m' in params) + ('mabs' in params) > 1:
             raise ValueError("Only one of 'fscale', 'm', 'mabs' may be set.")
         
-        # Did the redshift (and luminosity distance) change?
+        # Did the redshift (and distance modulus) change?
         if 'z' in params and self._cosmo is not None:
             if params['z'] is None:
-                self._lumdist = None
+                self._distmod = None
                 self._params['mabs'] = None
             else:
-                self._lumdist = self._cosmo.luminosity_distance(params['z'])
+                self._distmod = self._cosmo.distmod(params['z'])
                 if self._params['mabs'] is not None:
                     recalculate_mag = True
 
@@ -118,6 +120,8 @@ class Model(object):
         for key in params:
           if key not in ['fscale', 't0', 'z']:
               recalculate_mag = True
+              if key not in ['m', 'mabs']:
+                  recalculate_refm = True
           if key in self._params:
               self._params[key] = params[key]
           else:
@@ -131,12 +135,43 @@ class Model(object):
         elif 'm' in params:
             self._params['mabs'] = None
 
+        if recalculate_refm:
+            self._calc_refmag()
+
         # Update fscale if we need to:
         if recalculate_mag:
             if self._params['mabs'] is not None:
                 self._set_fscale_from_mabs()
             elif self._params['m'] is not None:
                 self._set_fscale_from_m()
+
+    def _calc_refmag(self):
+        fscale = self._params['fscale']
+        self._params['fscale'] = 1.
+        self._refm = self.bandmag(self._refband, self._refmagsys,
+                                  self._refphase, modelframe=True)
+        self._params['fscale'] = fscale
+
+    def _set_fscale_from_m(self):
+        """Determine the fscale that when applied to the model
+        (with current parameters), will result in the desired absolute
+        magnitude at the reference phase."""
+
+        if self._refm is None:
+            self._calc_refmag()
+        self._params['fscale'] = 10.**(0.4 * (self._refm - self._params['m']))
+
+    def _set_fscale_from_mabs(self):
+        """Determine the fscale that when applied to the model
+        (with current parameters), will result in the desired absolute
+        magnitude at the reference phase."""
+
+        if self._distmod is None:
+            raise ValueError("cannot set absolute magnitude when distance "
+                             "modulus is unknown (when either redshift or "
+                             "cosmology is None)")
+        self._params['m'] = self._params['mabs'] + self._distmod
+        self._set_fscale_from_m()
 
     @abc.abstractmethod
     def _model_flux(self, phase=None, disp=None):
@@ -173,13 +208,13 @@ class Model(object):
                              'astropy.cosmology.FLRW instance.')
         self._cosmo = new_cosmology
         
-        # If z is set, we need to change lumdist and recalculate fscale.
+        # If z is set, we need to change distmod and recalculate fscale.
         if self._params['z'] is not None:
             if self._cosmo is None:
-                self._lumdist = None
+                self._distmod = None
             else:
-                ld = self._cosmo.luminosity_distance(self._params['z'])
-                self._lumdist = ld
+                dm = self._cosmo.distmod(self._params['z'])
+                self._distmod = dm
             if self._params['mabs'] is not None:
                 self._set_fscale_from_mabs()
 
@@ -391,8 +426,6 @@ class Model(object):
 
         # Broadcasting
         if zp is None:
-            if zpmagsys is not None:
-                raise ValueError('zpmagsys given but zp not given')
             timeidx, time, band = np.broadcast_arrays(timeidx, time, band)
         else:
             if zpmagsys is None:
@@ -506,30 +539,6 @@ class Model(object):
         self._model_bandflux_relative_error = \
             GridData2d(phase, disp, relative_error)
 
-
-    def _set_fscale_from_m(self):
-        """Determine the fscale that when applied to the model
-        (with current parameters), will result in the desired absolute
-        magnitude at the reference phase."""
-
-        self._params['fscale'] = 1.  # set temporarily to 1.
-        m_current = self.bandmag(self._refband, self._refmagsys,
-                                 self._refphase, modelframe=True)
-        self._params['fscale'] = 10.**(0.4 * (m_current - self._params['m']))
-
-    def _set_fscale_from_mabs(self):
-        """Determine the fscale that when applied to the model
-        (with current parameters), will result in the desired absolute
-        magnitude at the reference phase."""
-
-        if self._lumdist is None:
-            raise ValueError("cannot set absolute magnitude when luminosity "
-                             "distance is unknown (when either redshift or "
-                             "cosmology is None)")
-        self._params['m'] = \
-            self._params['mabs'] + 5.*math.log10(self._lumdist) + 25.
-        self._set_fscale_from_m()
-
     def _phase_of_max_flux(self, band):
         """Determine phase of maximum flux in the given band, by fitting
         a parabola to phase of maximum flux and the surrounding two
@@ -584,9 +593,12 @@ class Model(object):
 
 
     def __str__(self):
-        lumdiststr = 'None'
-        if self._lumdist is not None:
-            lumdiststr = '{:.6g} Mpc'.format(self._lumdist)
+        dmstr = '--'
+        ldstr = '--'
+        if self._distmod is not None:
+            dmstr = '{:.6g}'.format(self._distmod)
+            ld =  10.**((self._distmod - 25.) / 5.)
+            ldstr = '{:.6g} Mpc'.format(ld)
         result = """\
         Model class: {}
         Model name: {}
@@ -595,7 +607,6 @@ class Model(object):
         Model dispersion: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
         Reference phase: {} days
         Cosmology: {}
-                   (lum. distance = {})
         Current Parameters:
         """.format(
             self.__class__.__name__,
@@ -604,8 +615,7 @@ class Model(object):
             self._disp[0], self._disp[-1],
             len(self._disp),
             self._refphase,
-            self._cosmo,
-            lumdiststr)
+            self._cosmo)
         result = dedent(result)
 
         parameter_lines = []
@@ -614,6 +624,9 @@ class Model(object):
             if key in ['m', 'mabs']:
                 line += ' [{}, {}]'.format(self._refband.name,
                                            self._refmagsys.name)
+            elif key == 'z' and val is not None:
+                line += ('[dist. mod. = {}, lum. dist. = {}]'
+                         .format(dmstr, ldstr))
             parameter_lines.append(line)
         return result + '\n'.join(parameter_lines)
 
@@ -664,6 +677,8 @@ class TimeSeriesModel(Model):
 
         self._refphase = self._phase_of_max_flux(self._refband)
 
+        self._precomputed = None
+
     def _model_flux(self, phase=None, disp=None):
         """Return the model flux density (without any scaling or redshifting).
         """
@@ -701,6 +716,40 @@ class TimeSeriesModel(Model):
         dust_trans_base =  10. ** (-0.4 * ext_ratio)
         self._dust_trans_base = GridData1d(self._disp, dust_trans_base)
 
+    def precompute(self, bands, z, c, verbose=False):
+        """Precompute bandfluxes for given redshifts and color values."""
+        
+        self._precomputed = {'parnames': ['z', 'c'],
+                             'parvals': [z, c],
+                             'f': {},
+                             'fe': {}}
+
+        # save current parameters, and set fscale to 1.
+        saved_params = copy.copy(self._params)
+        self.set(fscale=1.)
+
+        # Parameter grid size
+        parshape = [len(v) for v in self._precomputed['parvals']]
+        oshape = parshape + [len(self._phase)]
+        ngrid = 1
+        for d in parshape:
+            ngrid *= d
+        ishape = [ngrid, len(self._phase)]
+
+        for band in bands:
+            band = get_bandpass(band)
+            name = band.name
+            if name is None:
+                raise ValueError('Bandpass must have name for precomputation')
+
+            self._precomputed['f'][name] = np.empty(ishape, dtype=np.float)
+            self._precomputed['fe'][name] = np.empty(ishape, dtype=np.float)
+
+            for i, v in enumerate(product(*self._precomputed['parvals'])):
+                model.set(**dict(zip(self._precomputed['parnames'], v)))
+                f, fe = self.bandflux(band, include_error=True)
+                self._precomputed['f'][name][i, :] = f
+                self._precomputed['fe'][name][i, :] = fe
 
 class StretchModel(TimeSeriesModel):
     """A single-component spectral time series model, that "stretches".

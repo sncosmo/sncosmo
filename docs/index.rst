@@ -1,4 +1,14 @@
 
+.. raw:: html
+
+    <style media="screen" type="text/css">
+      h1 { display:none; }
+    </style>
+
+*******
+SNCosmo
+*******
+
 .. image:: _static/sncosmo_banner_96.png
     :width: 409px
     :height: 96px
@@ -30,3 +40,11 @@ Documentation
    magsystems
    registry
    reference
+
+**Experimental features**
+
+.. toctree::
+   :maxdepth: 1
+
+   fitting
+   typing
