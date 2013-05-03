@@ -9,7 +9,9 @@ import copy
 from textwrap import dedent
 
 import numpy as np
-from scipy import linalg
+from scipy.interpolate import RectBivariateSpline as Spline2d
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
+
 import astropy.constants as const
 import astropy.units as u
 from astropy.utils import OrderedDict
@@ -115,17 +117,14 @@ class Model(object):
                 if self._params['mabs'] is not None:
                     recalculate_mag = True
 
-        # Set parameters and check if (1) any affect the magnitude (2) any
-        # are unknown.
+        # Set parameters and check if any affect the magnitude
         for key in params:
-          if key not in ['fscale', 't0', 'z']:
-              recalculate_mag = True
-              if key not in ['m', 'mabs']:
-                  recalculate_refm = True
-          if key in self._params:
-              self._params[key] = params[key]
-          else:
-              raise ValueError("unknown parameter: '{}'".format(key))
+            if key not in self._params: continue
+            if key not in ['fscale', 't0', 'z']:
+                recalculate_mag = True
+                if key not in ['m', 'mabs']:
+                    recalculate_refm = True
+            self._params[key] = params[key]
 
         # If the flux scale is set directly, absolute and apparent
         # magnitude become unknown, similarly for apparent mag
@@ -357,7 +356,6 @@ class Model(object):
         overlap = np.empty((len(band), len(z)), dtype=np.bool)
         for i, b in enumerate(band):
             b = get_bandpass(b)
-            b.to_unit(u.AA)
             overlap[i, :] = ((b.disp[0] > self._disp[0] * (1. + z)) &
                              (b.disp[-1] < self._disp[-1] * (1. + z)))
         if ndim == (0, 0):
@@ -366,7 +364,6 @@ class Model(object):
             return overlap[:, 0]
         return overlap
 
-    # NEW version: duplicate some work from flux() above.
     def bandflux(self, band, time=None, zp=None, zpmagsys=None,
                  modelframe=False, include_error=False):
         """Flux through the given bandpass(es) at the given time(s).
@@ -402,8 +399,7 @@ class Model(object):
         """
 
         z = max(0., self._params['z'])
-        disp = self.disp(modelframe=modelframe)
-        band = np.asarray(band)
+        if modelframe: z = 0.
 
         # Convert time to model frame (phase)
         if not modelframe and time is not None:
@@ -416,70 +412,77 @@ class Model(object):
         factor = self._params['fscale']
         if not modelframe:
             factor /= 1. + z
-        flux = factor * self._model_flux(time)
 
-
-        return_scalar = (flux.ndim == 1) and (band.ndim == 0)
-
-        flux = np.atleast_2d(flux)
-        timeidx = np.arange(len(flux))
-
-        # Broadcasting
+        # broadcast arrays
         if zp is None:
-            timeidx, time, band = np.broadcast_arrays(timeidx, time, band)
+            time, band = np.broadcast_arrays(time, band)
         else:
             if zpmagsys is None:
                 raise ValueError('zpmagsys must be given if zp is not None')
-            zp = np.asarray(zp)
-            zpmagsys = np.asarray(zpmagsys)
-            return_scalar = (return_scalar and
-                             (zp.ndim == 0) and (zpmagsys.ndim == 0))
-            timeidx, time, band, zp, zpmagsys = \
-                np.broadcast_arrays(timeidx, time, band, zp, zpmagsys)
+            time, band, zp, zpmagsys = \
+                np.broadcast_arrays(time, band, zp, zpmagsys)
+            zp = np.atleast_1d(zp)
+            zpmagsys = np.atleast_1d(zpmagsys)
 
-        # Initialize output arrays.
-        bandflux = np.empty(timeidx.shape, dtype=np.float)
+        # convert to 1d arrays
+        ndim = time.ndim # save input ndim for return val
+        time = np.atleast_1d(time)
+        band = np.atleast_1d(band)
+
+        # initialize output arrays
+        bandflux = np.zeros(time.shape, dtype=np.float)
         if include_error:
-            relerr = np.empty(timeidx.shape, dtype=np.float)
+            relerr = np.zeros(time.shape, dtype=np.float)
 
-        # loop over band/times
-        for i, (ti, b) in enumerate(zip(timeidx, band)):
+        # index of times that are in model range
+        idx_validtime = (time >= self._phase[0]) & (time <= self._phase[-1])
 
-            # bandpass
+        # loop over unique bands
+        for b in set(band):
+            idx = (band == b) & idx_validtime
+            if not np.any(idx): continue
             b = get_bandpass(b)
-            b = b.to_unit(u.AA)
-            if (b.disp[0] < disp[0] or b.disp[-1] > disp[-1]):
+            d = b.disp / (1. + z)  # bandpass dispersion in modelframe
+            
+            # make sure bandpass dispersion is in model range.
+            if (d[0] < self._disp[0] or d[-1] > self._disp[-1]):
                 raise ValueError(
                     'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
                     'outside model range [{3:.6g}, .., {4:.6g}]'
-                    .format(b.name, b.disp[0], b.disp[-1], disp[0], disp[-1]))
-
-            idx = (disp > b.disp[0]) & (disp < b.disp[-1])
-            d = disp[idx]
-            dd = np.gradient(d)
-            t = np.interp(d, b.disp, b.trans)
-            bandflux[i] = np.sum(flux[ti, idx] * d * t * dd) / HC_ERG_AA
+                    .format(b.name, b.disp[0], b.disp[-1], 
+                            (1.+z) * self._disp[0], (1.+z) * self._disp[-1]))
+            flux = self._model_flux(time[idx], d)
+            tmp = b.trans * b.disp * b.ddisp
+            fluxsum = np.sum(flux * tmp, axis=1) / HC_ERG_AA
 
             if zp is not None:
-                ms = get_magsystem(zpmagsys[i])
-                factor = 10. ** (0.4 * zp[i]) / ms.zpbandflux(b)
-                bandflux[i] *= factor
+                zpnorm = 10. ** (0.4*zp[idx])
+                bandzpmagsys = zpmagsys[idx]
+                for ms in set(bandzpmagsys):
+                    idx2 = bandzpmagsys == ms
+                    ms = get_magsystem(ms)
+                    zpnorm[idx2] = zpnorm[idx2] / ms.zpbandflux(b)
+                fluxsum *= zpnorm
+
+            bandflux[idx] = fluxsum
 
             if include_error:
                 deff = b.disp_eff
-                if not modelframe: deff /= (1. + z)
-                relerr[i] = self._model_bandflux_relative_error(time[i], deff)
+                if not modelframe: deff /= (1.+z)
+                relerr[idx] = self._model_bandfluxrelerr(time[idx], deff)[:, 0]
+
+        # multiply all by overall factor determined above.
+        bandflux *= factor
 
         # Return result.
         if include_error:
-            if return_scalar:
+            if ndim == 0:
                 return bandflux[0], bandflux[0] * relerr[0]
             return bandflux, bandflux * relerr
-        else:
-            if return_scalar:
-                return bandflux[0]
-            return bandflux
-            
+        if ndim == 0:
+            return bandflux[0]
+        return bandflux
+
         # OLD ERROR CALCULATION:
         #if error:
         #    bandfluxerr[i] = \
@@ -536,7 +539,7 @@ class Model(object):
             Fractional error on bandflux. Must have shape ``(len(phases),
             len(disp))``
         """
-        self._model_bandflux_relative_error = \
+        self._model_bandfluxrelerr = \
             GridData2d(phase, disp, relative_error)
 
     def _phase_of_max_flux(self, band):
@@ -667,12 +670,12 @@ class TimeSeriesModel(Model):
 
         self._phase = phase
         self._disp = disp
-        self._flux = GridData2d(phase, disp, flux)
-        self._model_bandflux_relative_error = \
-            GridData2d(np.array([phase[0], phase[-1]]),
-                       np.array([disp[0], disp[-1]]),
-                       np.zeros((2,2), dtype=np.float))
-
+        self._flux = Spline2d(phase, disp, flux, kx=2, ky=2)
+        self._model_bandfluxrelerr = Spline2d(np.array([phase[0], phase[-1]]),
+                                              np.array([disp[0], disp[-1]]),
+                                              np.zeros((2,2), dtype=np.float),
+                                              kx=1, ky=1)
+            
         self.set_extinction_func(extinction_func, extinction_kwargs)
 
         self._refphase = self._phase_of_max_flux(self._refband)
@@ -682,6 +685,10 @@ class TimeSeriesModel(Model):
     def _model_flux(self, phase=None, disp=None):
         """Return the model flux density (without any scaling or redshifting).
         """
+        if phase is None:
+            phase = self._phase
+        if disp is None:
+            disp = self._disp
         if self._params['c'] is None:
             return self._flux(phase, disp)
         
@@ -714,7 +721,7 @@ class TimeSeriesModel(Model):
         # calculate extinction base values, so that
         # self._dust_trans_base ** c gives the dust transmission.
         dust_trans_base =  10. ** (-0.4 * ext_ratio)
-        self._dust_trans_base = GridData1d(self._disp, dust_trans_base)
+        self._dust_trans_base = Spline1d(self._disp, dust_trans_base, k=2)
 
     def precompute(self, bands, z, c, verbose=False):
         """Precompute bandfluxes for given redshifts and color values."""
@@ -928,7 +935,7 @@ class SALT2Model(Model):
         self._model['ext'] = GridData1d(self._disp, dust_trans_base)
 
         # Set relative bandflux error
-        self._model_bandflux_relative_error = \
+        self._model_bandfluxrelerr = \
             GridData2d(np.array([self._phase[0], self._phase[-1]]),
                        np.array([self._disp[0], self._disp[-1]]),
                        np.zeros((2,2), dtype=np.float))
