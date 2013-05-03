@@ -4,6 +4,7 @@ import abc
 from copy import deepcopy
 
 import numpy as np
+
 from astropy.utils import OrderedDict
 from astropy.utils.misc import lazyproperty
 import astropy.units as u
@@ -33,76 +34,74 @@ class Bandpass(object):
         Dispersion. Monotonically increasing values.
     trans : list_like
         Transmission fraction.
-    dunit : `~astropy.units.Unit` or str
+    dunit : `~astropy.units.Unit` or str, optional
         Dispersion unit. Default is Angstroms.
-    name : str
-        Identifier.
+    name : str, optional
+        Identifier. Default is `None`.
+
+    Examples
+    --------
+    >>> band = get_bandpass('sdssg')
+    >>> band.disp  # wavelengths in Angstroms
+    >>> band.ddisp # np.gradient(band.disp)
+    >>> band.trans  # transmisson fraction corresponding to wavelengths
+    >>> band.name  # 'sdssg'
     """
 
     def __init__(self, disp, trans, dunit=u.AA, name=None):
         
-        self._disp = np.asarray(disp) 
-        self._trans = np.asarray(trans)
-        if self._disp.shape != self._trans.shape:
-            raise ValueError('shape of wavelengths and '
-                             'transmission must match')
-        if self._disp.ndim != 1:
+        disp = np.asarray(disp) 
+        trans = np.asarray(trans)
+        if disp.shape != trans.shape:
+            raise ValueError('shape of disp and trans must match')
+        if disp.ndim != 1:
             raise ValueError('only 1-d arrays supported')
-        self._dunit = dunit
-        self._name = name
+
+        if dunit is not u.AA:
+            dunit = u.Unit(dunit)
+            disp = dunit.to(u.AA, disp, u.spectral())
+
+        if disp[0] > disp[-1]:
+            disp = np.flipud(disp)
+            trans = np.flipud(trans)
+
+        self.disp = disp
+        self.ddisp = np.gradient(disp)
+        self.trans = trans
+        self.name = name
         
-    @property
-    def name(self):
-        """Name of bandpass."""
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-
-    @property
-    def disp(self):
-        """Dispersion values (always monotonically increasing)."""
-        return self._disp
-
-    @property
-    def trans(self):
-        """Transmission values corresponding to dispersion values."""
-        return self._trans
-
-    @property
-    def dunit(self):
-        """Dispersion unit"""
-        return self._dunit
-
     @lazyproperty
     def disp_eff(self):
-        """Effective dispersion value of bandpass."""
-        if self._dunit.physical_type != u.m.physical_type:
-            raise ValueError('disp_eff only defined for wavelength dispersion')
+        """Effective wavelength of bandpass in Angstroms."""
         weights = self._trans * np.gradient(self._disp) 
         return np.sum(self._disp * weights) / np.sum(weights)
 
-    def to_unit(self, new_unit):
-        """Return a new bandpass instance with the requested dispersion units.
-        
-        A new instance is necessary because the dispersion and transmission
-        values may need to be reordered to ensure that they remain
-        monotonically increasing.
+    def to_unit(self, unit):
+        """Return dispersion and transmission in new dispersion units.
 
         If the requested units are the same as the current units, self is
         returned.
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit` or str
+            Target dispersion unit.
+
+        Returns
+        -------
+        disp : `~numpy.ndarray`
+        trans : `~numpy.ndarray`
         """
 
-        if new_unit == self._dunit:
+        if unit is u.AA:
             return self
-
-        d = self._dunit.to(new_unit, self._disp, u.spectral())
-        t = self._trans
+        
+        d = u.AA.to(unit, self.disp, u.spectral())
+        t = self.trans
         if d[0] > d[-1]:
             d = np.flipud(d)
             t = np.flipud(t)
-        return Bandpass(d, t, dunit=new_unit, name=self._name)
+        return d, t
 
     def __repr__(self):
         name = ''
@@ -230,14 +229,14 @@ class Spectrum(object):
         """
 
         band = get_bandpass(band)
-        band = band.to_unit(self._dunit)
+        bdisp, btrans = band.to_unit(self._dunit)
 
-        if (band.disp[0] < self._disp[0] or
-            band.disp[-1] > self._disp[-1]):
+        if (bdisp[0] < self._disp[0] or
+            bdisp[-1] > self._disp[-1]):
             return None
 
-        idx = ((self._disp > band.disp[0]) & 
-               (self._disp < band.disp[-1]))
+        idx = ((self._disp > bdisp[0]) & 
+               (self._disp < bdisp[-1]))
         d = self._disp[idx]
         f = self._flux[idx]
 
@@ -251,7 +250,7 @@ class Spectrum(object):
         # Then convert ergs to photons: photons = Energy / (h * nu)
         f = f / const.h.cgs.value / self._dunit.to(u.Hz, d, u.spectral())
 
-        trans = np.interp(d, band.disp, band.trans)
+        trans = np.interp(d, bdisp, btrans)
         binw = np.gradient(d)
         ftot = np.sum(f * trans * binw)
 
@@ -466,15 +465,15 @@ class ABMagSystem(MagSystem):
     frequencies has magnitude 0 in all bands."""
     
     def _refspectrum_bandflux(self, band):
-        b = band.to_unit(u.Hz)
+        bdisp, btrans = band.to_unit(u.Hz)
 
         # AB spectrum is 3631 x 10^{-23} erg/s/cm^2/Hz
         # Get spectral values in photons/cm^2/s/Hz at bandpass dispersions
         # by dividing by (h \nu).
-        f = 3631.e-23 / const.h.cgs.value / b.disp
+        f = 3631.e-23 / const.h.cgs.value / bdisp
 
-        binw = np.gradient(b.disp)
-        return np.sum(f * b.trans * binw)
+        binw = np.gradient(bdisp)
+        return np.sum(f * btrans * binw)
 
 
 #    Examples
