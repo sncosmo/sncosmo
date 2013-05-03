@@ -173,16 +173,10 @@ class Model(object):
         self._set_fscale_from_m()
 
     @abc.abstractmethod
-    def _model_flux(self, phase=None, disp=None):
+    def _model_flux(self, phase, disp):
         """Return the model spectral flux density (without any scaling or
         redshifting."""
         pass
-
-    def _model_flux_error(self, phase=None, disp=None):
-        """Return the model spectral flux density error (without any
-        scaling or redshifting. Return `None` if the error is undefined.
-        """
-        return None
 
     @property
     def parnames(self):
@@ -277,8 +271,7 @@ class Model(object):
         else:
             return self._disp * (1. + self._params['z'])
 
-    def flux(self, time=None, disp=None, modelframe=False,
-             include_error=False):
+    def flux(self, time=None, disp=None, modelframe=False):
         """The model flux spectral density at the given dispersion values.
 
         Parameters
@@ -293,15 +286,11 @@ class Model(object):
             the native dispersion of the model is used.
         modelframe : bool, optional
             If True, return fluxes without redshifting or time shifting.
-        include_error : bool, optional
-            Include flux errors in return value.
 
         Returns
         -------
         flux : float or `~numpy.ndarray`
             Spectral flux density values in ergs / s / cm^2 / Angstrom.
-        fluxerr : float or `~numpy.ndarray`
-            Error on flux. Only returned when `error` is True.
         """
 
         z = max(0., self._params['z'])
@@ -320,14 +309,7 @@ class Model(object):
         if not modelframe:
             factor /= 1. + z
 
-        flux = factor * self._model_flux(time, disp)
-        if not include_error:
-            return flux
-
-        fluxerr = self._model_fluxerr(time, disp)
-        if fluxerr is not None:
-            fluxerr = factor * fluxerr
-        return flux, fluxerr
+        return factor * self._model_flux(time, disp)
 
     def bandoverlap(self, band, z=None):
         """Return True if model dispersion range fully overlaps the band.
@@ -810,14 +792,6 @@ class StretchModel(TimeSeriesModel):
             phase = phase / self._params['s']
         return super(StretchModel, self)._model_flux(phase, disp)
 
-    def _model_fluxerr(self, phase=None, disp=None):
-        """Return the model flux density error (without any scaling or
-        redshifting. Return `None` if the error is undefined.
-        """
-        if phase is not None and self._params['s'] is not None:
-            phase = phase / self._params['s']
-        return super(StretchModel, self)._model_fluxerr(phase, disp)
-
     def _set_fscale_from_mabs(self, mabs):
         """Need to override this so that the refphase is applied correctly.
         We want refphase to refer to the *unstretched* phase. Otherwise the
@@ -957,26 +931,30 @@ class SALT2Model(Model):
         flux *= self._model['ext'](disp) ** self._params['c']
         return flux
 
-    def _model_fluxerr(self, phase=None, disp=None):
-        """Return the model flux density error (without any scaling or
-        redshifting. Return `None` if the error is undefined.
-        """
-        if phase is None:
-            phase = self._phase
-        if disp is None:
-            disp = self._disp
-        v00 = self._model['V00'](phase, disp)
-        v11 = self._model['V11'](phase, disp)
-        v01 = self._model['V01'](phase, disp)
+    # No longer supporting spectral flux error, so we comment out the 
+    # following method. This might be added back at a later date if
+    # I gain a better understanding of how to use the SALT2 model errors.
+
+    #def _model_fluxerr(self, phase=None, disp=None):
+    #    """Return the model flux density error (without any scaling or
+    #    redshifting. Return `None` if the error is undefined.
+    #    """
+    #    if phase is None:
+    #        phase = self._phase
+    #    if disp is None:
+    #        disp = self._disp
+    #    v00 = self._model['V00'](phase, disp)
+    #    v11 = self._model['V11'](phase, disp)
+    #    v01 = self._model['V01'](phase, disp)
 
         #TODO apply x0 correctly
-        x1 = self._params['x1']
-        sigma = np.sqrt(v00 + x1**2 * v11 + 2 * x1 * v01)
-        sigma *= self._model['ext'](disp) ** self._params['c']
+    #    x1 = self._params['x1']
+    #    sigma = np.sqrt(v00 + x1**2 * v11 + 2 * x1 * v01)
+    #    sigma *= self._model['ext'](disp) ** self._params['c']
         ### sigma *= 1e-12   #- Magic constant from SALT2 code
         
-        if 'errscale' in self._model:
-            sigma *= self._model['errscale'](phase, disp)
+    #    if 'errscale' in self._model:
+    #        sigma *= self._model['errscale'](phase, disp)
         
         # Hack adjustment to error (from SALT2 code)
         #TODO: figure out a way to do this.
@@ -984,7 +962,7 @@ class SALT2Model(Model):
         #    idx = (disp < 3400.)
         #    sigma[idx] *= 1000.
         
-        return sigma
+    #   return sigma
 
 
     def _extinction(self, wavelengths, params=[-0.336646, 0.0484495]):
