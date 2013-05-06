@@ -18,7 +18,7 @@ from astropy.utils import OrderedDict
 from astropy.utils.misc import isiterable
 from astropy import cosmology
 
-from .utils import GridData1d, GridData2d, read_griddata, extinction_ccm
+from .utils import read_griddata, extinction_ccm
 from .spectral import Spectrum, Bandpass, MagSystem, get_bandpass, get_magsystem
 from . import registry
 
@@ -72,6 +72,8 @@ class Model(object):
         self._distmod = None  # Distance modulus
         self.name = name
         self.version = version
+
+        self._model_bandfluxrelerr = None
 
     def set(self, **params):
         """Set the parameters of the model using keyword values.
@@ -175,7 +177,23 @@ class Model(object):
     @abc.abstractmethod
     def _model_flux(self, phase, disp):
         """Return the model spectral flux density (without any scaling or
-        redshifting."""
+        redshifting.
+
+        Parameters
+        ----------
+        phase : `~numpy.ndarray`
+            1-d array of model phases in days. Must be within bounds of
+            the model, and monotonically increasing.
+        disp : `~numpy.ndarray`
+            1-d array of wavelength values in Angstroms. Must be within
+            bounds of the model and monotonically increasing.
+
+        Returns
+        -------
+        flux : `~numpy.ndarray`
+            2-d array of shape ``(len(phase), len(disp))`` giving model
+            flux spectral density.
+        """
         pass
 
     @property
@@ -295,21 +313,40 @@ class Model(object):
 
         z = max(0., self._params['z'])
 
-        # If not model frame, convert time and dispersion to model frame
-        if not modelframe:
-            if time is not None:
-                time = np.asarray(time)
-                time = (time - self._params['t0']) / (1. + z)
-            if disp is not None:
-                disp = np.asarray(disp)
+        if time is None:
+            phase = self._phase
+        else:
+            phase = np.asarray(time)
+            if not modelframe:
+                phase = (phase - self._params['t0']) / (1. + z)
+
+        if disp is None:
+            disp = self._disp
+        else:
+            disp = np.asarray(disp)
+            if not modelframe:
                 disp /= (1. + z)
+            if np.any(disp < self._disp[0]) or np.any(disp > self._disp[-1]):
+                raise ValueError('requested dispersion value(s) outside '
+                                 'model range')
 
         # Determine flux scaling factor
         factor = self._params['fscale']
         if not modelframe:
             factor /= 1. + z
 
-        return factor * self._model_flux(time, disp)
+        # Check dimensions of phase, disp for return value
+        # (1, 1) -> ndim=2
+        # (1, 0) -> ndim=2
+        # (0, 1) -> ndim=1
+        # (0, 0) -> float
+
+        flux = factor * self._model_flux(phase, disp)
+        if phase.ndim == 0:
+            if disp.ndim == 0:
+                return flux[0, 0]
+            return flux[0, :]
+        return flux
 
     def bandoverlap(self, band, z=None):
         """Return True if model dispersion range fully overlaps the band.
@@ -522,7 +559,7 @@ class Model(object):
             len(disp))``
         """
         self._model_bandfluxrelerr = \
-            GridData2d(phase, disp, relative_error)
+            Spline2d(phase, disp, relative_error, kx=1, ky=1)
 
     def _phase_of_max_flux(self, band):
         """Determine phase of maximum flux in the given band, by fitting
@@ -653,8 +690,7 @@ class TimeSeriesModel(Model):
         self._phase = phase
         self._disp = disp
         self._flux = Spline2d(phase, disp, flux, kx=2, ky=2)
-        self._model_bandfluxrelerr = Spline2d(np.array([phase[0], phase[-1]]),
-                                              np.array([disp[0], disp[-1]]),
+        self._model_bandfluxrelerr = Spline2d(phase[[0, -1]], disp[[0, -1]],
                                               np.zeros((2,2), dtype=np.float),
                                               kx=1, ky=1)
             
@@ -895,7 +931,8 @@ class SALT2Model(Model):
 
             # Get the model component from the file
             phase, wavelength, values = read_griddata(name_or_obj)
-            self._model[component] = GridData2d(phase, wavelength, values)
+            self._model[component] = Spline2d(phase, wavelength, values,
+                                              kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
@@ -906,13 +943,12 @@ class SALT2Model(Model):
         # add extinction component
         ext_ratio = self._extinction(self._disp)
         dust_trans_base = 10. ** (-0.4 * ext_ratio)
-        self._model['ext'] = GridData1d(self._disp, dust_trans_base)
+        self._model['ext'] = Spline1d(self._disp, dust_trans_base, k=2)
 
         # Set relative bandflux error
         self._model_bandfluxrelerr = \
-            GridData2d(np.array([self._phase[0], self._phase[-1]]),
-                       np.array([self._disp[0], self._disp[-1]]),
-                       np.zeros((2,2), dtype=np.float))
+            Spline2d(self._phase[[0, -1]], self._disp[[0, -1]], 
+                     np.zeros((2,2), dtype=np.float), kx=1, ky=1)
 
         # set refphase
         self._refphase = self._phase_of_max_flux(self._refband)
