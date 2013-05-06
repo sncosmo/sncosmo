@@ -43,7 +43,7 @@ def guess_parvals(data, model, parnames=['t0', 'fscale']):
         topnidx = np.argsort(weights)[-topn:]
         bandt0.append(np.average(time[topnidx], weights=weights[topnidx]))
         maxdataflux = np.average(flux[topnidx], weights=weights[topnidx])
-        maxmodelflux = max(model.bandflux(band, zp=25., zpmagsys='ab'))
+        maxmodelflux = max(model.bandflux(band, zp=25., zpsys='ab'))
         bandfluxscale.append(maxdataflux / maxmodelflux) 
 
     t0 = sum(bandt0) / len(bandt0)
@@ -162,12 +162,12 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
         if include_model_error:
             modelflux, modelfluxerr = model.bandflux(
                 data['band'], data['time'], zp=data['zp'],
-                zpmagsys=data['zpsys'], include_error=True)
+                zpsys=data['zpsys'], include_error=True)
             return np.sum((data['flux'] - modelflux) ** 2 /
                           (modelfluxerr ** 2 + data['fluxerr'] ** 2))
         else:
             modelflux = model.bandflux(data['band'], data['time'],
-                                       zp=data['zp'], zpmagsys=data['zpsys'])
+                                       zp=data['zp'], zpsys=data['zpsys'])
             return np.sum(((data['flux'] - modelflux) / data['fluxerr']) ** 2)
 
     parvals, fval, d = fmin_l_bfgs_b(chi2, parvals0, bounds=bounds_list,

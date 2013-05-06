@@ -85,7 +85,7 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
             plt.errorbar(time - t0, flux, fluxerr, ls='None',
                          color=color, marker='.', markersize=3.)
 
-            result = model.bandflux(band, zp=25., zpmagsys='ab',
+            result = model.bandflux(band, zp=25., zpsys='ab',
                                     include_error=include_model_error)
             if include_model_error:
                 modelflux, modelfluxerr = result
@@ -105,7 +105,7 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
                 divider = make_axes_locatable(ax)
                 axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
                                               sharex=ax)
-                modelflux = model.bandflux(band, time, zp=25., zpmagsys='ab') 
+                modelflux = model.bandflux(band, time, zp=25., zpsys='ab') 
                 pulls = (flux - modelflux) / fluxerr
                 plt.plot(time - t0, pulls, marker='.', markersize=5.,
                          color=color, ls='None')

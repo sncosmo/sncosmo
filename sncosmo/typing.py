@@ -42,7 +42,7 @@ def _ppf_single_call(pdf, q, a, b):
 # For now doesn't include model errors
 def _loglikelihood(model, data):
     modelflux = model.bandflux(data['band'], data['time'],
-                               zp=data['zp'], zpmagsys=data['zpsys'])
+                               zp=data['zp'], zpsys=data['zpsys'])
     chisq = np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
     return -chisq / 2.
 
@@ -334,6 +334,6 @@ class PhotoTyper(object):
                 model.set(**d)
                 modelflux = model.bandflux(
                     data['band'], data['time'],
-                    zp=data['zp'], zpmagsys=data['zpsys'])
+                    zp=data['zp'], zpsys=data['zpsys'])
                 chisq[name][i] = np.sum(((data['flux'] - modelflux) /
                                          data['fluxerr'])**2)

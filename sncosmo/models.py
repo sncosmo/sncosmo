@@ -383,11 +383,11 @@ class Model(object):
             return overlap[:, 0]
         return overlap
 
-    def bandflux(self, band, time=None, zp=None, zpmagsys=None,
+    def bandflux(self, band, time=None, zp=None, zpsys=None,
                  modelframe=False, include_error=False):
         """Flux through the given bandpass(es) at the given time(s).
 
-        Default return value is flux in photons / s / cm^2. If zp and zpmagsys
+        Default return value is flux in photons / s / cm^2. If zp and zpsys
         are given, flux(es) are scaled to the requested zeropoints.
 
         Parameters
@@ -400,7 +400,7 @@ class Model(object):
         zp : float or list_like, optional
             If given, zeropoint to scale flux to. If `None` (default) flux
             is not scaled.
-        zpmagsys : `~sncosmo.MagSystem` or str (or list_like), optional
+        zpsys : `~sncosmo.MagSystem` or str (or list_like), optional
             Determines the magnitude system of the requested zeropoint.
             Cannot be `None` if `zp` is not `None`.
         include_error : bool, optional
@@ -410,7 +410,7 @@ class Model(object):
         Returns
         -------
         bandflux : float or `~numpy.ndarray`
-            Flux in photons / s /cm^2, unless `zp` and `zpmagsys` are
+            Flux in photons / s /cm^2, unless `zp` and `zpsys` are
             given, in which case flux is scaled so that it corresponds
             to the requested zeropoint. Return value is `float` if all
             input parameters are scalars, `~numpy.ndarray` otherwise.
@@ -436,12 +436,12 @@ class Model(object):
         if zp is None:
             time, band = np.broadcast_arrays(time, band)
         else:
-            if zpmagsys is None:
-                raise ValueError('zpmagsys must be given if zp is not None')
-            time, band, zp, zpmagsys = \
-                np.broadcast_arrays(time, band, zp, zpmagsys)
+            if zpsys is None:
+                raise ValueError('zpsys must be given if zp is not None')
+            time, band, zp, zpsys = \
+                np.broadcast_arrays(time, band, zp, zpsys)
             zp = np.atleast_1d(zp)
-            zpmagsys = np.atleast_1d(zpmagsys)
+            zpsys = np.atleast_1d(zpsys)
 
         # convert to 1d arrays
         ndim = time.ndim # save input ndim for return val
@@ -476,9 +476,9 @@ class Model(object):
 
             if zp is not None:
                 zpnorm = 10. ** (0.4*zp[idx])
-                bandzpmagsys = zpmagsys[idx]
-                for ms in set(bandzpmagsys):
-                    idx2 = bandzpmagsys == ms
+                bandzpsys = zpsys[idx]
+                for ms in set(bandzpsys):
+                    idx2 = bandzpsys == ms
                     ms = get_magsystem(ms)
                     zpnorm[idx2] = zpnorm[idx2] / ms.zpbandflux(b)
                 fluxsum *= zpnorm
