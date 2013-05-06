@@ -50,10 +50,10 @@ if args.delete_label is not None:
 c = OrderedDict()
 
 # test data
-ndata = 100
-dates = np.ones(ndata, dtype=np.float)
-bands = np.array(ndata * ['desr'])
-niter = 50
+ndata = 100 # make divisible by 4!
+dates = np.linspace(-15., 40., ndata)
+bands = np.array((ndata/4) * ['desg', 'desr', 'desi', 'sdssg'])
+niter = 100
 
 # models
 salt2 = sncosmo.get_model('salt2')
