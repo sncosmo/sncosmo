@@ -73,8 +73,8 @@ class Bandpass(object):
     @lazyproperty
     def disp_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
-        weights = self._trans * np.gradient(self._disp) 
-        return np.sum(self._disp * weights) / np.sum(weights)
+        weights = self.trans * np.gradient(self.disp) 
+        return np.sum(self.disp * weights) / np.sum(weights)
 
     def to_unit(self, unit):
         """Return dispersion and transmission in new dispersion units.
@@ -105,8 +105,8 @@ class Bandpass(object):
 
     def __repr__(self):
         name = ''
-        if self._name is not None:
-            name = ' {0!r:s}'.format(self._name)
+        if self.name is not None:
+            name = ' {0!r:s}'.format(self.name)
         return "<Bandpass{0:s} at 0x{1:x}>".format(name, id(self))
 
 

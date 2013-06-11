@@ -13,7 +13,7 @@ from astropy.utils.data import (download_file, get_pkg_data_filename,
 
 from .. import registry
 from .. import Model, TimeSeriesModel, SALT2Model
-from .. import utils
+from .. import io
 
 # ------------------------------------------------------------------------
 # Bandflux relative errors
@@ -46,7 +46,7 @@ def set_bandfluxerror_sncc(model):
 
 def load_timeseries_ascii_sn1a(remote_url, name=None, version=None):
     with get_readable_fileobj(remote_url, cache=True) as f:
-        phases, wavelengths, flux = utils.read_griddata(f)
+        phases, wavelengths, flux = io.read_griddata(f)
     model = TimeSeriesModel(phases, wavelengths, flux,
                             name=name, version=version)
     set_bandfluxerror_sn1a(model)
@@ -54,7 +54,7 @@ def load_timeseries_ascii_sn1a(remote_url, name=None, version=None):
 
 def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
     with get_readable_fileobj(remote_url, cache=True) as f:
-        phases, wavelengths, flux = utils.read_griddata(f)
+        phases, wavelengths, flux = io.read_griddata(f)
     model = TimeSeriesModel(phases, wavelengths, flux,
                             name=name, version=version)
     set_bandfluxerror_sncc(model)

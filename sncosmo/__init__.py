@@ -2,8 +2,10 @@
 from .spectral import *
 from .models import *
 from .plot import *
+from .io import *
+from . import typing
 from . import registry
-from . import utils
+from . import extinction
 from . import _builtin
 
 try:

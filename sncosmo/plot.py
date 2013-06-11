@@ -3,10 +3,10 @@
 
 import numpy as np
 
-from spectral import get_bandpass, get_magsystem
-from fitting import normalized_flux
+from .spectral import get_bandpass, get_magsystem
+from .fitting import normalized_flux
 
-__all__ = ['plotlc']
+__all__ = ['plotlc', 'plotpdfs']
 
 def normalized_flux(data, zp=25., magsys='ab'):
     """Return flux values normalized to a common zeropoint and magnitude
@@ -128,4 +128,39 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
         plt.show()
     else:
         plt.savefig(fname)
+    plt.clf()
+
+def plotpdfs(parnames, samples, weights, averages, errors, fname):
+    """
+    Plot PDFs of parameter values.
+    
+    Parameters
+    ----------
+    parnames : list of str
+        Parameter names.
+    samples : `~numpy.ndarray` (nsamples, nparams)
+        Parameter values.
+    weights : `~numpy.ndarray` (nsamples)
+        Weight of each sample.
+    fname : str
+        Output filename.
+    """
+    import matplotlib.pyplot as plt
+
+    npar = len(parnames)
+
+
+    for i in range(max(4, npar)):
+
+        plot_range = (averages[i] - 5*errors[i], averages[i] + 5*errors[i])
+        plot_text = '{} = {:f} +/- {:f}'.format(parnames[i], averages[i],
+                                                errors[i])
+
+        ax = plt.subplot(2,2,i)
+        plt.hist(samples[:, i], weights=weights, range=plot_range,
+                 bins=30)
+        plt.text(0.9, 0.9, plot_text, color='k', ha='right', va='top',
+                 transform=ax.transAxes)
+
+    plt.savefig(fname)
     plt.clf()

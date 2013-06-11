@@ -2,12 +2,12 @@
 """Tests for extinction curve."""
 
 import numpy as np
-from sncosmo.utils import extinction_ccm
+from sncosmo.extinction import extinction_ccm
 
 def test_extinction_ccm_shapes():
 
     # Test single value
-    extinction_ccm(1.e4)
+    extinction_ccm(1.e4, a_v=1.)
 
     # multiple values
     assert extinction_ccm([1.e4], a_v=1.).shape == (1,)

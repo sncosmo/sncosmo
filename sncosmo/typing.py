@@ -1,19 +1,21 @@
 from sys import stdout
-import numpy as np
+import time
 import math
+import copy
+import operator
+
+import numpy as np
+from scipy import integrate, optimize
+from astropy.utils import OrderedDict
 
 from .models import get_model
+from .spectral import get_magsystem
+from . import nest
 
-__all__ = ['nested_sampling']
-
-# Code from scipy for getting inverse cdf (ppf) for when priors are used.
-# 
-# from scipy/stats/distributions.py
-"""
 def _cdf(pdf, x, a):
     return integrate.quad(pdf, a, x)[0]
 
-def _ppf_to_solve(pdf, x, q, a)
+def _ppf_to_solve(x, pdf, q, a):
     return _cdf(pdf, x, a) - q
 
 def _ppf_single_call(pdf, q, a, b):
@@ -22,189 +24,128 @@ def _ppf_single_call(pdf, q, a, b):
     if b < np.inf: right = b
 
     factor = 10.
+
+    # if lower limit is -infinity, adjust to
+    # ensure that cdf(left) < q
     if  left is None:
         left = -1. * factor
-        while self._cdf(pdf, left, a) > q:
+        while _cdf(pdf, left, a) > q:
             right = left
             left *= factor
-        # left is now such that cdf(left) < q
-    if  right is None: # i.e. self.b = inf
+
+    # if upper limit is infinity, adjust to
+    # ensure that cdf(right) > q
+    if  right is None:
         right = factor
-        while self._cdf(pdf, right, a) < q:
+        while _cdf(pdf, right, a) < q:
             left = right
             right *= factor
-        # right is now such that cdf(right) > q
 
-    return optimize.brentq(_ppf_to_solve, \
-                           left, right, args=(q,)+args, xtol=self.xtol)
-"""
+    return optimize.brentq(_ppf_to_solve, left, right, args=(pdf, q, a))
 
-# For now doesn't include model errors
-def _loglikelihood(model, data):
-    modelflux = model.bandflux(data['band'], data['time'],
-                               zp=data['zp'], zpsys=data['zpsys'])
-    chisq = np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
-    return -chisq / 2.
+class Interp1d(object):
+    def __init__(self, xmin, xmax, y):
+        self._xmin = xmin
+        self._xmax = xmax
+        self._n = len(y)
+        self._xstep = (xmax - xmin) / (self._n - 1)
+        self._y = y
 
-def nested_sampling(model, data, parlims, tied=None, maxiter=1000):
-    """Evaluate the model evidence and parameter given the data by nested
-    sampling. Currently uses a uniform prior between the parameter limits.
+    def __call__(self, x):
+        """works only in range [xmin, xmax)"""
+        nsteps = (x - self._xmin) / self._xstep
+        i = int(nsteps)
+        w = nsteps - i
+        return (1.-w) * self._y[i] + w * self._y[i+1]
 
-    Parameters
-    ----------
-    model : 
-    data :
-    parlims : dict
-        Keys are parameters to vary, values are limits: ``(low, high)``.
-    tied : dict
-        Keys are tied parameter names, values are functions accepting
-        a dictionary of parameter values and returning value of the tied
-        parameter.
-    
-    Returns
-    -------
-    niter : int
-        Number of iterations
-    params : dict
-        Parameter values and standard deviations
-    logz : tuple
-        Natural log of evidence ``Z`` and its uncertainty
-    h : tuple
-        Information ``H`` and its uncertainty.
+def pdf_to_ppf(pdf, a, b):
+    """Given a function representing a pdf, return a callable representing the
+    inverse cdf (or ppf) of the pdf."""
 
-    Notes
-    -----
-    This is an implementation of John Skilling's Nested Sampling algorithm.
-    More information: http://www.inference.phy.cam.ac.uk/bayesys/
-    """
+    n = 101
+    x = np.linspace(0., 1., n)
+    y = np.empty(n, dtype=np.float)
+    y[0] = a
+    y[-1] = b
+    for i in range(1, n-1):
+        y[i] = _ppf_single_call(pdf, x[i], a, b)
 
-    parnames = parlims.keys()
-    parlims = np.array(parlims.values())
+    return Interp1d(0., 1., y)
+
+
+def evidence(model, data, parnames,
+             parlims=None, priors=None, ppfs=None, tied=None,
+             nobj=50, maxiter=10000,
+             return_samples=False, verbose=False, verbose_name=''):
+
+    # Construct a list of ppfs to be used in the prior() function...
     npar = len(parnames)
+    ppflist = npar * [None]
 
-    # values for now
-    nexplore = 20
-    nobj = 100
+    # ... if a ppf is directly supplied for a parameter, it takes precedence...
+    if ppfs is not None:
+        for i, parname in enumerate(parnames):
+            if parname in ppfs:
+                ppflist[i] = ppfs[parname]
 
-    # select objects from the prior
-    dt = [('u',np.float,(npar,)), ('v',np.float,(npar,)), ('logl',np.float)]
-    objects = np.empty(nobj, dtype=dt)
-    objects['u'] = np.random.random((nobj, npar))
-    objects['v'] = parlims[:, 0] + objects['u'] * (parlims[:, 1]-parlims[:, 0])
-    for i in range(nobj):
-        d = dict(zip(parnames, objects['v'][i]))
+    # ...and for the parameters without ppfs, construct one from limits/prior.
+    for i, parname in enumerate(parnames):
+        if ppflist[i] is not None:
+            continue
+        if parname not in parlims:
+            raise ValueError("Must supply ppf or limits for parameter '{}'"
+                             .format(parname))
+        a, b = parlims[parname]
+        if (priors is not None and parname in priors):
+            ppflist[i] = pdf_to_ppf(priors[parname], a, b)
+        else:
+            ppflist[i] = Interp1d(0., 1., np.array([a, b]))
+
+    def prior(u):
+        v = np.empty(npar, dtype=np.float)
+        for i in range(npar):
+            v[i] = ppflist[i](u[i])
+        return v
+
+    #def prior(u):
+    #    return parlims[:, 0] + u * (parlims[:, 1] - parlims[:, 0])
+
+    band = data['band']
+    time = data['time']
+    zp = data['zp']
+    zpsys = data['zpsys']
+    flux = data['flux']
+    fluxerr = data['fluxerr']
+
+    def loglikelihood(parvals):
+        d = dict(zip(parnames, parvals))
         if tied is not None:
             for parname, func in tied.iteritems():
                 d[parname] = func(d)
+
         model.set(**d)
-        objects['logl'][i] = _loglikelihood(model, data)
+        modelflux = model.bandflux(band, time, zp, zpsys)
+        chisq = np.sum(((flux - modelflux) / fluxerr)**2)
+        return -chisq / 2.
 
-    # Initialize values for nested sampling loop.
-    samples = []  # Objects stored for posterior results.
-    loglstar = None  # ln(Likelihood constraint)
-    h = 0.  # Information, initially 0.
-    logz = -1.e300  # ln(Evidence Z, initially 0)
-    # ln(width in prior mass), outermost width is 1 - e^(-1/n)
-    logwidth = math.log(1. - math.exp(-1./nobj))
+    res = nest.nest(loglikelihood, prior, npar, nobj=nobj, maxiter=maxiter,
+                    return_samples=return_samples, verbose=verbose,
+                    verbose_name=verbose_name)
+    res['parnames'] = parnames
+    return res
 
-    # Nested sampling loop.
-    print "model = {} [{:7d}/{:7d}]".format(model.name, 0, maxiter),
-    for nest in range(maxiter):
-        print 16 * '\b' + '{:7d}'.format(nest),
-        stdout.flush()
-
-
-        # worst object in collection and its weight (= width * likelihood)
-        worst = np.argmin(objects['logl'])
-        logwt = logwidth + objects['logl'][worst]
-
-        # update evidence Z and information h.
-        logz_new = np.logaddexp(logz, logwt)
-        h = (math.exp(logwt - logz_new) * objects['logl'][worst] +
-             math.exp(logz - logz_new) * (h + logz) -
-             logz_new)
-        logz = logz_new
-
-        # Add worst object to samples.
-        samples.append({'v': np.array(objects['v'][worst]), 'logwt': logwt})
-
-        # The new likelihood constraint is that of the worst object.
-        loglstar = objects['logl'][worst]
-
-        # Replace the worst object with a copy of a different object.
-        tocopy = np.random.randint(nobj)
-        while tocopy == worst:
-            tocopy = np.random.randint(nobj)
-        objects[worst] = objects[tocopy]
-
-        # Explore space around copied object
-        step = 0.1  # Initial guess suitable step-size in (0,1)
-        accept = 0  # MCMC acceptances
-        reject = 0  # MCMC rejections
-        for m in range(nexplore):  # pre-judged number of steps
-            u = objects['u'][worst] + step * (2.*np.random.random(npar)-1.)
-            u -= np.floor(u)
-
-            # Parameter values and likelihood.
-            v = parlims[:, 0] + u * (parlims[:, 1] - parlims[:, 0])
-            d = dict(zip(parnames, v))
-            if tied is not None:
-                for parname, func in tied.iteritems():
-                    d[parname] = func(d)
-            model.set(**d)
-            logl = _loglikelihood(model, data)
-
-            # Accept if and only if within likelihood constraint.
-            if logl > loglstar:
-                objects['u'][worst] = u
-                objects['v'][worst] = v
-                objects['logl'][worst] = logl
-                accept += 1
-            else:
-                reject += 1
-
-            # Refine step-size to let acceptance ratio converge around 50%
-            if accept > reject:
-                step *= math.exp(1./accept)
-            elif accept < reject:
-                step /= math.exp(1./reject)
-
-        # Shrink interval
-        logwidth -= 1./nobj
-
-        # stopping condition goes here.
-
-    # process samples and return
-    niter = len(samples)
-    samples_parvals = np.array([s['v'] for s in samples])  # (nsamp, npar)
-    samples_logwt = np.array([s['logwt'] for s in samples])
-    w = np.exp(samples_logwt - logz)  # Proportional weights.
-    parvals = np.average(samples_parvals, axis=0, weights=w)
-    parstds = np.sqrt(np.sum(w[:, np.newaxis] * samples_parvals**2, axis=0) -
-                      parvals**2)
-    params = dict(zip(parnames, zip(parvals, parstds)))
-    logz_std = math.sqrt(h/nobj)
-    h_std = h / math.log(2.)
-    return niter, params, (logz, logz_std), (h, h_std)
-    #return {'niter': niter,
-    #        'parnames': parnames,
-    #        'parvals': parvals,
-    #        'parstds': parstds,
-    #        'logz': logz,
-    #        'logz_std': logz_std,
-    #        'h': h,
-    #        'h_std': h / math.log(2.)}
 
 class PhotoTyper(object):
     """A set of models, each with a grid of parameters.
     """
 
-    def __init__(self):
+    def __init__(self, verbose=False):
         self._models = OrderedDict()
         self.types = []
+        self._verbose = verbose
 
-    def add_model(self, model, model_type, parlims, model_prior=None,
-                  tied=None, name=None):
+    def add_model(self, model, model_type, parlims, priors=None,
+                  model_prior=None, tied=None, name=None):
         """Add a model or models.
 
         Parameters
@@ -215,7 +156,7 @@ class PhotoTyper(object):
             A string identifier for the type of the model (e.g., 'SN Ia',
             'SN IIP', etc). Models of the same type are included together
             in determining probabilities.
-        parvals : dict
+        parlims : dict
             Dictionary.
         tied : dict
             Dictionary of functions, default is `None`.
@@ -231,21 +172,26 @@ class PhotoTyper(object):
         if name in self._models:
             raise ValueError('model of this name already included.')
 
+        # get ppf for each parameter
+        ppfs = {}
+        for parname, parlim in parlims.iteritems():
+            a, b = parlims[parname]
+            if (priors is not None and parname in priors):
+                ppfs[parname] = pdf_to_ppf(priors[parname], a, b)
+            else:
+                ppfs[parname] = Interp1d(0., 1., np.array([a, b]))
+
         # Add model info to internal data.
         self._models[name] = {
             'model': model,
             'type': model_type,
+            'parlims': parlims,
+            'ppfs': ppfs,
             'tied': tied,
-            'model_prior': model_prior,
-            'parnames': parlims.keys(),
-            'parlims': parlims.values()
+            'model_prior': model_prior
             }
 
-        # Precompute grid spacing for each parameter.
-        #self._models[name]['dparvals'] = \
-        #    [np.gradient(v) for v in self._models[name]['parvals']]
-
-        # Add model to list of types.
+        # Add model type to list of types.
         if model_type not in self.types:
             self.types.append(model_type)
 
@@ -255,40 +201,45 @@ class PhotoTyper(object):
             lines.append('Type: {}'.format(model_type))
             for name, d in self._models.iteritems():
                 if d['type'] != model_type: continue
-                ngridpoints = len(d['pargrid'])
-                lines.append('  Model: {} [{} grid points]'
-                             .format(name, ngridpoints))
-                for parname, parvals in zip(d['parnames'], d['parvals']):
-                    lines.append('    {}: [{} .. {}] {} values'.format(
-                            parname, parvals[0], parvals[-1], len(parvals)))
-
+                lines.append('  Model: {}'.format(name))
+                for parname, parvals in d['parlims']:
+                    lines.append('    {}: [{} .. {}]'
+                                 .format(parname, parvals[0], parvals[1]))
         return '\n'.join(lines)
 
-    def classify(self, data, verbose=False):
+    def classify(self, data, return_samples=False):
         """Determine probability of each model type for the given data.
 
         Parameters
         ----------
         data : 
+        return_samples :
         
         Returns
         -------
-        probability : `dict`
-            Dictionary giving the posterior probability for each model type.
+        type_p : dict
+            Probability for each model type.
+        model_p : dict
+            Probability for each model.
+        model_perr : dict of tuples: (uperr, downerr)
+            Approximate computational probability error for each model.
+        bestmodel : str
+            Name of model with highest probability.
+        bestmodel_params : dict
+            Model parameters and uncertainties for highest-probability model,
+            with keys: 'parnames', 'parvals', 'parerrs' (each is a list).
         """
 
         # limit data to bands that overlap *all* models over the full z range.
         valid = np.ones(len(data['band']), dtype=np.bool)
         for m in self._models.values():
             model = m['model']
-            if 'z' not in m['parnames']:
-                valid = valid & model.bandoverlap(data['band'])
+            if 'z' not in m['parlims']:
+                v = model.bandoverlap(data['band'])
             else:
-                i = m['parnames'].index('z')
-                zbounds = [m['parvals'][i][0], m['parvals'][i][-1]]
-                valid = (valid &
-                         np.all(model.bandoverlap(data['band'],z=zbounds),
-                                axis=1))
+                v = np.all(model.bandoverlap(data['band'],z=m['parlims']['z']),
+                           axis=1)
+            valid = valid & v
         if not np.all(valid):
             print "WARNING: dropping following bands from data:"
             print np.unique(data['band'][np.invert(valid)])
@@ -299,41 +250,57 @@ class PhotoTyper(object):
                     'zp': data['zp'][valid],
                     'zpsys': data['zpsys'][valid]}
 
-        chisq = {}
+        # get range of t0 to consider
+        parlims = {'t0': (np.min(data['time']), np.max(data['time']))}
 
+        logz = {}  # Log evidence for each model
+        logzerr = {}
+        model_params = {}
         for name, m in self._models.iteritems():
-            model = m['model']
-            tied = m['tied']
+            parnames = m['ppfs'].keys() + ['t0']
+            res = evidence(m['model'], data, parnames,
+                           parlims=parlims, ppfs=m['ppfs'], tied=m['tied'],
+                           verbose=self._verbose, verbose_name=name,
+                           return_samples=return_samples)
 
-            modelparams = model.params
-            modelparnames = modelparams.keys() # parameter names in model
-            d = {}
-            # TODO: add t0 to param grid
+            # accumulate info
+            logz[name] = res['logz']
+            logzerr[name] = res['logzerr']
+            model_params[name] = {'parnames': res['parnames'],
+                                  'parvals': res['parvals'],
+                                  'parerrs': res['parerrs']}
+            if return_samples:
+                model_params[name]['samples_parvals'] = res['samples_parvals']
+                model_params[name]['samples_wt'] = res['samples_wt']
 
-            chisq[name] = np.empty(len(m['pargrid']), dtype=np.float)
+        # get denominator (sum of Z)
+        logzvals = logz.values()
+        logzsum = logzvals[0]
+        for i in range(1, len(logzvals)):
+            logzsum = np.logaddexp(logzsum, logzvals[i])
+        
+        # get probability of each model: p = Z_i / sum(Z)
+        model_p = {}
+        for name, val in logz.iteritems():
+            model_p[name] = np.exp(logz[name] - logzsum)
+        
+        # get error for each model:
+        # up   = exp(logz + logzerr) = exp(logz)exp(logzerr) = z*exp(logzerr)
+        # down = exp(logz - logzerr) = exp(logz)/exp(logzerr) = z/exp(logzerr)
+        model_perr = {}
+        for name, val in model_p.iteritems():
+            up = (model_p[name] * math.exp(logzerr[name]) /
+                  (1. + model_p[name] * (math.exp(logzerr[name]) - 1.)))
+            down = (model_p[name] / math.exp(logzerr[name]) /
+                    (1.-model_p[name] + model_p[name]/math.exp(logzerr[name])))
+            model_perr[name] = (up - model_p[name], model_p[name] - down)
 
-            # Loop over parameters
-            if verbose:
-                print "model = {} [{:7d}/{:7d}]".format(
-                    name, 0, len(m['pargrid'])),
-            for i in range(len(m['pargrid'])):
-                print 16 * '\b' + '{:7d}'.format(i),
-                stdout.flush()
+        # get probability for each type
+        type_p = {name:0. for name in self.types}
+        for name, m in self._models.iteritems():
+            type_p[m['type']] += model_p[name]
 
-                params = dict(zip(m['parnames'], m['pargrid'][i, :]))
+        # find highest probability model
+        bestmodel = max(model_p.iteritems(), key=operator.itemgetter(1))[0]
 
-                # set the parameters that are in the model
-                for parname, parvals in params.iteritems():
-                    if parname in modelparnames:
-                        d[parname] = parvals
-
-                # Set dependent parameters
-                for parname, func in tied.iteritems():
-                    d[parname] = func(params)
-                
-                model.set(**d)
-                modelflux = model.bandflux(
-                    data['band'], data['time'],
-                    zp=data['zp'], zpsys=data['zpsys'])
-                chisq[name][i] = np.sum(((data['flux'] - modelflux) /
-                                         data['fluxerr'])**2)
+        return type_p, model_p, model_perr, bestmodel, model_params[bestmodel]

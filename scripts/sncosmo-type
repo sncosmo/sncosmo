@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+
+import sncosmo
+from sncosmo import typing
+
+def main():
+    from astropy.utils.compat import argparse
+
+    parser = argparse.ArgumentParser(description="Type a light curve.")
+    parser.add_argument('filename', help='Path to data file')
+    parser.add_argument('--plot-lc',
+                        help='Plot lightcurve and save to this file.')
+    parser.add_argument('--plot-pdf',
+                        help='Plot parameter PDF and save to this file.')
+    args = parser.parse_args()
+
+    data = sncosmo.readlc(args.filename)
+    typer = typing.PhotoTyper(verbose=True)
+    typer.add_model('hsiao', 'SN Ia', {'z': (0.01, 1.), 'c':(-0.3, 0.4),
+                                       'mabs':(-18.0, -20.2)})
+    typer.add_model('nugent-sn2p', 'SN IIp', {'z': (0.01, 1.), 'c':(0., 0.8),
+                                              'mabs':(-17., -19.5)})
+    type_p, model_p, model_perr, bestmodel, mparams = typer.classify(data, return_samples=(args.plot_pdf is not None))
+
+    print "\nProbabilities by model type:"
+    for name, p in type_p.iteritems():
+        print "    {} p={:5.3f}".format(name, p)
+
+    print "Probabilities by model:"
+    for name in model_p.keys():
+        print ("    {} p={:5.3f} +/- ({:5.3f}, {:5.3f})"
+               .format(name, model_p[name],
+                       model_perr[name][0], model_perr[name][1]))
+
+    print "Parameters of best model: {}".format(bestmodel)
+    for parname, parval, parerr in zip(mparams['parnames'], mparams['parvals'],
+                                       mparams['parerrs']):
+        print "    {}: {:6f} +/- {:6f}".format(parname, parval, parerr)
+
+    if args.plot_lc is not None:
+        model = sncosmo.get_model(bestmodel)
+        model.set(**dict(zip(mparams['parnames'], mparams['parvals'])))
+        sncosmo.plotlc(data, fname=args.plot_lc, model=model)
+        print "Wrote lc plot to:", args.plot_lc
+        
+    if args.plot_pdf is not None:
+        sncosmo.plotpdfs(mparams['parnames'], mparams['samples_parvals'],
+                         mparams['samples_wt'], mparams['parvals'],
+                         mparams['parerrs'], args.plot_pdf)
+        print "Wrote pdf plot to:", args.plot_pdf
+
+if __name__ == '__main__':
+    main()
