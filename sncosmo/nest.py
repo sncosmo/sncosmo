@@ -1,6 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-
-"""Simple implementation of nested sampling routine."""
+"""Simple implementation of nested sampling routine to evaluate Bayesian evidence."""
 
 import math
 import time
@@ -21,6 +20,11 @@ def ellipsoid(X, expand=1.):
     Parameters
     ----------
     X : (nobj, ndim) ndarray
+        Coordinates of points.
+    expand : float, optional.
+        Expand the ellipsoid by this linear factor. Default is 1, which
+        corresponds to an ellipsoid that just barely encloses all the points.
+        Note that volume is increased by a factor of ``(expand)**ndim``
 
     Returns
     -------
@@ -53,7 +57,20 @@ def ellipsoid(X, expand=1.):
     return np.sqrt(k) * expand * vs, X_avg
 
 def sample_ellipsoid(vs, mean, nsamples=1):
-    """Chose sample(s) randomly distributed within an ellipsoid."""
+    """Chose sample(s) randomly distributed within an ellipsoid.
+    
+    Parameters
+    ----------
+    vs : (ndim, ndim) ndarray
+        Scaled eigenvectors (in columns): vs[:,i] is the i-th eigenvector.
+    mean : (ndim,) ndarray
+        Simple average of all samples.
+
+    Returns
+    -------
+    x : (nsamples, ndim) array, or (ndim,) array when nsamples == 1
+        Coordinates within the ellipsoid.
+    """
 
     ndim = len(mean)
     if nsamples == 1:
@@ -64,57 +81,79 @@ def sample_ellipsoid(vs, mean, nsamples=1):
         x[i, :] = np.dot(vs, randsphere(ndim)) + mean
     return x
 
-def nest(loglikelihood, prior, npar, nobj=100, maxiter=10000,
+def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
          return_samples=False, verbose=False, verbose_name=''):
-    """Simple nested sampling algorithm using a single ellipsoid.
+    """Simple nested sampling algorithm to evaluate Bayesian evidence.
 
     Parameters
     ----------
     loglikelihood : func
-        Function returning log(likelihood) given parameters as a numpy array
+        Function returning log(likelihood) given parameters as a 1-d numpy
+        array of length `npar`. 
     prior : func
-        Function taking parameters in a unit cube (numpy array).
+        Function translating a unit cube to the parameter space according to 
+        the prior. The input is a 1-d numpy array with length `npar`, where
+        each value is in the range [0, 1). The return value should also be a
+        1-d numpy array with length `npar`, where each value is a parameter.
+        The return value is passed to the loglikelihood function. For example,
+        for a 2 parameter model with flat priors in the range [0, 2), the
+        function would be
+
+            def prior(u):
+                return 2. * u
+
     npar : int
         Number of parameters.
-    nobj : int
+    nobj : int, optional
         Number of random samples. Larger numbers result in a more finely
         sampled posterior (more accurate evidence), but also a larger
-        number of iterations required to converge. Default is 100.
+        number of iterations required to converge. Default is 50.
     maxiter : int, optional
         Maximum number of iterations. Iteration may stop earlier if
         termination condition is reached. Default is 10000. The total number
         of likelihood evaluations will be ``nexplore * niter``. 
-    nobj : int
-        Number of random samples. Larger numbers result in a more finely
-        sampled posterior (more accurate evidence), but also a larger
-        number of iterations required to converge. Default is 100.
-    nexplore : int, optional
-        Number of iterations in each exploration step. Default is 20.
     return_samples : bool, optional
-
+        If True, add keys 'samples_parvals' and 'samples_wt' to return
+        dictionary.
     verbose : bool, optional
-        Print a single line of running total iterations
+        Print a single line of running total iterations.
+    verbose_name : str, optional
+        Print this string at start of the iteration line printed when
+        verbose=True.
 
     Returns
     -------
     results : dict
-        Containing keys `'niter'` (int, number of iterations),
-        `'parnames'`, `'parvals'`, `'parstds'`,
-        `'logz'`, `'logzstd'`, `'h'`, and optionally: `'samples'`,
-        `'sampleswt'`
-    niter : int
-        Number of iterations
-    params : dict
-        Parameter values and standard deviations
-    logz : tuple
-        Natural log of evidence ``Z`` and its uncertainty
-    h : tuple
-        Information ``H`` and its uncertainty.
+        Containing following keys:
+
+        * `niter` (int) number of iterations.
+        * `nsamples` (int) number of samples.
+        * `parvals` (array, shape=(npar,)) weighted average of parameters.
+        * `parerrs` (array, shape=(npar,)) error on `parvals` from standard
+          deviation of samples' parameter values.
+        * `logz` (float) log of evidence.
+        * `logzerr` (float) error on `logz`.
+        * `h` (float) information.
+        
+        Optionally contains:
+        
+        * `samples_parvals` (array, shape=(nsamples, npar)) parameter values
+          of each sample.
+        * `samples_wt` (array, shape=(nsamples,) Weight of each sample.
 
     Notes
     -----
-    This is an implementation of John Skilling's Nested Sampling algorithm.
-    More information: http://www.inference.phy.cam.ac.uk/bayesys/
+    This is an implementation of John Skilling's Nested Sampling algorithm,
+    following the ellipsoidal sampling algorithm in Shaw et al (2007). Only a
+    single ellipsoid is used.
+    
+    Sample Weights are ``likelihood * prior_vol`` where
+    prior_vol is the fraction of the prior volume the sample represents.
+
+    References
+    ----------
+    http://www.inference.phy.cam.ac.uk/bayesys/
+    Shaw, Bridges, Hobson 2007, MNRAS, 378, 1365
     """
 
     # Initialize objects and calculate likelihoods
@@ -202,7 +241,7 @@ def nest(loglikelihood, prior, npar, nobj=100, maxiter=10000,
 
     if verbose:
         time1 = time.time()
-        print 'calls={:d} time={:6.2f}s'.format(loglcalls, time1 - time0)
+        print 'calls={:d} time={:7.3f}s'.format(loglcalls, time1 - time0)
 
     # Add remaining objects.
     # After N samples have been taken out, the remaining width is e^(-N/nobj)
