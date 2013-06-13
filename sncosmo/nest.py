@@ -32,6 +32,26 @@ def ellipsoid(X, expand=1.):
         Scaled eigenvectors (in columns): vs[:,i] is the i-th eigenvector.
     mean : (ndim,) ndarray
         Simple average of all samples.
+
+    Notes
+    -----
+    For the 2-d case, to verify that the generated ellipse encloses all
+    the points, the ellipse can be plotted using matplotlib on an existing
+    Axes  ``ax`` as follows:
+
+        from matplotlib.patches import Ellipse
+
+        width = np.sqrt(np.sum(vs[:,1]**2)) * 2.
+        height = np.sqrt(np.sum(vs[:,0]**2)) * 2.
+        angle = math.atan(vs[1,1] / vs[0,1]) * 180./math.pi
+        e = Ellipse(mean, width, height, angle)
+        e.set_facecolor('None')
+        ax.add_artist(e)
+
+    To draw the vectors ``vs``:
+    
+        for i in [0,1]:
+            plt.arrow(mean[0], mean[1], vs[0, i], vs[1, i])
     """
 
     X_avg = np.mean(X, axis=0)
