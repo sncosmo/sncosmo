@@ -75,7 +75,7 @@ def pdf_to_ppf(pdf, a, b):
 
 def evidence(model, data, parnames,
              parlims=None, priors=None, ppfs=None, tied=None,
-             nobj=50, maxiter=10000,
+             include_error=False, nobj=50, maxiter=10000,
              return_samples=False, verbose=False, verbose_name=''):
 
     # Construct a list of ppfs to be used in the prior() function...
@@ -124,8 +124,15 @@ def evidence(model, data, parnames,
                 d[parname] = func(d)
 
         model.set(**d)
-        modelflux = model.bandflux(band, time, zp, zpsys)
-        chisq = np.sum(((flux - modelflux) / fluxerr)**2)
+        if not include_error:
+            modelflux = model.bandflux(band, time, zp, zpsys)
+            chisq = np.sum(((flux - modelflux) / fluxerr)**2)
+        else:
+            modelflux, modelfluxerr =  model.bandflux(band, time, zp, zpsys,
+                                                      include_error=True)
+            chisq = np.sum(((flux - modelflux)**2 /
+                            (fluxerr**2 + modelfluxerr**2)))
+
         return -chisq / 2.
 
     res = nest.nest(loglikelihood, prior, npar, nobj=nobj, maxiter=maxiter,
@@ -145,7 +152,8 @@ class PhotoTyper(object):
         self._verbose = verbose
 
     def add_model(self, model, model_type, parlims, priors=None,
-                  model_prior=None, tied=None, name=None):
+                  model_prior=None, tied=None, include_error=False,
+                  name=None):
         """Add a model or models.
 
         Parameters
@@ -188,7 +196,8 @@ class PhotoTyper(object):
             'parlims': parlims,
             'ppfs': ppfs,
             'tied': tied,
-            'model_prior': model_prior
+            'model_prior': model_prior,
+            'include_error': include_error
             }
 
         # Add model type to list of types.
@@ -260,6 +269,7 @@ class PhotoTyper(object):
             parnames = m['ppfs'].keys() + ['t0']
             res = evidence(m['model'], data, parnames,
                            parlims=parlims, ppfs=m['ppfs'], tied=m['tied'],
+                           include_error=m['include_error'],
                            verbose=self._verbose, verbose_name=name,
                            return_samples=return_samples)
 
