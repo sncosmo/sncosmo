@@ -258,6 +258,7 @@ class Model(object):
         modelframe : bool, optional
             If True, return rest-frame phases. Default is False.
         """
+        
 
         if modelframe:
             return self._phase
@@ -309,9 +310,7 @@ class Model(object):
         if time is None:
             phase = self._phase
         else:
-            phase = np.asarray(time)
-            if not modelframe:
-                phase = (phase - self._params['t0']) / (1. + z)
+            phase = self._time_to_phase(np.asarray(time), modelframe)
 
         if disp is None:
             disp = self._disp
@@ -333,7 +332,6 @@ class Model(object):
         # (1, 0) -> ndim=2
         # (0, 1) -> ndim=1
         # (0, 0) -> float
-
         flux = factor * self._model_flux(phase, disp)
         if phase.ndim == 0:
             if disp.ndim == 0:
@@ -413,12 +411,11 @@ class Model(object):
         z = max(0., self._params['z'])
         if modelframe: z = 0.
 
-        # Convert time to model frame (phase)
-        if not modelframe and time is not None:
-            time = np.asarray(time)
-            time = (time - self._params['t0']) / (1. + z)
+        # Convert times to model phases
         if time is None:
-            time = self._phase
+            phase = self._phase
+        else:
+            phase = self._time_to_phase(np.asarray(time), modelframe)
 
         # Determine flux scaling factor
         factor = self._params['fscale']
@@ -427,31 +424,31 @@ class Model(object):
 
         # broadcast arrays
         if zp is None:
-            time, band = np.broadcast_arrays(time, band)
+            phase, band = np.broadcast_arrays(phase, band)
         else:
             if zpsys is None:
                 raise ValueError('zpsys must be given if zp is not None')
-            time, band, zp, zpsys = \
-                np.broadcast_arrays(time, band, zp, zpsys)
+            phase, band, zp, zpsys = \
+                np.broadcast_arrays(phase, band, zp, zpsys)
             zp = np.atleast_1d(zp)
             zpsys = np.atleast_1d(zpsys)
 
         # convert to 1d arrays
-        ndim = time.ndim # save input ndim for return val
-        time = np.atleast_1d(time)
+        ndim = phase.ndim # save input ndim for return val
+        phase = np.atleast_1d(phase)
         band = np.atleast_1d(band)
 
         # initialize output arrays
-        bandflux = np.zeros(time.shape, dtype=np.float)
+        bandflux = np.zeros(phase.shape, dtype=np.float)
         if include_error:
-            relerr = np.zeros(time.shape, dtype=np.float)
+            relerr = np.zeros(phase.shape, dtype=np.float)
 
         # index of times that are in model range
-        idx_validtime = (time >= self._phase[0]) & (time <= self._phase[-1])
+        idx_validphase = (phase >= self._phase[0]) & (phase <= self._phase[-1])
 
         # loop over unique bands
         for b in set(band):
-            idx = (band == b)
+            idx = (band == b) & idx_validphase
             if not np.any(idx):
                 continue
             b = get_bandpass(b)
@@ -464,7 +461,7 @@ class Model(object):
                     'outside model range [{3:.6g}, .., {4:.6g}]'
                     .format(b.name, b.disp[0], b.disp[-1], 
                             (1.+z) * self._disp[0], (1.+z) * self._disp[-1]))
-            flux = self._model_flux(time[idx], d)
+            flux = self._model_flux(phase[idx], d)
             tmp = b.trans * b.disp * b.ddisp
             fluxsum = np.sum(flux * tmp, axis=1) / HC_ERG_AA
 
@@ -482,7 +479,7 @@ class Model(object):
             if include_error:
                 deff = b.disp_eff
                 if not modelframe: deff /= (1.+z)
-                relerr[idx] = self._model_bandfluxrelerr(time[idx], deff)[:, 0]
+                relerr[idx] = self._model_bandfluxrelerr(phase[idx], deff)[:, 0]
 
         # multiply all by overall factor determined above.
         bandflux *= factor
@@ -550,6 +547,14 @@ class Model(object):
         self._model_bandfluxrelerr = \
             Spline2d(phase, disp, relative_error, kx=1, ky=1)
 
+    def _time_to_phase(self, time, modelframe):
+        """Convert time(s) (ndarray) to phase(s) (ndarray)."""
+
+        if modelframe:
+            return time
+        return (time - self._params['t0']) / (1. + max(0., self._params['z']))
+
+
     def _phase_of_max_flux(self, band):
         """Determine phase of maximum flux in the given band, by fitting
         a parabola to phase of maximum flux and the surrounding two
@@ -577,13 +582,11 @@ class Model(object):
         --------
         
         >>> model = sncosmo.get_model('salt2')
-        >>> sn = model(c=0.1, x1=0.5, mabs=(-19.3, 'bessellb', 'ab'),
-        ...            z=0.68)
-        >>> sn.magnitude(0., 'desg', 'ab')
+        >>> sn = model(c=0.1, x1=0.5, mabs=-19.3, z=0.68)
+        >>> sn.bandmag('desg', 'ab', 0.)
         25.577096820065883
-        >>> sn = model(c=0., x1=0., mabs=(-19.3, 'bessellb', 'ab'),
-        ...            z=0.5)
-        >>> sn.magnitude(0., 'desg', 'ab')
+        >>> sn = model(c=0., x1=0., mabs=-19.3, z=0.5)
+        >>> sn.bandmag('desg', 'ab', 0.)
         23.73028907970092
         """
 
@@ -601,7 +604,6 @@ class Model(object):
             version = ' version={0!r:s}'.format(self.version)
         return "<{0:s}{1:s}{2:s} at 0x{3:x}>".format(
             self.__class__.__name__, name, version, id(self))
-
 
     def __str__(self):
         dmstr = '--'
@@ -687,13 +689,9 @@ class TimeSeriesModel(Model):
 
         self._refphase = self._phase_of_max_flux(self._refband)
 
-    def _model_flux(self, phase=None, disp=None):
+    def _model_flux(self, phase, disp):
         """Return the model flux density (without any scaling or redshifting).
         """
-        if phase is None:
-            phase = self._phase
-        if disp is None:
-            disp = self._disp
         if self._params['c'] is None:
             return self._flux(phase, disp)
         
@@ -772,28 +770,22 @@ class StretchModel(TimeSeriesModel):
             extinction_func=extinction_func,
             extinction_kwargs=extinction_kwargs)
         
-        self._params['s'] = None
+        self._params['s'] = 1.
 
-    def _model_flux(self, phase=None, disp=None):
-        """Return the model flux density (without any scaling or redshifting).
-        """
-        if phase is not None and self._params['s'] is not None:
-            phase = phase / self._params['s']
-        return super(StretchModel, self)._model_flux(phase, disp)
-
-    def _set_fscale_from_mabs(self, mabs):
+    def _set_fscale_from_m(self):
         """Need to override this so that the refphase is applied correctly.
-        We want refphase to refer to the *unstretched* phase. Otherwise the
-        phase of peak will shift with s, if the peak is not at phase = 0."""
+        refphase refers to the *unstretched* phase, but bandmag() with
+        modelframe=True will treat the input as the *stretched* phase.
+        if we don't do this, the phase of peak will shift with s, if
+        the peak is not at phase = 0."""
 
         s = self._params['s']
-        self._params['s'] = None # temporarily remove stretch
-        super(StretchModel, self)._set_fscale_from_mabs()
+        self._params['s'] = 1. # temporarily remove stretch
+        super(StretchModel, self)._set_fscale_from_m()
         self._params['s'] = s # put it back.
 
-
     def times(self, modelframe=False):
-        """Return native phases of the model.
+        """Return native times of the model.
 
         Parameters
         ----------
@@ -802,18 +794,18 @@ class StretchModel(TimeSeriesModel):
             corresponds to observer-frame phases (model phases
             multiplied by 1 + z).
         """
+        if modelframe:
+            return self._params['s'] * self._phase
+        z = max(0., self._params['z'])
+        return self._params['t0'] + self._params['s'] * (1.+z) * self._phase
 
-        s = self._params['s']
-        z = self._params['z']
+    def _time_to_phase(self, time, modelframe):
+        """Convert time(s) (ndarray) to phase(s) (ndarray)."""
 
-        if (modelframe or z is None): 
-            if s is None:
-                return self._phase
-            z = 0.
-        if s is None:
-            s = 1.
-
-        return s * (1. + z) * self._phase
+        if modelframe:
+            return time / self._params['s']
+        return ((time - self._params['t0']) /
+                (self._params['s'] * (1. + max(0., self._params['z']))))
 
 
 class SALT2Model(Model):
@@ -906,14 +898,10 @@ class SALT2Model(Model):
         # set refphase
         self._refphase = self._phase_of_max_flux(self._refband)
 
-    def _model_flux(self, phase=None, disp=None):
+    def _model_flux(self, phase, disp):
         """Return the model flux density (without any scaling or redshifting).
         """
 
-        if phase is None:
-            phase = self._phase
-        if disp is None:
-            disp = self._disp
         f0 = self._model['M0'](phase, disp)
         f1 = self._model['M1'](phase, disp)
         flux = f0 + self._params['x1'] * f1
