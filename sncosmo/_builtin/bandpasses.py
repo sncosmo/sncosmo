@@ -16,7 +16,6 @@ from astropy.config import ConfigurationItem
 
 from .. import registry
 from .. import Bandpass
-from .. import utils
 
 def load_bandpass_ascii(pkg_data_name, name=None):
     """Read two-column bandpass. First column is assumed to be wavelength

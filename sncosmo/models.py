@@ -660,7 +660,7 @@ class TimeSeriesModel(Model):
         A function that accepts an array of wavelengths in Angstroms
         and returns an array representing the ratio of total extinction
         (in magnitudes) to the parameter `c` at each wavelength. Default
-        is `sncosmo.utils.extinction_ccm`.
+        is `sncosmo.extinction.extinction_ccm`.
     extinction_kwargs : dict
         A dictionary of keyword arguments to pass to `extinction_func`.
         Default is `dict(ebv=1.)`.
@@ -749,7 +749,7 @@ class StretchModel(TimeSeriesModel):
         A function that accepts an array of wavelengths in Angstroms
         and returns an array representing the ratio of total extinction
         (in magnitudes) to the parameter `c` at each wavelength. Default
-        is `sncosmo.utils.extinction_ccm`
+        is `sncosmo.extinction.extinction_ccm`
     extinction_kwargs : dict
         A dictionary of keyword arguments to pass to `extinction_func`.
         Default is `dict(ebv=1.)`.

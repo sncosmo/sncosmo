@@ -40,6 +40,33 @@ Plotting
 
    sncosmo.plotlc
 
+Reading / Writing data
+----------------------
+
+.. autosummary::
+   :toctree: _generated
+
+   sncosmo.readlc
+   sncosmo.writelc
+
+Fitting data
+------------
+
+.. autosummary::
+   :toctree: _generated
+
+   sncosmo.fit_model
+
+Photometric Typing (:mod:`sncosmo.typing`)
+------------------------------------------
+.. currentmodule:: sncosmo
+
+.. autosummary::
+   :toctree: _generated
+
+   typing.evidence
+   typing.PhotoTyper
+
 
 Registry (:mod:`sncosmo.registry`)
 ----------------------------------
@@ -53,13 +80,11 @@ Registry (:mod:`sncosmo.registry`)
    registry.register
    registry.retrieve
 
-Utilities (:mod:`sncosmo.utils`)
---------------------------------
+Other
+-----
 
 .. autosummary::
    :toctree: _generated
 
-   utils.read_griddata
-   utils.GridData1d
-   utils.GridData2d
-   utils.extinction_ccm
+   sncosmo.extinction.extinction_ccm
+

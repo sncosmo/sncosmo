@@ -29,7 +29,7 @@ def normalized_flux(data, zp=25., magsys='ab'):
                        
 def plotlc(data, fname=None, model=None, show_pulls=True,
            include_model_error=False):
-    """Plot light curve.
+    """Plot light curve data.
 
     Parameters
     ----------
@@ -43,6 +43,37 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
         If given, model light curve is overplotted.
     show_pulls : bool, optional
         If True (and if model is given), plot pulls. Default is ``True``.
+
+    Examples
+    --------
+    In the following example, we generate data based on a model, then plot
+    the data and the model. First, get the model, and set random parameters:
+
+    >>> model = sncosmo.get_model('salt2')
+    >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
+
+    Now choose some parameters of our observations: time, band, zeropoint:
+
+    >>> times = 55070. + 2. * np.arange(30, dtype=np.float)
+    >>> bands = np.array(10 * ['desg', 'desr', 'desi'])
+    >>> zp = 25. * np.ones(30)
+    >>> zpsys = np.array(30 * ['ab'])
+
+    Now generate synthetic fluxes based on those observations and add some
+    observational uncertainty:
+
+    >>> flux = model.bandflux(bands, times, zp=zp, zpsys=zpsys)
+    >>> fluxerr = (0.05 * np.max(flux)) * np.ones(30, dtype=np.float)
+    >>> flux += fluxerr * np.random.randn(30)
+
+    Finally, put the data into a dictionary and plot it:
+
+    >>> data = {'time': times, 'band': bands, 'flux': flux, 
+                'fluxerr': fluxerr, 'zp': zp, 'zpsys': zpsys}
+    >>> sncosmo.plotlc(data, model=model)
+
+    .. plot:: pyplots/plotlc_example.py
+
     """
 
     import matplotlib.pyplot as plt
@@ -128,7 +159,7 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
         plt.show()
     else:
         plt.savefig(fname)
-    plt.clf()
+        plt.clf()
 
 def plotpdfs(parnames, samples, weights, averages, errors, fname):
     """

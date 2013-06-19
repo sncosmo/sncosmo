@@ -17,34 +17,43 @@ SNCosmo
 Features
 --------
 
-SNCosmo makes it easy to work with empirical supernova models
-(models of spectral evolution as a function of time). Some features:
+SNCosmo is a python library for supernova cosmology. Some features:
 
-- normalize flux to desired absolute magnitude
-- extract a spectrum at arbitrary time, wavelength values
-- redshift models
-- Models include extinction
-- generate synthetic photometry
-- Many built-in models, such as Hsiao, Nugent, SALT2, PSNID
+- Many built-in supernova models (Type Ia and core-collapse), such as Hsiao,
+  Nugent, SALT2, and models from PSNID.
+- Generate synthetic photometry from models for any combination of parameters,
+  including extinction, redshift, absolute magnitude.
+- Extract spectrum from a model for any time(s) and wavelength values.
+- Extensible to new models, user-defined magnitude systems, and
+  user-defined bandpasses.
+- Fit a model to photometric data.
+- Photometric typing.
+- Simple light curve plotting.
+- Read and write various light curve file formats, such as SALT2, SNANA.
+
+See the :doc:`overview`.
 
 Documentation
 -------------
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
 
    overview
+
+.. toctree::
+   :maxdepth: 1
+
    install
    models
    bandpasses
    magsystems
    registry
-   reference
-
-**Experimental features**
+   fitting
+   typing
 
 .. toctree::
    :maxdepth: 1
 
-   fitting
-   typing
+   reference
+

@@ -1,8 +1,6 @@
-from collections import OrderedDict
-import numpy as np
-from . import utils
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-__all__ = ['writelc', 'readlc']
+import numpy as np
 
 def _stripcomment(line, char='#'):
     pos = line.find(char)
@@ -67,43 +65,3 @@ def read_griddata(name_or_obj):
 
     f.close()
     return np.array(x0), np.array(x1), np.array(y)
-
-
-def writelc(data, fname, meta=None, fmt=None):
-    """Write light curve data."""
-    
-    f = open(fname, 'w')
-    f.write('#time band flux fluxerr zp zpsys\n')
-    for i in range(len(data['time'])):
-        f.write('{:f} {:s} {:f} {:f} {:f} {:s}\n'.format(
-                data['time'][i], data['band'][i], data['flux'][i],
-                data['fluxerr'][i], data['zp'][i], data['zpsys'][i]))
-    f.close()
-
-def readlc(fname, fmt=None):
-    """Read light curve data.
-
-    Returns
-    -------
-    meta : dict
-    data : ndarray
-    """
-
-    datarows = []
-    f = open(fname, 'r')
-    for line in f.readlines():
-        line = _stripcomment(line)
-        if len(line) == 0: continue
-        row = []
-        for item in line.split():
-            try:
-                item = int(item)
-            except:
-                try:
-                    item = float(item)
-                except:
-                    pass
-            row.append(item)
-        datarows.append(row)
-    return utils.rows_to_array(datarows, ['time', 'band', 'flux', 'fluxerr',
-                                          'zp', 'zpsys'])
