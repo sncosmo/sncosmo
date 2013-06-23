@@ -290,13 +290,14 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
                       parvals**2)
     logzstd = math.sqrt(h/nobj)
 
-    result =  {'niter': niter,
-               'nsamples': nsamples,
-               'parvals': parvals,
-               'parerrs': parstds,
-               'logz': logz,
-               'logzerr': logzstd,
-               'h': h}
+    result = {'niter': niter,
+              'nsamples': nsamples,
+              'parvals': parvals,
+              'parerrs': parstds,
+              'logz': logz,
+              'logzerr': logzstd,
+              'loglmax': np.max(objects_logl),
+              'h': h}
     if return_samples:
         result['samples_parvals'] = samples_parvals
         result['samples_wt'] = w

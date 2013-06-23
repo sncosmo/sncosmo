@@ -759,13 +759,12 @@ class StretchModel(TimeSeriesModel):
         Version of the model. Default is `None`.
     """
     def __init__(self, phase, disp, flux,
-                 flux_error=None, name=None, version=None,
+                 name=None, version=None,
                  extinction_func=extinction_ccm,
                  extinction_kwargs=dict(ebv=1.)):
 
         super(StretchModel, self).__init__(
             phase, disp, flux,
-            flux_error=flux_error,
             name=name, version=version,
             extinction_func=extinction_func,
             extinction_kwargs=extinction_kwargs)

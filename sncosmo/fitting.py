@@ -59,8 +59,6 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
               verbose=False, include_model_error=False):
     """Fit model parameters to data by minimizing chi^2.
 
-    .. warn:: This function is experimental 
-
     Parameters
     ----------
     model : `~sncosmo.Model`

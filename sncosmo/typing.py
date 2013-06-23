@@ -139,6 +139,8 @@ def evidence(model, data, parnames,
                     return_samples=return_samples, verbose=verbose,
                     verbose_name=verbose_name)
     res['parnames'] = parnames
+    res['chisq_min'] = -2. * res.pop('loglmax')
+    res['dof'] = len(time) - npar
     return res
 
 
@@ -152,7 +154,7 @@ class PhotoTyper(object):
         self._verbose = verbose
 
     def add_model(self, model, model_type, parlims, priors=None,
-                  model_prior=None, tied=None, include_error=False,
+                  model_prior=1., tied=None, include_error=False,
                   name=None):
         """Add a model or models.
 
@@ -179,6 +181,8 @@ class PhotoTyper(object):
             raise ValueError('Model does not have a name. Set the name.')
         if name in self._models:
             raise ValueError('model of this name already included.')
+        if model_prior <= 0.:
+            raise ValueError('model_prior must be positive')
 
         # get ppf for each parameter
         ppfs = {}
@@ -221,8 +225,10 @@ class PhotoTyper(object):
 
         Parameters
         ----------
-        data : 
-        return_samples :
+        data : `~numpy.ndarray` or dict
+
+        return_samples : bool, optional
+            If True, add samples to `bestmodel_params`
         
         Returns
         -------
@@ -274,11 +280,13 @@ class PhotoTyper(object):
                            return_samples=return_samples)
 
             # accumulate info
-            logz[name] = res['logz']
+            logz[name] = res['logz'] + m['model_prior']
             logzerr[name] = res['logzerr']
             model_params[name] = {'parnames': res['parnames'],
                                   'parvals': res['parvals'],
-                                  'parerrs': res['parerrs']}
+                                  'parerrs': res['parerrs'],
+                                  'chisq_min': res['chisq_min'],
+                                  'dof': res['dof']}
             if return_samples:
                 model_params[name]['samples_parvals'] = res['samples_parvals']
                 model_params[name]['samples_wt'] = res['samples_wt']

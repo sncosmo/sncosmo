@@ -262,10 +262,15 @@ KEY_TO_SALT2KEY_META = {
     'MAGSYS': 'MagSys',
     'Z_SOURCE': 'z_source'}
 KEY_TO_SALT2KEY_COLUMN = {
+    'Mjd': 'Date',
+    'Time': 'Date',
+    'Flux': 'FluxPsf',
     'Fluxpsf': 'FluxPsf',
+    'Fluxerr': 'FluxPsferr',
     'Fluxpsferr': 'FluxPsferr',
     'Airmass': 'AirMass',
     'Zp': 'ZP',
+    'Zpsys': 'MagSys',
     'Magsys': 'MagSys',
     'Band': 'Filter'}
 
@@ -338,7 +343,7 @@ def _write_snana(f, data, meta, **kwargs):
                 key = key.upper()
                 key = KEY_TO_SNANAKEY_META.get(key, key)
             f.write('{}: {}\n'.format(key, str(val)))
-            keys_as_written.append(keys)
+            keys_as_written.append(key)
 
     # Check that necessary metadata was written
     if pedantic:
@@ -346,6 +351,7 @@ def _write_snana(f, data, meta, **kwargs):
             if key not in keys_as_written:
                 raise ValueError('Missing required metadata kw: ' + key)
     
+    # Get column names and data length
     if hasattr(data, 'dtype'):
         keys = data.dtype.names
         length = len(data)
