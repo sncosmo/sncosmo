@@ -70,6 +70,12 @@ release = sncosmo.__version__
 # variables set in the global configuration. The variables set in the
 # global configuration are listed below, commented out.
 
+html_theme_options = {
+    'logotext1': 'sn',     # white,  semi-bold
+    'logotext2': 'cosmo',  # orange, light
+    'logotext3': ''        # white,  light
+    }
+
 # Add any paths that contain custom themes here, relative to this directory.
 # To use a different custom theme, add the directory containing the theme.
 #html_theme_path = []

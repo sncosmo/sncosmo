@@ -14,20 +14,25 @@ SNCosmo
     :height: 96px
 
 Overview
---------
+========
 
 SNCosmo is a python library for supernova cosmology. It aims to make
 dealing with various supernova models as easy as possible, while still
 being completely extensible. It is built on NumPy, SciPy and AstroPy.
 
-Usage
-,,,,,
+Example Usage
+-------------
 
 Get a built-in model and set its parameters:
 
     >>> import sncosmo
     >>> model = sncosmo.get_model('salt2')  # Get a built-in model
     >>> model.set(c=0.05, x1=0.5, mabs=-19.3, z=1.0)  # set some parameters
+
+Different types of models can have different parameters:
+
+    >>> model = sncosmo.get_model('hsiao')
+    >>> model.set(c=0.05, s=1.1, mabs=-19.3, z=1.0)
 
 Calculate synthetic photometry at 3 phases:
 
@@ -40,7 +45,7 @@ Get a spectrum at a given phase:
     >>> model.flux(0.) # flux values in erg/s/cm^2/A at phase=0.
 
 Key Features
-,,,,,,,,,,,,
+------------
 
 - **Built-ins:** There are many other built-in supernova models
   accessible by name (both Type Ia and core-collapse), such as Hsiao,
@@ -55,8 +60,8 @@ Key Features
   to data, or perform Bayesian model selection (photometric typing) by
   comparing multiple models to data.
 
-Documentation
--------------
+User Documentation
+==================
 
 .. toctree::
    :maxdepth: 1
@@ -69,8 +74,65 @@ Documentation
    fitting
    typing
 
+Reference / API
+===============
+
+Built-ins
+---------
+
 .. toctree::
    :maxdepth: 1
 
-   reference
+   builtins/models
+   builtins/bandpasses
+   builtins/magsystems
 
+.. currentmodule:: sncosmo
+
+Functions
+---------
+
+.. autosummary::
+   :toctree: _generated
+
+   get_model
+   get_bandpass
+   get_magsystem
+   readlc
+   writelc
+   plotlc
+   fit_model
+   registry.register_loader
+   registry.register
+   registry.retrieve
+   extinction_ccm
+
+Classes
+-------
+
+.. autosummary::
+   :toctree: _generated
+
+   TimeSeriesModel
+   StretchModel
+   SALT2Model
+   Bandpass
+   SpectralMagSystem
+   ABMagSystem
+   PhotoTyper
+
+Development
+-----------
+
+Bug reports, comments, and help with development are very welcome.
+
+Here are a couple targets for future development:
+
+* *SALT2 error model:* The model for describing dispersion in light
+  curves around the SALT2 model has not been implemented.
+
+* *Errors in fit parameters:* ``fit_model`` returns best-fit
+  parameters, but no uncertainties.
+
+* *Ability to fit spectra:* ``fit_model`` fits light curve data. A
+  similar function that fits spectral data would be useful.

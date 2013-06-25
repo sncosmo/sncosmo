@@ -4,9 +4,9 @@ from .models import *
 from .plot import *
 from .lcio import *
 from .fitting import *
-from . import typing
+from .typing import *
+from .extinction import *
 from . import registry
-from . import extinction
 from . import _builtin
 
 try:

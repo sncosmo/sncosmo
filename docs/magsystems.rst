@@ -6,11 +6,14 @@ A `sncosmo.MagSystem` object represents an astrophysical magnitude system
 and can be used to convert physical fluxes to magnitudes (in that system). 
 For example,
 
-    >>> ab = sncosmo.get_magsystem('ab')
-    >>> ab.zpflux('bessellb')
+    >>> abmagsys = sncosmo.get_magsystem('ab')
+    >>> abmagsys.zpbandflux('bessellb') # flux of a source with AB mag = 0 in given bandpass
+    1199275.6325987775
 
-Local Magnitude Systems
------------------------
+Fluxes are in photons/s/cm^2.
+
+"Local" Magnitude Systems
+-------------------------
 
 Make the magnitude system a "local magnitude system" by setting offsets.
 
@@ -23,18 +26,10 @@ magnitude system (for the 'sdssg' band). That is,
 
 You can also set the reference magnitudes after the fact:
 
-    >>> sdss = sncosmo.get_magsystem('ab')  # The AB system
-    >>> sdss.refmags
-    None
-    >>> sdss.refmags = {'sdssg': 0.02, 'sdssr':0.03}
+    >>> sdss = sncosmo.get_magsystem('ab')  # start with an AB system
+    >>> sdss.refmags = {'sdssg': 0.02, 'sdssr':0.03}  # add offsets
 
 But, you can't assign to refmags once created.
 
-    >>> sdss.refmags['sdssi'] = 0.04
+    >>> sdss.refmags['sdssi'] = 0.04  # doesn't do anything.
 
-This is because on access, sdss.refmags returns a copy.
-
-Built-in Magnitude Systems
---------------------------
-
-.. automodule:: sncosmo._builtin.magsystems

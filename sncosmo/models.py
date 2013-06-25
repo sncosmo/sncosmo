@@ -238,7 +238,7 @@ class Model(object):
 
     @refband.setter
     def refband(self, band):
-        self._refphase = get_bandpass(band)
+        self._refband = get_bandpass(band)
 
     @property
     def refmagsys(self):
@@ -618,7 +618,7 @@ class Model(object):
         Model version: {}
         Model phases: [{:.6g}, .., {:.6g}] days ({:d} points)
         Model dispersion: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
-        Reference phase: {} days
+        Reference phase: {:.5f} days
         Cosmology: {}
         Current Parameters:
         """.format(
@@ -638,7 +638,7 @@ class Model(object):
                 line += ' [{}, {}]'.format(self._refband.name,
                                            self._refmagsys.name)
             elif key == 'z' and val is not None:
-                line += ('[dist. mod. = {}, lum. dist. = {}]'
+                line += (' [dist. mod. = {}, lum. dist. = {}]'
                          .format(dmstr, ldstr))
             parameter_lines.append(line)
         return result + '\n'.join(parameter_lines)
