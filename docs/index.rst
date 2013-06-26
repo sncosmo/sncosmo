@@ -36,7 +36,7 @@ Different types of models can have different parameters:
 
 Calculate synthetic photometry at 3 phases:
 
-    >>> model.bandflux('sdssr', [-25., 0., 40.])  # in ergs/s/cm^2
+    >>> model.bandflux('sdssr', [-25., 0., 40.])  # in photons/s/cm^2
     >>> model.bandmag('sdssr', 'ab', [-25., 0., 40.])  # in AB mags
 
 Get a spectrum at a given phase:
@@ -60,6 +60,11 @@ Key Features
   to data, or perform Bayesian model selection (photometric typing) by
   comparing multiple models to data.
 
+- **Fast:** Fully NumPy-ified, carefully profiled. Generating
+  synthetic photometry for 100 observations spread between four
+  bandpasses takes on the order of 1-2 milliseconds (depends on model
+  and bandpass sampling).
+
 User Documentation
 ==================
 
@@ -70,7 +75,6 @@ User Documentation
    models
    bandpasses
    magsystems
-   registry
    fitting
    typing
 
@@ -122,11 +126,13 @@ Classes
    PhotoTyper
 
 Development
------------
+===========
 
 Bug reports, comments, and help with development are very welcome.
+Source code and issue tracking is hosted on github:
+https://github.com/kbarbary/sncosmo
 
-Here are a couple targets for future development:
+A few targets for future development:
 
 * *SALT2 error model:* The model for describing dispersion in light
   curves around the SALT2 model has not been implemented.

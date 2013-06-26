@@ -55,8 +55,8 @@ def guess_parvals(data, model, parnames=['t0', 'fscale']):
     if 'fscale' in parnames: result['fscale'] = fscale
     return result
                        
-def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
-              verbose=False, include_model_error=False):
+def fit_model(model, data, parnames, bounds=None, params_start=None,
+              t0range=20., verbose=False, include_model_error=False):
     """Fit model parameters to data by minimizing chi^2.
 
     Parameters
@@ -73,9 +73,12 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
         values are tuples. If a bound is not given for some parameter,
         the parameter is unbounded. The exception is ``t0``, which has a
         default bound of  ``(initial guess) +/- t0range``.
-    parvals0 : `dict`, optional
+    params_start : `dict`, optional
         If given, use these initial parameters in fit. Default is to use
         current model parameters.
+    t0range : float, optional
+        Bounds for t0 (if varied in fit and not given in `bounds`).
+        Default is 20.
     verbose : bool, optional
         Print minimization info to the screen.
 
@@ -120,7 +123,9 @@ def fit_model(model, data, parnames, bounds=None, parvals0=None, t0range=20.,
     guesses = guess_parvals(data, model, parnames=['t0', 'fscale'])
     current = model.params
     for name in parnames:
-        if name in guesses:
+        if name in params_start:
+            parvals0.append(params_start[name])
+        elif name in guesses:
             parvals0.append(guesses[name])
         else:
             parvals0.append(current[name])

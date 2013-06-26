@@ -1,7 +1,6 @@
 SNCosmo
 =======
 
-A Python package for supernova cosmology based on AstroPy.
-
-See http://kbarbary.github.com/sncosmo
+A Python library for supernova cosmology based on AstroPy.
+http://sncosmo.readthedocs.org/
 

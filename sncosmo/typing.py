@@ -145,18 +145,18 @@ def evidence(model, data, parnames,
 
 
 class PhotoTyper(object):
-    """A set of models, each with a grid of parameters.
+    """Baysian photometric typer.
     """
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=True):
         self._models = OrderedDict()
         self.types = []
-        self._verbose = verbose
+        self.verbose = verbose
 
     def add_model(self, model, model_type, parlims, priors=None,
                   model_prior=1., tied=None, include_error=False,
                   name=None):
-        """Add a model or models.
+        """Add a model.
 
         Parameters
         ----------
@@ -215,21 +215,24 @@ class PhotoTyper(object):
             for name, d in self._models.iteritems():
                 if d['type'] != model_type: continue
                 lines.append('  Model: {}'.format(name))
-                for parname, parvals in d['parlims']:
+                for parname, parvals in d['parlims'].iteritems():
                     lines.append('    {}: [{} .. {}]'
                                  .format(parname, parvals[0], parvals[1]))
         return '\n'.join(lines)
 
-    def classify(self, data, return_samples=False):
+    def classify(self, data, return_samples=False, verbose=None):
         """Determine probability of each model type for the given data.
 
         Parameters
         ----------
         data : `~numpy.ndarray` or dict
-
+            Light curve data to classify.
         return_samples : bool, optional
             If True, add samples to `bestmodel_params`
-        
+        verbose : bool, optional
+            If True, print information during iteration. (If False, don't).
+            Default is to use the value of self.verbose.
+
         Returns
         -------
         type_p : dict
@@ -244,6 +247,9 @@ class PhotoTyper(object):
             Model parameters and uncertainties for highest-probability model,
             with keys: 'parnames', 'parvals', 'parerrs' (each is a list).
         """
+
+        if verbose is None:
+            verbose = self.verbose
 
         # limit data to bands that overlap *all* models over the full z range.
         valid = np.ones(len(data['band']), dtype=np.bool)
@@ -276,7 +282,7 @@ class PhotoTyper(object):
             res = evidence(m['model'], data, parnames,
                            parlims=parlims, ppfs=m['ppfs'], tied=m['tied'],
                            include_error=m['include_error'],
-                           verbose=self._verbose, verbose_name=name,
+                           verbose=verbose, verbose_name=name,
                            return_samples=return_samples)
 
             # accumulate info

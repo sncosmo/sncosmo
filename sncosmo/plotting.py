@@ -46,33 +46,31 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
 
     Examples
     --------
-    In the following example, we generate data based on a model, then plot
-    the data and the model. First, get the model, and set random parameters:
 
-    >>> model = sncosmo.get_model('salt2')
-    >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
+    Suppose we have data in a file that looks like this::
+ 
+        time band flux fluxerr zp zpsys
+        55070.0 sdssg -0.263064256628 0.651728140824 25.0 ab
+        55072.0512821 sdssr -0.836688186816 0.651728140824 25.0 ab
+        55074.1025641 sdssi -0.0104080573938 0.651728140824 25.0 ab
+        55076.1538462 sdssz -0.0794771107707 0.651728140824 25.0 ab
+        55078.2051282 sdssg 0.897840283912 0.651728140824 25.0 ab
+        ...
 
-    Now choose some parameters of our observations: time, band, zeropoint:
+    To read and plot the data:
 
-    >>> times = 55070. + 2. * np.arange(30, dtype=np.float)
-    >>> bands = np.array(10 * ['desg', 'desr', 'desi'])
-    >>> zp = 25. * np.ones(30)
-    >>> zpsys = np.array(30 * ['ab'])
+        >>> meta, data = sncosmo.readlc('mydatafile.dat')  # read the data
+        >>> sncosmo.plotlc(data, fname='plotlc_example.png')  # plot the data
 
-    Now generate synthetic fluxes based on those observations and add some
-    observational uncertainty:
+    We happen to know the model and parameters that fit this
+    data. Specifying the ``model`` keyword will plot the model over
+    the data.
+    
+        >>> model = sncosmo.get_model('salt2')
+        >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
+        >>> sncosmo.plotlc(data, fname='plotlc_example.png', model=model)
 
-    >>> flux = model.bandflux(bands, times, zp=zp, zpsys=zpsys)
-    >>> fluxerr = (0.05 * np.max(flux)) * np.ones(30, dtype=np.float)
-    >>> flux += fluxerr * np.random.randn(30)
-
-    Finally, put the data into a dictionary and plot it:
-
-    >>> data = {'time': times, 'band': bands, 'flux': flux, 
-                'fluxerr': fluxerr, 'zp': zp, 'zpsys': zpsys}
-    >>> sncosmo.plotlc(data, model=model)
-
-    .. plot:: pyplots/plotlc_example.py
+    .. image:: /pyplots/plotlc_example.png
 
     """
 
