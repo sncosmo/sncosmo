@@ -1,6 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions to plot light curve data and models."""
+from __future__ import division
 
+import math
 import numpy as np
 
 from .spectral import get_bandpass, get_magsystem
@@ -159,7 +161,11 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
         plt.savefig(fname)
         plt.clf()
 
-def plotpdfs(parnames, samples, weights, averages, errors, fname):
+def val_and_err_to_str(v, e):
+    p = max(0, -int(math.floor(math.log10(e))) + 1)
+    return ('{:.' + str(p) + 'f} +/- {:.'+ str(p) + 'f}').format(v, e)
+
+def plotpdfs(parnames, samples, weights, averages, errors, fname, ncol=2):
     """
     Plot PDFs of parameter values.
     
@@ -177,15 +183,16 @@ def plotpdfs(parnames, samples, weights, averages, errors, fname):
     import matplotlib.pyplot as plt
 
     npar = len(parnames)
+    nrow = (npar-1) // ncol + 1
+    fig = plt.figure(figsize=(4.*ncol, 3*nrow))
 
-
-    for i in range(max(4, npar)):
+    for i in range(npar):
 
         plot_range = (averages[i] - 5*errors[i], averages[i] + 5*errors[i])
-        plot_text = '{} = {:f} +/- {:f}'.format(parnames[i], averages[i],
-                                                errors[i])
+        plot_text = parnames[i] + ' = ' + val_and_err_to_str(averages[i],
+                                                             errors[i])
 
-        ax = plt.subplot(2,2,i)
+        ax = plt.subplot(nrow, ncol, i)
         plt.hist(samples[:, i], weights=weights, range=plot_range,
                  bins=30)
         plt.text(0.9, 0.9, plot_text, color='k', ha='right', va='top',

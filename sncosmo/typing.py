@@ -76,7 +76,7 @@ def pdf_to_ppf(pdf, a, b):
 def evidence(model, data, parnames,
              parlims=None, priors=None, ppfs=None, tied=None,
              include_error=False, nobj=50, maxiter=10000,
-             return_samples=False, verbose=False, verbose_name=''):
+             verbose=False, verbose_name=''):
 
     # Construct a list of ppfs to be used in the prior() function...
     npar = len(parnames)
@@ -107,9 +107,6 @@ def evidence(model, data, parnames,
             v[i] = ppflist[i](u[i])
         return v
 
-    #def prior(u):
-    #    return parlims[:, 0] + u * (parlims[:, 1] - parlims[:, 0])
-
     band = data['band']
     time = data['time']
     zp = data['zp']
@@ -136,11 +133,36 @@ def evidence(model, data, parnames,
         return -chisq / 2.
 
     res = nest.nest(loglikelihood, prior, npar, nobj=nobj, maxiter=maxiter,
-                    return_samples=return_samples, verbose=verbose,
-                    verbose_name=verbose_name)
+                    verbose=verbose, verbose_name=verbose_name)
+
+    # Add tied parameters to results. This is inelegant, but, eh.
+    nsamples = len(res['samples_parvals'])
+    res['nsamples'] = nsamples
+    if tied is not None:
+        tiedparnames = tied.keys()
+        ntiedpar = len(tiedparnames)
+        tiedparvals = np.empty((nsamples, ntiedpar), dtype=np.float)
+        for i in range(nsamples):
+            d = dict(zip(parnames, res['samples_parvals'][i, :]))
+            for j, parname in enumerate(tiedparnames):
+                tiedparvals[i, j] = tied[parname](d)
+
+        res['samples_parvals'] = np.hstack((res['samples_parvals'], 
+                                            tiedparvals))
+        parnames = parnames + tiedparnames
+
+    # Sample averages and their standard deviations.
+    res['parvals'] = np.average(res['samples_parvals'],
+                                weights=res['samples_wt'], axis=0)
+    res['parerrs'] = np.sqrt(np.sum(res['samples_wt'][:, np.newaxis] *
+                             res['samples_parvals']**2, axis=0) -
+                             res['parvals']**2)
+
+    # Add some more to results
     res['parnames'] = parnames
     res['chisq_min'] = -2. * res.pop('loglmax')
     res['dof'] = len(time) - npar
+
     return res
 
 
@@ -166,9 +188,9 @@ class PhotoTyper(object):
             A string identifier for the type of the model (e.g., 'SN Ia',
             'SN IIP', etc). Models of the same type are included together
             in determining probabilities.
-        parlims : dict
+        parlims : dict, optional
             Dictionary.
-        tied : dict
+        tied : dict, optional
             Dictionary of functions, default is `None`.
         name : str
             Name 
@@ -220,32 +242,40 @@ class PhotoTyper(object):
                                  .format(parname, parvals[0], parvals[1]))
         return '\n'.join(lines)
 
-    def classify(self, data, return_samples=False, verbose=None):
+    def classify(self, data, verbose=None):
         """Determine probability of each model type for the given data.
 
         Parameters
         ----------
         data : `~numpy.ndarray` or dict
             Light curve data to classify.
-        return_samples : bool, optional
-            If True, add samples to `bestmodel_params`
         verbose : bool, optional
             If True, print information during iteration. (If False, don't).
             Default is to use the value of self.verbose.
 
         Returns
         -------
-        type_p : dict
-            Probability for each model type.
-        model_p : dict
-            Probability for each model.
-        model_perr : dict of tuples: (uperr, downerr)
-            Approximate computational probability error for each model.
-        bestmodel : str
-            Name of model with highest probability.
-        bestmodel_params : dict
-            Model parameters and uncertainties for highest-probability model,
-            with keys: 'parnames', 'parvals', 'parerrs' (each is a list).
+        types : OrderedDict
+            Keys are type names ('SN Ia'), values are dictionaries
+            containing key 'p'. Entries are sorted by 'p', decreasing.
+        models : OrderedDict
+            Keys are model names. Values are dictionaries with the
+            following keys:
+           
+            * 'p': probability (float)
+            * 'perr': numerical error on p (tuple)
+            * 'dof': degrees of freedom (len(data) - npar)
+            * 'niter' : number of iterations (int)
+            * 'ncalls' : number of likelihood calls (int)
+            * 'time' : evaluation time in seconds (float)
+            * 'parnames': parameter names (list of str)
+            * 'parvals': parameter "best-fit" values (list of float)
+            * 'parerrs': parameter "errors" (list of float)
+            * 'chisq_min': minimum chi^2 value of any sample (float)
+            * 'samples_parvals' : ndarray, shape=(nsamples, npars)
+            * 'samples_wt': ndarray, shape=(nsamples,)
+
+            Entries are sorted by 'p', decreasing.
         """
 
         if verbose is None:
@@ -274,57 +304,50 @@ class PhotoTyper(object):
         # get range of t0 to consider
         parlims = {'t0': (np.min(data['time']), np.max(data['time']))}
 
-        logz = {}  # Log evidence for each model
-        logzerr = {}
-        model_params = {}
+        models = {}
         for name, m in self._models.iteritems():
             parnames = m['ppfs'].keys() + ['t0']
-            res = evidence(m['model'], data, parnames,
-                           parlims=parlims, ppfs=m['ppfs'], tied=m['tied'],
-                           include_error=m['include_error'],
-                           verbose=verbose, verbose_name=name,
-                           return_samples=return_samples)
+            models[name] = evidence(
+                m['model'], data, parnames,
+                parlims=parlims, ppfs=m['ppfs'], tied=m['tied'],
+                include_error=m['include_error'],
+                verbose=verbose, verbose_name=name)
 
-            # accumulate info
-            logz[name] = res['logz'] + m['model_prior']
-            logzerr[name] = res['logzerr']
-            model_params[name] = {'parnames': res['parnames'],
-                                  'parvals': res['parvals'],
-                                  'parerrs': res['parerrs'],
-                                  'chisq_min': res['chisq_min'],
-                                  'dof': res['dof']}
-            if return_samples:
-                model_params[name]['samples_parvals'] = res['samples_parvals']
-                model_params[name]['samples_wt'] = res['samples_wt']
+            # multiply evidence by model prior
+            models[name]['logz'] += m['model_prior']
+
+            # add type info
+            models[name]['type'] = m['type']
 
         # get denominator (sum of Z)
-        logzvals = logz.values()
+        logzvals = [d['logz'] for d in models.values()]
         logzsum = logzvals[0]
         for i in range(1, len(logzvals)):
             logzsum = np.logaddexp(logzsum, logzvals[i])
         
         # get probability of each model: p = Z_i / sum(Z)
-        model_p = {}
-        for name, val in logz.iteritems():
-            model_p[name] = np.exp(logz[name] - logzsum)
-        
-        # get error for each model:
+        # Errors are calculated by finding the upper and lower Z limits:
         # up   = exp(logz + logzerr) = exp(logz)exp(logzerr) = z*exp(logzerr)
         # down = exp(logz - logzerr) = exp(logz)/exp(logzerr) = z/exp(logzerr)
-        model_perr = {}
-        for name, val in model_p.iteritems():
-            up = (model_p[name] * math.exp(logzerr[name]) /
-                  (1. + model_p[name] * (math.exp(logzerr[name]) - 1.)))
-            down = (model_p[name] / math.exp(logzerr[name]) /
-                    (1.-model_p[name] + model_p[name]/math.exp(logzerr[name])))
-            model_perr[name] = (up - model_p[name], model_p[name] - down)
+        for name, d in models.iteritems():
+            p = np.exp(d['logz'] - logzsum)
+            explogzerr = math.exp(d['logzerr'])
+            p_up = p * explogzerr / (1. - p + p * explogzerr)
+            p_dn = p / explogzerr / (1. - p + p / explogzerr)
+            d['p'] = p
+            d['perr'] = (p_up - p, p - p_dn)
 
         # get probability for each type
-        type_p = {name:0. for name in self.types}
-        for name, m in self._models.iteritems():
-            type_p[m['type']] += model_p[name]
+        types = {name: {'p': 0.} for name in self.types}
+        for name, d in models.iteritems():
+            types[d['type']]['p'] += d['p']
 
-        # find highest probability model
-        bestmodel = max(model_p.iteritems(), key=operator.itemgetter(1))[0]
+        # sort models and types
+        types = OrderedDict(
+            sorted(types.items(), key=lambda t: t[1]['p'], reverse=True)
+            )
+        models = OrderedDict(
+            sorted(models.items(), key=lambda t: t[1]['p'], reverse=True)
+            )
 
-        return type_p, model_p, model_perr, bestmodel, model_params[bestmodel]
+        return types, models

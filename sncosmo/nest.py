@@ -1,5 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Simple implementation of nested sampling routine to evaluate Bayesian evidence."""
+"""Simple implementation of nested sampling routine to evaluate Bayesian
+evidence."""
 
 import math
 import time
@@ -102,7 +103,7 @@ def sample_ellipsoid(vs, mean, nsamples=1):
     return x
 
 def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
-         return_samples=False, verbose=False, verbose_name=''):
+         verbose=False, verbose_name=''):
     """Simple nested sampling algorithm to evaluate Bayesian evidence.
 
     Parameters
@@ -131,10 +132,7 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
     maxiter : int, optional
         Maximum number of iterations. Iteration may stop earlier if
         termination condition is reached. Default is 10000. The total number
-        of likelihood evaluations will be ``nexplore * niter``. 
-    return_samples : bool, optional
-        If True, add keys 'samples_parvals' and 'samples_wt' to return
-        dictionary.
+        of likelihood evaluations will be ``nexplore * niter``.
     verbose : bool, optional
         Print a single line of running total iterations.
     verbose_name : str, optional
@@ -147,16 +145,12 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         Containing following keys:
 
         * `niter` (int) number of iterations.
-        * `nsamples` (int) number of samples.
-        * `parvals` (array, shape=(npar,)) weighted average of parameters.
-        * `parerrs` (array, shape=(npar,)) error on `parvals` from standard
-          deviation of samples' parameter values.
+        * `ncalls` (int) number of likelihood calls.
+        * `time` (float) time in seconds.
         * `logz` (float) log of evidence.
         * `logzerr` (float) error on `logz`.
+        * `loglmax` (float) Maximum likelihood of any sample.
         * `h` (float) information.
-        
-        Optionally contains:
-        
         * `samples_parvals` (array, shape=(nsamples, npar)) parameter values
           of each sample.
         * `samples_wt` (array, shape=(nsamples,) Weight of each sample.
@@ -259,9 +253,9 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
             break
         logwt_old = logwt
 
+    tottime = time.time() - time0
     if verbose:
-        time1 = time.time()
-        print 'calls={:d} time={:7.3f}s'.format(loglcalls, time1 - time0)
+        print 'calls={:d} time={:7.3f}s'.format(loglcalls, tottime)
 
     # Add remaining objects.
     # After N samples have been taken out, the remaining width is e^(-N/nobj)
@@ -279,26 +273,14 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         samples_parvals.append(np.array(objects_v[i]))
         samples_logwt.append(logwt)
 
-    # process samples and return
-    niter = it + 1
-    nsamples = len(samples_parvals)
-    samples_parvals = np.array(samples_parvals)  # (nsamp, npar)
-    samples_logwt = np.array(samples_logwt)
-    w = np.exp(samples_logwt - logz)  # Proportional weights.
-    parvals = np.average(samples_parvals, axis=0, weights=w)
-    parstds = np.sqrt(np.sum(w[:, np.newaxis] * samples_parvals**2, axis=0) -
-                      parvals**2)
-    logzstd = math.sqrt(h/nobj)
-
-    result = {'niter': niter,
-              'nsamples': nsamples,
-              'parvals': parvals,
-              'parerrs': parstds,
-              'logz': logz,
-              'logzerr': logzstd,
-              'loglmax': np.max(objects_logl),
-              'h': h}
-    if return_samples:
-        result['samples_parvals'] = samples_parvals
-        result['samples_wt'] = w
-    return result
+    return {
+        'niter': it + 1,
+        'ncalls': loglcalls,
+        'time': tottime,
+        'logz': logz,
+        'logzerr': math.sqrt(h / nobj),
+        'loglmax': np.max(objects_logl),
+        'h': h,
+        'samples_parvals': np.array(samples_parvals),  #(nsamp, npar)
+        'samples_wt':  np.exp(np.array(samples_logwt) - logz)  #(nsamp,)
+        }
