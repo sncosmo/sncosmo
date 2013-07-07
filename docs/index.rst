@@ -20,6 +20,12 @@ SNCosmo is a python library for supernova cosmology. It aims to make
 dealing with various supernova models as easy as possible, while still
 being completely extensible. It is built on NumPy, SciPy and AstroPy.
 
+At the core of the library is a class (and subclasses) for
+representing supernova models: A model is essentially a spectroscopic
+time series that may vary as a function of one or more
+parameters. Simulation, fitting and typing can all be naturally built
+on this core functionality.
+
 Example Usage
 -------------
 
@@ -60,10 +66,36 @@ Key Features
   to data, or perform Bayesian model selection (photometric typing) by
   comparing multiple models to data.
 
-- **Fast:** Fully NumPy-ified, carefully profiled. Generating
+- **Fast:** Fully NumPy-ified and profiled. Generating
   synthetic photometry for 100 observations spread between four
-  bandpasses takes on the order of 1-2 milliseconds (depends on model
+  bandpasses takes on the order of 1 millisecond (depends on model
   and bandpass sampling).
+
+Stability
+---------
+
+The models classes can be considered fairly stable. The fitting and
+typing functionality is more experimental and the API may change
+slightly as it gets more real-world testing.
+
+Development
+-----------
+
+Bug reports, comments, and help with development are very welcome.
+Source code and issue tracking is hosted on github:
+https://github.com/kbarbary/sncosmo
+
+A few targets for future development:
+
+* *SALT2 error model:* The model for describing dispersion in light
+  curves around the SALT2 model has not been implemented.
+
+* *Errors in fit parameters:* ``fit_model`` returns best-fit
+  parameters, but no uncertainties.
+
+* *Ability to fit spectra:* ``fit_model`` fits light curve data. A
+  similar function that fits spectral data would be useful.
+
 
 User Documentation
 ==================
@@ -124,21 +156,3 @@ Classes
    SpectralMagSystem
    ABMagSystem
    PhotoTyper
-
-Development
-===========
-
-Bug reports, comments, and help with development are very welcome.
-Source code and issue tracking is hosted on github:
-https://github.com/kbarbary/sncosmo
-
-A few targets for future development:
-
-* *SALT2 error model:* The model for describing dispersion in light
-  curves around the SALT2 model has not been implemented.
-
-* *Errors in fit parameters:* ``fit_model`` returns best-fit
-  parameters, but no uncertainties.
-
-* *Ability to fit spectra:* ``fit_model`` fits light curve data. A
-  similar function that fits spectral data would be useful.

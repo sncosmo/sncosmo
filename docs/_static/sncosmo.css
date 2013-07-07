@@ -4,19 +4,3 @@
 div.topbar a.brand {
   background: transparent url("sncosmo_logo_32.png") no-repeat 10px 4px;
 }
-
-code, tt {
-  margin: 0 2px;
-  padding: 0 5px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-}
-
-h1 tt, h2 tt, h3 tt, h4 tt, h5 tt, h6 tt, pre, code, tt {
-  background-color: #f8f8f8;
-}
-
-tt.xref, a tt, tt.descname, tt.descclassname {
-  padding: 0 1px 0 1px;
-  border: none;
-}

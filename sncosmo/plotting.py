@@ -30,7 +30,7 @@ def normalized_flux(data, zp=25., magsys='ab'):
     return flux, fluxerr
                        
 def plotlc(data, fname=None, model=None, show_pulls=True,
-           include_model_error=False):
+           include_model_error=False, xfigsize=None, yfigsize=None, dpi=100):
     """Plot light curve data.
 
     Parameters
@@ -45,7 +45,14 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
         If given, model light curve is overplotted.
     show_pulls : bool, optional
         If True (and if model is given), plot pulls. Default is ``True``.
-
+    include_model_error : bool, optional
+        Plot model error as a band around the model.
+    xfigsize, yfigsize : float, optional
+        figure size in inches in x or y. Specify one or the other, not both.
+        Default is xfigsize=8.
+    dpi : float, optional
+        dpi to pass to ``plt.savefig()`` for rasterized images. 
+        
     Examples
     --------
 
@@ -82,13 +89,25 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
     cmap = cm.get_cmap('gist_rainbow')
     disprange = (3000., 10000.)
 
-    fig = plt.figure(figsize=(8., 6.))
-
     dataflux, datafluxerr = normalized_flux(data, zp=25., magsys='ab')
 
     bandnames = np.unique(data['band']).tolist()
     bands = [get_bandpass(bandname) for bandname in bandnames]
     disps = [b.disp_eff for b in bands]
+
+    # Calculate layout of figure (columns, rows, figure size)
+    nsubplots = len(bands)
+    ncol = 2
+    nrow = (nsubplots - 1) // ncol + 1
+    if xfigsize is None and yfigsize is None:
+        figsize = (4. * ncol, 3. * nrow)
+    elif yfigsize is None:
+        figsize = (xfigsize, 3. / 4. * nrow / ncol * xfigsize)
+    elif xfigsize is None:
+        figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
+    else:
+        raise ValueError('cannot specify both xfigsize and yfigsize')
+    fig = plt.figure(figsize=figsize)
 
     axnum = 0
     for disp, band, bandname in sorted(zip(disps, bands, bandnames)):
@@ -101,7 +120,7 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
 
         color = cmap((disprange[1] - disp) / (disprange[1] - disprange[0]))
 
-        ax = plt.subplot(2, 2, axnum)
+        ax = plt.subplot(nrow, ncol, axnum)
         plt.text(0.9, 0.9, bandname, color='k', ha='right', va='top',
                  transform=ax.transAxes)
         if axnum % 2:
@@ -158,14 +177,15 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
     if fname is None:
         plt.show()
     else:
-        plt.savefig(fname)
+        plt.savefig(fname, dpi=dpi)
         plt.clf()
 
 def val_and_err_to_str(v, e):
     p = max(0, -int(math.floor(math.log10(e))) + 1)
     return ('{:.' + str(p) + 'f} +/- {:.'+ str(p) + 'f}').format(v, e)
 
-def plotpdfs(parnames, samples, weights, averages, errors, fname, ncol=2):
+def plotpdfs(parnames, samples, weights, averages, errors, fname, ncol=2,
+             xfigsize=None, yfigsize=None, dpi=100):
     """
     Plot PDFs of parameter values.
     
@@ -184,7 +204,16 @@ def plotpdfs(parnames, samples, weights, averages, errors, fname, ncol=2):
 
     npar = len(parnames)
     nrow = (npar-1) // ncol + 1
-    fig = plt.figure(figsize=(4.*ncol, 3*nrow))
+    if xfigsize is None and yfigsize is None:
+        figsize = (4. * ncol, 3. * nrow)
+    elif yfigsize is None:
+        figsize = (xfigsize, 3. / 4. * nrow / ncol * xfigsize)
+    elif xfigsize is None:
+        figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
+    else:
+        raise ValueError('cannot specify both xfigsize and yfigsize')
+
+    fig = plt.figure(figsize=figsize)
 
     for i in range(npar):
 
@@ -198,5 +227,5 @@ def plotpdfs(parnames, samples, weights, averages, errors, fname, ncol=2):
         plt.text(0.9, 0.9, plot_text, color='k', ha='right', va='top',
                  transform=ax.transAxes)
 
-    plt.savefig(fname)
+    plt.savefig(fname, dpi=dpi)
     plt.clf()

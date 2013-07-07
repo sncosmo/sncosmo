@@ -262,9 +262,10 @@ class PhotoTyper(object):
             Keys are model names. Values are dictionaries with the
             following keys:
            
-            * 'p': probability (float)
-            * 'perr': numerical error on p (tuple)
-            * 'dof': degrees of freedom (len(data) - npar)
+            * 'p' : probability (float)
+            * 'perr' : numerical error on p (tuple)
+            * 'type' : Type of model (str)
+            * 'dof' : degrees of freedom (len(data) - npar)
             * 'niter' : number of iterations (int)
             * 'ncalls' : number of likelihood calls (int)
             * 'time' : evaluation time in seconds (float)
