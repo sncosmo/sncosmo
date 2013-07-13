@@ -100,6 +100,9 @@ A few targets for future development:
 User Documentation
 ==================
 
+Core
+----
+
 .. toctree::
    :maxdepth: 1
 
@@ -107,6 +110,13 @@ User Documentation
    models
    bandpasses
    magsystems
+
+Experimental Features
+---------------------
+
+.. toctree::
+   :maxdepth: 1
+
    fitting
    typing
 
@@ -134,14 +144,10 @@ Functions
    get_model
    get_bandpass
    get_magsystem
-   readlc
-   writelc
-   plotlc
-   fit_model
+   extinction_ccm
    registry.register_loader
    registry.register
    registry.retrieve
-   extinction_ccm
 
 Classes
 -------
@@ -155,4 +161,22 @@ Classes
    Bandpass
    SpectralMagSystem
    ABMagSystem
+
+Experimental Functions
+----------------------
+
+.. autosummary::
+   :toctree: _generated
+
+   fit_model
+   readlc
+   writelc
+   plotlc
+
+Experimental Classes
+--------------------
+
+.. autosummary::
+   :toctree: _generated
+
    PhotoTyper
