@@ -62,10 +62,6 @@ Key Features
 - **Object-oriented and extensible:** New models, bandpasses, and
   magnitude systems can be defined, using an object-oriented interface.
 
-- **Fitting and typing:** You can fit model parameters
-  to data, or perform Bayesian model selection (photometric typing) by
-  comparing multiple models to data.
-
 - **Fast:** Fully NumPy-ified and profiled. Generating
   synthetic photometry for 100 observations spread between four
   bandpasses takes on the order of 1 millisecond (depends on model
@@ -74,9 +70,11 @@ Key Features
 Stability
 ---------
 
-The models classes can be considered fairly stable. The fitting and
-typing functionality is more experimental and the API may change
-slightly as it gets more real-world testing.
+The basic features of the models, bandpasses and magnitude systems
+(documented below) can be considered "fairly" stable (but no
+guarantees).  The fitting and typing functionalities are more
+experimental and the API may change as it gets more real-world
+testing.
 
 Development
 -----------
@@ -96,9 +94,16 @@ A few targets for future development:
 * *Ability to fit spectra:* ``fit_model`` fits light curve data. A
   similar function that fits spectral data would be useful.
 
+* *Testing:* Unit testing is planned but awaiting feedback on the
+  API.
 
 User Documentation
 ==================
+
+.. toctree::
+   :maxdepth: 1
+
+   install
 
 Core
 ----
@@ -106,7 +111,6 @@ Core
 .. toctree::
    :maxdepth: 1
 
-   install
    models
    bandpasses
    magsystems

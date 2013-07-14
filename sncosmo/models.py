@@ -655,15 +655,15 @@ class TimeSeriesModel(Model):
         Wavelengths in Angstroms.
     flux : `~numpy.ndarray`
         Model spectral flux density in erg / s / cm^2 / Angstrom.
-        Must have shape `(num_phases, num_disp)`.
+        Must have shape ``(num_phases, num_disp)``.
     extinction_func : function, optional
         A function that accepts an array of wavelengths in Angstroms
         and returns an array representing the ratio of total extinction
-        (in magnitudes) to the parameter `c` at each wavelength. Default
-        is `sncosmo.extinction.extinction_ccm`.
+        (in magnitudes) to the parameter ``c`` at each wavelength. Default
+        is `sncosmo.extinction_ccm`.
     extinction_kwargs : dict
         A dictionary of keyword arguments to pass to `extinction_func`.
-        Default is `dict(ebv=1.)`.
+        Default is ``{'ebv': 1.}``.
     name : str, optional
         Name of the model. Default is `None`.
     version : str, optional

@@ -229,17 +229,24 @@ The magnitude systems work similarly to bandpasses: ``'ab'`` and
 also directly supply custom `~sncosmo.MagSystem` objects. See
 :doc:`magsystems` for details.
 
-Initializing a model from data
-==============================
+Model particulars: ``TimeSeriesModel`` & ``StretchModel``
+=========================================================
 
-Rather than using a model from built-in data, you can initialize any model
-directly from your own data. The details of how to do this depends on the class
-of model.
+Different classes of models have a very similar API, but a few aspects
+differ, by necessity. For example, you can initialize a model directly
+from data (in files on disk or in numpy arrays) rather than using the
+built-in model data. The initialization for ``TimeSeriesModel`` is
+different from the initialization for ``SALT2Model`` (for example)
+because the underlying data are very different.
 
-``TimeSeriesModel`` & ``StretchModel``
---------------------------------------
+Here we describe particulars of the ``TimeSeriesModel`` and
+``StretchModel`` (which only differ by the addition of a stretch
+parameter ``s``).
 
-These can be initialized directly from numpy arrays. Below, we build a
+Initializing
+------------
+
+These models can be initialized directly from numpy arrays. Below, we build a
 very simple model, of a source with a flat spectrum at all times,
 rising from phase -50 to 0, then declining from phase 0 to +50.
 
@@ -278,8 +285,40 @@ rising from phase -50 to 0, then declining from phase 0 to +50.
         z = None
         c = None
 
-``SALT2Model``
---------------
+Extinction
+----------
+
+Extinction in both models is specified by a function that accepts an
+array of wavelengths in Angstroms and returns the extinction in
+magnitudes for each wavelength for ``c=1``. (In other words, it should
+return the *ratio* of extinction in magnitudes to the ``c``
+parameter). By default, the extinction is the Cardelli, Clayton and
+Mathis (CCM) law, with :math:`R_V = 3.1`. The extinction
+function can be changed two ways:
+
+1. Using the ``set_extinction_func`` method on an existing model object. This example will change the extinction to a CCM law with :math:`R_V = 2`.
+
+    >>> model.set_extinction_func(sncosmo.extinction_ccm, extra_params={'ebv':1., r_v=2.}
+
+2. Upon initialization of the model from data (as above), specify the
+   ``extinction_func`` and ``extinction_kwargs`` parameters:
+
+    >>> model = sncosmo.TimeSeriesModel(phase, disp, flux,
+    ...                                 extinction_func=sncosmo.extinction_ccm,
+    ...                                 extinction_kwargs={'ebv':1., 'r_v':2.})
+
+Internally, the model evaluates the extinction once at the native
+wavelengths of the model and stores the flux transmission values
+(interpreted as corresponding to ``c=1``. When needed, the extinction
+flux transmission values are calculated as ``(stored flux
+transmission) ** c``. Spline interpolation is used to interpolate
+between native model wavelengths.
+
+Model Particulars: ``SALT2Model``
+=================================
+
+Initializing
+------------
 
 The SALT2 model is initialized directly from data files representing the model.
 You can initialize it by giving it a path to a directory containing the files.
