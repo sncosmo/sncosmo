@@ -168,12 +168,26 @@ def evidence(model, data, parnames,
 
 class PhotoTyper(object):
     """Baysian photometric typer.
+    
+    Parameters
+    ----------
+    verbose : bool, optional
+        Print lines as evidence is calculated.
+    t0range : tuple of floats: (t0_low, t0_high), optional
+        Lower limit on t0 relative to earliest data point, and upper limit
+        on t0 relative to latest data point, in days. Default is (0., 0.).
+
+    Notes
+    -----
+    Parameters can also be set after initialization with, e.g.,
+    ``typer.verbose = True`` or ``typer.t0range = (-10., 10.)``.
     """
 
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=True, t0range=(0., 0.)):
         self._models = OrderedDict()
         self.types = []
         self.verbose = verbose
+        self.t0range = t0range
 
     def add_model(self, model, model_type, parlims, priors=None,
                   model_prior=1., tied=None, include_error=False,
@@ -303,7 +317,10 @@ class PhotoTyper(object):
                     'zpsys': data['zpsys'][valid]}
 
         # get range of t0 to consider
-        parlims = {'t0': (np.min(data['time']), np.max(data['time']))}
+        parlims = {
+            't0': (np.min(data['time']) + self.t0range[0],
+                   np.max(data['time']) + self.t0range[1])
+            }
 
         models = {}
         for name, m in self._models.iteritems():
