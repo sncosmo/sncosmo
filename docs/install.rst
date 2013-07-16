@@ -1,8 +1,9 @@
+************
 Installation
-============
+************
 
 Requirements
-------------
+============
 
 SNCosmo depends on the following standard scientific python packages:
 
@@ -21,7 +22,17 @@ following the `AstroPy installation instructions
 <http://astropy.readthedocs.org/en/latest/install.html>`_.
 
 Installation instructions
--------------------------
+=========================
+
+Using `pip`
+-----------
+
+To install with `pip` simply run::
+
+    pip install sncosmo
+
+From Source
+-----------
 
 Either download the latest tarball, using ::
 

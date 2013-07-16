@@ -49,15 +49,15 @@ from astropy.version_helpers import get_git_devstr, generate_version_py
 
 # Set affiliated package-specific settings
 PACKAGENAME = 'sncosmo'
-DESCRIPTION = 'SN Cosmology'
+DESCRIPTION = 'Package for supernova cosmology based on astropy'
 LONG_DESCRIPTION = ''
-AUTHOR = ''
-AUTHOR_EMAIL = ''
+AUTHOR = 'The SNCosmo Developers'
+AUTHOR_EMAIL = 'kylebarbary@gmail.com'
 LICENSE = 'BSD'
-URL = 'http://astropy.org'
+URL = 'http://sncosmo.readthedocs.org'
 
 #VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-VERSION = '0.1.dev'
+VERSION = '0.1'
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in VERSION
@@ -142,14 +142,24 @@ setup(name=PACKAGENAME,
       package_dir=package_dirs,
       ext_modules=extensions,
       scripts=scripts,
-      requires=['astropy'],
-      install_requires=['astropy'],
+      requires=['numpy', 'scipy', 'astropy'],
+      install_requires=['numpy', 'scipy', 'astropy'],
       provides=[PACKAGENAME],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
       url=URL,
       long_description=LONG_DESCRIPTION,
+      classifiers=[
+          'Intended Audience :: Science/Research',
+          'License :: OSI Approved :: BSD License',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python :: 2.6',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3',
+          'Topic :: Scientific/Engineering :: Astronomy',
+          'Topic :: Scientific/Engineering :: Physics'
+      ],
       cmdclass=cmdclassd,
       zip_safe=False,
       use_2to3=True
