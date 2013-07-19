@@ -3,6 +3,7 @@
 
 import string
 import tarfile
+import warnings
 from os.path import join
 
 import numpy as np
@@ -283,6 +284,68 @@ registry.register_loader(
     version='2.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2_website, reference=salt2_reference)
 
+# --------------------------------------------------------------------------
+# 2011fe
+
+sn2011fe_url = "http://snfactory.lbl.gov/snf/data/SN2011fe.tar.gz"
+
+def load_2011fe(remote_url, name=None, version=None):
+
+    # filter warnings about RADESYS keyword in files
+    warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
+                            append=True)
+
+    tarfname = download_file(remote_url, cache=True)
+    t = tarfile.open(tarfname, 'r:gz')
+    phasestrs = []
+    spectra = []
+    disp = None
+    for fname in t.getnames():
+        if fname[-4:] == '.fit':
+            hdulist = fits.open(t.extractfile(fname))
+            flux_density = hdulist[0].data
+            phasestrs.append(fname[-8:-4]) # like 'P167' or 'M167'
+            spectra.append(flux_density)
+
+            # Get dispersion values if we haven't yet
+            # (dispersion should be the same for all)
+            if disp is None:
+                w = wcs.WCS(hdulist[0].header)
+                nflux = len(flux_density)
+                idx = np.arange(nflux) # pixel coords
+                idx.shape = (nflux, 1) # make it 2-d
+                disp = w.wcs_pix2world(idx, 0)[:,0]
+
+            hdulist.close()
+            
+    # get phases in floats
+    phases = []
+    for phasestr in phasestrs:
+        phase = 0.1 * float(phasestr[1:])
+        if phasestr[0] == 'M':
+            phase = -phase
+        phases.append(phase)
+    
+    # order spectra and put them all together
+    spectra = sorted(zip(phases, spectra), key=lambda x: x[0])
+    flux = np.array([s[1] for s in spectra])
+
+    phases = np.array(phases)
+    phases.sort()
+
+    return StretchModel(phases, disp, flux,
+                        name=name, version=version)
+
+
+sn2011fe_url = "http://snfactory.lbl.gov/snf/data/SN2011fe.tar.gz"
+sn2011fe_website = "http://snfactory.lbl.gov/snf/data"
+sn2011fe_reference = ('P13', 'Pereira et al. 2013 '
+                      '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')
+
+registry.register_loader(
+    Model, '2011fe', load_2011fe, [sn2011fe_url],
+    version='1.0', type='SN Ia', subclass='`~sncosmo.StretchModel`', 
+    url=sn2011fe_website, reference=sn2011fe_reference)
 
 # --------------------------------------------------------------------------
 # Generate docstring
