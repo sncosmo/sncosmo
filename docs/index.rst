@@ -83,19 +83,14 @@ Bug reports, comments, and help with development are very welcome.
 Source code and issue tracking is hosted on github:
 https://github.com/kbarbary/sncosmo
 
-A few targets for future development:
+.. toctree::
+   :maxdepth: 1
+   :hidden:
 
-* *SALT2 error model:* The model for describing dispersion in light
-  curves around the SALT2 model has not been implemented.
+   future_development
 
-* *Errors in fit parameters:* ``fit_model`` returns best-fit
-  parameters, but no uncertainties.
+:doc:`future_development`
 
-* *Ability to fit spectra:* ``fit_model`` fits light curve data. A
-  similar function that fits spectral data would be useful.
-
-* *Testing:* Unit testing is planned but awaiting feedback on the
-  API.
 
 User Documentation
 ==================
