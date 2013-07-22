@@ -326,6 +326,13 @@ def load_2011fe(remote_url, name=None, version=None):
             phase = -phase
         phases.append(phase)
     
+    # Add a point at explosion.
+    # The phase of explosion is given in the paper as
+    # t_expl - t_bmax = 55796.696 - 55814.51 = -17.814
+    # where t_expl is from Nugent et al (2012)
+    phases.append(-17.814)
+    spectra.append(np.zeros_like(spectra[0]))
+
     # order spectra and put them all together
     spectra = sorted(zip(phases, spectra), key=lambda x: x[0])
     flux = np.array([s[1] for s in spectra])
