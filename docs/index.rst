@@ -109,6 +109,7 @@ Core
    models
    bandpasses
    magsystems
+   registry
 
 Experimental Features
 ---------------------

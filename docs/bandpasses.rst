@@ -7,7 +7,7 @@ Constructing a Bandpass
 
 Bandpass objects represent the transmission fraction of an
 astronomical filter as a function of dispersion (photon wavelength,
-frequency or energy). They are basically simple containers for these
+frequency or energy). They are basically simple containers for arrays of these
 values, with a couple special features. To get a bandpass that is in
 the registry (built-in):
 
@@ -40,6 +40,7 @@ dispersion unit, use a unit from the `astropy.units` package:
     >>> trans = np.array([0., 1., 1., 1., 1., 0.])
     >>> band = Bandpass(dispersion, trans, dunit=u.nm)
 
+Outside the defined dispersion range, the transmission is generally treated as being 0 in `sncosmo`. 
 
 Using a Bandpass
 ----------------
@@ -79,11 +80,16 @@ above:
     >>> # or if band.name is set, you can just do:
     >>> registry.register(band)  # registers band under band.name
 
-After doing this, we can get the band by doing
+After doing this, we can get the bandpass object by doing
 
     >>> band = sncosmo.get_bandpass('tophatg')
 
 Also, *we can pass the string* ``'tophatg'`` *to any function that
-takes a* `~sncosmo.Bandpass` *object*. This means that you can
-register bandpasses at the top of a script, then just keep track of
-string identifiers.
+takes a* `~sncosmo.Bandpass` *object*:
+
+    >>> model = sncosmo.get_model('hsiao')
+    >>> model.bandflux('tophatg')
+
+This means that you can create and register bandpasses at the top of a
+script, then just keep track of string identifiers throughout the rest
+of the script.
