@@ -273,6 +273,8 @@ salt2_baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
 salt2_website = 'http://supernovae.in2p3.fr/~guy/salt/download_templates.html'
 salt2_reference = ('G07', 'Guy et al. 2007 '
                    '<http://adsabs.harvard.edu/abs/2007A%26A...466...11G>')
+salt2_2_reference = ('G10', 'Guy et al. 2010 '
+                   '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
 registry.register_loader(
     Model, 'salt2', load_salt2model,
     [salt2_baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
@@ -282,7 +284,7 @@ registry.register_loader(
     Model, 'salt2', load_salt2model,
     [salt2_baseurl + 'salt2_model_data-2-0.tar.gz', 'salt2-2-0'],
     version='2.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
-    url=salt2_website, reference=salt2_reference)
+    url=salt2_website, reference=salt2_2_reference)
 
 # --------------------------------------------------------------------------
 # 2011fe
