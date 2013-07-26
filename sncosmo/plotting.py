@@ -5,6 +5,7 @@ from __future__ import division
 import math
 import numpy as np
 
+from .models import get_model
 from .spectral import get_bandpass, get_magsystem
 from .fitting import normalized_flux
 
@@ -29,22 +30,25 @@ def normalized_flux(data, zp=25., magsys='ab'):
 
     return flux, fluxerr
                        
-def plotlc(data, fname=None, model=None, show_pulls=True,
+def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
            include_model_error=False, xfigsize=None, yfigsize=None, dpi=100):
-    """Plot light curve data.
+    """Plot light curve data or model light curves.
 
     Parameters
     ----------
-    data : `~numpy.ndarray` or dict thereof
+    data : `~numpy.ndarray` or dict thereof, optional
         Structured array or dictionary of arrays, with the following fields:
         {'time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'}.
+    model : `~sncosmo.Model`, optional
+        If given, model light curve is plotted.
     fname : str, optional
         Filename to write plot to. If `None` (default), plot is shown using
         ``show()``.
-    model : `~sncosmo.Model`, optional
-        If given, model light curve is overplotted.
+    bands : list, optional
+        List of Bandpasses, or names thereof, to plot.
     show_pulls : bool, optional
-        If True (and if model is given), plot pulls. Default is ``True``.
+        If True (and if model and data are given), plot pulls. Default is
+        ``True``.
     include_model_error : bool, optional
         Plot model error as a band around the model.
     xfigsize, yfigsize : float, optional
@@ -81,18 +85,42 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
 
     .. image:: /pyplots/plotlc_example.png
 
+    Plot just the model:
+
+        >>> sncosmo.plotlc(model=model, bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'], fname='plotlc_example.png')
+
+
     """
 
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
     from matplotlib import cm
     from mpl_toolkits.axes_grid1 import make_axes_locatable
+
     cmap = cm.get_cmap('gist_rainbow')
-    disprange = (3000., 10000.)
+    cm_disp_range = (3000., 10000.)  # wavelengths corresponding to (blue, red)
 
-    dataflux, datafluxerr = normalized_flux(data, zp=25., magsys='ab')
+    if data is None and model is None:
+        raise ValueError('must specify at least one of: data, model')
+    if data is None and bands is None:
+        raise ValueError('must specify bands to plot for model')
+    if model is not None:
+        model = get_model(model)
 
-    bandnames = np.unique(data['band']).tolist()
-    bands = [get_bandpass(bandname) for bandname in bandnames]
+    if data is not None:
+        dataflux, datafluxerr = normalized_flux(data, zp=25., magsys='ab')
+
+    # Bands to plot
+    if data is None:
+        bands = set([get_bandpass(band) for band in bands])
+    else:
+        data_bands = np.array([get_bandpass(band) for band in data['band']])
+        unique_data_bands = set(data_bands)
+        if bands is None:
+            bands = unique_data_bands
+        else:
+            bands = set([get_bandpass(band) for band in bands])
+            bands = bands & unique_data_bands
+    bands = list(bands)
     disps = [b.disp_eff for b in bands]
 
     # Calculate layout of figure (columns, rows, figure size)
@@ -110,67 +138,78 @@ def plotlc(data, fname=None, model=None, show_pulls=True,
     fig = plt.figure(figsize=figsize)
 
     axnum = 0
-    for disp, band, bandname in sorted(zip(disps, bands, bandnames)):
+    for disp, band in sorted(zip(disps, bands)):
         axnum += 1
 
-        idx = data['band'] == bandname
-        time = data['time'][idx]
-        flux = dataflux[idx]
-        fluxerr = datafluxerr[idx]
-
-        color = cmap((disprange[1] - disp) / (disprange[1] - disprange[0]))
+        color = cmap((cm_disp_range[1] - disp) /
+                     (cm_disp_range[1] - cm_disp_range[0]))
 
         ax = plt.subplot(nrow, ncol, axnum)
-        plt.text(0.9, 0.9, bandname, color='k', ha='right', va='top',
+        plt.text(0.9, 0.9, band.name, color='k', ha='right', va='top',
                  transform=ax.transAxes)
         if axnum % 2:
             plt.ylabel('flux ($ZP_{AB} = 25$)')
 
-        if model is None:
-            plt.errorbar(time, flux, fluxerr, ls='None',
+        xlabel_text = 'time'
+        if model is not None and model.params['t0'] != 0.:
+            xlabel_text += ' - {:.2f}'.format(model.params['t0'])
+
+        if data is not None:
+            idx = data_bands == band
+            time = data['time'][idx]
+            flux = dataflux[idx]
+            fluxerr = datafluxerr[idx]
+
+            if model is None:
+                plotted_time = time
+            else:
+                plotted_time = time - model.params['t0']
+
+            plt.errorbar(plotted_time, flux, fluxerr, ls='None',
                          color=color, marker='.', markersize=3.)
 
         if model is not None and model.bandoverlap(band):
-            t0 = model.params['t0']
-            plt.errorbar(time - t0, flux, fluxerr, ls='None',
-                         color=color, marker='.', markersize=3.)
 
-            result = model.bandflux(band, zp=25., zpsys='ab',
-                                    include_error=include_model_error)
+            plotted_time = model.times() - model.params['t0']
+
             if include_model_error:
-                modelflux, modelfluxerr = result
+                modelflux, modelfluxerr = \
+                    model.bandflux(band, zp=25., zpsys='ab',
+                                   include_error=True)
             else:
-                modelflux = result
+                modelflux = model.bandflux(band, zp=25., zpsys='ab',
+                                           include_error=False)
 
-            plt.plot(model.times() - t0, modelflux, ls='-', marker='None',
+            plt.plot(plotted_time, modelflux, ls='-', marker='None',
                      color=color)
             if include_model_error:
-                plt.fill_between(model.times() - t0, modelflux - modelfluxerr,
+                plt.fill_between(plotted_time, modelflux - modelfluxerr,
                                  modelflux + modelfluxerr, color=color,
                                  alpha=0.2)
-
-
-            # steal part of the axes and plot pulls
-            if show_pulls:
-                divider = make_axes_locatable(ax)
-                axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
-                                              sharex=ax)
-                modelflux = model.bandflux(band, time, zp=25., zpsys='ab') 
-                pulls = (flux - modelflux) / fluxerr
-                plt.plot(time - t0, pulls, marker='.', markersize=5.,
-                         color=color, ls='None')
-                plt.axhline(y=0., color=color)
-                plt.setp(ax.get_xticklabels(), visible=False)
-                plt.xlabel('time - {:.2f}'.format(t0))
-                if axnum % 2:
-                    plt.ylabel('pull')
-
             # maximum plot range
             ymin, ymax = ax.get_ylim()
             maxmodelflux = modelflux.max()
             ymin = max(ymin, -0.2 * maxmodelflux)
             ymax = min(ymax, 2. * maxmodelflux)
             ax.set_ylim(ymin, ymax)
+
+
+        # steal part of the axes and plot pulls
+        if show_pulls and data is not None and model is not None:
+            divider = make_axes_locatable(ax)
+            axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
+                                          sharex=ax)
+            modelflux = model.bandflux(band, time, zp=25., zpsys='ab') 
+            pulls = (flux - modelflux) / fluxerr
+            plt.plot(time - model.params['t0'], pulls, marker='.',
+                     markersize=5., color=color, ls='None')
+            plt.axhline(y=0., color=color)
+            plt.setp(ax.get_xticklabels(), visible=False)
+            if axnum % 2:
+                plt.ylabel('pull')
+
+        # label the most recent Axes x-axis
+        plt.xlabel(xlabel_text)
 
     plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.97,
                         wspace=0.2, hspace=0.2)
