@@ -1,5 +1,5 @@
-numpy>=1.4.0
+numpy>=1.5.0
 matplotlib
 scipy
 cython
--e git+http://github.com/astropy/astropy.git#egg=astropy
+astropy>=0.2.0, <0.3.0
