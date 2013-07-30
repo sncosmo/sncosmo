@@ -9,7 +9,7 @@ SNCosmo depends on the following standard scientific python packages:
 
 - `Python <http://www.python.org/>`_ 2.6, 2.7
 
-- `NumPy <http://www.numpy.org/>`_ 1.4 or later
+- `NumPy <http://www.numpy.org/>`_ 1.5 or later
 
 - `SciPy <http://www.scipy.org/>`_ (tested on 0.10.1)
 
@@ -24,41 +24,44 @@ following the `AstroPy installation instructions
 Installation instructions
 =========================
 
-Using `pip`
------------
+Latest released version (using pip)
+-----------------------------------
 
-To install with `pip` simply run::
+To install with `pip`, simply run one of::
 
     pip install sncosmo
+    pip install sncosmo --user
+    pip install sncosmo --prefix=/path/to/install/dir
 
-From Source
------------
+The first option will try to install to the system directories, and
+requires root access. The ``--user`` option will typically install
+things in ``~/.local/lib``, ``~/.local/bin``, etc (on Linux
+systems). The ``--prefix`` option will install in
+``/path/to/install/dir/lib``, ``/path/to/install/dir/bin``, etc.
 
-Either download the latest tarball, using ::
+Development version (using git)
+-------------------------------
+
+To get the latest development version source, using ``git``::
+
+    git clone git://github.com/kbarbary/sncosmo.git
+    cd sncosmo
+    setup.py build
+
+then one of::
+
+    setup.py install
+    setup.py install --user
+    setup.py install --prefix=/path/to/prefix
+
+Development version (no git)
+----------------------------
+
+If you don't have git but want to use the latest development version,
+download the latest tarball, using ::
 
     wget https://github.com/kbarbary/sncosmo/archive/master.zip
     unzip master.zip
     cd sncosmo-master
     setup.py build
-    setup.py install
-
-or clone the repository using ::
-
-    git clone git://github.com/kbarbary/sncosmo.git
-    cd sncosmo
-    setup.py build
-    setup.py install
-
-If you don't have root access, install using ::
-
-    setup.py install --user
-
-or ::
-
-    setup.py install --prefix=/path/to/prefix
-
-
-Source
-------
-
-The source code is hosted on github: https://github.com/kbarbary/sncosmo
+    setup.py install [--user] [--prefix=...]

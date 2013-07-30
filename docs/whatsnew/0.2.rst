@@ -1,0 +1,10 @@
+=========================
+What's New in sncosmo 0.2
+=========================
+
+* Added SN 2011fe Nearby Supernova Factory data to built-in models as
+  ``'2011fe'``
+
+* ``sncosmo.plotlc``: Ability to plot model synthetic photometry
+  without observed data, using the syntax
+  ``sncosmo.plotlc(model=model, bands=['band1', 'band2'])``

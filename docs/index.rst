@@ -99,6 +99,7 @@ User Documentation
    :maxdepth: 1
 
    install
+   whatsnew/0.2
 
 Core
 ----
