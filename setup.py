@@ -127,12 +127,14 @@ package_data = {PACKAGENAME: data_files}
 # A dictionary to keep track of extra packagedir mappings
 package_dirs = {}
 
+skip_2to3 = []
+
 # Update extensions, package_data, packagenames and package_dirs from
 # any sub-packages that define their own extension modules and package
 # data.  See the docstring for setup_helpers.update_package_files for
 # more details.
 update_package_files(PACKAGENAME, extensions, package_data,
-                     packagenames, package_dirs)
+                     packagenames, package_dirs, skip_2to3)
 
 setup(name=PACKAGENAME,
       version=VERSION,
