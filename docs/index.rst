@@ -118,6 +118,7 @@ Experimental Features
 .. toctree::
    :maxdepth: 1
 
+   photometric_data
    fitting
    typing
 

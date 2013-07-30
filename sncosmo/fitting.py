@@ -7,36 +7,21 @@ from scipy.optimize import fmin_l_bfgs_b
 from astropy.utils import OrderedDict
 
 from spectral import get_magsystem
+from .photometric_data import PhotData
 
 __all__ = ['fit_model']
 
-def normalized_flux(data, zp=25., magsys='ab'):
-    """Return flux values normalized to a common zeropoint and magnitude
-    system."""
+def _guess_parvals(data, model, parnames=['t0', 'fscale']):
 
-    magsys = get_magsystem(magsys)
-    flux = np.empty(len(data['flux']), dtype=np.float)
-    fluxerr = np.empty(len(data['flux']), dtype=np.float)
+    nflux, nfluxerr = data.normalized_flux(zp=25., zpsys='ab',
+                                           include_err=True)
 
-    for i in range(len(data['flux'])):
-        ms = get_magsystem(data['zpsys'][i])
-        factor = (ms.zpbandflux(data['band'][i]) /
-                  magsys.zpbandflux(data['band'][i]) *
-                  10.**(0.4 * (zp - data['zp'][i])))
-        flux[i] = data['flux'][i] * factor
-        fluxerr[i] = data['fluxerr'][i] * factor
-
-    return flux, fluxerr
-
-def guess_parvals(data, model, parnames=['t0', 'fscale']):
-
-    nflux, nfluxerr = normalized_flux(data, zp=25., magsys='ab')
     bandt0 = []
     bandfluxscale = []
-    for band in np.unique(data['band']):
-        idx = data['band'] == band
+    for band in np.unique(data.band):
+        idx = data.band == band
         flux = nflux[idx]
-        time = data['time'][idx]
+        time = data.time[idx]
         weights = flux ** 2 / nfluxerr[idx]
         topn = min(len(weights) // 2, 3)
         if topn == 0: continue
@@ -63,9 +48,8 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
     ----------
     model : `~sncosmo.Model`
         The model to fit.
-    data : `~numpy.ndarray` or `dict`
-        Table containing columns 'date', 'band', 'flux', 'fluxerr', 'zp',
-        'zpsys'.
+    data : `~numpy.ndarray` or `dict` or `~astropy.table.Table`
+        Table of photometric data. Must include certain column names.
     parnames : list
         Model parameters to vary in the fit.
     bounds : `dict`, optional
@@ -93,26 +77,28 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
     Uses scipy's L-BFGS-B bounded minimization algorithm.
     """
 
+    # Initialize data
+    data = PhotData(data)
+
     # Check that if z is going to be fit, it is bounded.
     if 'z' in parnames and (bounds is None or 'z' not in bounds):
         raise ValueError('z must be bounded if fit.')
 
     # Check redshift range to see which bands we can use in the fit.
-    bands = np.unique(data['band'])
     if 'z' not in parnames:
-        valid = model.bandoverlap(data['band'])
+        valid = model.bandoverlap(data.band)
     else:
-        valid = model.bandoverlap(data['band'], z=bounds['z'])
+        valid = model.bandoverlap(data.band, z=bounds['z'])
         valid = np.all(valid, axis=1)
     if not np.all(valid):
         print "WARNING: dropping following bands from data:"
-        print np.unique(data['band'][np.invert(valid)])
-        data = {'time': data['time'][valid],
-                'band': data['band'][valid],
-                'flux': data['flux'][valid],
-                'fluxerr': data['fluxerr'][valid],
-                'zp': data['zp'][valid],
-                'zpsys': data['zpsys'][valid]}
+        print np.unique(data.band[np.invert(valid)])
+        data = PhotData({'time': data.time[valid],
+                         'band': data.band[valid],
+                         'flux': data.flux[valid],
+                         'fluxerr': data.fluxerr[valid],
+                         'zp': data.zp[valid],
+                         'zpsys': data.zpsys[valid]}
 
     # If we're fitting redshift and it is bounded, set initial value
     if 'z' in parnames:
@@ -120,7 +106,7 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
 
     # Get initial guesses
     parvals0 = []
-    guesses = guess_parvals(data, model, parnames=['t0', 'fscale'])
+    guesses = _guess_parvals(data, model, parnames=['t0', 'fscale'])
     current = model.params
     for name in parnames:
         if name in params_start:
@@ -147,7 +133,7 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         for name, val, bound in zip(parnames, parvals0, bounds_list):
             print "   ", name, val, bound
 
-    # scale fscale, for numerical precision reasons.
+    # scale `fscale`, for numerical precision reasons.
     fscale_factor = 1.
     if 'fscale' in parnames:
         i = parnames.index('fscale')
@@ -164,14 +150,14 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         model.set(**params)
         if include_model_error:
             modelflux, modelfluxerr = model.bandflux(
-                data['band'], data['time'], zp=data['zp'],
-                zpsys=data['zpsys'], include_error=True)
-            return np.sum((data['flux'] - modelflux) ** 2 /
-                          (modelfluxerr ** 2 + data['fluxerr'] ** 2))
+                data.band, data.time, zp=data.zp,
+                zpsys=data.zpsys, include_error=True)
+            return np.sum((data.flux - modelflux) ** 2 /
+                          (modelfluxerr ** 2 + data.fluxerr ** 2))
         else:
-            modelflux = model.bandflux(data['band'], data['time'],
-                                       zp=data['zp'], zpsys=data['zpsys'])
-            return np.sum(((data['flux'] - modelflux) / data['fluxerr']) ** 2)
+            modelflux = model.bandflux(data.band, data.time,
+                                       zp=data.zp, zpsys=data.zpsys)
+            return np.sum(((data.flux - modelflux) / data.fluxerr) ** 2)
 
     parvals, fval, d = fmin_l_bfgs_b(chi2, parvals0, bounds=bounds_list,
                                      approx_grad=True, iprint=(verbose - 1))

@@ -11,34 +11,17 @@ from .fitting import normalized_flux
 
 __all__ = ['plotlc']
 
-def normalized_flux(data, zp=25., magsys='ab'):
-    """Return flux values normalized to a common zeropoint and magnitude
-    system."""
-
-    datalen = len(data['flux'])
-    magsys = get_magsystem(magsys)
-    flux = np.empty(datalen, dtype=np.float)
-    fluxerr = np.empty(datalen, dtype=np.float)
-
-    for i in range(datalen):
-        ms = get_magsystem(data['zpsys'][i])
-        factor = (ms.zpbandflux(data['band'][i]) /
-                  magsys.zpbandflux(data['band'][i]) *
-                  10.**(0.4 * (zp - data['zp'][i])))
-        flux[i] = data['flux'][i] * factor
-        fluxerr[i] = data['fluxerr'][i] * factor
-
-    return flux, fluxerr
-                       
-def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
-           include_model_error=False, xfigsize=None, yfigsize=None, dpi=100):
+# TODO: cleanup names: data_bands, etc 
+# TODO: standardize docs for `data` in this and other functions.
+def plotlc(data=None, model=None, bands=None, show_pulls=True,
+           include_model_error=False, zp=25., zpsys='ab',
+           figsize=None, yfigsize=None, dpi=100, fname=None):
     """Plot light curve data or model light curves.
 
     Parameters
     ----------
     data : `~numpy.ndarray` or dict thereof, optional
-        Structured array or dictionary of arrays, with the following fields:
-        {'time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'}.
+        Structured array or dictionary of arrays, with certain required fields.
     model : `~sncosmo.Model`, optional
         If given, model light curve is plotted.
     fname : str, optional
@@ -81,7 +64,7 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
     
         >>> model = sncosmo.get_model('salt2')
         >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
-        >>> sncosmo.plotlc(data, fname='plotlc_example.png', model=model)
+        >>> sncosmo.plotlc(data, model=model, fname='plotlc_example.png',)
 
     .. image:: /pyplots/plotlc_example.png
 
@@ -96,8 +79,9 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
     from matplotlib import cm
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+    # Get colormap and define wavelengths corresponding to (blue, red)
     cmap = cm.get_cmap('gist_rainbow')
-    cm_disp_range = (3000., 10000.)  # wavelengths corresponding to (blue, red)
+    cm_disp_range = (3000., 10000.)
 
     if data is None and model is None:
         raise ValueError('must specify at least one of: data, model')
@@ -107,13 +91,15 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
         model = get_model(model)
 
     if data is not None:
-        dataflux, datafluxerr = normalized_flux(data, zp=25., magsys='ab')
+        data = PhotData(data)
+        nflux, nfluxerr = data.normalized_flux(zp=zp, zpsys=zpsys,
+                                               include_err=True)
 
     # Bands to plot
     if data is None:
         bands = set([get_bandpass(band) for band in bands])
     else:
-        data_bands = np.array([get_bandpass(band) for band in data['band']])
+        data_bands = np.array([get_bandpass(band) for band in data.band])
         unique_data_bands = set(data_bands)
         if bands is None:
             bands = unique_data_bands
@@ -148,7 +134,8 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
         plt.text(0.9, 0.9, band.name, color='k', ha='right', va='top',
                  transform=ax.transAxes)
         if axnum % 2:
-            plt.ylabel('flux ($ZP_{AB} = 25$)')
+            plt.ylabel('flux ($ZP_{{:s}} = {:s})'
+                       .format(get_magsystem(zpsys).name, str(zp)))
 
         xlabel_text = 'time'
         if model is not None and model.params['t0'] != 0.:
@@ -156,9 +143,9 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
 
         if data is not None:
             idx = data_bands == band
-            time = data['time'][idx]
-            flux = dataflux[idx]
-            fluxerr = datafluxerr[idx]
+            time = data.time[idx]
+            flux = nflux[idx]
+            fluxerr = nfluxerr[idx]
 
             if model is None:
                 plotted_time = time
@@ -174,10 +161,10 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
 
             if include_model_error:
                 modelflux, modelfluxerr = \
-                    model.bandflux(band, zp=25., zpsys='ab',
+                    model.bandflux(band, zp=zp, zpsys=zpsys,
                                    include_error=True)
             else:
-                modelflux = model.bandflux(band, zp=25., zpsys='ab',
+                modelflux = model.bandflux(band, zp=zp, zpsys=zpsys,
                                            include_error=False)
 
             plt.plot(plotted_time, modelflux, ls='-', marker='None',
@@ -199,7 +186,7 @@ def plotlc(data=None, model=None, fname=None, bands=None, show_pulls=True,
             divider = make_axes_locatable(ax)
             axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
                                           sharex=ax)
-            modelflux = model.bandflux(band, time, zp=25., zpsys='ab') 
+            modelflux = model.bandflux(band, time, zp=zp, zpsys=zpsys) 
             pulls = (flux - modelflux) / fluxerr
             plt.plot(time - model.params['t0'], pulls, marker='.',
                      markersize=5., color=color, ls='None')

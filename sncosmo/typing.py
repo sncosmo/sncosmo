@@ -2,7 +2,6 @@ from sys import stdout
 import time
 import math
 import copy
-import operator
 
 import numpy as np
 from scipy import integrate, optimize
@@ -10,6 +9,7 @@ from astropy.utils import OrderedDict
 
 from .models import get_model
 from .spectral import get_magsystem
+from .photometric_data import PhotData
 from . import nest
 
 def _cdf(pdf, x, a):
@@ -107,13 +107,6 @@ def evidence(model, data, parnames,
             v[i] = ppflist[i](u[i])
         return v
 
-    band = data['band']
-    time = data['time']
-    zp = data['zp']
-    zpsys = data['zpsys']
-    flux = data['flux']
-    fluxerr = data['fluxerr']
-
     def loglikelihood(parvals):
         d = dict(zip(parnames, parvals))
         if tied is not None:
@@ -122,13 +115,14 @@ def evidence(model, data, parnames,
 
         model.set(**d)
         if not include_error:
-            modelflux = model.bandflux(band, time, zp, zpsys)
-            chisq = np.sum(((flux - modelflux) / fluxerr)**2)
+            modelflux = model.bandflux(data.band, data.time, data.zp,
+                                       data.zpsys)
+            chisq = np.sum(((data.flux - modelflux) / data.fluxerr)**2)
         else:
-            modelflux, modelfluxerr =  model.bandflux(band, time, zp, zpsys,
-                                                      include_error=True)
-            chisq = np.sum(((flux - modelflux)**2 /
-                            (fluxerr**2 + modelfluxerr**2)))
+            modelflux, modelfluxerr =  model.bandflux(
+                data.band, data.time,data.zp, data.zpsys, include_error=True)
+            chisq = np.sum(((data.flux - modelflux)**2 /
+                            (data.fluxerr**2 + modelfluxerr**2)))
 
         return -chisq / 2.
 
@@ -296,30 +290,33 @@ class PhotoTyper(object):
         if verbose is None:
             verbose = self.verbose
 
+        # Initialize data
+        data = PhotData(data)
+
         # limit data to bands that overlap *all* models over the full z range.
-        valid = np.ones(len(data['band']), dtype=np.bool)
+        valid = np.ones(len(data), dtype=np.bool)
         for m in self._models.values():
             model = m['model']
             if 'z' not in m['parlims']:
-                v = model.bandoverlap(data['band'])
+                v = model.bandoverlap(data.band)
             else:
-                v = np.all(model.bandoverlap(data['band'],z=m['parlims']['z']),
+                v = np.all(model.bandoverlap(data.band, z=m['parlims']['z']),
                            axis=1)
             valid = valid & v
         if not np.all(valid):
             print "WARNING: dropping following bands from data:"
-            print np.unique(data['band'][np.invert(valid)])
-            data = {'time': data['time'][valid],
-                    'band': data['band'][valid],
-                    'flux': data['flux'][valid],
-                    'fluxerr': data['fluxerr'][valid],
-                    'zp': data['zp'][valid],
-                    'zpsys': data['zpsys'][valid]}
+            print np.unique(data.band[np.invert(valid)])
+            data = PhotData({'time': data.time[valid],
+                             'band': data.band[valid],
+                             'flux': data.flux[valid],
+                             'fluxerr': data.fluxerr[valid],
+                             'zp': data.zp[valid],
+                             'zpsys': data.zpsys[valid]})
 
         # get range of t0 to consider
         parlims = {
-            't0': (np.min(data['time']) + self.t0range[0],
-                   np.max(data['time']) + self.t0range[1])
+            't0': (np.min(data.time) + self.t0range[0],
+                   np.max(data.time) + self.t0range[1])
             }
 
         models = {}

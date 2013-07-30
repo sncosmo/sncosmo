@@ -8,3 +8,5 @@ What's New in sncosmo 0.2
 * ``sncosmo.plotlc``: Ability to plot model synthetic photometry
   without observed data, using the syntax
   ``sncosmo.plotlc(model=model, bands=['band1', 'band2'])``
+
+* Photometric data format is now more flexible.
