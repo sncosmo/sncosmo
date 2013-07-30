@@ -69,7 +69,7 @@ class PhotData(object):
         """Return flux values normalized to a common zeropoint and magnitude
         system."""
 
-        magsys = get_magsystem(magsys)
+        magsys = get_magsystem(zpsys)
         factor = np.empty(self.length, dtype=np.float)
 
         for i in range(self.length):
@@ -81,6 +81,24 @@ class PhotData(object):
         if include_err:
             return self.flux * factor, self.fluxerr * factor
         return self.flux * factor
+
+def load_example_data():
+    """
+    Load an example photometric data table.
+
+    Returns
+    -------
+    meta : dict
+        Dictionary with model and parameters used to generate the data.
+    data : `~numpy.ndarray`
+        Data.
+    """
+
+    from astropy.utils.data import get_pkg_data_filename
+    from .lcio import readlc
+
+    filename = get_pkg_data_filename('data/examples/example_photometric_data.dat')
+    return readlc(filename, fmt='csv')
 
 # Generate docstring: table of aliases
 lines = [

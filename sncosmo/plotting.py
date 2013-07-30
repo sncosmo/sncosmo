@@ -7,7 +7,7 @@ import numpy as np
 
 from .models import get_model
 from .spectral import get_bandpass, get_magsystem
-from .fitting import normalized_flux
+from .photometric_data import PhotData
 
 __all__ = ['plotlc']
 
@@ -15,7 +15,7 @@ __all__ = ['plotlc']
 # TODO: standardize docs for `data` in this and other functions.
 def plotlc(data=None, model=None, bands=None, show_pulls=True,
            include_model_error=False, zp=25., zpsys='ab',
-           figsize=None, yfigsize=None, dpi=100, fname=None):
+           xfigsize=None, yfigsize=None, dpi=100, fname=None):
     """Plot light curve data or model light curves.
 
     Parameters
@@ -32,6 +32,10 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
     show_pulls : bool, optional
         If True (and if model and data are given), plot pulls. Default is
         ``True``.
+    zp : float, optional
+        Zeropoint to normalize the flux. Default is 25.
+    zpsys : str or `~sncosmo.MagSystem`, optional
+        Zeropoint system for `zp`. Default is 'ab'.
     include_model_error : bool, optional
         Plot model error as a band around the model.
     xfigsize, yfigsize : float, optional
@@ -134,8 +138,8 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
         plt.text(0.9, 0.9, band.name, color='k', ha='right', va='top',
                  transform=ax.transAxes)
         if axnum % 2:
-            plt.ylabel('flux ($ZP_{{:s}} = {:s})'
-                       .format(get_magsystem(zpsys).name, str(zp)))
+            plt.ylabel('flux ($ZP_{' + get_magsystem(zpsys).name.upper() +
+                       '} = ' + str(zp) + '$)')
 
         xlabel_text = 'time'
         if model is not None and model.params['t0'] != 0.:

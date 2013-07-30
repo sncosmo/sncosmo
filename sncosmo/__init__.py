@@ -6,6 +6,7 @@ from .plotting import *
 from .fitting import *
 from .typing import *
 from .extinction import *
+from .photometric_data import load_example_data
 from . import registry
 from . import _builtin
 

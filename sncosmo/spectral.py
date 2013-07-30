@@ -94,7 +94,7 @@ class Bandpass(object):
         """
 
         if unit is u.AA:
-            return self
+            return self.disp, self.trans
         
         d = u.AA.to(unit, self.disp, u.spectral())
         t = self.trans

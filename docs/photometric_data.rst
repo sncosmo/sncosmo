@@ -2,6 +2,16 @@
 Photometric Data
 ****************
 
+Quick guide
+-----------
+
+For an acceptable example of photometric data, you can do::
+
+    >>> meta, data = sncosmo.load_example_data()
+
+In this case, ``data`` is a `~numpy.ndarray` representing a table of
+photometric observations.
+
 Structure
 ---------
 

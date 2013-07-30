@@ -45,9 +45,16 @@ def get_model(name, version=None):
         `None` which corresponds to the latest, or only, version.
     """
     
-    # Call the one in the registry to create a copy and keep the registry
-    # copy pristine.
-    return registry.retrieve(Model, name, version=version)()
+
+    # If we need to retrieve from the registry, we want to return a shallow
+    # copy, in order to keep the copy in the registry "pristene". However, we
+    # *don't* want a shallow copy otherwise. Therefore,
+    # we need to check if `name` is already an instance of Model before 
+    # going to the registry, so we know whether or not to make a shallow copy.
+    if isinstance(name, Model):
+        return name
+    else:
+        return registry.retrieve(Model, name, version=version)()
 
 
 class Model(object):
@@ -109,6 +116,8 @@ class Model(object):
 
         # Below, when `self._refm` and `self._distmod` might have changed, we
         # set them to `None` so that they are recalculated as needed.
+
+        recalc_fscale = False
 
         if 'z' in params and self._params['z'] != params['z']:
             self._distmod = None

@@ -98,7 +98,7 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
                          'flux': data.flux[valid],
                          'fluxerr': data.fluxerr[valid],
                          'zp': data.zp[valid],
-                         'zpsys': data.zpsys[valid]}
+                         'zpsys': data.zpsys[valid]})
 
     # If we're fitting redshift and it is bounded, set initial value
     if 'z' in parnames:
