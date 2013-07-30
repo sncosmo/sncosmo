@@ -1,3 +1,6 @@
+# need v0.3+ of astropy because RTD needs it, AND the setup.py file has to be
+# different for v0.2 versus v0.3.
+
 numpy>=1.5.0
 scipy>=0.9.0
-astropy>=0.2.0, <0.3.0
+-e git+http://github.com/astropy/astropy.git#egg=astropy

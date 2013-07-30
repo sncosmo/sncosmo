@@ -127,12 +127,14 @@ package_data = {PACKAGENAME: data_files}
 # A dictionary to keep track of extra packagedir mappings
 package_dirs = {}
 
+use_2to3 = []
+
 # Update extensions, package_data, packagenames and package_dirs from
 # any sub-packages that define their own extension modules and package
 # data.  See the docstring for setup_helpers.update_package_files for
 # more details.
 update_package_files(PACKAGENAME, extensions, package_data,
-                     packagenames, package_dirs)
+                     packagenames, package_dirs, use_2to3)
 
 setup(name=PACKAGENAME,
       version=VERSION,
@@ -142,8 +144,8 @@ setup(name=PACKAGENAME,
       package_dir=package_dirs,
       ext_modules=extensions,
       scripts=scripts,
-      requires=['numpy', 'scipy', 'astropy>=0.2.0, <0.3.0'],
-      install_requires=['numpy', 'scipy', 'astropy>=0.2.0, <0.3.0'],
+      requires=['numpy', 'scipy', 'astropy'],
+      install_requires=['numpy', 'scipy', 'astropy'],
       provides=[PACKAGENAME],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,

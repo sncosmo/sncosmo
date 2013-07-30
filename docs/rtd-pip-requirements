@@ -1,5 +1,7 @@
+# need v0.3+ of astropy because of changes to astropy.sphinx
+
 numpy>=1.5.0
 matplotlib
 scipy
 cython
-astropy>=0.2.0, <0.3.0
+-e git+http://github.com/astropy/astropy.git#egg=astropy
