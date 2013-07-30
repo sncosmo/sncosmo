@@ -171,7 +171,7 @@ class Model(object):
                 raise ValueError("cannot set absolute magnitude when distance "
                                  "modulus is unknown (when either redshift or "
                                  "cosmology is None)")
-            self._distmod = self._cosmo.distmod(self._params['z'])
+            self._distmod = self._cosmo.distmod(self._params['z']).value
 
         self._params['m'] = self._params['mabs'] + self._distmod
         self._set_fscale_from_m()
