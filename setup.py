@@ -81,8 +81,11 @@ generate_version_py(PACKAGENAME, VERSION, RELEASE, get_debug_option())
 packagenames = filter_packages(find_packages())
 
 # Treat everything in scripts except README.rst as a script to be installed
+ignore_scripts = ['generate_example_data.py']
 scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
-           if (os.path.basename(fname) != 'README.rst' and fname[-1] != '~')]
+           if (os.path.basename(fname) != 'README.rst' and
+               fname[-1] != '~' and
+               os.path.basename(fname) not in ignore_scripts)]
 
 # This dictionary stores the command classes used in setup below
 #cmdclassd = {'test': setup_helpers.setup_test_command(PACKAGENAME),
