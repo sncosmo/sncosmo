@@ -87,6 +87,12 @@ html_theme_options = {
 
 # Custom sidebar templates, maps document names to template names.
 #html_sidebars = {}
+html_sidebars = {
+    '**': ['globaltoc.html'],
+#    'search': [],
+#    'genindex': [],
+#    'py-modindex': [],
+}
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

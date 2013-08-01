@@ -11,18 +11,26 @@ SNCosmo depends on the following standard scientific python packages:
 
 - `NumPy <http://www.numpy.org/>`_ 1.5 or later
 
-- `SciPy <http://www.scipy.org/>`_ (tested on 0.10.1)
+- `SciPy <http://www.scipy.org/>`_ 0.9 or later
 
-- AstroPy_ 0.2 or later
+- AstroPy_ 0.3.dev or later
+
+In addition, several optional packages provide additional functionality:
 
 - Optional: `matplotlib <http://www.matplotlib.org/>`_ for plotting functions.
+
+- Optional: `iminuit <http://iminuit.github.io/iminuit/>`_ for light curve
+  fitting using the Minuit minimizer.
+
+- Optional: `emcee <http://dan.iel.fm/emcee/>`_ for Monte Carlo parameter
+  estimation.
+
+Installation instructions
+=========================
 
 Assuming you already have NumPy and SciPy, install AstroPy by
 following the `AstroPy installation instructions
 <http://astropy.readthedocs.org/en/latest/install.html>`_.
-
-Installation instructions
-=========================
 
 Latest released version (using pip)
 -----------------------------------
