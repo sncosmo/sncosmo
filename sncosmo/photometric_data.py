@@ -44,12 +44,17 @@ class PhotData(object):
     use only."""
 
     def __init__(self, data):
+        if isinstance(data, np.ndarray):
+            colnames = data.dtype.names
+        elif isinstance(data, Table):
+            colnames = data.colnames
+            data = np.array(data, copy=False)
+        else:
+            t = Table(data)
+            colnames = t.colnames
+            data = np.array(t, copy=False)
 
-        # For now, use the Table class internally to parse the data.
-        # In the future we may want to subclass Table instead.
-        t = Table(data, copy=False)
-        data = np.array(t, copy=False)
-        colnames = set([name.lower() for name in t.colnames])
+        colnames = set([name.lower() for name in colnames])
 
         for attribute, aliases in _photdata_aliases.iteritems():
             i = colnames & aliases

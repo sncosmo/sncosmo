@@ -33,7 +33,7 @@ __all__ = ['get_model', 'Model', 'TimeSeriesModel', 'StretchModel',
 cosmology.set_current(cosmology.WMAP9)
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
-def get_model(name, version=None):
+def get_model(name, version=None, copy=False):
     """Retrieve a model from the registry by name.
 
     Parameters
@@ -43,16 +43,23 @@ def get_model(name, version=None):
     version : str, optional
         Version identifier for models with multiple versions. Default is
         `None` which corresponds to the latest, or only, version.
+    copy : bool, optional
+        If True and if `name` is already a Model instance, return a copy of
+        it by calling ``name()``. (If `name` is a str a copy of the instance
+        in the registry is always returned, regardless of the value of this
+        parameter.) Default is False.
     """
     
-
     # If we need to retrieve from the registry, we want to return a shallow
     # copy, in order to keep the copy in the registry "pristene". However, we
     # *don't* want a shallow copy otherwise. Therefore,
     # we need to check if `name` is already an instance of Model before 
     # going to the registry, so we know whether or not to make a shallow copy.
     if isinstance(name, Model):
-        return name
+        if copy:
+            return name()
+        else:
+            return name
     else:
         return registry.retrieve(Model, name, version=version)()
 

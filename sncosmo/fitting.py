@@ -1,12 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from __future__ import division
 
-import numpy as np
+from warnings import warn
 
-from scipy.optimize import fmin_l_bfgs_b
+import numpy as np
+from scipy.optimize import Result
 from astropy.utils import OrderedDict
 
-from spectral import get_magsystem
+from .spectral import get_magsystem
+from .models import get_model
 from .photometric_data import PhotData
 
 __all__ = ['fit_model']
@@ -32,8 +34,7 @@ def _guess_parvals(data, model, parnames=['t0', 'fscale']):
         bandfluxscale.append(maxdataflux / maxmodelflux) 
 
     t0 = sum(bandt0) / len(bandt0)
-    fscale = (sum(bandfluxscale) / len(bandfluxscale) *
-                  model.params['fscale'])
+    fscale = sum(bandfluxscale) / len(bandfluxscale) * model.params['fscale']
 
     result = {}
     if 't0' in parnames: result['t0'] = t0
@@ -41,8 +42,13 @@ def _guess_parvals(data, model, parnames=['t0', 'fscale']):
     return result
                        
 def fit_model(model, data, parnames, bounds=None, params_start=None,
-              t0range=20., verbose=False, include_model_error=False):
+              t0range=20., include_model_error=False, method='iminuit',
+              return_minuit=False, print_level=1):
     """Fit model parameters to data by minimizing chi^2.
+
+    Ths function defines a chi^2 to minimize, makes initial guesses for
+    some standard model parameters, such as 't0' and 'fscale', based on
+    the data, then runs a minimizer.
 
     Parameters
     ----------
@@ -63,24 +69,43 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
     t0range : float, optional
         Bounds for t0 (if varied in fit and not given in `bounds`).
         Default is 20.
-    verbose : bool, optional
-        Print minimization info to the screen.
+    method : {'iminuit', 'l-bfgs-b'}, optional
+        Minimization method to use.
+    return_minuit : bool, optional
+        If True, and if method is 'iminuit', return the Minuit object after
+        the fit.
+    print_level : int, optional
+        Print level. 0 is no output, 1 is standard amount.
 
     Returns
     -------
-    min_chisq : float
-        Value of Chi^2 for fitted model parameters. The model's parameters
-        are set to the best-fit parameters.
+    res : Result
+        The optimization result represented as a ``Result`` object.
+        Important attributes:
+
+        - ``params``: dictionary of best-fit parameter values.
+        - ``fval``: Minimum chi squared value.
+        - ``ncalls``: Number of function calls.
+
+        See ``res.keys()`` for available attributes.
+
+    m : `~iminuit.Minuit`
+        Only returned if method is 'iminuit' and `return_minuit` is True.
 
     Notes
     -----
-    Uses scipy's L-BFGS-B bounded minimization algorithm.
+    No notes at this time.
     """
+    method = method.lower()
 
     # Initialize data
     data = PhotData(data)
 
-    # Check that if z is going to be fit, it is bounded.
+    # Get a shallow copy of the model so that we can change the parameters
+    # without worrying.
+    model = get_model(model, copy=True)
+
+    # Check that 'z' is bounded (if it is going to be fit).
     if 'z' in parnames and (bounds is None or 'z' not in bounds):
         raise ValueError('z must be bounded if fit.')
 
@@ -91,8 +116,9 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         valid = model.bandoverlap(data.band, z=bounds['z'])
         valid = np.all(valid, axis=1)
     if not np.all(valid):
-        print "WARNING: dropping following bands from data:"
-        print np.unique(data.band[np.invert(valid)])
+        drop_bands = [repr(b) for b in set(data.band[np.invert(valid)])]
+        warn("Dropping following bands from data: " + ", ".join(drop_bands) +
+             "(out of model wavelength range)", RuntimeWarning)
         data = PhotData({'time': data.time[valid],
                          'band': data.band[valid],
                          'flux': data.flux[valid],
@@ -100,22 +126,23 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
                          'zp': data.zp[valid],
                          'zpsys': data.zpsys[valid]})
 
-    # If we're fitting redshift and it is bounded, set initial value
+    # If we're fitting redshift and it is bounded, set initial value.
     if 'z' in parnames:
         model.set(z=(sum(bounds['z']) / 2.))
 
-    # Get initial guesses
+    # Get initial guesses.
     parvals0 = []
     guesses = _guess_parvals(data, model, parnames=['t0', 'fscale'])
     current = model.params
     for name in parnames:
-        if name in params_start:
+        if params_start is not None and name in params_start:
             parvals0.append(params_start[name])
         elif name in guesses:
             parvals0.append(guesses[name])
         else:
             parvals0.append(current[name])
 
+    # Set up a complete list of bounds.
     if bounds is None:
         bounds = {}
     bounds_list = []
@@ -128,41 +155,98 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         else:
             bounds_list.append((None, None))
 
-    if verbose:
+    if print_level > 0:
         print "starting point:"
         for name, val, bound in zip(parnames, parvals0, bounds_list):
             print "   ", name, val, bound
 
-    # scale `fscale`, for numerical precision reasons.
     fscale_factor = 1.
-    if 'fscale' in parnames:
-        i = parnames.index('fscale')
-        fscale_factor = parvals0[i]
-        parvals0[i] = 1.
-        if 'fscale' in bounds:
-            bounds_list[i] = (bounds_list[i][0] / fscale_factor,
-                              bounds_list[i][1] / fscale_factor)
 
-    def chi2(parvals):
+    # define chi2 where input is array_like
+    def chi2_array_like(parvals):
         params = dict(zip(parnames, parvals))
+
         if 'fscale' in params:
             params['fscale'] *= fscale_factor
         model.set(**params)
+
         if include_model_error:
             modelflux, modelfluxerr = model.bandflux(
-                data.band, data.time, zp=data.zp,
-                zpsys=data.zpsys, include_error=True)
+                data.band, data.time, zp=data.zp, zpsys=data.zpsys,
+                include_error=True)
             return np.sum((data.flux - modelflux) ** 2 /
                           (modelfluxerr ** 2 + data.fluxerr ** 2))
+
         else:
-            modelflux = model.bandflux(data.band, data.time,
-                                       zp=data.zp, zpsys=data.zpsys)
+            modelflux = model.bandflux(
+                data.band, data.time, zp=data.zp, zpsys=data.zpsys)
             return np.sum(((data.flux - modelflux) / data.fluxerr) ** 2)
 
-    parvals, fval, d = fmin_l_bfgs_b(chi2, parvals0, bounds=bounds_list,
-                                     approx_grad=True, iprint=(verbose - 1))
-    params = dict(zip(parnames, parvals))
-    if 'fscale' in params:
-        params['fscale'] *= fscale_factor
-    model.set(**params)
-    return fval
+    if method == 'iminuit':
+        try:
+            import iminuit
+        except ImportError:
+            raise ValueError("Minimization method 'iminuit' requires the "
+                             "iminuit package")
+
+        # The iminuit minimizer expects the function signature to have an
+        # argument for each parameter.
+        def chi2(*parvals):
+            return chi2_array_like(parvals)
+
+        # Set up keyword arguments to pass to Minuit initializer
+        kwargs = {}
+        for parname, parval, bounds in zip(parnames, parvals0, bounds_list):
+            kwargs[parname] = parval
+            if bounds is not None and None not in bounds:
+                kwargs['limit_' + parname] = bounds
+            if parname == 't0':
+                step_size = 1.
+            if parname == 'fscale':
+                step_size = 0.1 * parval
+            if parname == 'z':
+                step_size = 0.05
+            else:
+                step_size = 1.
+            kwargs['error_' + parname] = step_size
+
+        m = iminuit.Minuit(chi2, errordef=1., forced_parameters=parnames,
+                           **kwargs)
+        d, l = m.migrad()
+        res = Result(ncalls=d.nfcn, fval=d.fval, params=m.values,
+                     errors=m.errors, covariance=m.covariance,
+                     matrix=m.matrix())
+        if return_minuit:
+            return res, m
+        else:
+            return res
+
+    elif method == 'l-bfgs-b':
+        from scipy.optimize import fmin_l_bfgs_b
+
+        # Scale 'fscale' to ~1 for numerical precision reasons.
+        if 'fscale' in parnames:
+            i = parnames.index('fscale')
+            fscale_factor = parvals0[i]
+            parvals0[i] = 1.
+            if 'fscale' in bounds:
+                bounds_list[i] = (bounds_list[i][0] / fscale_factor,
+                                  bounds_list[i][1] / fscale_factor)
+
+        x, f, d = fmin_l_bfgs_b(chi2_array_like, parvals0,
+                                bounds=bounds_list, approx_grad=True,
+                                iprint=(print_level - 1))
+
+        d['ncalls'] = d.pop('funcalls')
+        res = Result(d)
+        res.params = dict(zip(parnames, x))
+        res.fval = f
+
+        # adjust fscale
+        if 'fscale' in res.values:
+            res.values['fscale'] *= fscale_factor
+
+        return res
+
+    else:
+        raise ValueError('Unknown solver %s' % method)
