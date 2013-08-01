@@ -4,7 +4,6 @@ from __future__ import division
 from warnings import warn
 
 import numpy as np
-from scipy.optimize import Result
 from astropy.utils import OrderedDict
 
 from .spectral import get_magsystem
@@ -13,7 +12,37 @@ from .photometric_data import PhotData
 
 __all__ = ['fit_model']
 
+class Result(dict):
+    """Represents the optimization result.
+
+    Notes
+    -----
+    This is a cut and paste from scipy, normally imported with `from
+    scipy.optimize import Result`. However, it isn't available in
+    scipy 0.9 (or possibly 0.10). Since this class is essentially a
+    subclass of dict with attribute accessors, one can see which
+    attributes are available using the `keys()` method.
+    """
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def __repr__(self):
+        if self.keys():
+            m = max(map(len, list(self.keys()))) + 1
+            return '\n'.join([k.rjust(m) + ': ' + repr(v)
+                              for k, v in self.items()])
+        else:
+            return self.__class__.__name__ + "()"
+
+
 def _guess_parvals(data, model, parnames=['t0', 'fscale']):
+    """Guess parameter values based on the data, return dict"""
 
     nflux, nfluxerr = data.normalized_flux(zp=25., zpsys='ab',
                                            include_err=True)
