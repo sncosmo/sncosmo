@@ -279,3 +279,60 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
 
     else:
         raise ValueError('Unknown solver %s' % method)
+
+
+# TODO: better name?
+def mcmc_model(model, data, parnames, p0=None, nwalkers=10, nburn=200,
+               nsamples=500):
+    """Run an MCMC chain to get parameter contours, given the model.
+
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+    samples : `~numpy.ndarray`, shape=(nsamples*nwalkers, npar)
+    """
+
+    try:
+        import emcee
+    except:
+        raise ImportError("mcmc_model() requires the emcee package.")
+
+
+    data = PhotData(data)
+    model = get_model(model)
+    ndim = len(parnames)
+
+    # TODO: Make guesses or start from p0
+    
+    # TODO: Define initial positions of the walkers
+    p0 = np.array([55098.4 + 5. * (np.random.rand(nwalkers) - 0.5),
+                   0.5 + 0.1 * (np.random.rand(nwalkers) - 0.5),
+                   0. + 0.1 * (np.random.rand(nwalkers) - 0.5),
+                   0. + 0.1 * (np.random.rand(nwalkers) - 0.5),
+                   1.15e-17 + 0.1e-17 * (np.random.rand(nwalkers) - 0.5)]).T
+
+    # define likelihood
+    def loglikelihood(parvals):
+        params = dict(zip(parnames, parvals))
+        model.set(**params)
+        
+        modelflux = model.bandflux(
+            data.band, data.time, zp=data.zp, zpsys=data.zpsys)
+
+        return -0.5 * np.sum(((data.flux - modelflux) / data.fluxerr) ** 2)
+
+    # Create sampler
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglikelihood)
+
+    # burn-in
+    pos, prob, state = sampler.run_mcmc(p0, 200)
+    sampler.reset()
+
+    # production run
+    sampler.run_mcmc(pos, 500)
+    print "avg acceptance frac:", np.mean(sampler.acceptance_fraction)
+
+    return sampler.flatchain
