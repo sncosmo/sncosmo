@@ -5,14 +5,18 @@ from __future__ import division
 import math
 import numpy as np
 
+from astropy.utils.misc import isiterable
+
 from .models import get_model
 from .spectral import get_bandpass, get_magsystem
 from .photometric_data import PhotData
 
-__all__ = ['plotlc']
+__all__ = ['plotlc', 'animate_model']
 
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
+# TODO: better example(s)
+# TODO: return the Figure?
 def plotlc(data=None, model=None, bands=None, show_pulls=True,
            include_model_error=False, zp=25., zpsys='ab',
            xfigsize=None, yfigsize=None, dpi=100, fname=None):
@@ -209,3 +213,158 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
     else:
         plt.savefig(fname, dpi=dpi)
         plt.clf()
+
+
+def animate_model(model_or_models, fps=30, length=20.,
+                  time_range=(None, None), disp_range=(None, None),
+                  match_refphase=True, match_flux=True, fname=None):
+    """Animate a model's SED using matplotlib.animation. (requires
+    matplotlib v1.1 or higher).
+
+    Parameters
+    ----------
+    model_or_models : `~sncosmo.Model` or str or iterable thereof
+        The model to animate or list of models to animate.
+    fps : int, optional
+        Frames per second. Default is 30.
+    length : float, optional
+        Movie length in seconds. Default is 15.
+    time_range : (float, float), optional
+        Time range to plot (in the timeframe of the first model if multiple
+        models are given). `None` indicates to use the maximum extent of the
+        model(s).
+    disp_range : (float, float), optional
+        Dispersion range to plot. `None` indicates to use the maximum extent
+        of the model(s).
+    match_flux : bool, optional
+        For multiple models, scale fluxes so that the peak of the spectrum
+        at the reference phase matches that of the first model. Default is
+        False.
+    match_refphase : bool, optional
+        For multiple models, shift additional models so that the model's
+        reference phase matches that of the first model.
+    fname : str, optional
+        If not `None`, save animation to file `fname`. Requires ffmpeg
+        to be installed with the appropriate codecs: If `fname` has
+        the extension '.mp4' the libx264 codec is used. If the
+        extension is '.webm' the VP8 codec is used. Otherwise, the
+        'mpeg4' codec is used. The first frame is also written to a
+        png.
+
+    Examples
+    --------
+
+    Compare the salt2 and hsiao models::
+
+        animate_model(['salt2', 'hsiao'],  time_range=(None, 30.),
+                      disp_range=(2000., 9200.))
+
+    Compare the salt2 model with x1 = 1. to the same model with x1 = 0.::
+
+        m1 = sncosmo.get_model('salt2')
+        m1.set(x1=1.)
+        m2 = sncosmo.get_model('salt2')
+        m2.set(x1=0.)
+        animate_model([m1, m2])
+
+    """
+
+    from matplotlib import pyplot as plt
+    from matplotlib import animation
+
+    # get the model(s)
+    if (not isiterable(model_or_models) or
+        isinstance(model_or_models, basestring)):
+        model_or_models = [model_or_models]
+    models = [get_model(m) for m in model_or_models]
+
+    # time offsets needed to match refphases
+    time_offsets = [model.refphase - models[0].refphase for model in models]
+    if not match_refphase:
+        time_offsets = [0.] * len(models)
+
+    # determine times to display
+    model_min_times = [models[i].times()[0] - time_offsets[i] for
+                       i in range(len(models))]
+    model_max_times = [models[i].times()[-1] - time_offsets[i] for
+                       i in range(len(models))]
+    min_time, max_time = time_range
+    if min_time is None:
+        min_time = min(model_min_times)
+    if max_time is None:
+        max_time = max(model_max_times)
+
+    
+    # determine the min and max dispersions
+    disps = [model.disp() for model in models]
+    min_disp, max_disp = disp_range
+    if min_disp is None:
+        min_disp = min([d[0] for d in disps])
+    if max_disp is None:
+        max_disp = max([d[-1] for d in disps])
+
+    # model time interval between frames
+    time_interval = (max_time - min_time) / (length * fps)
+
+    # maximum flux density of each model at the refphase
+    max_fluxes = [np.max(model.flux(model.refphase)) for model in models]
+
+    # scaling factors
+    if match_flux:
+        max_bandfluxes = [model.bandflux(model.refband, model.refphase)
+                          for model in models]
+        scaling_factors = [max_bandfluxes[0] / f for f in max_bandfluxes]
+        global_max_flux = max_fluxes[0]
+    else:
+        scaling_factors = [1.] * len(models)
+        global_max_flux = max(max_fluxes)
+
+    ymin = -0.06 * global_max_flux
+    ymax = 1.1 * global_max_flux
+
+    # Set up the figure, the axis, and the plot element we want to animate
+    fig = plt.figure()
+    ax = plt.axes(xlim=(min_disp, max_disp), ylim=(ymin, ymax))
+    plt.axhline(y=0., c='k')
+    plt.xlabel('Wavelength ($\\AA$)') 
+    plt.ylabel('Flux Density ($F_\lambda$)')
+    time_text = ax.text(0.05, 0.95, '', ha='left', va='top',
+                        transform=ax.transAxes)
+    empty_lists = 2 * len(models) * [[]]
+    lines = ax.plot(*empty_lists, lw=1)
+    for line, model in zip(lines, models):
+        line.set_label(model.name)
+    legend = plt.legend(loc='upper right')
+
+    def init():
+        for line in lines:
+            line.set_data([], [])
+        time_text.set_text('')
+        return tuple(lines) + (time_text,)
+
+    def animate(i):
+        current_time = min_time + time_interval * i
+        for j in range(len(models)):
+            y = models[j].flux(current_time + time_offsets[j])
+            lines[j].set_data(disps[j], y * scaling_factors[j])
+        time_text.set_text('time (days) = {:.1f}'.format(current_time))
+        return tuple(lines) + (time_text,)
+
+    # Call the animator.
+    ani = animation.FuncAnimation(fig, animate, init_func=init,
+                                  frames=int(fps*length), interval=(1000./fps),
+                                  blit=True)
+
+    # Save the animation as an mp4. This requires that ffmpeg is installed.
+    if fname is not None:
+        i = fname.rfind('.')
+        stillfname = fname[:i] + '.png'
+        plt.savefig(stillfname) 
+
+        ext = fname[i+1:]
+        codec = {'mp4': 'libx264', 'webm': 'libvpx'}.get(ext, 'mpeg4')
+        ani.save(fname, fps=fps, codec=codec, extra_args=['-vcodec', codec],
+                 writer='ffmpeg_file', bitrate=1800)
+
+    else:
+        plt.show()
