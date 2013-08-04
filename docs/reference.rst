@@ -40,7 +40,7 @@ Data I/O
 
    readlc
    writelc
-
+   load_example_data
 
 Fitting & Typing Photometric Data
 =================================
@@ -54,10 +54,13 @@ Fitting & Typing Photometric Data
 Plotting
 ========
 
+*Simple convenience functions for standard plots using matplotlib*
+
 .. autosummary::
    :toctree: _generated
 
    plotlc
+   plotpdf
    animate_model
 
 Registry
