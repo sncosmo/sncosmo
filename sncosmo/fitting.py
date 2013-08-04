@@ -55,7 +55,8 @@ def _guess_parvals(data, model, parnames=['t0', 'fscale']):
         time = data.time[idx]
         weights = flux ** 2 / nfluxerr[idx]
         topn = min(len(weights) // 2, 3)
-        if topn == 0: continue
+        if topn == 0:
+            continue
         topnidx = np.argsort(weights)[-topn:]
         bandt0.append(np.average(time[topnidx], weights=weights[topnidx]))
         maxdataflux = np.average(flux[topnidx], weights=weights[topnidx])
@@ -68,7 +69,13 @@ def _guess_parvals(data, model, parnames=['t0', 'fscale']):
     result = {}
     if 't0' in parnames: result['t0'] = t0
     if 'fscale' in parnames: result['fscale'] = fscale
+
+    # check that guessing succeeded
+    if any([np.isnan(v) or np.isinf(v) for v in result.values()]):
+        raise RuntimeError('Parameter guessing failed. Check data values.')
+
     return result
+
                        
 def fit_model(model, data, parnames, bounds=None, params_start=None,
               t0range=20., include_model_error=False, method='iminuit',
