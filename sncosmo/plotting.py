@@ -11,7 +11,7 @@ from .models import get_model
 from .spectral import get_bandpass, get_magsystem
 from .photometric_data import PhotData
 
-__all__ = ['plotlc', 'animate_model']
+__all__ = ['plotlc', 'plotpdf', 'animate_model']
 
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
@@ -213,6 +213,58 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
     else:
         plt.savefig(fname, dpi=dpi)
         plt.clf()
+
+
+def val_and_err_to_str(v, e):
+    p = max(0, -int(math.floor(math.log10(e))) + 1)
+    return ('{:.' + str(p) + 'f} +/- {:.'+ str(p) + 'f}').format(v, e)
+
+# TODO: remove averages, errors from call sig, clean up.
+def plotpdf(parnames, samples, weights, averages, errors, fname=None, ncol=2,
+            xfigsize=None, yfigsize=None, dpi=100):
+    """
+    Plot PDFs of parameter values.
+    
+    Parameters
+    ----------
+    parnames : list of str
+        Parameter names.
+    samples : `~numpy.ndarray` (nsamples, nparams)
+        Parameter values.
+    weights : `~numpy.ndarray` (nsamples)
+        Weight of each sample.
+    fname : str
+        Output filename.
+    """
+    from matplotlib import pyplot as plt
+
+    npar = len(parnames)
+    nrow = (npar-1) // ncol + 1
+    if xfigsize is None and yfigsize is None:
+        figsize = (4. * ncol, 3. * nrow)
+    elif yfigsize is None:
+        figsize = (xfigsize, 3. / 4. * nrow / ncol * xfigsize)
+    elif xfigsize is None:
+        figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
+    else:
+        raise ValueError('cannot specify both xfigsize and yfigsize')
+
+    fig = plt.figure(figsize=figsize)
+
+    for i in range(npar):
+
+        plot_range = (averages[i] - 5*errors[i], averages[i] + 5*errors[i])
+        plot_text = parnames[i] + ' = ' + val_and_err_to_str(averages[i],
+                                                             errors[i])
+
+        ax = plt.subplot(nrow, ncol, i)
+        plt.hist(samples[:, i], weights=weights, range=plot_range,
+                 bins=30)
+        plt.text(0.9, 0.9, plot_text, color='k', ha='right', va='top',
+                 transform=ax.transAxes)
+
+    plt.savefig(fname, dpi=dpi)
+    plt.clf()
 
 
 def animate_model(model_or_models, fps=30, length=20.,
