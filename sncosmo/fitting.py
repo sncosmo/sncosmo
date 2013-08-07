@@ -1,16 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from __future__ import division
-
 from warnings import warn
 
 import numpy as np
-from astropy.utils import OrderedDict
 
-from .spectral import get_magsystem
+from .spectral import get_magsystem, get_bandpass
 from .models import get_model
-from .photometric_data import PhotData
+from .photometric_data import standardize_data, normalize_data
 
-__all__ = ['fit_model']
+__all__ = ['fit_lc', 'mcmc_lc']
 
 class Result(dict):
     """Represents the optimization result.
@@ -19,9 +17,10 @@ class Result(dict):
     -----
     This is a cut and paste from scipy, normally imported with `from
     scipy.optimize import Result`. However, it isn't available in
-    scipy 0.9 (or possibly 0.10). Since this class is essentially a
-    subclass of dict with attribute accessors, one can see which
-    attributes are available using the `keys()` method.
+    scipy 0.9 (or possibly 0.10), so it is included here.
+    Since this class is essentially a subclass of dict with attribute
+    accessors, one can see which attributes are available using the
+    `keys()` method.
     """
     def __getattr__(self, name):
         try:
@@ -42,33 +41,41 @@ class Result(dict):
 
 
 def _guess_parvals(data, model, parnames=['t0', 'fscale']):
-    """Guess parameter values based on the data, return dict"""
+    """Guess parameter values based on the data, return dict.
+    The maximum of `model.bandflux` and the maximum of the data
+    are used to guess `fscale`. The current settings of the parameters
+    't0' and 'fscale' do not affect the results. Other parameters, such as 
+    'z' might affect the guesses somewhat.
 
-    nflux, nfluxerr = data.normalized_flux(zp=25., zpsys='ab',
-                                           include_err=True)
+    Assume that data has already been normalized.
+    """
 
-    bandt0 = []
-    bandfluxscale = []
-    for band in np.unique(data.band):
-        idx = data.band == band
-        flux = nflux[idx]
-        time = data.time[idx]
-        weights = flux ** 2 / nfluxerr[idx]
+    band_tmax = []
+    band_fscale = []
+    for band in set(data['band'].tolist()):
+        idx = data['band'] == band
+        time = data['time'][idx]
+        flux = data['flux'][idx]
+        fluxerr = data['fluxerr'][idx]
+
+        weights = flux * np.abs(flux / fluxerr)
         topn = min(len(weights) // 2, 3)
         if topn == 0:
             continue
         topnidx = np.argsort(weights)[-topn:]
-        bandt0.append(np.average(time[topnidx], weights=weights[topnidx]))
+        band_tmax.append(np.average(time[topnidx],
+                                           weights=weights[topnidx]))
         maxdataflux = np.average(flux[topnidx], weights=weights[topnidx])
-        maxmodelflux = max(model.bandflux(band, zp=25., zpsys='ab'))
-        bandfluxscale.append(maxdataflux / maxmodelflux) 
-
-    t0 = sum(bandt0) / len(bandt0)
-    fscale = sum(bandfluxscale) / len(bandfluxscale) * model.params['fscale']
+        maxmodelflux = np.max(model.bandflux(band, zp=data['zp'][0],
+                                             zpsys=data['zpsys'][0]))
+        band_fscale.append(maxdataflux / maxmodelflux *
+                           model._params['fscale']) 
 
     result = {}
-    if 't0' in parnames: result['t0'] = t0
-    if 'fscale' in parnames: result['fscale'] = fscale
+    if 't0' in parnames:
+        result['t0'] = sum(band_tmax) / len(band_tmax) - model.refphase
+    if 'fscale' in parnames:
+        result['fscale'] = sum(band_fscale) / len(band_fscale)
 
     # check that guessing succeeded
     if any([np.isnan(v) or np.isinf(v) for v in result.values()]):
@@ -76,10 +83,11 @@ def _guess_parvals(data, model, parnames=['t0', 'fscale']):
 
     return result
 
-                       
-def fit_model(model, data, parnames, bounds=None, params_start=None,
-              t0range=20., include_model_error=False, method='iminuit',
-              return_minuit=False, print_level=1):
+def fit_lc(data, model, parnames, p0=None, bounds=None,
+           t0_range=20., include_model_error=False,
+           fit_offset=False, offset_zp=25., offset_zpsys='ab',
+           method='iminuit', return_minuit=False, max_ncall=10000,
+           print_level=0):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -88,27 +96,35 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
 
     Parameters
     ----------
+    data : `~numpy.ndarray` or `dict` of list_like
+        Table of photometric data. Must include certain column names.
     model : `~sncosmo.Model`
         The model to fit.
-    data : `~numpy.ndarray` or `dict` or `~astropy.table.Table`
-        Table of photometric data. Must include certain column names.
     parnames : list
         Model parameters to vary in the fit.
+    p0 : `dict`, optional
+        If given, use these initial parameters in fit. Default is to use
+        current model parameters.
     bounds : `dict`, optional
         Bounded range for each parameter. Keys should be parameter names,
         values are tuples. If a bound is not given for some parameter,
         the parameter is unbounded. The exception is ``t0``, which has a
-        default bound of  ``(initial guess) +/- t0range``.
-    params_start : `dict`, optional
-        If given, use these initial parameters in fit. Default is to use
-        current model parameters.
-    t0range : float, optional
+        default bound of  ``(initial guess) +/- t0_range``.
+    t0_range : float, optional
         Bounds for t0 (if varied in fit and not given in `bounds`).
         Default is 20.
+    include_model_error : bool, optional
+        Default is False.
+    fit_offset : bool, optional
+        Default is False.
+    offset_zp : float
+        Default is 25.
+    offset_zpsys : `~sncosmo.MagSystem` or str, optional
+        Default is 'ab'.
     method : {'iminuit', 'l-bfgs-b'}, optional
         Minimization method to use.
     return_minuit : bool, optional
-        If True, and if method is 'iminuit', return the Minuit object after
+        For method 'iminuit', return the `~iminuit.Minuit` object used in
         the fit.
     print_level : int, optional
         Print level. 0 is no output, 1 is standard amount.
@@ -119,9 +135,9 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         The optimization result represented as a ``Result`` object.
         Important attributes:
 
-        - ``params``: dictionary of best-fit parameter values.
-        - ``fval``: Minimum chi squared value.
-        - ``ncalls``: Number of function calls.
+        - ``res.params``: dictionary of best-fit parameter values.
+        - ``res.fval``: Minimum chi squared value.
+        - ``res.ncalls``: Number of function calls.
 
         See ``res.keys()`` for available attributes.
 
@@ -135,7 +151,9 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
     method = method.lower()
 
     # Initialize data
-    data = PhotData(data)
+    data = standardize_data(data)
+    if fit_offset:
+        data = normalize_data(data, zp=offset_zp, zpsys=offset_zpsys)
 
     # Get a shallow copy of the model so that we can change the parameters
     # without worrying.
@@ -145,51 +163,73 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
     if 'z' in parnames and (bounds is None or 'z' not in bounds):
         raise ValueError('z must be bounded if fit.')
 
-    # Check redshift range to see which bands we can use in the fit.
+    # Cut bands that are not allowed by the wavelength range of the model
     if 'z' not in parnames:
-        valid = model.bandoverlap(data.band)
+        valid = model.bandoverlap(data['band'])
     else:
-        valid = model.bandoverlap(data.band, z=bounds['z'])
+        valid = model.bandoverlap(data['band'], z=bounds['z'])
         valid = np.all(valid, axis=1)
     if not np.all(valid):
-        drop_bands = [repr(b) for b in set(data.band[np.invert(valid)])]
+        drop_bands = [repr(b) for b in set(data['band'][np.invert(valid)])]
         warn("Dropping following bands from data: " + ", ".join(drop_bands) +
              "(out of model wavelength range)", RuntimeWarning)
-        data = PhotData({'time': data.time[valid],
-                         'band': data.band[valid],
-                         'flux': data.flux[valid],
-                         'fluxerr': data.fluxerr[valid],
-                         'zp': data.zp[valid],
-                         'zpsys': data.zpsys[valid]})
+        data = data[valid]
 
-    # If we're fitting redshift and it is bounded, set initial value.
-    if 'z' in parnames:
-        model.set(z=(sum(bounds['z']) / 2.))
+    # Set initial parameters, to help with guessing parameters, below.
+    if p0 is None:
+        p0 = {}
+    if 'z' in parnames and 'z' not in p0:
+        p0['z'] = sum(bounds['z']) / 2.
+    model.set(**p0)
 
-    # Get initial guesses.
+    # Get list of initial guesses.
+    if fit_offset:
+        guesses = _guess_parvals(data, model, parnames=['t0', 'fscale'])
+    else:
+        ndata = normalize_data(data, zp=offset_zp, zpsys=offset_zpsys)
+        guesses = _guess_parvals(ndata, model, parnames=['t0', 'fscale'])
+
+    # Set initial parameters. Order of priority: 
+    #   1. p0
+    #   2. guesses
+    #   3. current params (if not None)
+    #   4. 0.
     parvals0 = []
-    guesses = _guess_parvals(data, model, parnames=['t0', 'fscale'])
     current = model.params
     for name in parnames:
-        if params_start is not None and name in params_start:
-            parvals0.append(params_start[name])
+        if name in p0:
+            parvals0.append(p0[name])
         elif name in guesses:
             parvals0.append(guesses[name])
-        else:
+        elif current[name] is not None:
             parvals0.append(current[name])
+        else:
+            parvals0.append(0.)
+
+    # Add parameters for offset, if we're fitting it.
+    if fit_offset:
+        offset_to_data = {} # map offset param to data idx
+        for band in set(data['band'].tolist()):
+            parname = 'offset_' + get_bandpass(band).name
+            idx = data['band'] == band
+            parnames.append(parname)
+            parvals0.append(np.min(data['flux'][idx]))
+            offset_to_data[parname] = idx
 
     # Set up a complete list of bounds.
-    if bounds is None:
-        bounds = {}
     bounds_list = []
     for name in parnames:
-        if name in bounds:
+        if bounds is not None and name in bounds:
             bounds_list.append(bounds[name])
         elif name == 't0':
-            bounds_list.append((guesses['t0'] - t0range,
-                                guesses['t0'] + t0range))
+            i = parnames.index('t0')
+            bounds_list.append((parvals0[i] - t0_range,
+                                parvals0[i] + t0_range))
         else:
             bounds_list.append((None, None))
+
+    # count degrees of freedom
+    ndof = len(data) - len(parnames)
 
     if print_level > 0:
         print "starting point:"
@@ -207,16 +247,23 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         model.set(**params)
 
         if include_model_error:
-            modelflux, modelfluxerr = model.bandflux(
-                data.band, data.time, zp=data.zp, zpsys=data.zpsys,
-                include_error=True)
-            return np.sum((data.flux - modelflux) ** 2 /
-                          (modelfluxerr ** 2 + data.fluxerr ** 2))
+            mflux, mfluxerr = \
+                model.bandflux(data['band'], data['time'], zp=data['zp'],
+                               zpsys=data['zpsys'], include_error=True)
+            denom = mfluxerr**2 + data['fluxerr']**2
 
         else:
-            modelflux = model.bandflux(
-                data.band, data.time, zp=data.zp, zpsys=data.zpsys)
-            return np.sum(((data.flux - modelflux) / data.fluxerr) ** 2)
+            mflux = model.bandflux(data['band'], data['time'],
+                                   zp=data['zp'], zpsys=data['zpsys'])
+            denom = data['fluxerr']**2
+
+        if fit_offset:
+            for key, value in params.iteritems():
+                if key[0:7] == 'offset_':
+                    idx = offset_to_data[key]
+                    mflux[idx] += value
+
+        return np.sum((data['flux'] - mflux)**2 / denom)
 
     if method == 'iminuit':
         try:
@@ -247,15 +294,11 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
             kwargs['error_' + parname] = step_size
 
         m = iminuit.Minuit(chi2, errordef=1., forced_parameters=parnames,
-                           **kwargs)
-        d, l = m.migrad()
+                           print_level=print_level, **kwargs)
+        d, l = m.migrad(ncall=max_ncall)
         res = Result(ncalls=d.nfcn, fval=d.fval, params=m.values,
                      errors=m.errors, covariance=m.covariance,
-                     matrix=m.matrix())
-        if return_minuit:
-            return res, m
-        else:
-            return res
+                     matrix=m.matrix(), ndof=ndof)
 
     elif method == 'l-bfgs-b':
         from scipy.optimize import fmin_l_bfgs_b
@@ -277,29 +320,54 @@ def fit_model(model, data, parnames, bounds=None, params_start=None,
         res = Result(d)
         res.params = dict(zip(parnames, x))
         res.fval = f
+        res.ndof = ndof
 
         # adjust fscale
         if 'fscale' in res.values:
             res.values['fscale'] *= fscale_factor
 
-        return res
-
     else:
         raise ValueError('Unknown solver %s' % method)
 
+    # append offsets to result by bandname
+    if fit_offset:
+        res.offsets = {}
+        for key, value in res.params.iteritems():
+            if key[0:7] == 'offset_':
+                res.offsets[key[7:]] = value
 
-# TODO: better name?
-def mcmc_model(model, data, parnames, p0=None, nwalkers=10, nburn=200,
-               nsamples=500):
-    """Run an MCMC chain to get parameter contours, given the model.
+    if method == 'iminuit' and return_minuit:
+        return res, m
+    else:
+        return res
+
+
+def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
+            nburn=100, nsamples=500, return_sampler=False, verbose=False):
+    """Run an MCMC chain to get model parameter samples.
 
     Parameters
     ----------
-
+    data : `~numpy.ndarray` or `dict` of list_like
+        Table of photometric data. Must include certain column names.
+    model : `~sncosmo.Model`
+        The model to fit.
+    parnames : list
+        Model parameters to vary in the fit.
+    p0 : `dict`, optional
+        If given, use these initial parameters in fit. Default is to use
+        current model parameters.
+    errors : `dict`, optional
+    nwalkers : int, optional
+    nburn : int, optional
+    nsamples : int, optional
+    return_sampler : bool, optional
+    verbose : bool, optional
 
     Returns
     -------
-    samples : `~numpy.ndarray`, shape=(nsamples*nwalkers, npar)
+    samples : `~numpy.ndarray`
+        The shape is (nsamples * nwalkers, npar).
     """
 
     try:
@@ -307,39 +375,76 @@ def mcmc_model(model, data, parnames, p0=None, nwalkers=10, nburn=200,
     except:
         raise ImportError("mcmc_model() requires the emcee package.")
 
-
-    data = PhotData(data)
+    data = standardize_data(data)
     model = get_model(model)
     ndim = len(parnames)
 
-    # TODO: Make guesses or start from p0
-    
-    # TODO: Define initial positions of the walkers
-    p0 = np.array([55098.4 + 5. * (np.random.rand(nwalkers) - 0.5),
-                   0.5 + 0.1 * (np.random.rand(nwalkers) - 0.5),
-                   0. + 0.1 * (np.random.rand(nwalkers) - 0.5),
-                   0. + 0.1 * (np.random.rand(nwalkers) - 0.5),
-                   1.15e-17 + 0.1e-17 * (np.random.rand(nwalkers) - 0.5)]).T
+    # --------------------- COPIED FROM FIT_LC ----------------------------
+    # Set initial parameters, to help with guessing parameters, below.
+    if p0 is not None:
+        model.set(**p0)
+
+    # Get list of initial guesses.
+    ndata = normalize_data(data, zp=25., zpsys='ab')
+    guesses = _guess_parvals(ndata, model, parnames=['t0', 'fscale'])
+
+    # Set initial parameters. Order of priority: 
+    #   1. p0
+    #   2. guesses
+    #   3. current params (if not None)
+    #   4. 0.
+    parvals0 = []
+    current = model.params
+    for name in parnames:
+        if p0 is not None and name in p0:
+            parvals0.append(p0[name])
+        elif name in guesses:
+            parvals0.append(guesses[name])
+        elif current[name] is not None:
+            parvals0.append(current[name])
+        else:
+            parvals0.append(0.)
+    # --------------------- END OF COPY FROM FIT_LC ------------------------
+
+    step_sizes = []
+    for parname, parval in zip(parnames, parvals0):
+        if errors is not None and parname in errors:
+            step_size = errors[parname]
+        elif parname == 't0':
+            step_size = 0.5
+        elif parname == 'fscale':
+            step_size = 0.1 * parval
+        elif parname == 'z':
+            step_size = 0.05
+        else:
+            step_size = 0.1
+        step_sizes.append(step_size)
+
+    # Starting positions of walkers.
+    randarr = np.random.rand(ndim * nwalkers).reshape((nwalkers, ndim))
+    start = np.array(parvals0) + np.array(step_sizes) * (randarr - 0.5)
 
     # define likelihood
     def loglikelihood(parvals):
         params = dict(zip(parnames, parvals))
         model.set(**params)
-        
-        modelflux = model.bandflux(
-            data.band, data.time, zp=data.zp, zpsys=data.zpsys)
-
-        return -0.5 * np.sum(((data.flux - modelflux) / data.fluxerr) ** 2)
+        mflux = model.bandflux(data['band'], data['time'],
+                               zp=data['zp'], zpsys=data['zpsys'])
+        return -0.5 * np.sum(((data['flux'] - mflux) / data['fluxerr']) ** 2)
 
     # Create sampler
     sampler = emcee.EnsembleSampler(nwalkers, ndim, loglikelihood)
 
     # burn-in
-    pos, prob, state = sampler.run_mcmc(p0, 200)
+    pos, prob, state = sampler.run_mcmc(start, nburn)
     sampler.reset()
 
     # production run
-    sampler.run_mcmc(pos, 500)
-    print "avg acceptance frac:", np.mean(sampler.acceptance_fraction)
+    sampler.run_mcmc(pos, nsamples)
+    if verbose:
+        print "Avg acceptance fraction:", np.mean(sampler.acceptance_fraction)
 
-    return sampler.flatchain
+    if return_sampler:
+        return sampler
+    else:
+        return sampler.flatchain

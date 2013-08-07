@@ -9,23 +9,24 @@ from astropy.utils.misc import isiterable
 
 from .models import get_model
 from .spectral import get_bandpass, get_magsystem
-from .photometric_data import PhotData
+from .photometric_data import standardize_data, normalize_data
 
-__all__ = ['plotlc', 'plotpdf', 'animate_model']
+__all__ = ['plot_lc', 'plot_pdf', 'animate_model']
 
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
 # TODO: better example(s)
 # TODO: return the Figure?
-def plotlc(data=None, model=None, bands=None, show_pulls=True,
-           include_model_error=False, zp=25., zpsys='ab',
-           xfigsize=None, yfigsize=None, dpi=100, fname=None):
+def plot_lc(data=None, model=None, bands=None, show_pulls=True,
+            include_model_error=False, zp=25., zpsys='ab',
+            figtext=None, offsets=None,
+            xfigsize=None, yfigsize=None, dpi=100, fname=None):
     """Plot light curve data or model light curves.
 
     Parameters
     ----------
-    data : `~numpy.ndarray` or dict thereof, optional
-        Structured array or dictionary of arrays, with certain required fields.
+    data : `~numpy.ndarray` or dict of list_like, optional
+        Structured array or dictionary of arrays or lists.
     model : `~sncosmo.Model`, optional
         If given, model light curve is plotted.
     fname : str, optional
@@ -42,6 +43,8 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
         Zeropoint system for `zp`. Default is 'ab'.
     include_model_error : bool, optional
         Plot model error as a band around the model.
+    figtext : str, optional
+        Text to add to top of figure.
     xfigsize, yfigsize : float, optional
         figure size in inches in x or y. Specify one or the other, not both.
         Default is xfigsize=8.
@@ -51,35 +54,25 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
     Examples
     --------
 
-    Suppose we have data in a file that looks like this::
- 
-        time band flux fluxerr zp zpsys
-        55070.0 sdssg -0.263064256628 0.651728140824 25.0 ab
-        55072.0512821 sdssr -0.836688186816 0.651728140824 25.0 ab
-        55074.1025641 sdssi -0.0104080573938 0.651728140824 25.0 ab
-        55076.1538462 sdssz -0.0794771107707 0.651728140824 25.0 ab
-        55078.2051282 sdssg 0.897840283912 0.651728140824 25.0 ab
-        ...
+    Load some example data::
 
-    To read and plot the data:
+        >>> meta, data = sncosmo.load_example_data()
 
-        >>> meta, data = sncosmo.readlc('mydatafile.dat')  # read the data
-        >>> sncosmo.plotlc(data, fname='plotlc_example.png')  # plot the data
+    Plot the data::
 
-    We happen to know the model and parameters that fit this
-    data. Specifying the ``model`` keyword will plot the model over
-    the data.
+        >>> sncosmo.plot_lc(data)
+
+    Plot a model along with the data::
     
         >>> model = sncosmo.get_model('salt2')
         >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
-        >>> sncosmo.plotlc(data, model=model, fname='plotlc_example.png',)
+        >>> sncosmo.plot_lc(data, model=model)
 
     .. image:: /pyplots/plotlc_example.png
 
-    Plot just the model:
+    Plot just the model, for selected bands::
 
-        >>> sncosmo.plotlc(model=model, bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'], fname='plotlc_example.png')
-
+        >>> sncosmo.plot_lc(model=model, bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'])
 
     """
 
@@ -99,15 +92,14 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
         model = get_model(model)
 
     if data is not None:
-        data = PhotData(data)
-        nflux, nfluxerr = data.normalized_flux(zp=zp, zpsys=zpsys,
-                                               include_err=True)
+        data = standardize_data(data)
+        data = normalize_data(data, zp=zp, zpsys=zpsys)
 
     # Bands to plot
     if data is None:
         bands = set([get_bandpass(band) for band in bands])
     else:
-        data_bands = np.array([get_bandpass(band) for band in data.band])
+        data_bands = np.array([get_bandpass(band) for band in data['band']])
         unique_data_bands = set(data_bands)
         if bands is None:
             bands = unique_data_bands
@@ -117,10 +109,16 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
     bands = list(bands)
     disps = [b.disp_eff for b in bands]
 
+    # offsets for each band, if any.
+    if offsets is not None:
+        for key, value in offsets.iteritems():
+            offsets[get_bandpass(key)] = offsets.pop(key)
+
     # Calculate layout of figure (columns, rows, figure size)
     nsubplots = len(bands)
     ncol = 2
     nrow = (nsubplots - 1) // ncol + 1
+
     if xfigsize is None and yfigsize is None:
         figsize = (4. * ncol, 3. * nrow)
     elif yfigsize is None:
@@ -129,7 +127,20 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
         figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
     else:
         raise ValueError('cannot specify both xfigsize and yfigsize')
+
+    if figtext is not None:
+        figtext_ysize = 1.5 # size in inches
+        figsize = (figsize[0], figsize[1] + figtext_ysize)
+        figtext_yfrac = figtext_ysize / figsize[1]
+    else:
+        figtext_yfrac = 0.
+
     fig = plt.figure(figsize=figsize)
+
+    # Add figure text at the top of the figure
+    if figtext is not None:
+        t = fig.text(0.05, 0.95, figtext,
+                     va="top", ha="left", multialignment="left")
 
     axnum = 0
     for disp, band in sorted(zip(disps, bands)):
@@ -151,9 +162,9 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
 
         if data is not None:
             idx = data_bands == band
-            time = data.time[idx]
-            flux = nflux[idx]
-            fluxerr = nfluxerr[idx]
+            time = data['time'][idx]
+            flux = data['flux'][idx]
+            fluxerr = data['fluxerr'][idx]
 
             if model is None:
                 plotted_time = time
@@ -163,39 +174,47 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
             plt.errorbar(plotted_time, flux, fluxerr, ls='None',
                          color=color, marker='.', markersize=3.)
 
-        if model is not None and model.bandoverlap(band):
+        if (model is not None and model.bandoverlap(band) and
+            (offsets is None or band in offsets)):
 
             plotted_time = model.times() - model.params['t0']
 
             if include_model_error:
-                modelflux, modelfluxerr = \
-                    model.bandflux(band, zp=zp, zpsys=zpsys,
-                                   include_error=True)
+                mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
+                                                 include_error=True)
             else:
-                modelflux = model.bandflux(band, zp=zp, zpsys=zpsys,
-                                           include_error=False)
+                mflux = model.bandflux(band, zp=zp, zpsys=zpsys,
+                                       include_error=False)
 
-            plt.plot(plotted_time, modelflux, ls='-', marker='None',
-                     color=color)
+            if offsets is not None:
+                mflux = mflux + offsets[band]
+
+            plt.plot(plotted_time, mflux, ls='-', marker='None', color=color)
             if include_model_error:
-                plt.fill_between(plotted_time, modelflux - modelfluxerr,
-                                 modelflux + modelfluxerr, color=color,
+                plt.fill_between(plotted_time, mflux - mfluxerr,
+                                 mflux + mfluxerr, color=color,
                                  alpha=0.2)
+
             # maximum plot range
             ymin, ymax = ax.get_ylim()
-            maxmodelflux = modelflux.max()
-            ymin = max(ymin, -0.2 * maxmodelflux)
-            ymax = min(ymax, 2. * maxmodelflux)
+            mflux_min, mflux_max = mflux.min(), mflux.max()
+            ymax = min(ymax, 2. * mflux_max)
+            ymin = max(ymin, mflux_min - (ymax - mflux_max))
             ax.set_ylim(ymin, ymax)
 
+        # plot a horizontal line at flux=0.
+        ax.axhline(y=0., ls='--', c='k')
 
         # steal part of the axes and plot pulls
-        if show_pulls and data is not None and model is not None:
+        if (show_pulls and data is not None and model is not None and
+            model.bandoverlap(band) and (offsets is None or band in offsets)):
             divider = make_axes_locatable(ax)
             axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
                                           sharex=ax)
-            modelflux = model.bandflux(band, time, zp=zp, zpsys=zpsys) 
-            pulls = (flux - modelflux) / fluxerr
+            mflux = model.bandflux(band, time, zp=zp, zpsys=zpsys) 
+            if offsets is not None:
+                mflux = mflux + offsets[band]
+            pulls = (flux - mflux) / fluxerr
             plt.plot(time - model.params['t0'], pulls, marker='.',
                      markersize=5., color=color, ls='None')
             plt.axhline(y=0., color=color)
@@ -206,24 +225,46 @@ def plotlc(data=None, model=None, bands=None, show_pulls=True,
         # label the most recent Axes x-axis
         plt.xlabel(xlabel_text)
 
-    plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.97,
+    plt.subplots_adjust(left=0.1, right=0.95,
+                        bottom=0.1, top=0.97 - figtext_yfrac,
                         wspace=0.2, hspace=0.2)
     if fname is None:
         plt.show()
     else:
         plt.savefig(fname, dpi=dpi)
-        plt.clf()
+    plt.clf()
 
+def pretty_value_and_error(value, error, latex=False):
+    """Return a pretty string representing value and error.
 
-def val_and_err_to_str(v, e):
-    p = max(0, -int(math.floor(math.log10(e))) + 1)
-    return ('{:.' + str(p) + 'f} +/- {:.'+ str(p) + 'f}').format(v, e)
-
-# TODO: remove averages, errors from call sig, clean up.
-def plotpdf(parnames, samples, weights, averages, errors, fname=None, ncol=2,
-            xfigsize=None, yfigsize=None, dpi=100):
+    If latex=True, use '\pm' and '\times'.
     """
-    Plot PDFs of parameter values.
+    pm = '\pm' if latex else '+/-'
+    
+    first = int(math.floor(math.log10(abs(value))))  # first significant digit
+    last = int(math.floor(math.log10(error)))  # last significant digit
+
+    # use exponential notation if
+    # value > 1000 and error > 1000 or value < 0.01
+    if (first > 2 and last > 2) or first < -2:
+        value /= 10**first
+        error /= 10**first
+        p = max(0, first - last + 1)
+        result = (('({:.' + str(p) + 'f} {:s} {:.'+ str(p) + 'f})')
+                  .format(value, pm, error))
+        if latex:
+            result += ' \\times 10^{{{:d}}}'.format(first)
+        else:
+            result += ' x 10^{:d}'.format(first)
+        return result
+    else:
+        p = max(0, -last + 1)
+        return (('{:.' + str(p) + 'f} {:s} {:.'+ str(p) + 'f}')
+                .format(value, pm, error))
+
+def plot_pdf(parnames, samples, weights=None, fname=None, ncol=2,
+             bins=50, xfigsize=None, yfigsize=None, dpi=100):
+    """Plot PDFs of parameter values.
     
     Parameters
     ----------
@@ -239,6 +280,15 @@ def plotpdf(parnames, samples, weights, averages, errors, fname=None, ncol=2,
     from matplotlib import pyplot as plt
 
     npar = len(parnames)
+
+    # calculate average and std. dev.
+    avg = np.average(samples, weights=weights, axis=0)
+    if weights is None:
+        std = np.std(samples, axis=0)
+    else:
+        std = np.sqrt(np.sum(weights[:, np.newaxis] * samples**2, axis=0) -
+                      avg**2)
+
     nrow = (npar-1) // ncol + 1
     if xfigsize is None and yfigsize is None:
         figsize = (4. * ncol, 3. * nrow)
@@ -252,20 +302,23 @@ def plotpdf(parnames, samples, weights, averages, errors, fname=None, ncol=2,
     fig = plt.figure(figsize=figsize)
 
     for i in range(npar):
-
-        plot_range = (averages[i] - 5*errors[i], averages[i] + 5*errors[i])
-        plot_text = parnames[i] + ' = ' + val_and_err_to_str(averages[i],
-                                                             errors[i])
+        plot_range = (avg[i] - 5*std[i], avg[i] + 5*std[i])
+        plot_text = '$' + parnames[i] + ' = ' + \
+            pretty_value_and_error(avg[i], std[i], latex=True) + '$'
 
         ax = plt.subplot(nrow, ncol, i)
         plt.hist(samples[:, i], weights=weights, range=plot_range,
-                 bins=30)
+                 bins=bins)
         plt.text(0.9, 0.9, plot_text, color='k', ha='right', va='top',
                  transform=ax.transAxes)
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(ymax=1.1*ymax)
 
-    plt.savefig(fname, dpi=dpi)
+    if fname is None:
+        plt.show()
+    else:
+        plt.savefig(fname, dpi=dpi)
     plt.clf()
-
 
 def animate_model(model_or_models, fps=30, length=20.,
                   time_range=(None, None), disp_range=(None, None),

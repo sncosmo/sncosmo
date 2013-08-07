@@ -5,11 +5,11 @@ import copy
 
 import numpy as np
 from scipy import integrate, optimize
-from astropy.utils import OrderedDict
+from astropy.utils import OrderedDict as odict
 
 from .models import get_model
 from .spectral import get_magsystem
-from .photometric_data import PhotData
+from .photometric_data import standardize_data, normalize_data
 from . import nest
 
 def _cdf(pdf, x, a):
@@ -115,14 +115,15 @@ def evidence(model, data, parnames,
 
         model.set(**d)
         if not include_error:
-            modelflux = model.bandflux(data.band, data.time, data.zp,
-                                       data.zpsys)
-            chisq = np.sum(((data.flux - modelflux) / data.fluxerr)**2)
+            mflux = model.bandflux(data['band'], data['time'],
+                                       zp=data['zp'], zpsys=data['zpsys'])
+            chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
         else:
-            modelflux, modelfluxerr =  model.bandflux(
-                data.band, data.time,data.zp, data.zpsys, include_error=True)
-            chisq = np.sum(((data.flux - modelflux)**2 /
-                            (data.fluxerr**2 + modelfluxerr**2)))
+            mflux, mfluxerr =  model.bandflux(
+                data['band'], data['time'], zp=data['zp'], zpsys=data['zpsys'],
+                include_error=True)
+            chisq = np.sum(((data['flux'] - mflux)**2 /
+                            (data['fluxerr']**2 + mfluxerr**2)))
 
         return -chisq / 2.
 
@@ -167,21 +168,21 @@ class PhotoTyper(object):
     ----------
     verbose : bool, optional
         Print lines as evidence is calculated.
-    t0range : tuple of floats: (t0_low, t0_high), optional
+    t0_range : tuple of floats: (t0_low, t0_high), optional
         Lower limit on t0 relative to earliest data point, and upper limit
         on t0 relative to latest data point, in days. Default is (0., 0.).
 
     Notes
     -----
     Parameters can also be set after initialization with, e.g.,
-    ``typer.verbose = True`` or ``typer.t0range = (-10., 10.)``.
+    ``typer.verbose = True`` or ``typer.t0_range = (-10., 10.)``.
     """
 
-    def __init__(self, verbose=True, t0range=(0., 0.)):
-        self._models = OrderedDict()
+    def __init__(self, verbose=True, t0_range=(-10., 10.)):
+        self._models = odict()
         self.types = []
         self.verbose = verbose
-        self.t0range = t0range
+        self.t0_range = t0_range
 
     def add_model(self, model, model_type, parlims, priors=None,
                   model_prior=1., tied=None, include_error=False,
@@ -291,32 +292,29 @@ class PhotoTyper(object):
             verbose = self.verbose
 
         # Initialize data
-        data = PhotData(data)
+        data = standardize_data(data)
 
         # limit data to bands that overlap *all* models over the full z range.
         valid = np.ones(len(data), dtype=np.bool)
         for m in self._models.values():
             model = m['model']
             if 'z' not in m['parlims']:
-                v = model.bandoverlap(data.band)
+                v = model.bandoverlap(data['band'])
             else:
-                v = np.all(model.bandoverlap(data.band, z=m['parlims']['z']),
+                v = np.all(model.bandoverlap(data['band'],z=m['parlims']['z']),
                            axis=1)
             valid = valid & v
         if not np.all(valid):
-            print "WARNING: dropping following bands from data:"
-            print np.unique(data.band[np.invert(valid)])
-            data = PhotData({'time': data.time[valid],
-                             'band': data.band[valid],
-                             'flux': data.flux[valid],
-                             'fluxerr': data.fluxerr[valid],
-                             'zp': data.zp[valid],
-                             'zpsys': data.zpsys[valid]})
+            drop_bands = [repr(b) for b in set(data['band'][np.invert(valid)])]
+            warn("Dropping following bands from data: " +
+                 ", ".join(drop_bands) + "(out of model wavelength range)",
+                 RuntimeWarning)
+            data = data[valid]
 
         # get range of t0 to consider
         parlims = {
-            't0': (np.min(data.time) + self.t0range[0],
-                   np.max(data.time) + self.t0range[1])
+            't0': (np.min(data['time']) + self.t0_range[0],
+                   np.max(data['time']) + self.t0_range[1])
             }
 
         models = {}
@@ -358,10 +356,10 @@ class PhotoTyper(object):
             types[d['type']]['p'] += d['p']
 
         # sort models and types
-        types = OrderedDict(
+        types = odict(
             sorted(types.items(), key=lambda t: t[1]['p'], reverse=True)
             )
-        models = OrderedDict(
+        models = odict(
             sorted(models.items(), key=lambda t: t[1]['p'], reverse=True)
             )
 

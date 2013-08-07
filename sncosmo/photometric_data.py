@@ -4,11 +4,12 @@ from __future__ import division
 
 import math
 import numpy as np
-from astropy.utils import OrderedDict
+from astropy.utils import OrderedDict as odict
 from astropy.table import Table
-from .spectral import get_magsystem
+from .spectral import get_magsystem, get_bandpass
+from .lcio import dict_to_array
 
-_photdata_aliases = OrderedDict([
+_photdata_aliases = odict([
     ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs'])),
     ('band', set(['band', 'bandpass', 'filter', 'flt'])),
     ('flux', set(['flux', 'f'])),
@@ -17,6 +18,7 @@ _photdata_aliases = OrderedDict([
     ('zpsys', set(['zpsys', 'zpmagsys', 'magsys']))
     ])
     
+# Descriptions for docstring only.
 _photdata_descriptions = {
     'time': 'Time of observation in days',
     'band': 'Bandpass of observation',
@@ -25,7 +27,6 @@ _photdata_descriptions = {
     'zp': 'Zeropoint corresponding to flux',
     'zpsys': 'Magnitude system for zeropoint'
     }
-
 _photdata_types = {
     'time': 'float',
     'band': 'str or `~sncosmo.Bandpass` instance',
@@ -35,57 +36,83 @@ _photdata_types = {
     'zpsys': 'str or `~sncosmo.spectral.MagSystem` instance'
     }
 
-# TODO: hold normalized flux internally? (or just convert all flux values?)
-# TODO: indexing to extract subsets of the data (e.g., just "good" bands)
-# TODO: run get_bandpass and get_magsystem at the start? How will this affect
-#       np.unique (used in model.bandflux and many other places)?
-class PhotData(object):
-    """Class for holding photometric data. This class is intended for internal
-    use only."""
+def standardize_data(data):
+    """Standardize photometric data by converting to a structured numpy array
+    with standard column names (if necessary).
 
-    def __init__(self, data):
-        if isinstance(data, np.ndarray):
-            colnames = data.dtype.names
-        elif isinstance(data, Table):
-            colnames = data.colnames
-            data = np.array(data, copy=False)
-        else:
-            t = Table(data)
-            colnames = t.colnames
-            data = np.array(t, copy=False)
+    Parameters
+    ----------
+    data : `~numpy.ndarray` or dict (of list or `~numpy.ndarray`)
 
-        colnames = set([name.lower() for name in colnames])
+    Returns
+    -------
+    standardized_data : `~numpy.ndarray`
+    """
 
-        for attribute, aliases in _photdata_aliases.iteritems():
-            i = colnames & aliases
-            if len(i) != 1:
-                raise ValueError(
-                    'Data must include exactly one column from: ' +
-                    ', '.join(list(aliases)) + ' (case-independent)'
-                    )
-            self.__dict__[attribute] = data[i.pop()]
+    if isinstance(data, np.ndarray):
+        colnames = data.dtype.names
+        if set(colnames) == set(_photdata_aliases.keys()):
+            return data
+    elif isinstance(data, dict):
+        colnames = data.keys()
+    else:
+        raise ValueError('Unrecognized data type')
 
-        self.length = len(data)
+    # Create mapping from lowercased column names to originals
+    lower_to_orig = {colname.lower(): colname for colname in colnames}
+        
+    # Set of lowercase column names
+    lower_colnames = set(lower_to_orig.keys())
 
-    def __len__(self):
-        return self.length
+    orig_colnames_to_use = []
+    for aliases in _photdata_aliases.values():
+        i = lower_colnames & aliases
+        if len(i) != 1:
+            raise ValueError('Data must include exactly one column from {} '
+                             '(case independent)'.format(', '.join(aliases)))
+        orig_colnames_to_use.append(lower_to_orig[i.pop()])
 
-    def normalized_flux(self, zp=25., zpsys='ab', include_err=False):
-        """Return flux values normalized to a common zeropoint and magnitude
-        system."""
+    if isinstance(data, np.ndarray):
+        new_data = data[orig_colnames_to_use]
+        new_data.dtype.names = _photdata_aliases.keys()
 
-        magsys = get_magsystem(zpsys)
-        factor = np.empty(self.length, dtype=np.float)
+    else:
+        new_data = odict()
+        for newkey, oldkey in zip(_photdata_aliases.keys(),
+                                  orig_colnames_to_use):
+            new_data[newkey] = data[oldkey]
+        new_data = dict_to_array(new_data)
 
-        for i in range(self.length):
-            ms = get_magsystem(self.zpsys[i])
-            factor[i] = (ms.zpbandflux(self.band[i]) /
-                         magsys.zpbandflux(self.band[i]) *
-                         10.**(0.4 * (zp - self.zp[i])))
+    return new_data
 
-        if include_err:
-            return self.flux * factor, self.fluxerr * factor
-        return self.flux * factor
+def normalize_data(data, zp=25., zpsys='ab'):
+    """Return a copy of the data with all flux and fluxerr values normalized
+    to the given zeropoint. Assumes data has already been standardized.
+    """
+
+    zpsys = get_magsystem(zpsys)
+    factor = np.empty(len(data), dtype=np.float)
+    
+    for b in set(data['band'].tolist()):
+        idx = data['band'] == b
+        b = get_bandpass(b)
+
+        bandfactor = 10.**(0.4 * (zp - data['zp'][idx]))
+        bandzpsys = data['zpsys'][idx]
+        for ms in set(bandzpsys):
+            idx2 = bandzpsys == ms
+            ms = get_magsystem(ms)
+            bandfactor[idx2] *= (ms.zpbandflux(b) / zpsys.zpbandflux(b))
+        
+        factor[idx] = bandfactor
+
+    ndata = odict([('time', data['time']),
+                   ('band', data['band']),
+                   ('flux', data['flux'] * factor),
+                   ('fluxerr', data['fluxerr'] * factor),
+                   ('zp', zp),
+                   ('zpsys', zpsys)])
+    return dict_to_array(ndata)
 
 def load_example_data():
     """
@@ -100,16 +127,18 @@ def load_example_data():
     """
 
     from astropy.utils.data import get_pkg_data_filename
-    from .lcio import readlc
+    from .lcio import read_lc
 
-    filename = get_pkg_data_filename('data/examples/example_photometric_data.dat')
-    return readlc(filename, fmt='csv')
+    filename = get_pkg_data_filename(
+        'data/examples/example_photometric_data.dat')
+    return read_lc(filename, fmt='csv')
 
 # Generate docstring: table of aliases
 lines = [
     '',
     '  '.join([60 * '=', 50 * '=', 50 * '=']),
-    '{:60}  {:50}  {:50}'.format('Acceptable column names (case-independent)', 'Description', 'Type')
+    '{:60}  {:50}  {:50}'.format('Acceptable column names (case-independent)',
+                                 'Description', 'Type')
     ]
 lines.append(lines[1])
 
