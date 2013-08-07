@@ -29,7 +29,7 @@ def read_griddata(name_or_obj):
     """
 
     if isinstance(name_or_obj, basestring):
-        f = open(filename, 'rb')
+        f = open(name_or_obj, 'rb')
     else:
         f = name_or_obj
 
