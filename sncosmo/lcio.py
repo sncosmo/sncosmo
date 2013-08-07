@@ -2,10 +2,13 @@
 """Functions for supernova light curve I/O"""
 
 # This module is designed to be self-contained, with only a dependency on
-# numpy
-
-# Try to get OrderedDict from collections, then from astropy, then just use
-# the regular built-in dictionary.
+# numpy. Since OrderedDict is only in 2.7+, try to get `OrderedDict` from
+# collections, then from astropy, then just use a regular `dict`.
+from warnings import warn
+import json
+import sys
+import re
+import numpy as np
 try:
     from collections import OrderedDict as odict
 except ImportError:
@@ -14,14 +17,9 @@ except ImportError:
     except ImportError:
         odict = dict
 
-HAS_NUMPY = True
-try:
-    import numpy as np
-except ImportError:
-    HAS_NUMPY = False
+__all__ = ['read_lc', 'write_lc']
 
-__all__ = ['readlc', 'writelc']
-
+# Helper functions ========================================================== #
 def _cast_str(s):
     try:
         return int(s)
@@ -32,30 +30,27 @@ def _cast_str(s):
             return s.strip()
 
 def dict_to_array(d):
-    """Convert a dictionary of lists (of equal length) to a structured
-    numpy.ndarray"""
-    import numpy as np
+    """Convert a dictionary of lists (or single values) to a structured
+    numpy.ndarray."""
 
-    # first convert all lists to 1-d arrays, in order to let numpy
+    # Convert all lists/values to 1-d arrays, in order to let numpy
     # figure out the necessary size of the string arrays.
+    new_d = odict()
     for key in d: 
-        d[key] = np.array(d[key])
+        new_d[key] = np.atleast_1d(d[key])
 
     # Determine dtype of output array.
-    dtypelist = []
-    for key in d:
-        dtypelist.append((key, d[key].dtype))
-    
+    dtype = [(key, arr.dtype) for key, arr in new_d.iteritems()]
+
     # Initialize ndarray and then fill it.
-    firstkey = d.keys()[0]
-    col_len = len(d[firstkey])
-    result = np.empty(col_len, dtype=dtypelist)
-    for key in d:
-        result[key] = d[key]
+    col_len = max([len(v) for v in new_d.values()])
+    result = np.empty(col_len, dtype=dtype)
+    for key in new_d:
+        result[key] = new_d[key]
 
     return result
 
-# ------------------------------- Readers ------------------------------------
+# Reader: csv =============================================================== #
 def _read_csv(f, **kwargs):
 
     delim = kwargs.get('delim', None)
@@ -99,6 +94,8 @@ def _read_csv(f, **kwargs):
 
     data = odict(zip(colnames, cols))
     return meta, data
+
+# Reader: salt2 ============================================================= #
 
 # SALT2 conversions upon reading:
 # Names are converted to lowercase, then the following lookup table is used.
@@ -178,17 +175,91 @@ def _read_salt2(f, **kwargs):
 
     return meta, data
 
-READERS = {'csv': _read_csv,
-           'salt2': _read_salt2}
+# Reader: json ============================================================== #
+def _read_json(f, **kwargs):
+    t = json.load(f, encoding=sys.getdefaultencoding())
+    d = {}
+    for key, value in t['data'].items():
+        d[key.encode('ascii')] = value
+    return t['meta'], d
 
-def readlc(fname, fmt='csv', array=True, **kwargs):
+
+# Reader: fits ============================================================== #
+
+def _read_fits(f, **kwargs):
+    try:
+        from astropy.io import fits
+    except ImportError:
+        try:
+            import pyfits as fits
+        except ImportError:
+            raise ValueError("Either pyfits or astropy is required for 'fits'"
+                             " format")
+    hdulist = fits.open(f) 
+
+    # Parse all table objects
+    tables = odict()
+    for ihdu, hdu_item in enumerate(hdulist):
+        if isinstance(hdu_item, (fits.TableHDU, fits.BinTableHDU,
+                                 fits.GroupsHDU)):
+            tables[ihdu] = hdu_item
+
+    if len(tables) > 1:
+        hdu = tables.keys()[0]
+        warn("hdu= was not specified but multiple tables"
+             " are present, reading in first available"
+             " table (hdu={0})".format(hdu))
+        hdu = hdulist.index_of(hdu)
+        if hdu in tables:
+            table = tables[hdu]
+        else:
+            raise ValueError("No table found in hdu={0}".format(hdu))
+
+    elif len(tables) == 1:
+        table = tables[tables.keys()[0]]
+    else:
+        raise ValueError("No table found")
+
+    # Create a metadata dictionary.
+    meta = odict()
+    for key, value, comment in table.header.cards:
+        if key in ['COMMENT', 'HISTORY']:
+            if key in meta:
+                meta[key].append(value)
+            else:
+                meta[key] = [value]
+
+        elif key in meta:  # key is duplicate
+            if isinstance(meta[key], list):
+                meta[key].append(value)
+            else:
+                meta[key] = [meta[key], value]
+
+        elif (is_column_keyword(key.upper()) or
+              key.upper() in REMOVE_KEYWORDS):
+            pass
+
+        else:
+            meta[key] = value
+
+    data = table.data.view(np.ndarray)
+    hdulist.close()
+
+    return meta, data
+
+# All readers =============================================================== #
+READERS = {'csv': _read_csv,
+           'json': _read_json,
+           'fits': _read_fits,
+           'salt2': _read_salt2}
+def read_lc(fname, fmt='csv', array=True, **kwargs):
     """Read light curve data.
 
     Parameters
     ----------
     fname : str
         Filename 
-    fmt : {'csv', 'salt2', 'snana'}, optional
+    fmt : {'csv', 'salt2', 'json'}, optional
         Format of file. Default is 'csv'. 'salt2' is the new format available
         in snfit version >= 2.3.0.
     array : bool, optional
@@ -224,16 +295,16 @@ def readlc(fname, fmt='csv', array=True, **kwargs):
     with open(fname, 'rb') as f:
         meta, data = READERS[fmt](f, **kwargs)
 
-    if array:
-        if HAS_NUMPY:
-            data = dict_to_array(data)
-        else:
-            raise ValueError('numpy required for array output. Use '
-                             'array=False for dictionary output.')
+    if array and not isinstance(data, np.ndarray):
+        data = dict_to_array(data)
+
     return meta, data
 
+# =========================================================================== #
+# Writers                                                                     #
+# =========================================================================== #
 
-# ------------------------------- Writers -----------------------------------#
+# Writer: csv =============================================================== #
 def _write_csv(f, data, meta, **kwargs):
     
     delim = kwargs.get('delim', ' ')
@@ -243,12 +314,8 @@ def _write_csv(f, data, meta, **kwargs):
         for key, val in meta.iteritems():
             f.write('{}{}{}{}\n'.format(metachar, key, delim, str(val)))
 
-    if hasattr(data, 'dtype'):
-        keys = data.dtype.names
-        length = len(data)
-    else:
-        keys = data.keys()
-        length = len(data[keys[0]])
+    keys = data.dtype.names
+    length = len(data)
     
     f.write(delim.join(keys))
     f.write('\n')
@@ -256,6 +323,7 @@ def _write_csv(f, data, meta, **kwargs):
         f.write(delim.join([str(data[key][i]) for key in keys]))
         f.write('\n')
 
+# Writer: salt2 ============================================================= #
 KEY_TO_SALT2KEY_META = {
     'Z': 'REDSHIFT',              # Not sure if this is used.
     'Z_HELIOCENTRIC': 'Z_HELIO',
@@ -286,12 +354,8 @@ def _write_salt2(f, data, meta, **kwargs):
                 key = KEY_TO_SALT2KEY_META.get(key, key)
             f.write('@{} {}\n'.format(key, str(val)))
 
-    if hasattr(data, 'dtype'):
-        keys = data.dtype.names
-        length = len(data)
-    else:
-        keys = data.keys()
-        length = len(data[keys[0]])
+    keys = data.dtype.names
+    length = len(data)
 
     # Write column names
     keys_as_written = []
@@ -314,7 +378,7 @@ def _write_salt2(f, data, meta, **kwargs):
         f.write(' '.join([str(data[key][i]) for key in keys]))
         f.write('\n')
 
-
+# Writer: snana ============================================================= #
 KEY_TO_SNANAKEY_COLUMN = {
     'TIME': 'MJD',
     'DATE': 'MJD',
@@ -352,12 +416,8 @@ def _write_snana(f, data, meta, **kwargs):
                 raise ValueError('Missing required metadata kw: ' + key)
     
     # Get column names and data length
-    if hasattr(data, 'dtype'):
-        keys = data.dtype.names
-        length = len(data)
-    else:
-        keys = data.keys()
-        length = len(data[keys[0]])
+    keys = data.dtype.names
+    length = len(data)
     
     # Convert column names
     keys_to_write = []
@@ -389,11 +449,87 @@ def _write_snana(f, data, meta, **kwargs):
         f.write(' '.join([str(data[key][i]) for key in keys]))
         f.write('\n')
 
+# Writer: json ============================================================== #
+def _write_json(f, data, meta, **kwargs):
+
+    # Build a dictionary of pure-python objects
+    output = odict([('meta', meta),
+                    ('data', odict())])
+    for key in data.dtype.names:
+        output['data'][key] = data[key].tolist()
+    json.dump(output, f, encoding=sys.getdefaultencoding())
+    del output
+
+# Writer: fits ============================================================== #
+
+# Adapted from astropy.io.fits.connect.write_table_fits
+
+# Keywords to remove for all tables that are read in
+REMOVE_KEYWORDS = ['XTENSION', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2',
+                   'PCOUNT', 'GCOUNT', 'TFIELDS']
+
+# Column-specific keywords
+COLUMN_KEYWORDS = ['TFORM[0-9]+',
+                   'TBCOL[0-9]+',
+                   'TSCAL[0-9]+',
+                   'TZERO[0-9]+',
+                   'TNULL[0-9]+',
+                   'TTYPE[0-9]+',
+                   'TUNIT[0-9]+',
+                   'TDISP[0-9]+',
+                   'TDIM[0-9]+',
+                   'THEAP']
+
+def is_column_keyword(keyword):
+    for c in COLUMN_KEYWORDS:
+        if re.match(c, keyword) is not None:
+            return True
+    return False
+
+def _write_fits(f, data, meta, **kwargs):
+    try:
+        from astropy.io import fits
+    except ImportError:
+        try:
+            import pyfits as fits
+        except ImportError:
+            raise ValueError("Either pyfits or astropy is required for 'fits'"
+                             " format")
+
+    table_hdu = fits.BinTableHDU(data)
+
+    for key, value in meta.items():
+        if is_column_keyword(key.upper()) or key.upper() in REMOVE_KEYWORDS:
+            warn("Meta-data keyword {0} will be ignored since it "
+                 "conflicts with a FITS reserved keyword".format(key),
+                 RuntimeWarning)
+
+        if isinstance(value, list):
+            for item in value:
+                try:
+                    table_hdu.header.append((key, item))
+                except ValueError:
+                    warn("Attribute `{0}` of type {1} cannot be written "
+                         "to FITS files - skipping".format(key, type(value)),
+                         RuntimeWarning)
+        else:
+            try:
+                table_hdu.header[key] = value
+            except ValueError:
+                warn("Attribute `{0}` of type {1} cannot be written to "
+                     "FITS files - skipping".format(key, type(value)),
+                     RuntimeWarning)
+
+    table_hdu.writeto(f)
+
+# All writers =============================================================== #
 WRITERS = {'csv': _write_csv,
            'salt2': _write_salt2,
-           'snana': _write_snana}
+           'snana': _write_snana,
+           'json': _write_json,
+           'fits': _write_fits}
 
-def writelc(data, fname, meta=None, fmt='csv', **kwargs):
+def write_lc(data, fname, meta=None, fmt='csv', **kwargs):
     """Write light curve data.
 
     Parameters
@@ -404,7 +540,7 @@ def writelc(data, fname, meta=None, fmt='csv', **kwargs):
         Filename.
     meta : dict, optional
         A (possibly empty) dictionary of metadata. Default is None.
-    fmt : {'csv', 'salt2', 'snana'}, optional
+    fmt : {'csv', 'salt2', 'snana', 'json', 'fits'}, optional
         Format of file. Default is 'csv'. 'salt2' is the new format available
         in snfit version >= 2.3.0.
     delim : str, optional
@@ -427,5 +563,12 @@ def writelc(data, fname, meta=None, fmt='csv', **kwargs):
     if fmt not in WRITERS:
         raise ValueError("Writer not defined for format '{}'. Options: "
                          .format(fmt) + ", ".join(WRITERS.keys()))
-    with open(fname, 'w') as f:
+
+    if not isinstance(data, np.ndarray):
+        data = dict_to_array(data)
+
+    if meta is None:
+        meta = {}
+
+    with open(fname, 'wb') as f:
         WRITERS[fmt](f, data, meta, **kwargs)
