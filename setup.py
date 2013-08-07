@@ -137,7 +137,7 @@ skip_2to3 = []
 # data.  See the docstring for setup_helpers.update_package_files for
 # more details.
 update_package_files(PACKAGENAME, extensions, package_data,
-                     packagenames, package_dirs, skip_2to3)
+                     packagenames, package_dirs)
 
 setup(name=PACKAGENAME,
       version=VERSION,
