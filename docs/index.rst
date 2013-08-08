@@ -77,7 +77,7 @@ NumPy, SciPy and AstroPy.
 
 ::
 
-    >>> res = sncosmo.fit_lc(model, data, ['x1','c','z','mabs','t0'],
+    >>> res = sncosmo.fit_lc(data, model, ['x1','c','z','mabs','t0'],
     ...                      bounds={'z': (0.3, 0.7)})
     >>> res.params['x1'], res.errors['x1']
     (0.14702167554607398, 0.033596743599762925)
