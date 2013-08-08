@@ -25,6 +25,14 @@ Key Features
   bandpasses takes on the order of 1 millisecond (depends on model
   and bandpass sampling).
 
+Stability
+---------
+
+The basic features of the models, bandpasses and magnitude systems
+can be considered "fairly" stable (but no guarantees).  The fitting and
+typing functionalities are more experimental and the API may change as
+it gets more real-world testing.
+
 History
 -------
 

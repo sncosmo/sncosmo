@@ -1,5 +1,5 @@
 ******************
-Photometric Typing
+Light Curve Typing
 ******************
 
 Photometric typing in `sncosmo` is carried out by computing the
@@ -35,7 +35,7 @@ Add two models for Type II SNe:
 Read light curve data and classify it:
 
     >>> meta, data = sncosmo.readlc(args.filename)
-    >>> type_p, model_p, model_perr, bestmodel, mparams = typer.classify(data)
+    >>> types, models = typer.classify(data)
 
 
 Tying parameters

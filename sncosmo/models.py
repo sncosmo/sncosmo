@@ -191,9 +191,9 @@ class Model(object):
             # TODO: remove this hack once astropy v0.3 is released
             dm = self._cosmo.distmod(self._params['z'])
             try:
-                self._distmod = dm.value
+                self._distmod = dm.value  # dm is Quantity in astropy v0.3+
             except AttributeError:
-                self._distmod = dm
+                self._distmod = dm # dm is float in astropy v0.2.x
 
         self._params['m'] = self._params['mabs'] + self._distmod
         self._set_fscale_from_m()

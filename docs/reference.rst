@@ -18,6 +18,8 @@ Built-ins
 Models, Bandpasses & Magnitude Systems
 ======================================
 
+*Core module classes and functions*
+
 .. autosummary::
    :toctree: _generated
 
@@ -35,36 +37,43 @@ Models, Bandpasses & Magnitude Systems
 Data I/O
 ========
 
+*Convenience functions for reading and writing photometric data to standard formats*
+
 .. autosummary::
    :toctree: _generated
 
-   readlc
-   writelc
+   read_lc
+   write_lc
    load_example_data
 
 Fitting & Typing Photometric Data
 =================================
 
+*Fit model parameters to photometric data & compare models to data*
+
 .. autosummary::
    :toctree: _generated
 
-   fit_model
+   fit_lc
+   mcmc_lc
    PhotoTyper
 
 Plotting
 ========
 
-*Simple convenience functions for standard plots using matplotlib*
+*Convenience functions for quick standard plots (requires matplotlib)*
 
 .. autosummary::
    :toctree: _generated
 
-   plotlc
-   plotpdf
+   plot_lc
+   plot_pdf
    animate_model
 
 Registry
 ========
+
+*Customizing "built-in" models, bandpasses, and magnitude systems*
 
 .. autosummary::
    :toctree: _generated

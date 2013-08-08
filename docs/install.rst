@@ -7,13 +7,13 @@ Requirements
 
 SNCosmo depends on the following standard scientific python packages:
 
-- `Python <http://www.python.org/>`_ 2.6, 2.7
+- `Python <http://www.python.org/>`_ 2.6 or 2.7
 
 - `NumPy <http://www.numpy.org/>`_ 1.5 or later
 
 - `SciPy <http://www.scipy.org/>`_ 0.9 or later
 
-- AstroPy_ 0.3.dev or later
+- AstroPy_ 0.2 or later
 
 In addition, several optional packages provide additional functionality:
 
@@ -30,16 +30,18 @@ Installation instructions
 
 Assuming you already have NumPy and SciPy, install AstroPy by
 following the `AstroPy installation instructions
-<http://astropy.readthedocs.org/en/latest/install.html>`_.
+<http://astropy.readthedocs.org/en/latest/install.html>`_. In short::
+
+    pip install --no-deps astropy
 
 Latest released version (using pip)
 -----------------------------------
 
 To install with `pip`, simply run one of::
 
-    pip install sncosmo
-    pip install sncosmo --user
-    pip install sncosmo --prefix=/path/to/install/dir
+    pip install sncosmo --no-deps
+    pip install sncosmo --no-deps --user
+    pip install sncosmo --no-deps --prefix=/path/to/install/dir
 
 The first option will try to install to the system directories, and
 requires root access. The ``--user`` option will typically install

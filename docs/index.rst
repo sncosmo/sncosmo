@@ -5,7 +5,7 @@
       h1 { display:none; }
       th { display:none; }
       table.docutils td { border-bottom:none;  width:30em; }
-      div.bodywrapper { max-width:75em; }
+      div.bodywrapper { width:80em; max-width:80em; }
       pre { overflow-x:hidden; }
       div.leftcolumn { display: table-cell; padding-right: 5px; }
       div.rightcolumn { display: table-cell; padding-left: 5px; }
@@ -58,6 +58,17 @@ NumPy, SciPy and AstroPy.
 
 *See more in* :doc:`models`
 
+**Read and Write Photometric Data**
+
+::
+
+   >>> meta, data = sncosmo.read_lc('mydata.dat', fmt='csv')
+   >>> sncosmo.write_lc(data, 'mydata.json', meta=meta, fmt='json')
+   >>> sncosmo.write_lc(data, 'mydata.dat', meta=meta, fmt='salt2')
+   >>> sncosmo.write_lc(data, 'mydata.fits', meta=meta, fmt='fits')
+
+*See more in* :doc:`photometric_data`
+
 .. raw:: html
 
     </div><div class="rightcolumn">
@@ -66,8 +77,8 @@ NumPy, SciPy and AstroPy.
 
 ::
 
-    >>> res = sncosmo.fit_model(model, data, ['x1','c','z','mabs','t0'],
-    ...                         bounds={'z': (0.3, 0.7)})
+    >>> res = sncosmo.fit_lc(model, data, ['x1','c','z','mabs','t0'],
+    ...                      bounds={'z': (0.3, 0.7)})
     >>> res.params['x1'], res.errors['x1']
     (0.14702167554607398, 0.033596743599762925)
 
@@ -79,7 +90,7 @@ NumPy, SciPy and AstroPy.
 ::
 
     >>> model.set(**res.params)  # set parameters to best-fit values
-    >>> sncosmo.plotlc(data, model)
+    >>> sncosmo.plot_lc(data, model)
 
 .. image:: _static/example_lc.png
    :width: 400px
@@ -91,10 +102,30 @@ NumPy, SciPy and AstroPy.
 ::
 
     >>> typer = sncosmo.PhotoTyper()
+    >>> sn1a_parlims = {'z': (0.01, 1.2), 'c':(-0.4, 0.6), 's': (0.7, 1.3),
+    ...                 'mabs':(-18., -20.)}
+    >>> sncc_parlims = {'z': (0.01, 1.1), 'c':(0., 0.6), 'mabs':(-17., -19.)}
+    >>> typer.add_model('hsiao', 'SN Ia', sn1a_parlims)
+    >>> typer.add_model('s11-2004hx', 'SN IIL', sncc_parlims)
+    >>> types, models = typer.classify(data)
+    >>> types['SN Ia']['p']
+    1.0
+    >>> models['hsiao']['p'], models['hsiao']['perr']
+    (1.0, 0.0)
+
+*See more in* :doc:`typing`
 
 .. raw:: html
 
     </div></div></div>
+
+Development
+-----------
+
+This package is actively being developed. Bug reports, comments, and
+help with development are very welcome.  Source code and issue
+tracking is hosted on github: https://github.com/kbarbary/sncosmo
+
 
 .. toctree::
    :hidden:
@@ -111,4 +142,3 @@ NumPy, SciPy and AstroPy.
    typing
    registry
    reference
-   development
