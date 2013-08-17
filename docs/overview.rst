@@ -28,10 +28,10 @@ Key Features
 Stability
 ---------
 
-The basic features of the models, bandpasses and magnitude systems
-can be considered "fairly" stable (but no guarantees).  The fitting and
-typing functionalities are more experimental and the API may change as
-it gets more real-world testing.
+The basic features of the models, bandpasses and magnitude systems can
+be considered "fairly" stable.  The fitting and typing functionalities
+are more experimental and the API may change as it gets more
+real-world testing.
 
 History
 -------

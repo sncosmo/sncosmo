@@ -1,5 +1,5 @@
 
-Built-in Magnitude Systems
---------------------------
+List of Built-in Magnitude Systems
+----------------------------------
 
 .. automodule:: sncosmo._builtin.magsystems

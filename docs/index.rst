@@ -96,6 +96,7 @@ NumPy, SciPy and AstroPy.
    :width: 400px
    :height: 300px
 
+*See more under "Plotting"* in the :doc:`reference`
 
 **Photometric Typing**
 
@@ -122,8 +123,8 @@ NumPy, SciPy and AstroPy.
 Development
 -----------
 
-This package is actively being developed. Bug reports, comments, and
-help with development are very welcome.  Source code and issue
+This package is being actively developed. Bug reports, comments, and
+help with development are *very* welcome.  Source code and issue
 tracking is hosted on github: https://github.com/kbarbary/sncosmo
 
 
@@ -137,7 +138,6 @@ tracking is hosted on github: https://github.com/kbarbary/sncosmo
    bandpasses
    magsystems
    photometric_data
-   plotting
    fitting
    typing
    registry
