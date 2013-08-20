@@ -19,7 +19,7 @@ __all__ = ['plot_lc', 'plot_pdf', 'animate_model']
 # TODO: return the Figure?
 def plot_lc(data=None, model=None, bands=None, show_pulls=True,
             include_model_error=False, zp=25., zpsys='ab',
-            figtext=None, offsets=None,
+            figtext=None, figtext_ysize=1., offsets=None,
             xfigsize=None, yfigsize=None, dpi=100, fname=None):
     """Plot light curve data or model light curves.
 
@@ -43,8 +43,13 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         Zeropoint system for `zp`. Default is 'ab'.
     include_model_error : bool, optional
         Plot model error as a band around the model.
-    figtext : str, optional
-        Text to add to top of figure.
+    figtext : str or list, optional
+        Text to add to top of figure. If a list of strings, each item is
+        placed in a separate "column". Use newline separators for multiple
+        lines.
+    figtext_ysize : float, optional
+        Space to reserve at top of figure for figtext (if not None). Default is
+        1 inch.
     xfigsize, yfigsize : float, optional
         figure size in inches in x or y. Specify one or the other, not both.
         Default is xfigsize=8.
@@ -129,7 +134,6 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         raise ValueError('cannot specify both xfigsize and yfigsize')
 
     if figtext is not None:
-        figtext_ysize = 1.5 # size in inches
         figsize = (figsize[0], figsize[1] + figtext_ysize)
         figtext_yfrac = figtext_ysize / figsize[1]
     else:
@@ -139,9 +143,15 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
 
     # Add figure text at the top of the figure
     if figtext is not None:
-        t = fig.text(0.05, 0.95, figtext,
-                     va="top", ha="left", multialignment="left")
+        if isinstance(figtext, basestring):
+            figtext = [figtext]
+        for i in range(len(figtext)):
+            xpos = 0.05 + 0.9 * (i / len(figtext))
+            t = fig.text(xpos, 0.95, figtext[i],
+                         va="top", ha="left", multialignment="left")
 
+
+    # Loop over bands.
     axnum = 0
     for disp, band in sorted(zip(disps, bands)):
         axnum += 1
@@ -235,7 +245,7 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     plt.clf()
 
 def pretty_value_and_error(value, error, latex=False):
-    """Return a pretty string representing value and error.
+    """Return a string representing value and error.
 
     If latex=True, use '\pm' and '\times'.
     """
@@ -473,3 +483,4 @@ def animate_model(model_or_models, fps=30, length=20.,
 
     else:
         plt.show()
+    plt.clf()
