@@ -1,3 +1,5 @@
+The original license of the SALT2Model class in sncosmo/models.py is as follows:
+
 Copyright (c) 2012, Stephen Bailey
 All rights reserved.
 
