@@ -20,34 +20,61 @@ In addition, several optional packages provide additional functionality:
 - Optional: `matplotlib <http://www.matplotlib.org/>`_ for plotting functions.
 
 - Optional: `iminuit <http://iminuit.github.io/iminuit/>`_ for light curve
-  fitting using the Minuit minimizer.
+  fitting using the Minuit minimizer in `sncosmo.fit_lc`.
 
 - Optional: `emcee <http://dan.iel.fm/emcee/>`_ for Monte Carlo parameter
-  estimation.
+  estimation in `sncosmo.mcmc_lc`.
 
-Installation instructions
-=========================
+Install AstroPy
+---------------
 
 Assuming you already have NumPy and SciPy, install AstroPy by
 following the `AstroPy installation instructions
 <http://astropy.readthedocs.org/en/latest/install.html>`_. In short::
 
-    pip install --no-deps astropy
+    pip install astropy --no-deps --user  # ... or see other pip options below
+
+Installation instructions
+=========================
 
 Latest released version (using pip)
 -----------------------------------
 
 To install with `pip`, simply run one of::
 
-    pip install sncosmo --no-deps
     pip install sncosmo --no-deps --user
-    pip install sncosmo --no-deps --prefix=/path/to/install/dir
+    pip install sncosmo --no-deps --install-option="--prefix=/path/to/install/basedir"
+    pip install sncosmo --no-deps --target=/path/to/library/dir
+    pip install sncosmo --no-deps  # as root (not recommended)
 
-The first option will try to install to the system directories, and
-requires root access. The ``--user`` option will typically install
-things in ``~/.local/lib``, ``~/.local/bin``, etc (on Linux
-systems). The ``--prefix`` option will install in
-``/path/to/install/dir/lib``, ``/path/to/install/dir/bin``, etc.
+* ``--user`` will typically install things in ``~/.local/lib``,
+  ``~/.local/bin``, etc (on Linux systems anyway).
+* ``--install-option=...`` will install in ``/path/to/install/basedir/lib``,
+  ``/path/to/install/basedir/bin``, etc.
+* ``--target=...`` will install *just* the python library (no scripts)
+  in ``/path/to/library/dir`` (e.g., you have ``/path/to/library/dir`` in
+  your ``$PYTHONPATH``). (There are currently no scripts.)
+* The last option will try to install to the system directories, and
+  requires root access. I don't recommend this option unless this is
+  already your typical way of using pip. I prefer to allow only the package
+  manager to install to system directories, using pip only to install
+  packages somewhere in my home directory using one of the above
+  methods.
+
+Latest released version (from source)
+-------------------------------------
+
+A source tarball or zip is available from `github <https://github.com/kbarbary/sncosmo/releases>`_. After downloading the appropriate tarball, run, e.g.::
+
+    tar xzf sncosmo-0.2.tar.gz
+    cd sncosmo-0.2
+
+then one of::
+
+    setup.py install --user
+    setup.py install --prefix=/path/to/install/basedir
+    setup.py install  # as root (not recommended)
+    
 
 Development version (using git)
 -------------------------------
@@ -56,22 +83,20 @@ To get the latest development version source, using ``git``::
 
     git clone git://github.com/kbarbary/sncosmo.git
     cd sncosmo
-    setup.py build
 
 then one of::
 
-    setup.py install
     setup.py install --user
-    setup.py install --prefix=/path/to/prefix
+    setup.py install --prefix=/path/to/install/basedir
+    setup.py install  # as root (not recommended)
 
 Development version (no git)
 ----------------------------
 
 If you don't have git but want to use the latest development version,
-download the latest tarball, using ::
+download the latest zip, using::
 
     wget https://github.com/kbarbary/sncosmo/archive/master.zip
     unzip master.zip
     cd sncosmo-master
-    setup.py build
     setup.py install [--user] [--prefix=...]
