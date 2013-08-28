@@ -88,7 +88,7 @@ def register(instance, name=None, data_class=None, force=False):
     
     already_present = (key in _instances) or (key in _loaders)
     if not already_present or force:
-        _loaders[key] = instance
+        _instances[key] = instance
     else:
         raise Exception("{0:s} named {1:s} already in registry. Use force=True"
                         " to override.".format(dat_class.__name__, name))
