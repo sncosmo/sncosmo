@@ -49,7 +49,7 @@ Once created, you can access the values:
 
     >>> band.disp  # always returns wavelengths in Angstroms
     array([ 4000.,  4200.,  4400.,  4600.,  4800.,  5000.])
-    >>> band.transmission
+    >>> band.trans
     array([ 0.,  1.,  1.,  1.,  1.,  0.])
     >>> band.name
     'tophatg'
