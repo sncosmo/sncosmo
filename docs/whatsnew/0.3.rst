@@ -1,9 +1,12 @@
-=========================
-What's new in sncosmo 0.3
-=========================
+======================================
+What's New in sncosmo 0.3 (unreleased)
+======================================
 
 * registry is now case-independent. All of the following now work::
 
       sncosmo.get_magsystem('AB')
       sncosmo.get_magsystem('Ab')
       sncsomo.get_magsystem('ab')
+
+* Photometric data can be unordered in time. Internally, the data are
+  sorted before being used in fitting and typing.
