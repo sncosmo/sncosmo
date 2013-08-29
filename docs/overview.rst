@@ -39,4 +39,5 @@ History
 .. toctree::
    :maxdepth: 1
 
+   whatsnew/0.3
    whatsnew/0.2

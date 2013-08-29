@@ -1,0 +1,9 @@
+=========================
+What's new in sncosmo 0.3
+=========================
+
+* registry is now case-independent. All of the following now work::
+
+      sncosmo.get_magsystem('AB')
+      sncosmo.get_magsystem('Ab')
+      sncsomo.get_magsystem('ab')
