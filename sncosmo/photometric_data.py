@@ -9,6 +9,8 @@ from astropy.table import Table
 from .spectral import get_magsystem, get_bandpass
 from .lcio import dict_to_array
 
+__all__ = ['load_example_data']
+
 _photdata_aliases = odict([
     ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs'])),
     ('band', set(['band', 'bandpass', 'filter', 'flt'])),
@@ -38,7 +40,8 @@ _photdata_types = {
 
 def standardize_data(data):
     """Standardize photometric data by converting to a structured numpy array
-    with standard column names (if necessary).
+    with standard column names (if necessary) and sorting entries in order of
+    increasing time.
 
     Parameters
     ----------
@@ -51,10 +54,16 @@ def standardize_data(data):
 
     if isinstance(data, np.ndarray):
         colnames = data.dtype.names
-        if set(colnames) == set(_photdata_aliases.keys()):
+
+        # Check if the data already complies with what we want
+        # (correct column names & ordered by date)
+        if (set(colnames) == set(_photdata_aliases.keys()) and
+            np.all(np.ediff1d(data['time']) >= 0.)):
             return data
+
     elif isinstance(data, dict):
         colnames = data.keys()
+
     else:
         raise ValueError('Unrecognized data type')
 
@@ -82,6 +91,10 @@ def standardize_data(data):
                                   orig_colnames_to_use):
             new_data[newkey] = data[oldkey]
         new_data = dict_to_array(new_data)
+
+    # Sort by time, if necessary.
+    if not np.all(np.ediff1d(new_data['time']) >= 0.):
+        new_data.sort(order=['time'])
 
     return new_data
 
