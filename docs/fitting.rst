@@ -43,7 +43,8 @@ bounds on the allowable redshift range. This is the only parameter
 that *requires* bounds. Bounds are optional for the other parameters.
 
 The result, ``res`` is basically a dictionary with attribute
-access. You can see what attributes it has::
+access (so ``res['params']`` and ``res.params`` both access the same thing).
+You can see what attributes it has::
 
     >>> print res.keys()
     ['errors', 'params', 'matrix', 'covariance', 'ncalls', 'ndof', 'fval']
@@ -65,3 +66,98 @@ To plot the fitted result, first set the parameters of the model to the best-fit
     >>> sncosmo.plot_lc(data, model)
 
 .. image:: _static/example_lc.png
+
+
+Fixing parameters (e.g., redshift) and setting initial guesses
+==============================================================
+
+Suppose we already know the redshift of the supernova we're trying to
+fit.  We want to set the model's redshift to the known value, and then
+make sure not to vary `z` in the fit::
+
+    >>> model = sncosmo.get_model('salt2')
+    >>> model.set(z=0.5)  # set the model's redshift.
+    >>> res = sncosmo.fit_lc(data, model, ['mabs', 'x1', 'c', 't0']) # only vary 4 parameters.
+
+Instead of the last two lines, we could also have simply done::
+
+    >>> res = sncosmo.fit_lc(data, model, ['mabs', 'x1', 'c', 't0'], p0={'z': 0.5})
+
+Any parameter values specified with the ``p0`` keyword argument will
+override the current model parameters. ``p0`` can also be used to set
+initial guesses for parameters that *are* varied in the fit. It will
+override the default guesses that are made for ``t0`` and ``fscale``
+parameters.
+
+
+Fitting an "offset" for each bandpass
+=====================================
+
+It is possible to fit for a constant "offset" flux in each band. This
+is useful in cases such as:
+
+1. The photometry includes an unknown (but constant) amount of host galaxy
+   light (e.g., the photometry was not done on "subtracted" images).
+
+2. There is an unknown (but constant) amount of SN light in the
+   reference image used in all subtractions.
+
+To fit the offset in each band, specify ``fit_offset=True``::
+
+    >>> res = sncosmo.fit_lc(data, model, ['mabs', 'x1', 'c', 't0', 'z'],
+    ...                      bounds={'z':(0.3, 0.7)}, fit_offset=True)
+
+The result is that four additional parameters (one for each band) have
+been added to the fit. For example::
+
+    >>> res.params  # best-fit parameters
+    {'c': 0.09009158346906926,
+     'mabs': -19.733868320550926,
+     'offset_sdssg': -0.029615419923067394,
+     'offset_sdssi': -0.0317299805728631,
+     'offset_sdssr': 0.10459915813653357,
+     'offset_sdssz': 0.8082400931986695,
+     't0': 55100.40166018243,
+     'x1': 0.40052154978406385,
+     'z': 0.5399703676493539}
+
+The uncertainties on the offset parameters are also reported in
+``res.errors``, ``res.covariance``, and ``res.matrix``. The values are
+flux in some units that correspond to a given magnitude system and
+zeropoint. By default, this is the AB system and a zeropoint
+of 25. These values can be changed using the keywords ``offset_zp``
+and ``offset_zpsys``. For example::
+
+    >>> res = sncosmo.fit_lc(data, model, ['mabs', 'x1', 'c', 't0', 'z'],
+    ...                      bounds={'z':(0.3, 0.7)}, fit_offset=True,
+    ...                      offset_zp=27.5)
+
+would result in best-fit values of ``offset_[band]`` that are 10 times
+larger (since the zeropoint is now 2.5 times larger). They would still
+correspond to the same *physical* flux values. In other words,
+``offset_zp`` and ``offset_zpsys`` essentially specify the "units"
+that the offset flux values are returned in.
+
+Note that more function calls were required because we had nine
+parameters to fit instead of only five::
+
+    >>> res.ncalls
+    376
+
+Finally, an additional attribute had been added to ``res``::
+
+    >>> res.offsets
+    {'sdssg': -0.029615419923067394,
+     'sdssi': -0.0317299805728631,
+     'sdssr': 0.10459915813653357,
+     'sdssz': 0.8082400931986695}
+
+These values are the same as the best-fit offset values in
+``res.params`` but the dictionary keys are the names of the
+bandpasses. This is useful when plotting the best-fit model and data
+together.
+
+To plot the model including these offsets::
+
+    >>> model.set(**res.params)
+    >>> sncosmo.plot_lc(data, model, offsets=res.offsets)
