@@ -26,12 +26,14 @@ Models, Bandpasses & Magnitude Systems
    get_model
    get_bandpass
    get_magsystem
+   Model
    TimeSeriesModel
    StretchModel
    SALT2Model
    Bandpass
-   SpectralMagSystem
+   MagSystem
    ABMagSystem
+   SpectralMagSystem
    extinction_ccm
 
 Data I/O
