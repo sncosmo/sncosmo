@@ -14,3 +14,7 @@ def test_register():
 
     # make sure we can get back the band we put it.
     assert band2 is band
+
+def test_retrieve_cases():
+    for name in ['ab', 'Ab', 'AB']:  # Should work regardless of case.
+        sncosmo.get_magsystem(name)

@@ -36,11 +36,16 @@ def register_loader(data_class, name, function, function_args=None,
     if function_args is None:
         function_args = []
 
+    # Convert name to lowercase. The registry stores names in all-lowercase.
+    name = name.lower()
+
+    # define the key
     if version is None:
         key = (data_class, name)
     else:
         key = (data_class, name, version)
 
+    # Add the loader to the registry if it is not already there.
     if not key in _loaders or force:
         _loaders[key] = function, function_args, meta
     else:
@@ -51,7 +56,6 @@ def register_loader(data_class, name, function, function_args=None,
         raise Exception("Loader for {0:s} named '{1:s}'{2:s} is already "
                         "defined. Use force=True to override."
                         .format(data_class.__name__, name, versionstr))
-
 
 def register(instance, name=None, data_class=None, force=False):
     """Register a class instance.
@@ -83,7 +87,8 @@ def register(instance, name=None, data_class=None, force=False):
 
     if data_class is None:
         data_class = instance.__class__
-        
+
+    name = name.lower()
     key = (data_class, name)
     
     already_present = (key in _instances) or (key in _loaders)
@@ -101,7 +106,11 @@ def retrieve(data_class, name, version=None):
     data_class : classobj
         The class of the object requested.
     name : str
-        Identifier of the specific instance.
+        Identifier of the specific instance. `name` is case-independent,
+        however, note the following: Internally, names are stored in lowercase.
+        The retrieval is first tried assuming the requested name is also
+        lowercase, then `name` is converted to lowercase. So it should be
+        slightly faster to use lowercase names everywhere.
     version : str
         Sub-identifier. If `None`, default to highest or only version.
 
@@ -135,17 +144,31 @@ def retrieve(data_class, name, version=None):
 
     """
 
-    if isinstance(name, data_class): return name
+    if isinstance(name, data_class):
+        return name
+
+    # Try to retrieve from the instances assuming `name` is lowercase.
     if version is None:
         key = (data_class, name)
     else:
         key = (data_class, name, version)
-
     try:
         return _instances[key]
     except KeyError:
         pass
 
+    # Try to convert name to lowercase first.
+    name = name.lower()
+    if version is None:
+        key = (data_class, name)
+    else:
+        key = (data_class, name, version)
+    try:
+        return _instances[key]
+    except KeyError:
+        pass
+
+    # Try to retrieve from the loaders.
     if key in _loaders:
         function, function_args, meta = _loaders[key]
         if version is None:
