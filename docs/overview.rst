@@ -57,17 +57,16 @@ supernova cosmology. These include (but are not limited to) `snfit`_
   this package to some extent. The key difference is that these
   packages provide several (or many) executable applications, but do
   not provide an API for writing new programs building on the
-  functionality they provide. In contrast, this package is designed to
-  be a programming *library*. It currently provides no
-  executables. Instead, it provides functions and classes which can be
-  used to write programs or scripts by a Python programmer, using a
-  publicly defined API.
+  functionality they provide. This package, in contrast, provides no
+  executables; instead it is a *library* of functions and classes
+  designed to provide the building blocks commonly used in many
+  aspects of SN analyses.
 
 * `SNooPy`_ (or snpy) is also a Python library for SN analysis, but
   with a (mostly) different feature set. SNooPy is aimed at both the
   Python programmer and the general user (you don't necessarily need
   to know Python to use it), whereas this package is (currently) only a
-  library for writing Python programs.
+  library.
 
 
 .. _`snfit`: http://supernovae.in2p3.fr/~guy/salt/index.html
