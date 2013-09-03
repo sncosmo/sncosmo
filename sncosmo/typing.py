@@ -156,7 +156,7 @@ def evidence(model, data, parnames,
     # Add some more to results
     res['parnames'] = parnames
     res['chisq_min'] = -2. * res.pop('loglmax')
-    res['dof'] = len(time) - npar
+    res['dof'] = len(data) - npar
 
     return res
 
