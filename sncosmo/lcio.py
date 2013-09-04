@@ -2,12 +2,13 @@
 """Functions for supernova light curve I/O"""
 
 # This module is designed to be self-contained, with only a dependency on
-# numpy. Since OrderedDict is only in 2.7+, try to get `OrderedDict` from
-# collections, then from astropy, then just use a regular `dict`.
+# numpy. Since OrderedDict is only in Python 2.7+, try to get `OrderedDict`
+# from collections, then from astropy, then just use a regular `dict`.
 from warnings import warn
-import json
+import os
 import sys
 import re
+import json
 import numpy as np
 try:
     from collections import OrderedDict as odict
@@ -97,6 +98,9 @@ def _read_csv(f, **kwargs):
 
 # Reader: salt2 ============================================================= #
 
+# TODO: remove _salt2_rename_keys()
+# conversion upon reading has been removed.
+
 # SALT2 conversions upon reading:
 # Names are converted to lowercase, then the following lookup table is used.
 SALT2KEY_TO_KEY = {'redshift': 'z',
@@ -118,8 +122,6 @@ def _read_salt2(f, **kwargs):
     on lines starting with '#' and containing a ':' after the column name.
     There is optionally a line containing '#end' before the start of data.
     """
-
-    raw = kwargs.get('raw', False)
 
     meta = odict()
     colnames = []
@@ -168,16 +170,90 @@ def _read_salt2(f, **kwargs):
 
     data = odict(zip(colnames, cols))
 
-    # convert keys, if requested
-    if not raw:
-        meta = _salt2_rename_keys(meta)
-        data = _salt2_rename_keys(data)
+    return meta, data
+
+# Reader: salt2-old ========================================================= #
+
+def _read_salt2_old(dirname, **kwargs):
+    """Read old-style SALT2 files from a directory.
+    
+    A file named 'lightfile' must exist in the directory.
+    """
+
+    filenames = kwargs.get('filenames', None)
+
+    # Get list of files in directory.
+    if not (os.path.exists(dirname) and os.path.isdir(dirname)):
+        raise IOError("Not a directory: '{}'".format(dirname))
+    dirfilenames = os.listdir(dirname)
+
+    # Read metadata from lightfile.
+    if 'lightfile' not in dirfilenames:
+        raise IOError("no lightfile in directory: '{}'".format(dirname))
+    with open(os.path.join(dirname, 'lightfile'), 'r') as lightfile:
+        meta = odict()
+        for line in lightfile.readlines():
+            line = line.strip()
+            if len(line) == 0: continue
+            try:
+                key, val = line.split()
+            except ValueError:
+                raise ValueError('expected space-separated key value pairs in '
+                                 'lightfile: {}'
+                                 .format(os.path.join(dirname, 'lightfile')))
+            meta[key] = val
+
+    # Get list of filenames to read.
+    if filenames is None:
+        filenames = dirfilenames
+    if 'lightfile' in filenames:
+        filenames.remove('lightfile')  # We already read the lightfile.
+    fullfilenames = [os.path.join(dirname, f) for f in filenames]
+    
+    # Read data from files.
+    data = None
+    for fname in fullfilenames:
+        with open(fname, 'r') as f:
+            filemeta, filedata = _read_salt2(f)
+
+        # Check that all necessary file metadata was defined.
+        if not ('INSTRUMENT' in filemeta and 'BAND' in filemeta and
+                'MAGSYS' in filemeta):
+            raise ValueError('not all necessary global keys (INSTRUMENT, '
+                             'BAND, MAGSYS) are defined in file {}'
+                             .format(fname))
+
+        # Add the instrument/band to the file data, in anticipation of
+        # aggregating it with other files.
+        firstkey = filedata.keys()[0]
+        data_length = len(filedata[firstkey])
+        filter_name = '{}::{}'.format(filemeta.pop('INSTRUMENT'),
+                                      filemeta.pop('BAND'))
+        filedata['Filter'] = data_length * [filter_name]
+        filedata['MagSys'] = data_length * [filemeta.pop('MAGSYS')]
+
+        # If this if the first file, initialize data lists, otherwise if keys
+        # match, append this file's data to the main data.
+        if data is None:
+            data = filedata
+        elif set(filedata.keys()) == set(data.keys()):
+            for key in data: data[key].extend(filedata[key])
+        else:
+            raise ValueError('column names do not match between files')
+
+        # Append any extra metadata in this file to the master metadata.
+        if len(filemeta) > 0:
+            meta[filter_name] = filemeta
 
     return meta, data
+
 
 # Reader: json ============================================================== #
 def _read_json(f, **kwargs):
     t = json.load(f, encoding=sys.getdefaultencoding())
+
+    # Encode data keys as ascii rather than UTF-8 so that they can be
+    # used as numpy structured array names later.
     d = {}
     for key, value in t['data'].items():
         d[key.encode('ascii')] = value
@@ -251,17 +327,22 @@ def _read_fits(f, **kwargs):
 READERS = {'csv': _read_csv,
            'json': _read_json,
            'fits': _read_fits,
-           'salt2': _read_salt2}
-def read_lc(fname, fmt='csv', array=True, **kwargs):
+           'salt2': _read_salt2,
+           'salt2-old': _read_salt2_old}
+def read_lc(file_or_dir, fmt='csv', array=True, **kwargs):
     """Read light curve data.
 
     Parameters
     ----------
-    fname : str
-        Filename 
-    fmt : {'csv', 'salt2', 'json'}, optional
+    file_or_dir : str
+        Filename (formats 'csv', 'json', 'salt2', 'fits') or directory name
+        (format 'salt2-old'). For 'salt2-old' format, directory must contain
+        a file named 'lightfile'. All other files in the directory are
+        assumed to be photometry files, unless the `filenames` keyword argument
+        is set.
+    fmt : {'csv', 'json', 'salt2', 'salt2-old', 'fits'}, optional
         Format of file. Default is 'csv'. 'salt2' is the new format available
-        in snfit version >= 2.3.0.
+        in snfit version >= 2.3.0. 
     array : bool, optional
         If True (default), returned data is a numpy array, Otherwise, data
         is a dictionary of lists (representing columns).
@@ -275,10 +356,9 @@ def read_lc(fname, fmt='csv', array=True, **kwargs):
     commentchar : str, optional
         **[csv only]** One-character string indicating a comment. Default is
         '#'.
-    raw : bool, optional
-        **[salt2 only]** By default, the SALT2 reader converts all column names
-        and metadata keys to lowercase and renames a few of them. Set to True
-        to override this. Default is False.
+    filenames : list, optional
+        **[salt2-old only]** Only try to read the given filenames as
+        photometry files. Default is to try to read all files in directory.
 
     Returns
     -------
@@ -292,8 +372,11 @@ def read_lc(fname, fmt='csv', array=True, **kwargs):
         raise ValueError("Reader not defined for format '{}'. Options: "
                          .format(fmt) + ", ".join(READERS.keys()))
 
-    with open(fname, 'rb') as f:
-        meta, data = READERS[fmt](f, **kwargs)
+    if fmt == 'salt2-old':
+        meta, data = READERS[fmt](file_or_dir, **kwargs)
+    else:
+        with open(fname, 'rb') as f:
+            meta, data = READERS[fmt](f, **kwargs)
 
     if array and not isinstance(data, np.ndarray):
         data = dict_to_array(data)
