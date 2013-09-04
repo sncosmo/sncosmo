@@ -375,7 +375,7 @@ def read_lc(file_or_dir, fmt='csv', array=True, **kwargs):
     if fmt == 'salt2-old':
         meta, data = READERS[fmt](file_or_dir, **kwargs)
     else:
-        with open(fname, 'rb') as f:
+        with open(file_or_dir, 'rb') as f:
             meta, data = READERS[fmt](f, **kwargs)
 
     if array and not isinstance(data, np.ndarray):
