@@ -64,7 +64,7 @@ def _guess_parvals(data, model, parnames=['t0', 'fscale']):
             continue
         topnidx = np.argsort(weights)[-topn:]
         band_tmax.append(np.average(time[topnidx],
-                                           weights=weights[topnidx]))
+                                    weights=weights[topnidx]))
         maxdataflux = np.average(flux[topnidx], weights=weights[topnidx])
         maxmodelflux = np.max(model.bandflux(band, zp=data['zp'][0],
                                              zpsys=data['zpsys'][0]))
@@ -115,8 +115,13 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
         Default is 20.
     include_model_error : bool, optional
         Default is False.
-    fit_offset : bool, optional
-        Default is False.
+    fit_offset : bool or list of str, optional
+        Fit for the "offset flux value" in each bandpass
+        specified. The "offset flux value" is added to the model flux
+        in the fit. If a list is supplied, it should be a list of bandpass
+        names for which to fit the offset. If a bool is supplied, then
+        the offset will be fit for all bandpasses if True or for no
+        bandpasses if False. The default is False.
     offset_zp : float
         Default is 25.
     offset_zpsys : `~sncosmo.MagSystem` or str, optional
@@ -132,8 +137,8 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     Returns
     -------
     res : Result
-        The optimization result represented as a ``Result`` object.
-        Important attributes:
+        The optimization result represented as a ``Result`` object (a dict
+        subclass with attribute access). Some important attributes:
 
         - ``res.params``: dictionary of best-fit parameter values.
         - ``res.fval``: Minimum chi squared value.
@@ -148,10 +153,15 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     -----
     No notes at this time.
     """
-    method = method.lower()
 
-    # Initialize data
     data = standardize_data(data)
+    unique_bandnames = [get_bandpass(band).name
+                        for band in set(data['band'].tolist())]
+
+    method = method.lower()
+    if fit_offset == True:
+        fit_offset = unique_bandnames
+
     if fit_offset:
         data = normalize_data(data, zp=offset_zp, zpsys=offset_zpsys)
 
@@ -207,11 +217,12 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
             parvals0.append(0.)
 
     # Add parameters for offset, if we're fitting it.
+    # TODO: Make this work with Bandpass objects not in registry.
     if fit_offset:
         offset_to_data = {} # map offset param to data idx
-        for band in set(data['band'].tolist()):
-            parname = 'offset_' + get_bandpass(band).name
-            idx = data['band'] == band
+        for bandname in fit_offset:
+            parname = 'offset_' + bandname
+            idx = data['band'] == bandname
             parnames.append(parname)
             parvals0.append(np.min(data['flux'][idx]))
             offset_to_data[parname] = idx

@@ -118,6 +118,9 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     if offsets is not None:
         for key, value in offsets.iteritems():
             offsets[get_bandpass(key)] = offsets.pop(key)
+        for band in bands:
+            if band not in offsets:
+                offsets[band] = 0.
 
     # Calculate layout of figure (columns, rows, figure size)
     nsubplots = len(bands)
