@@ -61,9 +61,20 @@ class Bandpass(object):
             dunit = u.Unit(dunit)
             disp = dunit.to(u.AA, disp, u.spectral())
 
-        if disp[0] > disp[-1]:
-            disp = np.flipud(disp)
-            trans = np.flipud(trans)
+        # Possibly flip the dispersion and transmission (for cases when
+        # the dispersion was in Hz?)
+        #if disp[0] > disp[-1]:
+        #    disp = np.flipud(disp)
+        #    trans = np.flipud(trans)
+
+        # Check that values are monotonically increasing.
+        # We could sort them, but if this happens, it is more likely a user
+        # error or faulty bandpass definition. So we leave it to the user to
+        # sort them.
+        if not np.all(np.ediff1d(disp) > 0.):
+            raise ValueError('bandpass dispersion values must be monotonically'
+                             ' increasing when supplied in wavelength or '
+                             'decreasing when supplied in energy/frequency.')
 
         self.disp = disp
         self.ddisp = np.gradient(disp)
