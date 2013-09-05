@@ -196,14 +196,17 @@ def retrieve(data_class, name, version=None):
     # At this point we will raise an exception.
     registered_names = [regkey[1] for regkey in _loaders.keys()
                         if regkey[0] is data_class]
+    for regkey in _instances.keys():
+        if regkey[0] is data_class and regkey[1] not in registered_names:
+            registered_names.append(regkey[1])
 
     if version is None or name not in registered_names:
         raise Exception(
             "No {0:s} named '{1:s}' in registry. Registered names: '{2:s}'"
             .format(data_class.__name__, name, "', '".join(registered_names)))
 
-    registered_versions = [
-        regkey[2] for regkey in _loaders.keys() if key[0:2] == regkey[0:2]]
+    registered_versions = [regkey[2] for regkey in _loaders.keys()
+                           if key[0:2] == regkey[0:2]]
     raise Exception(
         "No {0:s} named '{1:s}' with version='{2:s}' in registry. Registered"
         " versions: '{3:s}'".format(data_class.__name__, name, version,
