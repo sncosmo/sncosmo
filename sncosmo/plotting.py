@@ -27,7 +27,7 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     ----------
     data : `~numpy.ndarray` or dict of list_like, optional
         Structured array or dictionary of arrays or lists.
-    model : `~sncosmo.Model`, optional
+    model : `~sncosmo.Model` or str or list thereof, optional
         If given, model light curve is plotted.
     fname : str, optional
         Filename to write plot to. If `None` (default), plot is shown using
@@ -93,9 +93,18 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         raise ValueError('must specify at least one of: data, model')
     if data is None and bands is None:
         raise ValueError('must specify bands to plot for model')
-    if model is not None:
-        model = get_model(model)
 
+    # Get the model(s).
+    if model is not None:
+        if isinstance(model, basestring) or not isiterable(model):
+            models = [model]
+        else:
+            models = model
+        models = [get_model(m) for m in models]
+    else:
+        models = []
+
+    # Standardize and normalize data.
     if data is not None:
         data = standardize_data(data)
         data = normalize_data(data, zp=zp, zpsys=zpsys)
@@ -170,47 +179,58 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
                        '} = ' + str(zp) + '$)')
 
         xlabel_text = 'time'
-        if model is not None and model.params['t0'] != 0.:
-            xlabel_text += ' - {:.2f}'.format(model.params['t0'])
+        if len(models) > 0 and models[0].params['t0'] != 0.:
+            xlabel_text += ' - {:.2f}'.format(models[0].params['t0'])
 
+        # Plot data if there is any.
         if data is not None:
             idx = data_bands == band
             time = data['time'][idx]
             flux = data['flux'][idx]
             fluxerr = data['fluxerr'][idx]
 
-            if model is None:
+            if len(models) == 0:
                 plotted_time = time
             else:
-                plotted_time = time - model.params['t0']
+                plotted_time = time - models[0].params['t0']
 
             plt.errorbar(plotted_time, flux, fluxerr, ls='None',
                          color=color, marker='.', markersize=3.)
 
-        if (model is not None and model.bandoverlap(band) and
-            (offsets is None or band in offsets)):
+        # Plot model(s) if there are any.
+        if len(models) > 0:
 
-            plotted_time = model.times() - model.params['t0']
+            for i, model in enumerate(models):
+                if not model.bandoverlap(band):
+                    continue
 
-            if include_model_error:
-                mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
-                                                 include_error=True)
-            else:
-                mflux = model.bandflux(band, zp=zp, zpsys=zpsys,
-                                       include_error=False)
+                plotted_time = model.times() - models[0].params['t0']
 
-            if offsets is not None:
-                mflux = mflux + offsets[band]
+                if include_model_error:
+                    mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
+                                                     include_error=True)
+                else:
+                    mflux = model.bandflux(band, zp=zp, zpsys=zpsys,
+                                           include_error=False)
 
-            plt.plot(plotted_time, mflux, ls='-', marker='None', color=color)
-            if include_model_error:
-                plt.fill_between(plotted_time, mflux - mfluxerr,
-                                 mflux + mfluxerr, color=color,
-                                 alpha=0.2)
+                if offsets is not None and band in offsets:
+                    mflux = mflux + offsets[band]
+
+                plt.plot(plotted_time, mflux, ls='-', marker='None',
+                         color=color)
+                if include_model_error:
+                    plt.fill_between(plotted_time, mflux - mfluxerr,
+                                     mflux + mfluxerr, color=color,
+                                     alpha=0.2)
+
+                if i == 0:
+                    mflux_min, mflux_max = mflux.min(), mflux.max()
+                else:
+                    mflux_min = min(mflux_min, mflux.min())
+                    mflux_max = max(mflux_max, mflux.max())
 
             # maximum plot range
             ymin, ymax = ax.get_ylim()
-            mflux_min, mflux_max = mflux.min(), mflux.max()
             ymax = min(ymax, 2. * mflux_max)
             ymin = max(ymin, mflux_min - (ymax - mflux_max))
             ax.set_ylim(ymin, ymax)
@@ -219,16 +239,16 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         ax.axhline(y=0., ls='--', c='k')
 
         # steal part of the axes and plot pulls
-        if (show_pulls and data is not None and model is not None and
-            model.bandoverlap(band)):
+        if (show_pulls and data is not None and len(models) == 1 and
+            models[0].bandoverlap(band)):
             divider = make_axes_locatable(ax)
             axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
                                           sharex=ax)
-            mflux = model.bandflux(band, time, zp=zp, zpsys=zpsys) 
+            mflux = models[0].bandflux(band, time, zp=zp, zpsys=zpsys) 
             if offsets is not None and band in offsets:
                 mflux = mflux + offsets[band]
             pulls = (flux - mflux) / fluxerr
-            plt.plot(time - model.params['t0'], pulls, marker='.',
+            plt.plot(time - models[0].params['t0'], pulls, marker='.',
                      markersize=5., color=color, ls='None')
             plt.axhline(y=0., color=color)
             plt.setp(ax.get_xticklabels(), visible=False)
