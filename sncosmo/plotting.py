@@ -220,12 +220,12 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
 
         # steal part of the axes and plot pulls
         if (show_pulls and data is not None and model is not None and
-            model.bandoverlap(band) and (offsets is None or band in offsets)):
+            model.bandoverlap(band)):
             divider = make_axes_locatable(ax)
             axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
                                           sharex=ax)
             mflux = model.bandflux(band, time, zp=zp, zpsys=zpsys) 
-            if offsets is not None:
+            if offsets is not None and band in offsets:
                 mflux = mflux + offsets[band]
             pulls = (flux - mflux) / fluxerr
             plt.plot(time - model.params['t0'], pulls, marker='.',
