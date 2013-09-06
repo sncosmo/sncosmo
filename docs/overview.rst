@@ -6,10 +6,12 @@ Package Functionality
 =====================
 
 At the core of the library is a class (and subclasses) for
-representing supernova models: A model is essentially a spectroscopic
-time series that may vary as a function of one or more
-parameters. Simulation, fitting and typing can all be naturally built
-on this core functionality.
+representing supernova models: A model represents how the
+spectroscopic time series of a transient astronomical source appears
+to an observer. The spectroscopic times series can vary as a function
+of any number of parameters (e.g., color of the source, redshift of
+the source). Simulation, fitting and typing are built on this core
+functionality.
 
 Key Features
 ------------
@@ -63,10 +65,8 @@ supernova cosmology. These include (but are not limited to) `snfit`_
   aspects of SN analyses.
 
 * `SNooPy`_ (or snpy) is also a Python library for SN analysis, but
-  with a (mostly) different feature set. SNooPy is aimed at both the
-  Python programmer and the general user (you don't necessarily need
-  to know Python to use it), whereas this package is (currently) only a
-  library.
+  with a (mostly) different feature set. The current maintenance and
+  development status of the package is unclear.
 
 
 .. _`snfit`: http://supernovae.in2p3.fr/~guy/salt/index.html
@@ -84,6 +84,43 @@ be considered "fairly" stable (but no promises until v1.0).  The
 fitting and typing functionalities are more experimental and the API
 may change as it gets more real-world testing.
 
+The name "sncosmo"
+==================
+
+A natural choice, "snpy", was already taken (`SNooPy`_) so I tried to
+be a little more descriptive. The package is really specific to
+supernova *cosmology*, as it doesn't cover other types of supernova
+science (radiative transfer simulations for instance).  Hence
+"sncosmo".
+
+Contributing to SNCosmo
+=======================
+
+.. _`issue tracker`: http://github.com/kbarbary/sncosmo/issues
+.. _`contributing`: http://astropy.readthedocs.org/en/latest/development/workflow/index.html
+
+Anyone is welcome to contribute to SNCosmo.
+
+Report issues
+-------------
+
+Even if you don't have time to contribute code or documentation,
+please make sure you report any issues with the package or
+documentation to the `issue tracker`_!
+
+Contribute code
+---------------
+
+If you are interested in contributing fixes, code or documentation to
+SNCosmo, take a look at the documentation pages on `contributing`_ to
+Astropy. The idea is that the workflow for SNCosmo is very similar,
+but with http://github.com/kbarbary/sncosmo functioning as the central
+"blessed" repository in place of http://github.com/astropy/astropy
+. You can either send a patch, or (preferably) work on a fork of
+SNCosmo and submit the changes via a pull request. For big changes, it
+is better to discuss your plans first before writing a lot of code.
+
+
 Version History
 ===============
 
@@ -97,3 +134,10 @@ Version History
    For the time being, I am proceeding with minor version releases,
    which both add functionality and fix bugs. That is, there will not
    be independent bug-fix releases (e.g., v0.2.1) for these versions.
+
+.. note::
+   This package uses `Semantic Versioning`_, with the exception that the
+   bugfix component of the version string is dropped for bugfix version 0.
+   For example, v0.2 instead of v0.2.0.
+
+.. _`Semantic Versioning`: http:\\semver.org
