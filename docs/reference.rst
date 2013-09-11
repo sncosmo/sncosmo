@@ -83,3 +83,15 @@ Registry
    registry.register_loader
    registry.register
    registry.retrieve
+
+Class Inheritance Diagrams
+==========================
+
+.. inheritance-diagram:: Model TimeSeriesModel StretchModel SALT2Model
+   :parts: 1
+
+.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
+   :parts: 1
+
+.. inheritance-diagram:: Bandpass
+   :parts: 1
