@@ -9,7 +9,7 @@ from astropy.utils import OrderedDict as odict
 
 from .models import get_model
 from .spectral import get_magsystem
-from .photometric_data import standardize_data, normalize_data
+from .photometric_data import standardize_data
 from . import nest
 
 def _cdf(pdf, x, a):
@@ -168,21 +168,21 @@ class PhotoTyper(object):
     ----------
     verbose : bool, optional
         Print lines as evidence is calculated.
-    t0_range : tuple of floats: (t0_low, t0_high), optional
-        Lower limit on t0 relative to earliest data point, and upper limit
-        on t0 relative to latest data point, in days. Default is (0., 0.).
+    t0_extend : float, optional
+        Extend t0 bounds this far before and after earliest and latest data
+        point.
 
     Notes
     -----
     Parameters can also be set after initialization with, e.g.,
-    ``typer.verbose = True`` or ``typer.t0_range = (-10., 10.)``.
+    ``typer.verbose = True`` or ``typer.t0_extend = 10.``.
     """
 
-    def __init__(self, verbose=True, t0_range=(-10., 10.)):
+    def __init__(self, verbose=True, t0_extend=0.):
         self._models = odict()
         self.types = []
         self.verbose = verbose
-        self.t0_range = t0_range
+        self.t0_extend = t0_extend
 
     def add_model(self, model, model_type, parlims, priors=None,
                   model_prior=1., tied=None, include_error=False,
@@ -251,13 +251,17 @@ class PhotoTyper(object):
                                  .format(parname, parvals[0], parvals[1]))
         return '\n'.join(lines)
 
-    def classify(self, data, verbose=None):
+    def classify(self, data, t0_bounds=None, verbose=None):
         """Determine probability of each model type for the given data.
 
         Parameters
         ----------
         data : `~numpy.ndarray` or dict
             Light curve data to classify.
+        t0_bounds : (float, float), optional
+            If given, use this range as a flat prior on t0 for all models.
+            If not given, default is to use the minimum and maximum time
+            in the data as the bounds.
         verbose : bool, optional
             If True, print information during iteration. (If False, don't).
             Default is to use the value of self.verbose.
@@ -311,11 +315,11 @@ class PhotoTyper(object):
                  RuntimeWarning)
             data = data[valid]
 
-        # get range of t0 to consider
-        parlims = {
-            't0': (np.min(data['time']) + self.t0_range[0],
-                   np.max(data['time']) + self.t0_range[1])
-            }
+        # set the range of t0 values
+        if t0_bounds is None:
+            t0_bounds = (np.min(data['time']) - self.t0_extend,
+                         np.max(data['time']) + self.t0_extend)
+        parlims = {'t0': t0_bounds}
 
         models = {}
         for name, m in self._models.iteritems():
