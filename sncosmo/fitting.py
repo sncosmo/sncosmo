@@ -40,7 +40,7 @@ class Result(dict):
             return self.__class__.__name__ + "()"
 
 
-def _guess_parvals(data, model, parnames=['t0', 'fscale']):
+def guess_parvals(data, model, parnames=['t0', 'fscale']):
     """Guess parameter values based on the data, return dict.
     The maximum of `model.bandflux` and the maximum of the data
     are used to guess `fscale`. The current settings of the parameters
@@ -194,10 +194,10 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
 
     # Get list of initial guesses.
     if fit_offset:
-        guesses = _guess_parvals(data, model, parnames=['t0', 'fscale'])
+        guesses = guess_parvals(data, model, parnames=['t0', 'fscale'])
     else:
         ndata = normalize_data(data, zp=offset_zp, zpsys=offset_zpsys)
-        guesses = _guess_parvals(ndata, model, parnames=['t0', 'fscale'])
+        guesses = guess_parvals(ndata, model, parnames=['t0', 'fscale'])
 
     # Set initial parameters. Order of priority: 
     #   1. p0
@@ -397,7 +397,7 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
 
     # Get list of initial guesses.
     ndata = normalize_data(data, zp=25., zpsys='ab')
-    guesses = _guess_parvals(ndata, model, parnames=['t0', 'fscale'])
+    guesses = guess_parvals(ndata, model, parnames=['t0', 'fscale'])
 
     # Set initial parameters. Order of priority: 
     #   1. p0
