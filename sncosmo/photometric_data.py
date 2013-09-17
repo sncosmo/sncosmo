@@ -82,7 +82,7 @@ def standardize_data(data):
         orig_colnames_to_use.append(lower_to_orig[i.pop()])
 
     if isinstance(data, np.ndarray):
-        new_data = data[orig_colnames_to_use]
+        new_data = data[orig_colnames_to_use].copy()
         new_data.dtype.names = _photdata_aliases.keys()
 
     else:
