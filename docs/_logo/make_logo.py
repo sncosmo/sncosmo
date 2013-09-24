@@ -28,4 +28,4 @@ for i in range(len(cscale)):
 plt.xlim(dmin, dmax)
 plt.ylim(0., 1.05*max(flux))
 plt.axis('off')
-plt.savefig('logo.png', dpi=500., transparent=True)
+plt.savefig('spectral.png', dpi=500., transparent=True)
