@@ -6,14 +6,11 @@ import abc
 import os
 import math
 import copy
-from itertools import product
 from textwrap import dedent
 
 import numpy as np
 from scipy.interpolate import RectBivariateSpline as Spline2d
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from scipy.ndimage.interpolation import map_coordinates as mapcoords
-
 import astropy.constants as const
 import astropy.units as u
 from astropy.utils import OrderedDict
@@ -24,8 +21,6 @@ from .io import read_griddata
 from .extinction import extinction_ccm
 from .spectral import Spectrum, Bandpass, MagSystem, get_bandpass, get_magsystem
 from . import registry
-
-#import models_interp
 
 __all__ = ['get_model', 'Model', 'TimeSeriesModel', 'StretchModel',
            'SALT2Model']
@@ -255,7 +250,7 @@ class Model(object):
 
     @property
     def refband(self):
-        """Bandpass in absolute magnitude is evaluated."""
+        """Bandpass in which absolute magnitude is evaluated."""
         return self._refband
 
     @refband.setter
@@ -842,7 +837,7 @@ class SALT2Model(Model):
 
         on each line. If you want to give the absolute path to each file,
         set to `None`.
-    m0file, m1file, v00file, v11file, v01file : str or fileobj, optional
+    m0file, m1file, v00file, v11file, v01file, clfile : str or fileobj, optional
         Filenames of various model components. Defaults are:
 
         * m0file = 'salt2_template_0.dat'
@@ -850,6 +845,7 @@ class SALT2Model(Model):
         * v00file = 'salt2_spec_variance_0.dat'
         * v11file = 'salt2_spec_variance_1.dat'
         * v01file = 'salt2_spec_covariance_01.dat'
+        * clfile = 'salt2_color_correction.dat'
 
     errscalefile : str, optional
         Name of error scale file, same format as model component files.
@@ -873,15 +869,16 @@ class SALT2Model(Model):
                  v00file='salt2_spec_variance_0.dat',
                  v11file='salt2_spec_variance_1.dat',
                  v01file='salt2_spec_covariance_01.dat',
+                 clfile='salt2_color_correction.dat',
                  errscalefile=None, name=None, version=None):
         super(SALT2Model, self).__init__(name, version)
         self._params['c'] = 0.
         self._params['x1'] = 0.
         self._model = {}
 
-        components = ['M0', 'M1', 'V00', 'V11', 'V01', 'errscale']
+        components = ['M0', 'M1', 'V00', 'V11', 'V01', 'errscale', 'clfile']
         names_or_objs = [m0file, m1file, v00file, v11file, v01file,
-                         errscalefile]
+                         errscalefile, clfile]
 
         # Make filenames into full paths.
         if modeldir is not None:
@@ -890,7 +887,8 @@ class SALT2Model(Model):
                     isinstance(names_or_objs[i], basestring)):
                     names_or_objs[i] = os.path.join(modeldir, names_or_objs[i])
 
-        for component, name_or_obj in zip(components, names_or_objs):
+        # Read components gridded in (phase, wavelength)
+        for component, name_or_obj in zip(components[:-1], names_or_objs[:-1]):
 
             # If the filename is None, that component is left out of the model
             if name_or_obj is None: continue
@@ -905,6 +903,9 @@ class SALT2Model(Model):
             if component == 'M0':
                 self._phase = phase
                 self._disp = wavelength
+            
+        # Set the colorlaw based on the "color correction" file.
+        self._set_colorlaw_from_file(names_or_objs[-1])
 
         # add extinction component
         ext_ratio = self._extinction(self._disp)
@@ -962,9 +963,53 @@ class SALT2Model(Model):
         
     #   return sigma
 
+    def _set_colorlaw_from_file(self, name_or_obj):
+        """Read color law file and set the following internal parameters:
+        
+        self._colorlaw_coeffs
+        self._colorlaw_version [default is 0]
+        self._colorlaw_range [default is (3000., 7000.)]
+        """
 
-    def _extinction(self, wavelengths, params=[-0.336646, 0.0484495]):
-        """Return the extinction as a function of wavelength, for c=1.
+        self._B_WAVELENGTH = 4302.57
+        self._V_WAVELENGTH = 5428.55
+
+        if isinstance(name_or_obj, basestring):
+            f = open(name_or_obj, 'rb')
+        else:
+            f = name_or_obj
+        words = f.read().split()
+
+        npoly = int(words[0])
+        self._colorlaw_coeffs = [float(word) for word in words[1: 1 + npoly]]
+    
+        # look for keywords in the rest of the file.
+        self._colorlaw_version = 0
+        self._colorlaw_range = [3000., 7000.]
+        for i in range(1+npoly, len(words)):
+            if words[i] == 'Salt2ExtinctionLaw.version':
+                self._colorlaw_version = int(words[i+1])
+            if words[i] == 'Salt2ExtinctionLaw.min_lambda':
+                self._colorlaw_range[0] = float(words[i+1])
+            if words[i] == 'Salt2ExtinctionLaw.max_lambda':
+                self._colorlaw_range[1] = float(words[i+1])
+
+        # Set extinction function to use.
+        if self._colorlaw_version == 0:
+            self._extinction = self._extinction_v0
+        elif self._colorlaw_version == 1:
+            self._extinction = self._extinction_v1
+        else:
+            raise Exception('unrecognized Salt2ExtinctionLaw.version: {}'
+                            .format(self._colorlaw_version))
+        f.close()
+
+
+
+    def _extinction_v0(self, disp):
+        """Return the extinction in magnitudes as a function of wavelength,
+        for c=1. This is the version 0 extinction law used in SALT2 1.0 and
+        1.1 (SALT2-1-1).
 
         Notes
         -----
@@ -977,17 +1022,68 @@ class SALT2Model(Model):
                 = exp(color * expo_term ) 
         """
 
-        wB = 4302.57
-        wV = 5428.55
-        wr = (wavelengths - wB) / (wV - wB)
+        l = ((disp - self._B_WAVELENGTH) /
+             (self._V_WAVELENGTH - self._B_WAVELENGTH))
 
-        numerator = 1.0 * wr
-        denominator = 1.0
-
-        wi = wr * wr
-        for p in params:
-            numerator += wi * p
-            denominator += p
-            wi *= wr
+        coeffs = [0., 1.]
+        coeffs.extend(self._colorlaw_coeffs)
+        coeffs = np.flipud(coeffs)
+        numerator = np.polyval(coeffs, l)  # 0 + 1 * l + p[0] * l^2 + ...
+        denominator = coeffs.sum()         # 0 + 1 + p[0] + p[1] + ...
 
         return -numerator / denominator
+
+    def _extinction_v1(self, disp):
+        """Return the  extinction in magnitudes as a function of wavelength,
+        for c=1. This is the version 1 extinction law used in SALT2 2.0
+        (SALT2-2-0).
+
+        Notes
+        -----
+        From SALT2 code comments:
+
+        if(l_B<=l<=l_R):
+            ext = exp(color * constant *
+                      (alpha*l + params(0)*l^2 + params(1)*l^3 + ... ))
+                = exp(color * constant * P(l))
+
+            where alpha = 1 - params(0) - params(1) - ...
+
+        if (l > l_R):
+            ext = exp(color * constant * (P(l_R) + P'(l_R) * (l-l_R)))
+        if (l < l_B):
+            ext = exp(color * constant * (P(l_B) + P'(l_B) * (l-l_B)))
+        """
+
+        v_minus_b = self._V_WAVELENGTH - self._B_WAVELENGTH
+
+        l = (disp - self._B_WAVELENGTH) / v_minus_b
+        l_lo = (self._colorlaw_range[0] - self._B_WAVELENGTH) / v_minus_b
+        l_hi = (self._colorlaw_range[1] - self._B_WAVELENGTH) / v_minus_b
+
+        alpha = 1. - sum(self._colorlaw_coeffs)
+        coeffs = [0., alpha]
+        coeffs.extend(self._colorlaw_coeffs)
+        coeffs = np.array(coeffs)
+        prime_coeffs = (np.arange(len(coeffs)) * coeffs)[1:]
+
+        extinction = np.empty_like(disp)
+        
+        # Blue side
+        idx_lo = l < l_lo
+        p_lo = np.polyval(np.flipud(coeffs), l_lo)
+        pprime_lo = np.polyval(np.flipud(prime_coeffs), l_lo)
+        extinction[idx_lo] = p_lo + pprime_lo * (l[idx_lo] - l_lo)
+
+        # Red side
+        idx_hi = l > l_hi
+        p_hi = np.polyval(np.flipud(coeffs), l_hi)
+        pprime_hi = np.polyval(np.flipud(prime_coeffs), l_hi)
+        extinction[idx_hi] = p_hi + pprime_hi * (l[idx_hi] - l_hi)
+        
+        # In between
+        idx_between = np.invert(idx_lo | idx_hi)
+        extinction[idx_between] = np.polyval(np.flipud(coeffs), l[idx_between])
+
+        return -extinction
+            

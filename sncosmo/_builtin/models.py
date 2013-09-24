@@ -264,6 +264,7 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
         v00file=t.extractfile(join(topdir,'salt2_spec_variance_0.dat')),
         v11file=t.extractfile(join(topdir,'salt2_spec_variance_1.dat')),
         v01file=t.extractfile(join(topdir,'salt2_spec_covariance_01.dat')),
+        clfile=t.extractfile(join(topdir,'salt2_color_correction.dat')),
         errscalefile=errscalefile, name=name, version=version)
     t.close()
     set_bandfluxerror_sn1a(model)
