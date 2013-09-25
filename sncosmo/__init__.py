@@ -2,6 +2,7 @@
 from .spectral import *
 from .models import *
 from .lcio import *
+from .snanaio import *
 from .plotting import *
 from .fitting import *
 from .typing import *

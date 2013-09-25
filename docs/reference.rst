@@ -39,7 +39,8 @@ Models, Bandpasses & Magnitude Systems
 Data I/O
 ========
 
-*Convenience functions for reading and writing photometric data to standard formats*
+*Convenience functions for reading and writing photometric data to
+standard (and not-so-standard) formats*
 
 .. autosummary::
    :toctree: _generated
@@ -47,6 +48,8 @@ Data I/O
    read_lc
    write_lc
    load_example_data
+   read_snana_ascii
+   read_snana_fits
 
 Fitting & Typing Photometric Data
 =================================
