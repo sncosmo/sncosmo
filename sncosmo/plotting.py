@@ -30,8 +30,8 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     model : `~sncosmo.Model` or str or list thereof, optional
         If given, model light curve is plotted.
     fname : str, optional
-        Filename to write plot to. If `None` (default), plot is shown using
-        ``show()``.
+        Filename to write plot to. If `None` (default), plot is not saved to
+        file, but Figure object is still returned.
     bands : list, optional
         List of Bandpasses, or names thereof, to plot.
     show_pulls : bool, optional
@@ -48,14 +48,19 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         placed in a separate "column". Use newline separators for multiple
         lines.
     figtext_ysize : float, optional
-        Space to reserve at top of figure for figtext (if not None). Default is
-        1 inch.
+        Space to reserve at top of figure for figtext (if not None).
+        Default is 1 inch.
     xfigsize, yfigsize : float, optional
         figure size in inches in x or y. Specify one or the other, not both.
         Default is xfigsize=8.
     dpi : float, optional
-        dpi to pass to ``plt.savefig()`` for rasterized images. 
-        
+        dpi parameter to pass to ``savefig()``, when fname is given.
+
+    Returns
+    -------
+    fig : `~matplotlib.pyplot.Figure`
+        Figure object containing the plot. 
+
     Examples
     --------
 
@@ -71,13 +76,32 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     
         >>> model = sncosmo.get_model('salt2')
         >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
-        >>> sncosmo.plot_lc(data, model=model)
+        >>> sncosmo.plot_lc(data, model=model, fname='output.png')
 
     .. image:: /pyplots/plotlc_example.png
 
     Plot just the model, for selected bands::
 
-        >>> sncosmo.plot_lc(model=model, bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'])
+        >>> sncosmo.plot_lc(model=model,
+        ...                 bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'],
+        ...                 fname='output.png')
+
+    Show the plot::
+
+        >>> from matplotlib import pyplot as plt
+        >>> sncosmo.plot_lc(data)
+        >>> plt.show()
+
+    Plot figures on a multipage pdf::
+
+        >>> from matplotlib.backends.backend_pdf import PdfPages
+        >>> pp = PdfPages('output.pdf')
+        >>> 
+        >>> # Do the following as many times as you like:
+        >>> fig = sncosmo.plot_lc(data)
+        >>> pp.savefig(fig)
+        >>>
+        >>> pp.close()  # don't forget to close at the end!
 
     """
 
@@ -161,7 +185,6 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
             xpos = 0.05 + 0.9 * (i / len(figtext))
             t = fig.text(xpos, 0.95, figtext[i],
                          va="top", ha="left", multialignment="left")
-
 
     # Loop over bands.
     axnum = 0
@@ -261,11 +284,13 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     plt.subplots_adjust(left=0.1, right=0.95,
                         bottom=0.1, top=0.97 - figtext_yfrac,
                         wspace=0.2, hspace=0.2)
-    if fname is None:
-        plt.show()
-    else:
+
+    if fname is not None:
         plt.savefig(fname, dpi=dpi)
-    plt.clf()
+        plt.clf()
+
+    return fig
+
 
 def pretty_value_and_error(value, error, latex=False):
     """Return a string representing value and error.
