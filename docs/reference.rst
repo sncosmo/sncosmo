@@ -34,7 +34,17 @@ Models, Bandpasses & Magnitude Systems
    MagSystem
    ABMagSystem
    SpectralMagSystem
+
+Extinction Functions
+====================
+
+*Functions related to interstellar dust extinction*
+
+.. autosummary::
+   :toctree: _generated
+
    extinction_ccm
+   get_ebv_from_map
 
 Data I/O
 ========

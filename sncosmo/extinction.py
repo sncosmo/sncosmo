@@ -1,9 +1,20 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Extinction functions."""
 
+import os
 import numpy as np
+import astropy.coordinates as coord
+import astropy.units as u
+from astropy.io import fits
+from astropy.config import ConfigurationItem as ConfigItem
+from astropy.utils.misc import isiterable
+from scipy.ndimage import map_coordinates
 
-__all__ = ['extinction_ccm']
+SFD_MAP_DIR = ConfigItem('sfd_map_dir', '.',
+                         'Directory containing SFD (1998) dust maps, with '
+                         'names: SFD_dust_4096_[ngp,sgp].fits')
+
+__all__ = ['extinction_ccm', 'get_ebv_from_map']
 
 # Optical/NIR coefficients from Cardelli (1989)
 c1_ccm = [1., 0.17699, -0.50447, -0.02427, 0.72085, 0.01979, -0.77530, 0.32999]
@@ -15,7 +26,7 @@ c2_odonnell = [0., 1.952, 2.908, -3.989, -7.985, 11.102, 5.491, -10.805, 3.347]
 
 def extinction_ccm(wavelength, a_v=None, ebv=None, r_v=3.1,
                    optical_coeffs='odonnell'):
-    r"""Return the Cardelli, Clayton, and Mathis (1989) extinction curve.
+    r"""The Cardelli, Clayton, and Mathis (1989) extinction function.
 
     This function returns the total extinction A(\lambda) at the given
     wavelengths, given either the total V band extinction `a_v` or the
@@ -173,3 +184,98 @@ def extinction_ccm(wavelength, a_v=None, ebv=None, r_v=3.1,
     if in_ndim == 0:
         return extinction[0]
     return extinction
+
+def get_ebv_from_map(coordinates, map_dir=None, interpolate=True, order=1):
+    """Get E(B-V) value(s) from Schlegel, Finkbeiner, and Davis 1998 extinction
+    maps at the given coordinates.
+
+    Parameters
+    ----------
+    coordinates : astropy Coordinates object or tuple
+        If tuple/list, treated as (RA, Dec). RA and Dec can each be float or
+        list or numpy array.
+    map_dir : str, optional
+        Directory in which to find dust map FITS images, which must be named
+        ``SFD_dust_4096_[ngp,sgp].fits``. If `None` (default), the value of
+        the SFD_MAP_DIR configuration item is used. By default, this is '.'.
+        The value of SFD_MAP_DIR can be set in the configuration file,
+        typically located in `$HOME/.astropy/config/sncosmo.cfg`.
+    interpolate : bool
+        Interpolate between the map values using
+        `scipy.ndimage.map_coordinates`.
+    order : int
+        Interpolation order, if interpolate=True. Default is 1.
+
+    Returns
+    -------
+    ebv : float or `~numpy.ndarray`
+        Specific extinction E(B-V) at the given locations.
+
+    Notes
+    -----
+    For large arrays of (RA, Dec) this function takes about 0.01 seconds
+    per coordinate, where the runtime is (probably) dominated by the
+    coordinate system conversion.
+    """
+    
+    # Get map_dir
+    if map_dir is None:
+        map_dir = SFD_MAP_DIR()
+    map_dir = os.path.expanduser(map_dir)
+    map_dir = os.path.expandvars(map_dir)
+    fname = os.path.join(map_dir, 'SFD_dust_4096_{}.fits')
+
+    # Parse input 
+    return_scalar = False
+    if isinstance(coordinates, coord.SphericalCoordinatesBase):
+        return_scalar = True
+        coordinates = [coordinates]
+    else:
+        lon, lat = coordinates
+        if not (isiterable(lon) or isiterable(lat)):
+            return_scalar = True
+            lon, lat = [lon], [lat]
+        coordinates = [coord.ICRSCoordinates(ra=ra, dec=dec,
+                                             unit=(u.degree, u.degree))
+                       for ra, dec in zip(lon, lat)]
+
+    # Convert to galactic coordinates (in radians).
+    # Currently, coordinates do not support arrays; have to loop.
+    l = np.empty(len(coordinates), dtype=np.float)
+    b = np.empty(len(coordinates), dtype=np.float)
+    for i, c in enumerate(coordinates):
+        g = c.galactic
+        l[i] = g.l.radian
+        b[i] = g.b.radian
+
+    # Initialize return array
+    ebv = np.zeros_like(l)
+
+    # Treat north (b>0) separately from south (b<0).
+    for n, idx, ext in [(1, b >= 0, 'ngp'), (-1, b < 0, 'sgp')]:
+
+        if not np.any(idx): continue
+        hdulist = fits.open(fname.format(ext))
+        mapd = hdulist[0].data
+
+        # Project from galactic longitude/latitude to lambert pixels.
+        # (See SFD98).
+        npix = mapd.shape[0]        
+        x = (npix / 2 * np.cos(l[idx]) * np.sqrt(1. - n*np.sin(b[idx])) +
+             npix / 2 - 0.5)
+        y = (-npix / 2 * n * np.sin(l[idx]) * np.sqrt(1. - n*np.sin(b[idx])) +
+             npix / 2 - 0.5)
+        
+        # Get map values at these pixel coordinates.
+        if interpolate:
+            ebv[idx] = map_coordinates(mapd, [y, x], order=order)
+        else:
+            x=np.round(x).astype(np.int)
+            y=np.round(y).astype(np.int)
+            ebv[idx] = mapd[y, x]
+            
+        hdulist.close()
+    
+    if return_scalar:
+        return ebv[0]
+    return ebv
