@@ -96,7 +96,7 @@ science (radiative transfer simulations for instance).  Hence
 Contributing to SNCosmo
 =======================
 
-.. _`issue tracker`: http://github.com/kbarbary/sncosmo/issues
+.. _`issue tracker`: http://github.com/sncosmo/sncosmo/issues
 .. _`contributing`: http://astropy.readthedocs.org/en/latest/development/workflow/index.html
 
 Anyone is welcome to contribute to SNCosmo.
@@ -114,7 +114,7 @@ Contribute code
 If you are interested in contributing fixes, code or documentation to
 SNCosmo, take a look at the documentation pages on `contributing`_ to
 Astropy. The idea is that the workflow for SNCosmo is very similar,
-but with http://github.com/kbarbary/sncosmo functioning as the central
+but with http://github.com/sncosmo/sncosmo functioning as the central
 "blessed" repository in place of http://github.com/astropy/astropy
 . You can either send a patch, or (preferably) work on a fork of
 SNCosmo and submit the changes via a pull request. For big changes, it

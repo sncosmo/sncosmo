@@ -124,8 +124,8 @@ Development
 -----------
 
 This package is being actively developed. Bug reports, comments, and
-help with development are *very* welcome.  Source code and issue
-tracking is hosted on github: https://github.com/kbarbary/sncosmo
+help with development are very welcome.  Source code and issue
+tracking is hosted on github: https://github.com/sncosmo
 
 
 .. toctree::

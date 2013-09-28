@@ -64,7 +64,7 @@ To install with `pip`, simply run one of::
 Latest released version (from source)
 -------------------------------------
 
-A source tarball or zip is available from `github <https://github.com/kbarbary/sncosmo/releases>`_. After downloading the appropriate tarball, run, e.g.::
+A source tarball or zip is available from `github <https://github.com/sncosmo/sncosmo/releases>`_. After downloading the appropriate tarball, run, e.g.::
 
     tar xzf sncosmo-0.2.tar.gz
     cd sncosmo-0.2
@@ -81,7 +81,7 @@ Development version (using git)
 
 To get the latest development version source, using ``git``::
 
-    git clone git://github.com/kbarbary/sncosmo.git
+    git clone git://github.com/sncosmo/sncosmo.git
     cd sncosmo
 
 then one of::
@@ -96,7 +96,7 @@ Development version (no git)
 If you don't have git but want to use the latest development version,
 download the latest zip, using::
 
-    wget https://github.com/kbarbary/sncosmo/archive/master.zip
+    wget https://github.com/sncosmo/sncosmo/archive/master.zip
     unzip master.zip
     cd sncosmo-master
     setup.py install [--user] [--prefix=...]
