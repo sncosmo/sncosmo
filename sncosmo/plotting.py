@@ -27,8 +27,10 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
     ----------
     data : `~numpy.ndarray` or dict of list_like, optional
         Structured array or dictionary of arrays or lists.
-    model : `~sncosmo.Model` or str or list thereof, optional
-        If given, model light curve is plotted.
+    model : `~sncosmo.Model`, str or list, optional
+        If given, model light curve is plotted. If a string, the corresponding
+        model is fetched from the registry. If a list of `sncosmo.Model` or
+        string, multiple models are plotted.
     fname : str, optional
         Filename to write plot to. If `None` (default), plot is not saved to
         file, but Figure object is still returned.
@@ -195,8 +197,6 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
                      (cm_disp_range[1] - cm_disp_range[0]))
 
         ax = plt.subplot(nrow, ncol, axnum)
-        plt.text(0.9, 0.9, band.name, color='k', ha='right', va='top',
-                 transform=ax.transAxes)
         if axnum % 2:
             plt.ylabel('flux ($ZP_{' + get_magsystem(zpsys).name.upper() +
                        '} = ' + str(zp) + '$)')
@@ -223,6 +223,7 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         # Plot model(s) if there are any.
         if len(models) > 0:
 
+            linestyles = ['-', '--', ':', '-.']
             for i, model in enumerate(models):
                 if not model.bandoverlap(band):
                     continue
@@ -239,8 +240,8 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
                 if offsets is not None and band in offsets:
                     mflux = mflux + offsets[band]
 
-                plt.plot(plotted_time, mflux, ls='-', marker='None',
-                         color=color)
+                plt.plot(plotted_time, mflux, ls=linestyles[i%len(linestyles)],
+                         marker='None', color=color, label=model.name)
                 if include_model_error:
                     plt.fill_between(plotted_time, mflux - mfluxerr,
                                      mflux + mfluxerr, color=color,
@@ -257,6 +258,21 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
             ymax = min(ymax, 2. * mflux_max)
             ymin = max(ymin, mflux_min - (ymax - mflux_max))
             ax.set_ylim(ymin, ymax)
+
+            # Add a legend, if this is the first axes and there are two
+            # or more models to distinguish between.
+            if axnum == 1 and len(models) >= 2:
+                leg = plt.legend(loc='upper right',
+                                 fontsize='small', frameon=True)
+
+        # Band name in corner: upper right if there is no legend, otherwise
+        # upper left.
+        if (axnum == 1 and len(models) > 1):
+            plt.text(0.08, 0.92, band.name, color='k', ha='left', va='top',
+                     transform=ax.transAxes)
+        else:
+            plt.text(0.92, 0.92, band.name, color='k', ha='right', va='top',
+                     transform=ax.transAxes)
 
         # plot a horizontal line at flux=0.
         ax.axhline(y=0., ls='--', c='k')
