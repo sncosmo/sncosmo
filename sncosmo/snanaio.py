@@ -10,7 +10,7 @@ from astropy.io import fits
 
 from .lcio import dict_to_array
 
-__all__ = ['read_snana_ascii', 'read_snana_fits']
+__all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
 def read_snana_fits(head_file, phot_file):
     """Read the SNANA FITS format: two FITS files jointly representing
@@ -297,3 +297,146 @@ def read_snana_ascii_multi(fnames, default_tablename=None, array=True):
             compiled_tables[key] = dict_to_array(compiled_tables[key])
 
     return compiled_tables
+
+def _parse_meta_from_line(line):
+    """Return dictionary from key, value pairs on a line. Helper function for
+    snana_read_simlib."""
+
+    meta = odict()
+
+    # Find position of all the colons
+    colon_pos = []
+    i = line.find(':')
+    while i != -1:
+        colon_pos.append(i)
+        i = line.find(':', i+1)
+
+    # Find position of start of words before colons
+    key_pos = []
+    for i in colon_pos:
+        j = line.rfind(' ', 0, i)
+        key_pos.append(j+1)
+
+    # append an extra key position so that we know when to end the last value.
+    key_pos.append(len(line))
+
+    # get the keys, values based on positions above.
+    for i in range(len(colon_pos)):
+        key = line[key_pos[i]: colon_pos[i]]
+        val = line[colon_pos[i]+1: key_pos[i+1]].strip()
+        try:
+            val = int(val)
+        except ValueError:
+            try:
+                val = float(val)
+            except ValueError:
+                pass
+        meta[key] = val
+    return meta
+
+
+def read_snana_simlib(fname):
+    """Read an SNANA 'simlib' (simulation library) ascii file.
+
+    Parameters
+    ----------
+    fname : str
+        Filename.
+
+    Returns
+    -------
+    meta : `OrderedDict`
+        Global meta data, not associated with any one LIBID.
+    observation_sets : `OrderedDict` of `astropy.table.Table`
+        keys are LIBIDs, values are observation sets.
+
+    Notes
+    -----
+    * Anything following '#' on each line is ignored as a comment.
+    * Keywords are space separated strings ending wth a colon.
+    * If a line starts with 'LIBID:', the following lines are associated
+      with the value of LIBID, until 'END_LIBID:' is encountered.
+    * While reading a given LIBID, lines starting with 'S' or 'T'
+      keywords are assumed to contain 12 space-separated values after
+      the keyword. These are (1) MJD, (2) IDEXPT, (3) FLT, (4) CCD GAIN,
+      (5) CCD NOISE, (6) SKYSIG, (7) PSF1, (8) PSF2, (9) PSF 2/1 RATIO,
+      (10) ZPTAVG, (11) ZPTSIG, (12) MAG.
+    * Other lines inside a 'LIBID:'/'END_LIBID:' pair are treated as metadata
+      for that LIBID.
+    * Any other keywords outside a 'LIBID:'/'END_LIBID:' pair are treated
+      as global header keywords and are returned in the `meta` dictionary.
+    
+    Examples
+    --------
+    >>> meta, obs_sets = sncosmo.read_snana_simlib('DES_hybrid_griz.SIMLIB')
+    >>> len(obs_sets)
+    5
+    >>> obs_sets.keys()  # LIBID for each observation set.
+    [0, 1, 2, 3, 4] 
+    >>> obs_sets[0].meta  # inspect observation set with LIBID=0
+    OrderedDict([('LIBID', 0), ('RA', 52.5), ('DECL', -27.5), ('NOBS', 161),
+                 ('MWEBV', 0.0), ('PIXSIZE', 0.27)])
+    >>> obs_sets[0].colnames
+    ['SEARCH', 'MJD', 'IDEXPT', 'FLT', 'CCD_GAIN', 'CCD_NOISE', 'SKYSIG',
+     'PSF1', 'PSF2', 'PSFRATIO', 'ZPTAVG', 'ZPTSIG', 'MAG']
+
+    """
+
+    from astropy.table import Table
+
+    COLNAMES = ['SEARCH', 'MJD', 'IDEXPT', 'FLT', 'CCD_GAIN', 'CCD_NOISE',
+                'SKYSIG', 'PSF1', 'PSF2', 'PSFRATIO', 'ZPTAVG', 'ZPTSIG', 'MAG']
+    SPECIAL = ['FIELD', 'TELESCOPE', 'PIXSIZE'] # not used yet... if present in 
+                                                # header, add to table.
+
+    meta = odict()  # global metadata
+    observation_sets = odict() # dictionary of tables indexed by LIBID
+
+    reading_obsset = False
+    with open(fname, 'r') as infile:
+        for line in infile.readlines():
+
+            # strip comments
+            idx = line.find('#')
+            if idx != -1:
+                line = line[0:idx]
+
+            # split on spaces.
+            words = line.split()
+            if len(words) == 0: continue
+
+            # are we currently reading an obsset?
+            if not reading_obsset:
+                if line[0:6] == 'LIBID:':
+                    reading_obsset = True
+                    current_meta = _parse_meta_from_line(line)
+                    current_data = odict([(key, []) for key in COLNAMES])
+                else:
+                    meta.update(_parse_meta_from_line(line))
+
+            else:
+                if line[0:10] == 'END_LIBID:':
+                    reading_obsset = False
+                    observation_sets[current_meta['LIBID']] = \
+                        Table(current_data, meta=current_meta)
+                elif line[0:2] in ['S:', 'T:']:
+                    words = line.split()
+                    for colname, val in [
+                        ('SEARCH', words[0] == 'S:'),
+                        ('MJD', float(words[1])),
+                        ('IDEXPT', int(words[2])),
+                        ('FLT', words[3]),
+                        ('CCD_GAIN', float(words[4])),
+                        ('CCD_NOISE', float(words[5])),
+                        ('SKYSIG', float(words[6])),
+                        ('PSF1', float(words[7])),
+                        ('PSF2', float(words[8])),
+                        ('PSFRATIO', float(words[9])),
+                        ('ZPTAVG', float(words[10])),
+                        ('ZPTSIG', float(words[11])),
+                        ('MAG', float(words[12]))]:
+                        current_data[colname].append(val)
+                else:
+                    current_meta.update(_parse_meta_from_line(line))
+
+    return meta, observation_sets

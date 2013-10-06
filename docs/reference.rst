@@ -60,6 +60,7 @@ standard (and not-so-standard) formats*
    load_example_data
    read_snana_ascii
    read_snana_fits
+   read_snana_simlib
 
 Fitting & Typing Photometric Data
 =================================
