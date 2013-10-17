@@ -245,8 +245,16 @@ def get_ebv_from_map(coordinates, map_dir=None, interpolate=True, order=1):
     b = np.empty(len(coordinates), dtype=np.float)
     for i, c in enumerate(coordinates):
         g = c.galactic
-        l[i] = g.l.radian
-        b[i] = g.b.radian
+
+        # Hack to support both astropy v0.2.4 and v0.3.dev
+        # TODO: remove this hack once v0.3 is out (and array-ify this
+        # whole thing)
+        try:
+            l[i] = g.l.radian
+            b[i] = g.b.radian
+        except AttributeError:
+            l[i] = g.l.radians
+            b[i] = g.b.radians
 
     # Initialize return array
     ebv = np.zeros_like(l)
