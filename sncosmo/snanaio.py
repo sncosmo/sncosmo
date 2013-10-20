@@ -31,6 +31,11 @@ def read_snana_fits(head_file, phot_file):
         of metadata, and ``item['data']`` is a ``~numpy.ndarray`` of the 
         photometric data.
 
+    Notes
+    -----
+    If head_file contains a column 'SNID' containing strings, trailing
+    whitespace is stripped from all the values in that column.
+
     Examples
     --------
 
@@ -51,12 +56,16 @@ def read_snana_fits(head_file, phot_file):
     head_data = head_data.view(np.ndarray)
     phot_data = phot_data.view(np.ndarray)
 
+    # Strip trailing whitespace characters from SNID.
+    if 'SNID' in head_data.dtype.names:
+        try:
+            head_data['SNID'][:] = np.char.rstrip(head_data['SNID'])
+        except TypeError:
+            pass
+
     # Loop over SNe in HEAD file
     for i in range(len(head_data)):
         meta = odict(zip(head_data.dtype.names, head_data[i]))
-
-        # convert a few keys that are the wrong type
-        meta['SNID'] = int(meta['SNID'])
 
         j0 = head_data['PTROBS_MIN'][i] - 1 
         j1 = head_data['PTROBS_MAX'][i]
