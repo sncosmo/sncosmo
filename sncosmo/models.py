@@ -4,62 +4,22 @@
 
 import abc
 import os
-import math
 import copy
 from textwrap import dedent
 
 import numpy as np
-from scipy.interpolate import RectBivariateSpline as Spline2d
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-import astropy.constants as const
-import astropy.units as u
-from astropy.utils import OrderedDict
-from astropy.utils.misc import isiterable
+from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
+                               RectBivariateSpline as Spline2d)
+from astropy.utils import OrderedDict as odict
 from astropy import cosmology
 
 from .io import read_griddata
-from .extinction import extinction_ccm
-from .spectral import Spectrum, Bandpass, MagSystem, get_bandpass, get_magsystem
-from . import registry
+from .propagation_effects import PropagationEffect
 
-__all__ = ['get_model', 'Model', 'TimeSeriesModel', 'StretchModel',
+__all__ = ['SourceModel', 'TimeSeriesModel', 'StretchModel',
            'SALT2Model']
 
-cosmology.set_current(cosmology.WMAP9)
-HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
-
-def get_model(name, version=None, copy=False):
-    """Retrieve a model from the registry by name.
-
-    Parameters
-    ----------
-    name : str
-        Name of model in the registry.
-    version : str, optional
-        Version identifier for models with multiple versions. Default is
-        `None` which corresponds to the latest, or only, version.
-    copy : bool, optional
-        If True and if `name` is already a Model instance, return a copy of
-        it by calling ``name()``. (If `name` is a str a copy of the instance
-        in the registry is always returned, regardless of the value of this
-        parameter.) Default is False.
-    """
-    
-    # If we need to retrieve from the registry, we want to return a shallow
-    # copy, in order to keep the copy in the registry "pristene". However, we
-    # *don't* want a shallow copy otherwise. Therefore,
-    # we need to check if `name` is already an instance of Model before 
-    # going to the registry, so we know whether or not to make a shallow copy.
-    if isinstance(name, Model):
-        if copy:
-            return name()
-        else:
-            return name
-    else:
-        return registry.retrieve(Model, name, version=version)()
-
-
-class Model(object):
+class SourceModel(object):
     """An abstract base class for transient models.
     
     A "transient model" in this case is the spectral time evolution
@@ -67,550 +27,108 @@ class Model(object):
 
     This is an abstract base class -- You can't create instances of
     this class. Instead, you must work with subclasses such as
-    `TimeSeriesModel`. Subclasses must define (at minimum) `__init__()` and
-    the private method `_model_flux()` 
+    `TimeSeriesModel`. Subclasses must define (at minimum): 
+
+    * `__init__()`
+    * `_param_names` (list of str)
+    * `_parameters` (`numpy.ndarray`)
+    * `_phase` or `phases` property (`numpy.ndarray`)
+    * `_wave` (`numpy.ndarray`)
+    * `_flux(ndarray, ndarray)` 
     """
 
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __init__(self, name=None, version=None):
-        self._params = OrderedDict(
-            [('fscale', 1.), ('m', None), ('mabs', None), ('t0', 0.),
-             ('z', None)])
-        self._refphase = 0.
-        self._refband = get_bandpass('bessellb')
-        self._refmagsys = get_magsystem('ab')
-        self._refm = None
-        self._cosmo = cosmology.get_current()
-        self._distmod = None  # Distance modulus
-        self.name = name
-        self.version = version
-
-        self._model_bandfluxrelerr = None
-
-    def set(self, **params):
-        """Set the parameters of the model using keyword values.
-
-        Parameters
-        ----------
-        fscale : float
-            The internal model flux spectral density values will be multiplied
-            by this factor. If specified, `mabs` and `m` become unknown and
-            are set to `None`.
-        m : float
-            Apparent magnitude; alternative way to set `fscale` (overrides it).
-        mabs : float
-            Absolute magnitude; alternative way to set `m` (overrides it).
-            Apparent magnitude `m` is set according to the luminosity distance.
-            Only permitted if luminosity distance is known (if cosmology is
-            not None and z is not None).
-        t0 : float
-            Time offset.
-        z : float
-            Redshift.
-
-        Notes
-        -----
-        `fscale` vs `mabs` vs `m` are various ways to set `fscale`;
-        only one may be used at a time.
-        """
-
-        # Below, when `self._refm` and `self._distmod` might have changed, we
-        # set them to `None` so that they are recalculated as needed.
-
-        recalc_fscale = False
-
-        if 'z' in params and self._params['z'] != params['z']:
-            self._distmod = None
-
-        # set parameters and note whether there are any that might change
-        # spectral shape.
-        for key, val in params.items():
-            if key not in self._params:
-                continue
-            if key != 't0':
-                recalc_fscale = True
-                if key not in ['z', 'fscale', 'm', 'mabs']:
-                    self._refm = None
-            self._params[key] = val
-
-        # In what we just set, 'mabs' overrides 'm' overrides 'fscale'.
-        # Setting 'm' makes 'mabs' undefined, and setting 'fscale' makes
-        # both 'm' and 'mabs' undefined.
-        if 'mabs' in params:
-            pass
-        elif 'm' in params:
-            self._params['mabs'] = None
-        elif 'fscale' in params:
-            self._params['m'] = None
-            self._params['mabs'] = None
-
-        if 'z' in params:
-            self._distmod = None
-
-        # set fscale from mabs or m
-        if self._params['mabs'] is not None:
-            if recalc_fscale:
-                self._set_fscale_from_mabs()
-        elif self._params['m'] is not None:
-            if recalc_fscale:
-                self._set_fscale_from_m()
-
-    def _set_fscale_from_m(self):
-        """Determine the fscale that when applied to the model
-        (with current parameters), will result in the desired absolute
-        magnitude at the reference phase."""
-
-        if self._refm is None:
-            fscale = self._params['fscale']
-            self._params['fscale'] = 1.
-            self._refm = self.bandmag(self._refband, self._refmagsys,
-                                      self._refphase, modelframe=True)
-            self._params['fscale'] = fscale
-
-        self._params['fscale'] = 10.**(0.4 * (self._refm - self._params['m']))
-
-    def _set_fscale_from_mabs(self):
-        """Determine the fscale that when applied to the model
-        (with current parameters), will result in the desired absolute
-        magnitude at the reference phase."""
-
-        # We need the distance modulus. Try to calculate it.
-        if self._distmod is None:
-            if self._params['z'] is None or self._cosmo is None:
-                raise ValueError("cannot set absolute magnitude when distance "
-                                 "modulus is unknown (when either redshift or "
-                                 "cosmology is None)")
-
-            # TODO: remove this hack once astropy v0.3 is released
-            dm = self._cosmo.distmod(self._params['z'])
-            try:
-                self._distmod = dm.value  # dm is Quantity in astropy v0.3+
-            except AttributeError:
-                self._distmod = dm # dm is float in astropy v0.2.x
-
-        self._params['m'] = self._params['mabs'] + self._distmod
-        self._set_fscale_from_m()
-
-    @abc.abstractmethod
-    def _model_flux(self, phase, disp):
-        """Return the model spectral flux density (without any scaling or
-        redshifting.
-
-        Parameters
-        ----------
-        phase : `~numpy.ndarray`
-            1-d array of model phases in days. Must be within bounds of
-            the model, and monotonically increasing.
-        disp : `~numpy.ndarray`
-            1-d array of wavelength values in Angstroms. Must be within
-            bounds of the model and monotonically increasing.
-
-        Returns
-        -------
-        flux : `~numpy.ndarray`
-            2-d array of shape ``(len(phase), len(disp))`` giving model
-            flux spectral density.
-        """
+    def __init__(self):
         pass
 
-    @property
-    def parnames(self):
-        return self._params.keys()
+    def set(self, **param_dict):
+        """Set parameters of the model using keyword values"""
+        for key, val in param_dict.items():
+            try:
+                i = self._param_names.index(key)
+            except ValueError:
+                raise KeyError('Unknown parameter: ' + key)
+            self._parameters[i] = val
+
+    def scale_flux_by_factor(self, factor):
+        """Scale model flux by factor.
+
+        This assumes the first parameter corresponds to an amplitude."""
+        self._parameters[0] = self._parameters[0] * factor
 
     @property
-    def params(self):
-        """Dictionary of model parameters. (Read-only.) Use `set` method to
-        set parameters."""
-        return copy.copy(self._params)
+    def param_names(self):
+        """List of parameter names."""
+        return self._param_names
 
     @property
-    def cosmo(self):
-        """Cosmology used to calculate luminosity distance."""
-        return self._cosmo
-
-    @cosmo.setter
-    def cosmo(self, new_cosmology):
-        if (new_cosmology is not None and 
-            not isinstance(new_cosmology, cosmology.FLRW)):
-            raise ValueError('cosmology must be None or '
-                             'astropy.cosmology.FLRW instance.')
-        self._cosmo = new_cosmology
-        self._distmod = None  # becomes unknown
+    def parameters(self):
+        return self._parameters[:]
 
     @property
-    def refphase(self):
-        """Phase at which absolute magnitude is evaluated."""
-        return self._refphase
-
-    @refphase.setter
-    def refphase(self, new_refphase):
-        self._refphase = new_refphase
+    def phases(self):
+        return self._phase
 
     @property
-    def refband(self):
-        """Bandpass in which absolute magnitude is evaluated."""
-        return self._refband
-
-    @refband.setter
-    def refband(self, band):
-        self._refband = get_bandpass(band)
+    def minphase(self):
+        return self._phase[0]
 
     @property
-    def refmagsys(self):
-        """Magnitude system in which absolute magnitude is evaluated."""
-        return self._refmagsys
+    def maxphase(self):
+        return self._phase[-1]
 
-    @refmagsys.setter
-    def refmagsys(self, magsystem):
-        self._refmagsys = get_magsystem(magsystem)
+    @property
+    def wavelengths(self):
+        return self._wave
 
+    @abc.abstractmethod
+    def _flux(self, phase, wave):
+        pass
 
-    def times(self, modelframe=False):
-        """Return native time sampling of the model.
+    def flux(self, phase=None, wave=None):
+        """The spectral flux density at the given phase and wavelength values.
 
         Parameters
         ----------
-        modelframe : bool, optional
-            If True, return rest-frame phases. Default is False.
-        """
-        
-
-        if modelframe:
-            return self._phase
-        
-        z = self._params['z']
-        if z is None: z = 0.
-
-        return self._params['t0'] + (1. + z) * self._phase
-
-    def disp(self, modelframe=False):
-        """Return native dispersion grid of the model.
-
-        Parameters
-        ----------
-        modelframe : bool, optional
-            If True, return rest-frame phases. Default is False, which
-            corresponds to observer-frame phases (model phases
-            multiplied by 1 + z).
-        """
-        if modelframe or self._params['z'] is None:
-            return self._disp
-        else:
-            return self._disp * (1. + self._params['z'])
-
-    def flux(self, time=None, disp=None, modelframe=False):
-        """The model flux spectral density at the given dispersion values.
-
-        Parameters
-        ----------
-        time : float or list_like, optional
-            Time(s) in days. Times are observer frame unless `modelframe`
-            is True, in which case times are assumed to be model phases.
-            If `None` (default) the native phases of the model are used.
-        disp : float or list_like, optional
-            Model dispersion values in Angstroms. Interpreted to be in the
-            observer frame unless `modelframe` is True. If `None` (default)
-            the native dispersion of the model is used.
-        modelframe : bool, optional
-            If True, return fluxes without redshifting or time shifting.
+        phase : float or list_like, optional
+            Phase(s) in days. If `None` (default), the native phases of
+            the model are used.
+        wave : float or list_like, optional
+            Wavelength(s) in Angstroms. If `None` (default), the native
+            wavelengths of the model are used.
 
         Returns
         -------
         flux : float or `~numpy.ndarray`
             Spectral flux density values in ergs / s / cm^2 / Angstrom.
         """
-
-        z = max(0., self._params['z'])
-
-        if time is None:
-            phase = self._phase
+        if phase is None:
+            phase = self.phases
         else:
-            phase = self._time_to_phase(np.asarray(time), modelframe)
+            phase = np.asarray(phase)
 
-        if disp is None:
-            disp = self._disp
+        if wave is None:
+            wave = self._wave
         else:
-            disp = np.asarray(disp)
-            if not modelframe:
-                disp /= (1. + z)
-            if np.any(disp < self._disp[0]) or np.any(disp > self._disp[-1]):
-                raise ValueError('requested dispersion value(s) outside '
+            wave = np.asarray(wave)
+
+        if np.any(wave < self._wave[0]) or np.any(wave > self._wave[-1]):
+            raise ValueError('requested wavelength value(s) outside '
                                  'model range')
+        flux = self._flux(phase, wave)
 
-        # Determine flux scaling factor
-        factor = self._params['fscale']
-        if not modelframe:
-            factor /= 1. + z
-
-        # Check dimensions of phase, disp for return value
+        # Check dimensions of (phase, wave) for return value
         # (1, 1) -> ndim=2
         # (1, 0) -> ndim=2
         # (0, 1) -> ndim=1
         # (0, 0) -> float
-        flux = factor * self._model_flux(phase, disp)
         if phase.ndim == 0:
-            if disp.ndim == 0:
+            if wave.ndim == 0:
                 return flux[0, 0]
             return flux[0, :]
         return flux
-
-    def bandoverlap(self, band, z=None):
-        """Return True if model dispersion range fully overlaps the band.
-
-        Parameters
-        ----------
-        band : `~sncosmo.Bandpass`, str or list_like
-            Bandpass, name of bandpass in registry, or list or array thereof.
-        z : float or list_like, optional
-            If given, evaluate the overlap when the model is at the given
-            redshifts. If `None`, use the model redshift.
-
-        Returns
-        -------
-        overlap : bool or `~numpy.ndarray`
-            
-        """
-        
-        band = np.asarray(band)
-        if z is None: z = self._params['z']
-        if z is None: z = 0
-        z = np.asarray(z)
-        ndim = (band.ndim, z.ndim)
-        band = band.ravel()
-        z = z.ravel()
-        overlap = np.empty((len(band), len(z)), dtype=np.bool)
-        for i, b in enumerate(band):
-            b = get_bandpass(b)
-            overlap[i, :] = ((b.disp[0] > self._disp[0] * (1. + z)) &
-                             (b.disp[-1] < self._disp[-1] * (1. + z)))
-        if ndim == (0, 0):
-            return overlap[0, 0]
-        if ndim[1] == 0:
-            return overlap[:, 0]
-        return overlap
-
-    def bandflux(self, band, time=None, zp=None, zpsys=None,
-                 modelframe=False, include_error=False):
-        """Flux through the given bandpass(es) at the given time(s).
-
-        Default return value is flux in photons / s / cm^2. If zp and zpsys
-        are given, flux(es) are scaled to the requested zeropoints.
-
-        Parameters
-        ----------
-        band : `~sncosmo.Bandpass` or str or list_like
-            Bandpass(es) or name(s) of bandpass(es) in registry.
-        time : float or list_like, optional
-            Time(s) in days. Default is `None`, which corresponds to the full
-            native time sampling of the model.
-        zp : float or list_like, optional
-            If given, zeropoint to scale flux to. If `None` (default) flux
-            is not scaled.
-        zpsys : `~sncosmo.MagSystem` or str (or list_like), optional
-            Determines the magnitude system of the requested zeropoint.
-            Cannot be `None` if `zp` is not `None`.
-        include_error : bool, optional
-            Include flux errors in return value. Default is False.
-
-
-        Returns
-        -------
-        bandflux : float or `~numpy.ndarray`
-            Flux in photons / s /cm^2, unless `zp` and `zpsys` are
-            given, in which case flux is scaled so that it corresponds
-            to the requested zeropoint. Return value is `float` if all
-            input parameters are scalars, `~numpy.ndarray` otherwise.
-        bandfluxerr : float or `~numpy.ndarray`
-        """
-
-        z = max(0., self._params['z'])
-        if modelframe: z = 0.
-
-        # Convert times to model phases
-        if time is None:
-            phase = self._phase
-        else:
-            phase = self._time_to_phase(np.asarray(time), modelframe)
-
-        # Determine flux scaling factor
-        factor = self._params['fscale']
-        if not modelframe:
-            factor /= 1. + z
-
-        # broadcast arrays
-        if zp is None:
-            phase, band = np.broadcast_arrays(phase, band)
-        else:
-            if zpsys is None:
-                raise ValueError('zpsys must be given if zp is not None')
-            phase, band, zp, zpsys = \
-                np.broadcast_arrays(phase, band, zp, zpsys)
-            zp = np.atleast_1d(zp)
-            zpsys = np.atleast_1d(zpsys)
-
-        # convert to 1d arrays
-        ndim = phase.ndim # save input ndim for return val
-        phase = np.atleast_1d(phase)
-        band = np.atleast_1d(band)
-
-        # initialize output arrays
-        bandflux = np.zeros(phase.shape, dtype=np.float)
-        if include_error:
-            relerr = np.zeros(phase.shape, dtype=np.float)
-
-        # index of times that are in model range
-        idx_validphase = (phase >= self._phase[0]) & (phase <= self._phase[-1])
-
-        # loop over unique bands
-        for b in set(band):
-            idx = (band == b) & idx_validphase
-            if not np.any(idx):
-                continue
-            b = get_bandpass(b)
-            d = b.disp / (1. + z)  # bandpass dispersion in modelframe
-            
-            # make sure bandpass dispersion is in model range.
-            if (d[0] < self._disp[0] or d[-1] > self._disp[-1]):
-                raise ValueError(
-                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-                    'outside model range [{3:.6g}, .., {4:.6g}]'
-                    .format(b.name, b.disp[0], b.disp[-1], 
-                            (1.+z) * self._disp[0], (1.+z) * self._disp[-1]))
-            flux = self._model_flux(phase[idx], d)
-            tmp = b.trans * b.disp * b.ddisp
-            fluxsum = np.sum(flux * tmp, axis=1) / HC_ERG_AA
-
-            if zp is not None:
-                zpnorm = 10. ** (0.4*zp[idx])
-                bandzpsys = zpsys[idx]
-                for ms in set(bandzpsys):
-                    idx2 = bandzpsys == ms
-                    ms = get_magsystem(ms)
-                    zpnorm[idx2] = zpnorm[idx2] / ms.zpbandflux(b)
-                fluxsum *= zpnorm
-
-            bandflux[idx] = fluxsum
-
-            if include_error:
-                deff = b.disp_eff
-                if not modelframe: deff /= (1.+z)
-                relerr[idx] = self._model_bandfluxrelerr(phase[idx], deff)[:, 0]
-
-        # multiply all by overall factor determined above.
-        bandflux *= factor
-
-        # Return result.
-        if include_error:
-            if ndim == 0:
-                return bandflux[0], bandflux[0] * relerr[0]
-            return bandflux, bandflux * relerr
-        if ndim == 0:
-            return bandflux[0]
-        return bandflux
-
-    def bandmag(self, band, magsys, time=None, modelframe=False):
-        """Magnitude at the given time(s) through the given 
-        bandpass(es), and for the given magnitude system(s).
-
-        Parameters
-        ----------
-        time : float or list_like
-            Time(s) in days.
-        band : `Bandpass` or str (or list_like)
-            Bandpass or name of bandpass in registry.
-        magsys : `MagSystem` or str (or list_like)
-            MagSystem or name of MagSystem in registry.
-
-        Returns
-        -------
-        mag : float or `~numpy.ndarray`
-            Magnitude for each item in time, band, magsys.
-            The return value is a float if all parameters are not interables.
-            The return value is an `~numpy.ndarray` if any are interable.
-        """
-
-        bandflux = self.bandflux(band, time, modelframe=modelframe)
-        band, magsys, bandflux = np.broadcast_arrays(band, magsys, bandflux)
-        return_scalar = (band.ndim == 0)
-        band = band.ravel()
-        magsys = magsys.ravel()
-        bandflux = bandflux.ravel()
-
-        result = np.empty(bandflux.shape, dtype=np.float)
-        for i, (b, ms, f) in enumerate(zip(band, magsys, bandflux)):
-            ms = get_magsystem(ms)
-            zpf = ms.zpbandflux(b)
-            result[i] = -2.5 * np.log10(f / zpf)
-
-        if return_scalar:
-            return result[0]
-        return result
-
-    def set_bandflux_relative_error(self, phase, disp, relative_error):
-        """Set the relative error to be applied to the bandflux.
-
-        Parameters
-        ----------
-        phase : `~numpy.ndarray` (1d)
-            Phases in days.
-        disp : `~numpy.ndarray` (1d)
-            Wavelength values.
-        relative_error : `~numpy.ndarray` (2d)
-            Fractional error on bandflux. Must have shape ``(len(phases),
-            len(disp))``
-        """
-        self._model_bandfluxrelerr = \
-            Spline2d(phase, disp, relative_error, kx=1, ky=1)
-
-    def _time_to_phase(self, time, modelframe):
-        """Convert time(s) (ndarray) to phase(s) (ndarray)."""
-
-        if modelframe:
-            return time
-        return (time - self._params['t0']) / (1. + max(0., self._params['z']))
-
-
-    def _phase_of_max_flux(self, band):
-        """Determine phase of maximum flux in the given band, by fitting
-        a parabola to phase of maximum flux and the surrounding two
-        phases."""
-
-        fluxes = self.bandflux(band)
-        i = np.argmax(fluxes)
-        x = self._phase[i-1: i+2]
-        y = fluxes[i-1: i+2]
-        A = np.hstack([x.reshape(3,1)**2, x.reshape(3,1), np.ones((3,1))])
-        a, b, c = np.linalg.solve(A, y)
-        return -b / (2 * a)
-
-
-    def __call__(self, **params):
-        """Return a shallow copy of the model with parameters set.
-        See `set` method for details on parameters.
-        
-        Returns
-        -------
-        model : `sncosmo.Model`
-            Model instance with parameters set as requested.
-
-        Examples
-        --------
-        
-        >>> model = sncosmo.get_model('salt2')
-        >>> sn = model(c=0.1, x1=0.5, mabs=-19.3, z=0.68)
-        >>> sn.bandmag('desg', 'ab', 0.)
-        25.577096820065883
-        >>> sn = model(c=0., x1=0., mabs=-19.3, z=0.5)
-        >>> sn.bandmag('desg', 'ab', 0.)
-        23.73028907970092
-        """
-
-        model = copy.copy(self)
-        model._params = copy.copy(self._params)
-        model.set(**params)
-        return model
 
     def __repr__(self):
         name = ''
@@ -623,220 +141,116 @@ class Model(object):
             self.__class__.__name__, name, version, id(self))
 
     def __str__(self):
-        dmstr = '--'
-        ldstr = '--'
-        if self._distmod is not None:
-            dmstr = '{:.6g}'.format(self._distmod)
-            ld =  10.**((self._distmod - 25.) / 5.)
-            ldstr = '{:.6g} Mpc'.format(ld)
+        phases = self.phases
         result = """\
         Model class: {}
         Model name: {}
         Model version: {}
         Model phases: [{:.6g}, .., {:.6g}] days ({:d} points)
-        Model dispersion: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
-        Reference phase: {:.5f} days
-        Cosmology: {}
-        Current Parameters:
+        Model wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points) 
+        Parameters:
         """.format(
             self.__class__.__name__,
             self.name, self.version,
-            self._phase[0], self._phase[-1], len(self._phase),
-            self._disp[0], self._disp[-1],
-            len(self._disp),
-            self._refphase,
-            self._cosmo)
+            phases[0], phases[-1], len(phases),
+            self._wave[0], self._wave[-1], len(self._wave))
         result = dedent(result)
 
         parameter_lines = []
-        for key, val in self._params.iteritems():
+        for key, val in zip(self._param_names, self._parameters):
             line = '    {} = {}'.format(key, val)
-            if key in ['m', 'mabs']:
-                line += ' [{}, {}]'.format(self._refband.name,
-                                           self._refmagsys.name)
-            elif key == 'z' and val is not None:
-                line += (' [dist. mod. = {}, lum. dist. = {}]'
-                         .format(dmstr, ldstr))
             parameter_lines.append(line)
         return result + '\n'.join(parameter_lines)
 
+    def __copy__(self):
+        model = copy.copy(self)
+        model._param_names = self._param_names[:]
+        model._parameters = self._parameters.copy()
+        return model
 
-class TimeSeriesModel(Model):
+class TimeSeriesModel(SourceModel):
     """A single-component spectral time series model.
 
     Parameters
     ----------
     phase : `~numpy.ndarray`
         Phases in days.
-    disp : `~numpy.ndarray`
+    wave : `~numpy.ndarray`
         Wavelengths in Angstroms.
     flux : `~numpy.ndarray`
         Model spectral flux density in erg / s / cm^2 / Angstrom.
-        Must have shape ``(num_phases, num_disp)``.
-    extinction_func : function, optional
-        A function that accepts an array of wavelengths in Angstroms
-        and returns an array representing the ratio of total extinction
-        (in magnitudes) to the parameter ``c`` at each wavelength. Default
-        is `sncosmo.extinction_ccm`.
-    extinction_kwargs : dict
-        A dictionary of keyword arguments to pass to `extinction_func`.
-        Default is ``{'ebv': 1.}``.
+        Must have shape ``(num_phases, num_wave)``.
     name : str, optional
         Name of the model. Default is `None`.
     version : str, optional
         Version of the model. Default is `None`.
     """
 
-    def __init__(self, phase, disp, flux,
-                 extinction_func=extinction_ccm,
-                 extinction_kwargs=dict(ebv=1.),
+    _param_names = ['amplitude']
+    _parameters = np.array([1.])
+
+    def __init__(self, phase, wave, flux,
                  name=None, version=None):
 
-        super(TimeSeriesModel, self).__init__(name, version)
-        self._params['c'] = None
-
+        self.name = name
+        self.version = version
         self._phase = phase
-        self._disp = disp
-        self._flux = Spline2d(phase, disp, flux, kx=2, ky=2)
-        self._model_bandfluxrelerr = Spline2d(phase[[0, -1]], disp[[0, -1]],
-                                              np.zeros((2,2), dtype=np.float),
-                                              kx=1, ky=1)
-            
-        self.set_extinction_func(extinction_func, extinction_kwargs)
+        self._wave = wave
+        self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
 
-        self._refphase = self._phase_of_max_flux(self._refband)
+    def _flux(self, phase, wave):
+        return self._parameters[0] * self._model_flux(phase, wave)
 
-    def _model_flux(self, phase, disp):
-        """Return the model flux density (without any scaling or redshifting).
-        """
-        if self._params['c'] is None:
-            return self._flux(phase, disp)
-        
-        dust_trans = self._dust_trans_base(disp) ** self._params['c']
-        return dust_trans * self._flux(phase, disp)
-
-    def set_extinction_func(self, func, extra_params):
-        """Set the extinction ratio function to use in the model.
-
-        Parameters
-        ----------
-        func : function
-            A function that accepts an array of wavelengths in Angstroms
-            and returns the ratio of total extinction
-            (in magnitudes) to the parameter `c` at each wavelength.
-        extra_params : dict
-            A dictionary of keyword arguments to pass to the function.
-            Default is `None`.
-        """
-        
-        # set these parameters for info
-        self._extinction_func = func
-        self._extinction_kwargs = extra_params
-
-        if extra_params is None:
-            ext_ratio = func(self._disp)
-        else:
-            ext_ratio = func(self._disp, **extra_params)
-
-        # calculate extinction base values, so that
-        # self._dust_trans_base ** c gives the dust transmission.
-        dust_trans_base =  10. ** (-0.4 * ext_ratio)
-        self._dust_trans_base = Spline1d(self._disp, dust_trans_base, k=2)
-
-
-class StretchModel(TimeSeriesModel):
+class StretchModel(SourceModel):
     """A single-component spectral time series model, that "stretches".
 
     Parameters
     ----------
     phase : `~numpy.ndarray`
         Phases in days.
-    disp : `~numpy.ndarray`
+    wave : `~numpy.ndarray`
         Wavelengths in Angstroms.
     flux : `~numpy.ndarray`
         Model spectral flux density in erg / s / cm^2 / Angstrom.
         Must have shape `(num_phases, num_disp)`.
-
-    Other Parameters
-    ----------------
-    flux_error : `~numpy.ndarray`, optional
-        Model error on `flux`. Must have same shape as `flux`.
-        Default is `None`.
-    extinction_func : function, optional
-        A function that accepts an array of wavelengths in Angstroms
-        and returns an array representing the ratio of total extinction
-        (in magnitudes) to the parameter `c` at each wavelength. Default
-        is `sncosmo.extinction.extinction_ccm`
-    extinction_kwargs : dict
-        A dictionary of keyword arguments to pass to `extinction_func`.
-        Default is `dict(ebv=1.)`.
-    name : str, optional
-        Name of the model. Default is `None`.
-    version : str, optional
-        Version of the model. Default is `None`.
     """
-    def __init__(self, phase, disp, flux,
-                 name=None, version=None,
-                 extinction_func=extinction_ccm,
-                 extinction_kwargs=dict(ebv=1.)):
 
-        super(StretchModel, self).__init__(
-            phase, disp, flux,
-            name=name, version=version,
-            extinction_func=extinction_func,
-            extinction_kwargs=extinction_kwargs)
-        
-        self._params['s'] = 1.
+    _param_names = ['amplitude', 's']
 
-    def _set_fscale_from_m(self):
-        """Need to override this so that the refphase is applied correctly.
-        refphase refers to the *unstretched* phase, but bandmag() with
-        modelframe=True will treat the input as the *stretched* phase.
-        if we don't do this, the phase of peak will shift with s, if
-        the peak is not at phase = 0."""
+    def __init__(self, phase, wave, flux, name=None, version=None):
+        self.name = name
+        self.version = version
+        self._phase = phase
+        self._wave = wave
+        self._parameters = np.array([1., 1.])
+        self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
 
-        s = self._params['s']
-        self._params['s'] = 1. # temporarily remove stretch
-        super(StretchModel, self)._set_fscale_from_m()
-        self._params['s'] = s # put it back.
+    @property
+    def phases(self):
+        return self._parameters[1] * self._phase
 
-    def times(self, modelframe=False):
-        """Return native times of the model.
+    @property
+    def minphase(self):
+        return self._parameters[1] * self._phase[0]
 
-        Parameters
-        ----------
-        modelframe : bool, optional
-            If True, return rest-frame phases. Default is False, which
-            corresponds to observer-frame phases (model phases
-            multiplied by 1 + z).
-        """
-        if modelframe:
-            return self._params['s'] * self._phase
-        z = max(0., self._params['z'])
-        return self._params['t0'] + self._params['s'] * (1.+z) * self._phase
+    @property
+    def maxphase(self):
+        return self._parameters[1] * self._phase[-1]
 
-    def _time_to_phase(self, time, modelframe):
-        """Convert time(s) (ndarray) to phase(s) (ndarray)."""
-
-        if modelframe:
-            return time / self._params['s']
-        return ((time - self._params['t0']) /
-                (self._params['s'] * (1. + max(0., self._params['z']))))
+    def _flux(self, phase, wave):
+        return (self._parameters[0] *
+                self._model_flux(phase / self._parameters[1], wave))
 
 
-class SALT2Model(Model):
+class SALT2Model(SourceModel):
     """The SALT2 Type Ia supernova spectral timeseries model.
 
     Parameters
     ----------
     modeldir : str, optional
-        Path to files containing model components. Each file should have
-        the format:
- 
-            phase wavelength value
-
-        on each line. If you want to give the absolute path to each file,
-        set to `None`.
+        Directory path containing model component files. Default is `None`,
+        which means that no directory is prepended to filenames when
+        determining their path.
     m0file, m1file, v00file, v11file, v01file, clfile : str or fileobj, optional
         Filenames of various model components. Defaults are:
 
@@ -847,6 +261,9 @@ class SALT2Model(Model):
         * v01file = 'salt2_spec_covariance_01.dat'
         * clfile = 'salt2_color_correction.dat'
 
+        The first five files should have the format
+        ``<phase> <wavelength> <value>`` on each line. The colorlaw file
+        (clfile) has a different format.
     errscalefile : str, optional
         Name of error scale file, same format as model component files.
         The default is ``None``, which means that the error scale will
@@ -855,13 +272,16 @@ class SALT2Model(Model):
 
     Notes
     -----
-    The phase and wavelength values of the various components don't necessarily
-    need to match. (In the most recent salt2 model data, they do not all 
-    match.) The phase and wavelength values of the first model component
-    (in ``m0file``) are taken as the "native" sampling of the model, even
-    though these values might require interpolation of the other model
-    components.
+    The phase and wavelength values of the various components don't
+    necessarily need to match. (In the most recent salt2 model data,
+    they do not all match.) The phase and wavelength values of the
+    first model component (in ``m0file``) are taken as the "native"
+    sampling of the model, even though these values might require
+    interpolation of the other model components.
     """
+
+    # TODO: adjust model values by 10^12 + 0.27 or whatever it is.
+    _param_names = ['x0', 'x1', 'c']
 
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
@@ -871,11 +291,10 @@ class SALT2Model(Model):
                  v01file='salt2_spec_covariance_01.dat',
                  clfile='salt2_color_correction.dat',
                  errscalefile=None, name=None, version=None):
-        super(SALT2Model, self).__init__(name, version)
-        self._params['c'] = 0.
-        self._params['x1'] = 0.
+        self.name = name
+        self.version = version
         self._model = {}
-
+        self._parameters = np.array([1., 0., 0.])
         components = ['M0', 'M1', 'V00', 'V11', 'V01', 'errscale', 'clfile']
         names_or_objs = [m0file, m1file, v00file, v11file, v01file,
                          errscalefile, clfile]
@@ -894,119 +313,79 @@ class SALT2Model(Model):
             if name_or_obj is None: continue
 
             # Get the model component from the file
-            phase, wavelength, values = read_griddata(name_or_obj)
-            self._model[component] = Spline2d(phase, wavelength, values,
-                                              kx=2, ky=2)
+            phase, wave, values = read_griddata(name_or_obj)
+            self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
             if component == 'M0':
                 self._phase = phase
-                self._disp = wavelength
+                self._wave = wave
             
         # Set the colorlaw based on the "color correction" file.
         self._set_colorlaw_from_file(names_or_objs[-1])
 
         # add extinction component
-        ext_ratio = self._extinction(self._disp)
-        dust_trans_base = 10. ** (-0.4 * ext_ratio)
-        self._model['ext'] = Spline1d(self._disp, dust_trans_base, k=2)
+        cl = self._colorlaw(self._wave)
+        clbase = 10. ** (-0.4 * cl)
+        self._model['clbase'] = Spline1d(self._wave, dust_trans_base, k=2)
 
-        # Set relative bandflux error
-        self._model_bandfluxrelerr = \
-            Spline2d(self._phase[[0, -1]], self._disp[[0, -1]], 
-                     np.zeros((2,2), dtype=np.float), kx=1, ky=1)
-
-        # set refphase
-        self._refphase = self._phase_of_max_flux(self._refband)
-
-    def _model_flux(self, phase, disp):
-        """Return the model flux density (without any scaling or redshifting).
-        """
-
-        f0 = self._model['M0'](phase, disp)
-        f1 = self._model['M1'](phase, disp)
-        flux = f0 + self._params['x1'] * f1
-        flux *= self._model['ext'](disp) ** self._params['c']
-        return flux
-
-    # No longer supporting spectral flux error, so we comment out the 
-    # following method. This might be added back at a later date if
-    # I gain a better understanding of how to use the SALT2 model errors.
-
-    #def _model_fluxerr(self, phase=None, disp=None):
-    #    """Return the model flux density error (without any scaling or
-    #    redshifting. Return `None` if the error is undefined.
-    #    """
-    #    if phase is None:
-    #        phase = self._phase
-    #    if disp is None:
-    #        disp = self._disp
-    #    v00 = self._model['V00'](phase, disp)
-    #    v11 = self._model['V11'](phase, disp)
-    #    v01 = self._model['V01'](phase, disp)
-
-        #TODO apply x0 correctly
-    #    x1 = self._params['x1']
-    #    sigma = np.sqrt(v00 + x1**2 * v11 + 2 * x1 * v01)
-    #    sigma *= self._model['ext'](disp) ** self._params['c']
-        ### sigma *= 1e-12   #- Magic constant from SALT2 code
-        
-    #    if 'errscale' in self._model:
-    #        sigma *= self._model['errscale'](phase, disp)
-        
-        # Hack adjustment to error (from SALT2 code)
-        #TODO: figure out a way to do this.
-        #if phase < -7. or phase > 12.:
-        #    idx = (disp < 3400.)
-        #    sigma[idx] *= 1000.
-        
-    #   return sigma
+    def _flux(self, phase, wave):
+        m0 = self._model['M0'](phase, wave)
+        m1 = self._model['M1'](phase, wave)
+        return (self._parameters[0] *
+                (m0 + self._parameters[1] * m1) *
+                self._model['clbase'](wave) ** self._parameters[2])
 
     def _set_colorlaw_from_file(self, name_or_obj):
-        """Read color law file and set the following internal parameters:
-        
-        self._colorlaw_coeffs
-        self._colorlaw_version [default is 0]
-        self._colorlaw_range [default is (3000., 7000.)]
+        """Read color law file and set the internal colorlaw function,
+        as well as some parameters used in that function.
+
+        self._colorlaw (function)
+        self._B_WAVELENGTH (float)
+        self._V_WAVELENGTH (float)
+        self._colorlaw_coeffs (list of float)
+        self._colorlaw_range (tuple) [default is (3000., 7000.)]
         """
 
         self._B_WAVELENGTH = 4302.57
         self._V_WAVELENGTH = 5428.55
 
+        # Read file
         if isinstance(name_or_obj, basestring):
             f = open(name_or_obj, 'rb')
         else:
             f = name_or_obj
         words = f.read().split()
+        f.close()
 
+        # Get colorlaw coeffecients.
         npoly = int(words[0])
         self._colorlaw_coeffs = [float(word) for word in words[1: 1 + npoly]]
     
-        # look for keywords in the rest of the file.
-        self._colorlaw_version = 0
-        self._colorlaw_range = [3000., 7000.]
+        # Look for keywords in the rest of the file.
+        version = 0
+        colorlaw_range = [3000., 7000.]
         for i in range(1+npoly, len(words)):
             if words[i] == 'Salt2ExtinctionLaw.version':
-                self._colorlaw_version = int(words[i+1])
+                version = int(words[i+1])
             if words[i] == 'Salt2ExtinctionLaw.min_lambda':
-                self._colorlaw_range[0] = float(words[i+1])
+                colorlaw_range[0] = float(words[i+1])
             if words[i] == 'Salt2ExtinctionLaw.max_lambda':
-                self._colorlaw_range[1] = float(words[i+1])
+                colorlaw_range[1] = float(words[i+1])
 
         # Set extinction function to use.
-        if self._colorlaw_version == 0:
-            self._extinction = self._extinction_v0
-        elif self._colorlaw_version == 1:
-            self._extinction = self._extinction_v1
+        if version == 0:
+            self._colorlaw = self._colorlaw_v0
+        elif version == 1:
+            self._colorlaw = self._colorlaw_v1
+            self._colorlaw_range = colorlaw_range
         else:
             raise Exception('unrecognized Salt2ExtinctionLaw.version: {}'
-                            .format(self._colorlaw_version))
-        f.close()
+                            .format(version))
 
 
-
-    def _extinction_v0(self, disp):
+    def _colorlaw_v0(self, wave):
         """Return the extinction in magnitudes as a function of wavelength,
         for c=1. This is the version 0 extinction law used in SALT2 1.0 and
         1.1 (SALT2-1-1).
@@ -1022,7 +401,7 @@ class SALT2Model(Model):
                 = exp(color * expo_term ) 
         """
 
-        l = ((disp - self._B_WAVELENGTH) /
+        l = ((wave - self._B_WAVELENGTH) /
              (self._V_WAVELENGTH - self._B_WAVELENGTH))
 
         coeffs = [0., 1.]
@@ -1033,7 +412,7 @@ class SALT2Model(Model):
 
         return -numerator / denominator
 
-    def _extinction_v1(self, disp):
+    def _colorlaw_v1(self, wave):
         """Return the  extinction in magnitudes as a function of wavelength,
         for c=1. This is the version 1 extinction law used in SALT2 2.0
         (SALT2-2-0).
@@ -1057,7 +436,7 @@ class SALT2Model(Model):
 
         v_minus_b = self._V_WAVELENGTH - self._B_WAVELENGTH
 
-        l = (disp - self._B_WAVELENGTH) / v_minus_b
+        l = (wave - self._B_WAVELENGTH) / v_minus_b
         l_lo = (self._colorlaw_range[0] - self._B_WAVELENGTH) / v_minus_b
         l_hi = (self._colorlaw_range[1] - self._B_WAVELENGTH) / v_minus_b
 
@@ -1067,7 +446,7 @@ class SALT2Model(Model):
         coeffs = np.array(coeffs)
         prime_coeffs = (np.arange(len(coeffs)) * coeffs)[1:]
 
-        extinction = np.empty_like(disp)
+        extinction = np.empty_like(wave)
         
         # Blue side
         idx_lo = l < l_lo
@@ -1086,4 +465,434 @@ class SALT2Model(Model):
         extinction[idx_between] = np.polyval(np.flipud(coeffs), l[idx_between])
 
         return -extinction
+
+    def colorlaw(self, wave=None):
+        """Return the value of the CL function for the given wavelengths.
+
+        Parameters
+        ----------
+        wave : float or list_like
+
+        Returns
+        -------
+        colorlaw : float or `~numpy.ndarray`
+            Values of colorlaw function, which can be interpreted as extinction
+            in magnitudes.
             
+        Notes
+        -----
+        Note that this is the "exact" colorlaw. For performance reasons, when
+        calculating the model flux, a spline fit to this function is
+        used rather than the function itself. Therefore this will not be
+        *exactly* equivalent to the color law used when evaluating the model
+        flux. (It will however be exactly equivalent at the native model
+        wavelengths.)
+        """
+        if wave is None:
+            wave = self._wave
+        else:
+            wave = np.asarray(wave)
+        if wave.ndim == 0:
+            return self._colorlaw(np.ravel(wave))[0]
+        else:
+            return self._colorlaw(wave)
+
+
+class ObsModel(object):
+    """An observer-frame model.
+
+    Parameters
+    ----------
+    source_model : `~sncosmo.SourceModel`
+        The model for the spectral evolution of the source.
+    restframe_effects : `dict` of `PropagationEffect`s
+    obsframe_effects : `dict` of `PropagationEffect`s
+    """
+
+    def __init__(self, source_model, restframe_effects=None,
+                 obsframe_effects=None):
+        self._param_names = ['z', 't0']
+        self._parameters = np.array([0., 0.])
+        self._source = copy.copy(source_model)
+        self._restframe_effects = odict(
+            [(name, copy.copy(effect)) for name, effect in restframe_effects])
+        self._obsframe_effects = odict(
+            [(name, copy.copy(effect)) for name, effect in obsframe_effects])
+        self._synchronize_parameters()
+
+    def set(self, **param_dict):
+        """Set parameters of the model using keyword values."""
+        for key, val in param_dict.items():
+            try:
+                i = self._param_names.index(key)
+            except ValueError:
+                raise KeyError('Unknown parameter: ' + key)
+            self._parameters[i] = val
+
+# TODO: Check if PropagationEffect covers complete range of model
+    def _synchronize_parameters(self):
+        """Synchronize parameter names and parameter arrays between
+        the aggregated parameters and those of the individual source and
+        effects.
+        """
+        effect_names = (self._restframe_effects.keys() +
+                        self._obsframe_effects.keys())
+        effects = (self._restframe_effects.values() +
+                   self._obsframe_effects.values())
+
+        # Build a new list of parameter names
+        self._param_names = self._param_names[0:2]
+        self._param_names.extend(self._source.param_names)
+        for effect_name, effect in zip(effect_names, effects):
+            self.param_names.extend([effect_name + '_' + param_name
+                                     for param_name in effect.param_names])
+
+        # For each "model", get its parameter array.
+        models = [self._source] + effects
+        param_list = [self._parameters[0:2]]
+        param_list.extend([m._parameters for m in models])
+        
+        # Create a new parameter array built from the individual arrays
+        self._parameters = np.concatenate(param_list)
+
+        # Reference the parameter of each "model" to the new parameter array.
+        pos = 2
+        for m in models:
+            l = len(m._parameters)
+            m._parameters = self._parameters[pos:pos+l]
+
+    def add_restframe_effect(self, name, effect):
+        if not issubclass(effect, PropagationEffect):
+            raise ValueError('effect is not a PropagationEffect')
+
+        self._restframe_effects[key] = copy.copy(effect)
+        self._synchronize_parameters()
+
+    def add_obsframe_effect(self, name, effect):
+        if not issubclass(effect, PropagationEffect):
+            raise ValueError('effect is not a PropagationEffect')
+
+        self._obsframe_effects[key] = copy.copy(effect)
+        self._synchronize_parameters()
+
+    @property
+    def param_names(self):
+        return self._param_names
+
+    @property
+    def parameters(self):
+        return self._parameters[:]
+
+    @property
+    def times(self):
+        """Native times at which the source model is sampled."""
+        return (self._parameters[1] +
+                (1. + self._parameters[0]) * self._source.phases)
+
+    @property
+    def wavelengths(self):
+        """Native wavelengths at which the source model is sampled."""
+        return self._source._wave * (1. + self._parameters[0])
+
+    def flux(self, time=None, wave=None):
+        """The spectral flux density at the given time and wavelength values.
+
+        Parameters
+        ----------
+        time : float or list_like, optional
+            Time(s) in days. If `None` (default), the times corresponding
+            to the native phases of the model are used.
+        wave : float or list_like, optional
+            Wavelength(s) in Angstroms. If `None` (default), the native
+            wavelengths of the model are used.
+
+        Returns
+        -------
+        flux : float or `~numpy.ndarray`
+            Spectral flux density values in ergs / s / cm^2 / Angstrom.
+        """
+        
+        a = 1. / (1. + self._parameters[0])
+
+        # Convert observer-frame time(s) to rest-frame phase(s).
+        if time is None:
+            phase = self._source.phases
+        else:
+            phase = (np.asarray(time) - self._parameters[1]) * a
+
+        # Convert observer-frame wavelength(s) to rest-frame.
+        if wave is None:
+            restwave = self._source._wave
+            wave = restwave / a
+        else:
+            wave = np.asarray(wave)
+            restwave = wave * a
+
+        # Get the flux
+        flux = self._source._flux(phase, restwave)
+        flux *= a # conserve bolometric luminosity
+        for effect in self._restframe_effects.values():
+            flux = effect.propagate(restwave, flux)
+        for effect in self._obsframe_effects.values():
+            flux = effect.propagate(wave, flux)
+
+        # Return array according to dimension of inputs.
+        if np.isscalar(phase) or phase.ndim == 0:
+            if np.isscalar(wave) or wave.ndim == 0:
+                return flux[0, 0]
+            return flux[0, :]
+        return flux
+
+    def bandoverlap(self, band, z=None):
+        """Return True if model dispersion range fully overlaps the band.
+
+        Parameters
+        ----------
+        band : `~sncosmo.Bandpass`, str or list_like
+            Bandpass, name of bandpass in registry, or list or array thereof.
+        z : float or list_like, optional
+            If given, evaluate the overlap when the model is at the given
+            redshifts. If `None`, use the model redshift.
+
+        Returns
+        -------
+        overlap : bool or `~numpy.ndarray`
+            
+        """
+        
+        band = np.asarray(band)
+        if z is None: z = self._parameters[0]
+        if z is None: z = 0
+        z = np.asarray(z)
+        ndim = (band.ndim, z.ndim)
+        band = band.ravel()
+        z = z.ravel()
+        overlap = np.empty((len(band), len(z)), dtype=np.bool)
+        for i, b in enumerate(band):
+            b = get_bandpass(b)
+            overlap[i, :] = ((b.disp[0] > self._source._disp[0] * (1. + z)) &
+                             (b.disp[-1] < self._source._disp[-1] * (1. + z)))
+        if ndim == (0, 0):
+            return overlap[0, 0]
+        if ndim[1] == 0:
+            return overlap[:, 0]
+        return overlap
+
+    def bandflux(self, band, time=None, zp=None, zpsys=None,
+                 restframe=False):
+        """Flux through the given bandpass(es) at the given time(s).
+
+        Default return value is flux in photons / s / cm^2. If zp and zpsys
+        are given, flux(es) are scaled to the requested zeropoints.
+
+        Parameters
+        ----------
+        band : `~sncosmo.Bandpass` or str or list_like
+            Bandpass(es) or name(s) of bandpass(es) in registry.
+        time : float or list_like, optional
+            Time(s) in days. Default is `None`, which corresponds to the full
+            native time sampling of the model.
+        zp : float or list_like, optional
+            If given, zeropoint to scale flux to. If `None` (default) flux
+            is not scaled.
+        zpsys : `~sncosmo.MagSystem` or str (or list_like), optional
+            Determines the magnitude system of the requested zeropoint.
+            Cannot be `None` if `zp` is not `None`.
+        restframe : bool
+            If True, `band` is treated as if in the rest-frame and
+            *observer-frame propagation effects are not applied*.
+            Default is False.
+
+        Returns
+        -------
+        bandflux : float or `~numpy.ndarray`
+            Flux in photons / s /cm^2, unless `zp` and `zpsys` are
+            given, in which case flux is scaled so that it corresponds
+            to the requested zeropoint. Return value is `float` if all
+            input parameters are scalars, `~numpy.ndarray` otherwise.
+        """
+
+        a = 1. / (1. + self._parameters[0])
+
+        # Convert observer-frame time(s) to rest-frame phase(s).
+        if time is None:
+            phase = self._source.phases
+        else:
+            phase = (np.asarray(time) - self._parameters[1]) * a
+
+        # broadcast arrays
+        if zp is None:
+            phase, band = np.broadcast_arrays(phase, band)
+        else:
+            if zpsys is None:
+                raise ValueError('zpsys must be given if zp is not None')
+            phase, band, zp, zpsys = \
+                np.broadcast_arrays(phase, band, zp, zpsys)
+            zp = np.atleast_1d(zp)
+            zpsys = np.atleast_1d(zpsys)
+
+        # convert to 1d arrays
+        ndim = phase.ndim # save input ndim for return val
+        phase = np.atleast_1d(phase)
+        band = np.atleast_1d(band)
+
+        # initialize output arrays
+        bandflux = np.zeros(phase.shape, dtype=np.float)
+
+        # index of times that are in model range
+        idx_validphase = ((phase >= self._source.minphase) &
+                          (phase <= self._source.maxphase))
+
+        # Loop over unique bands.
+        for b in set(band):
+            idx = (band == b) & idx_validphase
+            if not np.any(idx):
+                continue
+            b = get_bandpass(b)
+            if restframe:
+                restwave = b.disp
+                wave = restwave / a
+            else:
+                wave = b.disp
+                restwave = b.disp * a
+            
+            # Make sure bandpass dispersion is in model range.
+            if (restwave[0] < self._source._wave[0] or
+                restwave[-1] > self._source._wave[-1]):
+                model_range = self._source._wave[[0, -1]]
+                if restframe:
+                    model_range /= a
+                raise ValueError(
+                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                    'outside model range [{3:.6g}, .., {4:.6g}]'
+                    .format(b.name, b.disp[0], b.disp[-1], 
+                            model_range[0], model_range[1]))
+
+            flux = self._model_flux(phase[idx], restwave)
+
+            # Get the flux
+            flux = self._source._flux(phase, restwave)
+            for effect in self._restframe_effects.values():
+                flux = effect.propagate(restwave, flux)
+
+            if not restframe:
+                flux *= a # conserve bolometric luminosity
+                for effect in self._obsframe_effects.values():
+                    flux = effect.propagate(wave, flux)
+                    
+            tmp = b.trans * b.disp * b.ddisp
+            fluxsum = np.sum(flux * tmp, axis=1) / HC_ERG_AA
+
+            if zp is not None:
+                zpnorm = 10. ** (0.4*zp[idx])
+                bandzpsys = zpsys[idx]
+                for ms in set(bandzpsys):
+                    idx2 = bandzpsys == ms
+                    ms = get_magsystem(ms)
+                    zpnorm[idx2] = zpnorm[idx2] / ms.zpbandflux(b)
+                fluxsum *= zpnorm
+
+            bandflux[idx] = fluxsum
+
+        if ndim == 0:
+            return bandflux[0]
+        return bandflux
+
+    def bandmag(self, band, magsys, time=None, restframe=False):
+        """Magnitude at the given time(s) through the given 
+        bandpass(es), and for the given magnitude system(s).
+
+        Parameters
+        ----------
+        time : float or list_like
+            Time(s) in days.
+        band : `Bandpass` or str (or list_like)
+            Bandpass or name of bandpass in registry.
+        magsys : `MagSystem` or str (or list_like)
+            MagSystem or name of MagSystem in registry.
+
+        Returns
+        -------
+        mag : float or `~numpy.ndarray`
+            Magnitude for each item in time, band, magsys.
+            The return value is a float if all parameters are not interables.
+            The return value is an `~numpy.ndarray` if any are interable.
+        """
+
+        bandflux = self.bandflux(band, time, restframe=restframe)
+        band, magsys, bandflux = np.broadcast_arrays(band, magsys, bandflux)
+        return_scalar = (band.ndim == 0)
+        band = band.ravel()
+        magsys = magsys.ravel()
+        bandflux = bandflux.ravel()
+
+        result = np.empty(bandflux.shape, dtype=np.float)
+        for i, (b, ms, f) in enumerate(zip(band, magsys, bandflux)):
+            ms = get_magsystem(ms)
+            zpf = ms.zpbandflux(b)
+            result[i] = -2.5 * np.log10(f / zpf)
+
+        if return_scalar:
+            return result[0]
+        return result
+
+    def time_of_max(self, band, restframe=True):
+        """Determine time of maximum flux in the given band.
+        
+        This function generates the light curve in the given band and
+        finds the highest-flux point. It then finds the parabola that
+        passes through this point and the two neighboring points, and
+        returns the position of the peak of the parabola.
+        """
+
+        times = self.times
+        fluxes = self.bandflux(band, restframe=restframe)
+        i = np.argmax(fluxes)
+
+        if i in [0, len(times)-1]:
+            return times[i]
+
+        x = times[i-1: i+2]
+        y = fluxes[i-1: i+2]
+        A = np.hstack([x.reshape(3,1)**2, x.reshape(3,1), np.ones((3,1))])
+        a, b, c = np.linalg.solve(A, y)
+        return -b / (2 * a)
+
+    def get_m(self, band, magsys):
+        """Calculate peak apparent magnitude in rest-frame bandpass."""
+
+        tmax = self.time_of_max(band, restframe=True)
+        return self.bandmag(band, magsys, time=tmax, restframe=True)
+
+    def set_m(self, m, band, magsys):
+        """Set peak apparent magnitude in rest-frame bandpass)."""
+
+        m_current = self.get_m(band, magsys)
+        factor = 10.**(0.4 * (m_current - m))
+        self._source.scale_flux_by_factor(factor)
+
+    def get_mabs(self, band, magsys, cosmo=cosmology.WMAP9):
+        return get_m(band, magsys) - cosmo.distmod(self._parameters[0]).value
+
+    def set_mabs(self, mabs, band, magsys, cosmo=cosmology.WMAP9):
+        m = mabs + cosmo.distmod(self._parameters[0]).value
+        self.set_m(m, band, magsys)
+
+    def __str__(self):
+        restframe_strs = [effect.__str__()
+                          for effect in self._restframe_effects.values]
+        obsframe_strs = [effect.__str__()
+                         for effect in self._obsframe_effects.values]
+        result = """\
+        Source:
+        {}
+
+        Rest-frame Effects:
+        {}
+
+        Observer-frame Effects:
+        {}
+        """.format(self._source.__str__(),
+                   '\n'.join(restframe_strs),
+                   '\n'.join(obsframe_strs))
+        return result
