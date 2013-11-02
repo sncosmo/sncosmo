@@ -13,7 +13,7 @@ from astropy.utils.data import (download_file, get_pkg_data_filename,
                                 get_readable_fileobj)
 
 from .. import registry
-from .. import Model, TimeSeriesModel, StretchModel, SALT2Model
+from .. import SourceModel, TimeSeriesModel, StretchModel, SALT2Model
 from .. import io
 
 # ------------------------------------------------------------------------
@@ -50,7 +50,7 @@ def load_timeseries_ascii_sn1a(remote_url, name=None, version=None):
         phases, wavelengths, flux = io.read_griddata(f)
     model = StretchModel(phases, wavelengths, flux,
                          name=name, version=version)
-    set_bandfluxerror_sn1a(model)
+    #set_bandfluxerror_sn1a(model)
     return model
 
 def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
@@ -58,7 +58,7 @@ def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
         phases, wavelengths, flux = io.read_griddata(f)
     model = TimeSeriesModel(phases, wavelengths, flux,
                             name=name, version=version)
-    set_bandfluxerror_sncc(model)
+    #set_bandfluxerror_sncc(model)
     return model
 
 # ------------------------------------------------------------------------
@@ -71,7 +71,7 @@ nugent_subclass_cc = '`~sncosmo.TimeSeriesModel`'
 
 
 registry.register_loader(
-    Model, 'nugent-sn1a', load_timeseries_ascii_sn1a, 
+    SourceModel, 'nugent-sn1a', load_timeseries_ascii_sn1a, 
     [nugent_baseurl + 'sn1a_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN Ia',
     subclass=nugent_subclass_1a,
@@ -79,7 +79,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>'))
 
 registry.register_loader(
-    Model, 'nugent-sn91t', load_timeseries_ascii_sn1a, 
+    SourceModel, 'nugent-sn91t', load_timeseries_ascii_sn1a, 
     [nugent_baseurl + 'sn91t_flux.v1.1.dat.gz'],
     version='1.1', url=nugent_website, type='SN Ia',
     subclass=nugent_subclass_1a,
@@ -87,7 +87,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2004ApJ...612..690S>'))
 
 registry.register_loader(
-    Model, 'nugent-sn91bg', load_timeseries_ascii_sn1a, 
+    SourceModel, 'nugent-sn91bg', load_timeseries_ascii_sn1a, 
     [nugent_baseurl + 'sn91bg_flux.v1.1.dat.gz'],
     version='1.1', url=nugent_website, type='SN Ia',
     subclass=nugent_subclass_1a,
@@ -95,7 +95,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>'))
 
 registry.register_loader(
-    Model, 'nugent-sn1bc', load_timeseries_ascii_sncc, 
+    SourceModel, 'nugent-sn1bc', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn1bc_flux.v1.1.dat.gz'],
     version='1.1', url=nugent_website, type='SN Ib/c',
     subclass=nugent_subclass_cc,
@@ -103,7 +103,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>'))
 
 registry.register_loader(
-    Model, 'nugent-hyper', load_timeseries_ascii_sncc, 
+    SourceModel, 'nugent-hyper', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'hyper_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN Ib/c',
     subclass=nugent_subclass_cc,
@@ -111,7 +111,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>'))
 
 registry.register_loader(
-    Model, 'nugent-sn2p', load_timeseries_ascii_sncc, 
+    SourceModel, 'nugent-sn2p', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn2p_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN IIP',
     subclass=nugent_subclass_cc,
@@ -119,7 +119,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
 
 registry.register_loader(
-    Model, 'nugent-sn2l', load_timeseries_ascii_sncc, 
+    SourceModel, 'nugent-sn2l', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn2l_flux.v1.2.dat.gz'],
     version='1.2', url=nugent_website, type='SN IIL',
     subclass=nugent_subclass_cc,
@@ -127,7 +127,7 @@ registry.register_loader(
                '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
 
 registry.register_loader(
-    Model, 'nugent-sn2n', load_timeseries_ascii_sncc, 
+    SourceModel, 'nugent-sn2n', load_timeseries_ascii_sncc, 
     [nugent_baseurl + 'sn2n_flux.v2.1.dat.gz'],
     version='2.1', url=nugent_website, type='SN IIn',
     subclass=nugent_subclass_cc,
@@ -150,42 +150,42 @@ s11_subclass = '`~sncosmo.TimeSeriesModel`'
 s11_note = "extracted from SNANA's SNDATA_ROOT on 29 March 2013."
 
 registry.register_loader(
-    Model, 's11-2004hx', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2004hx', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-000018.SED'], version='1.0', url=s11_website,
     type='SN IIL/P', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005lc', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2005lc', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-001472.SED'], version='1.0', url=s11_website,
     type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005hl', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2005hl', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-002000.SED'], version='1.0', url=s11_website,
     type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005hm', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2005hm', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-002744.SED'], version='1.0', url=s11_website,
     type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2005gi', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2005gi', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-003818.SED'], version='1.0', url=s11_website,
     type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2006fo', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2006fo', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-013195.SED'], version='1.0', url=s11_website,
     type='SN Ic', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2006jo', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2006jo', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-014492.SED'], version='1.0', url=s11_website,
     type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
 registry.register_loader(
-    Model, 's11-2006jl', load_timeseries_ascii_sncc,
+    SourceModel, 's11-2006jl', load_timeseries_ascii_sncc,
     [s11_baseurl + 'S11_SDSS-014599.SED'], version='1.0', url=s11_website,
     type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
 
@@ -216,7 +216,7 @@ def load_stretchmodel_fits(remote_url, name=None, version=None):
     phase = w.wcs_pix2world(coords, 0)[:,1]
     model = StretchModel(phase, dispersion, flux_density, name=name,
                          version=version)
-    set_bandfluxerror_sn1a(model)
+    #set_bandfluxerror_sn1a(model)
     return model
 
 hsiao_baseurl = 'http://kbarbary.github.io/data/models/'
@@ -227,15 +227,15 @@ hsiao_ref = ('H07', 'Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/'
 hsiao_note = 'extracted from the SNooPy package on 21 Dec 2012.'
 
 registry.register_loader(
-    Model, 'hsiao', load_stretchmodel_fits, [hsiao_baseurl+'Hsiao_SED.fits'],
+    SourceModel, 'hsiao', load_stretchmodel_fits, [hsiao_baseurl+'Hsiao_SED.fits'],
     version='1.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
     reference=hsiao_ref, note=hsiao_note)
 registry.register_loader(
-    Model, 'hsiao', load_stretchmodel_fits,[hsiao_baseurl+'Hsiao_SED_V2.fits'],
+    SourceModel, 'hsiao', load_stretchmodel_fits,[hsiao_baseurl+'Hsiao_SED_V2.fits'],
     version='2.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
     reference=hsiao_ref, note=hsiao_note)
 registry.register_loader(
-    Model, 'hsiao', load_stretchmodel_fits,[hsiao_baseurl+'Hsiao_SED_V3.fits'],
+    SourceModel, 'hsiao', load_stretchmodel_fits,[hsiao_baseurl+'Hsiao_SED_V3.fits'],
     version='3.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
     reference=hsiao_ref, note=hsiao_note)
 
@@ -267,7 +267,7 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
         clfile=t.extractfile(join(topdir,'salt2_color_correction.dat')),
         errscalefile=errscalefile, name=name, version=version)
     t.close()
-    set_bandfluxerror_sn1a(model)
+    #set_bandfluxerror_sn1a(model)
     return model
 
 salt2_baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
@@ -277,12 +277,12 @@ salt2_reference = ('G07', 'Guy et al. 2007 '
 salt2_2_reference = ('G10', 'Guy et al. 2010 '
                    '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
 registry.register_loader(
-    Model, 'salt2', load_salt2model,
+    SourceModel, 'salt2', load_salt2model,
     [salt2_baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
     version='1.1', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2_website, reference=salt2_reference)
 registry.register_loader(
-    Model, 'salt2', load_salt2model,
+    SourceModel, 'salt2', load_salt2model,
     [salt2_baseurl + 'salt2_model_data-2-0.tar.gz', 'salt2-2-0'],
     version='2.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2_website, reference=salt2_2_reference)
@@ -294,7 +294,7 @@ salt2ext_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
 salt2ext_note = "extracted from SNANA's SNDATA_ROOT on 15 August 2013."
 
 registry.register_loader(
-    Model, 'salt2-extended', load_salt2model, [salt2ext_url, 'salt2_extended'],
+    SourceModel, 'salt2-extended', load_salt2model, [salt2ext_url, 'salt2_extended'],
     version='1.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2ext_website, note=salt2ext_note)
 
@@ -364,7 +364,7 @@ sn2011fe_reference = ('P13', 'Pereira et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')
 
 registry.register_loader(
-    Model, '2011fe', load_2011fe, [sn2011fe_url],
+    SourceModel, '2011fe', load_2011fe, [sn2011fe_url],
     version='1.0', type='SN Ia', subclass='`~sncosmo.StretchModel`', 
     url=sn2011fe_website, reference=sn2011fe_reference)
 
@@ -382,7 +382,7 @@ lines.append(lines[1])
 urlnums = {}
 allnotes = []
 allrefs = []
-for m in registry.get_loaders_metadata(Model):
+for m in registry.get_loaders_metadata(SourceModel):
 
     reflink = ''
     urllink = ''
