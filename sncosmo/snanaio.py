@@ -1,14 +1,7 @@
-try:
-    from collections import OrderedDict as odict
-except ImportError:
-    try:
-        from astropy.utils import OrderedDict as odict
-    except:
-        odict = dict
 import numpy as np
+from astropy.utils import OrderedDict as odict
 from astropy.io import fits
-
-from .lcio import dict_to_array
+from astropy.table import Table, vstack
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
@@ -23,21 +16,22 @@ def read_snana_fits(head_file, phot_file):
     phot_file : str
         Filename of "PHOT" ("photometry") FITS file.
 
+    Notes
+    -----
+    If `head_file` contains a column 'SNID' containing strings, trailing
+    whitespace is stripped from all the values in that column.
+
     Returns
     -------
-    sne : list of dict
-        Each item in the list is a dictionary containing a 'meta' and a 'data'
-        keyword. for each item in the list, ``item['meta']`` is a dictionary
-        of metadata, and ``item['data']`` is a ``~numpy.ndarray`` of the 
-        photometric data.
+    sne : list of `~astropy.table.Table`
+        Each item in the list is an astropy Table instance.
 
     Examples
     --------
-
     >>> sne = read_snana_fits('HEAD.fits', 'PHOT.fits')
     >>> for sn in sne:
-    ...     sn['meta']  # Metadata in an OrderedDict.
-    ...     sn['data']  # Photometry data in a structured array.
+    ...     sn.meta  # Metadata in an OrderedDict.
+    ...     sn['MJD']  # MJD column
 
     """
 
@@ -51,22 +45,26 @@ def read_snana_fits(head_file, phot_file):
     head_data = head_data.view(np.ndarray)
     phot_data = phot_data.view(np.ndarray)
 
+    # Strip trailing whitespace characters from SNID.
+    if 'SNID' in head_data.dtype.names:
+        try:
+            head_data['SNID'][:] = np.char.rstrip(head_data['SNID'])
+        except TypeError:
+            pass
+ 
     # Loop over SNe in HEAD file
     for i in range(len(head_data)):
         meta = odict(zip(head_data.dtype.names, head_data[i]))
 
-        # convert a few keys that are the wrong type
-        meta['SNID'] = int(meta['SNID'])
-
         j0 = head_data['PTROBS_MIN'][i] - 1 
         j1 = head_data['PTROBS_MAX'][i]
 	data = phot_data[j0:j1]
-	sne.append({'meta': meta, 'data': data})
+	sne.append(Table(data, meta=meta, copy=False))
 
     return sne
 
 
-def read_snana_ascii(fname, default_tablename=None, array=True):
+def read_snana_ascii(fname, default_tablename=None):
     """Read an SNANA-format ascii file.
 
     Such files may contain metadata lines and one or more tables. See Notes
@@ -86,9 +84,9 @@ def read_snana_ascii(fname, default_tablename=None, array=True):
 
     Returns
     -------
-    meta : `OrderedDict` or `dict`
-        Metadata.
-    tables : dictionary of multiple `~numpy.ndarray` or `dict`.
+    meta : OrderedDict
+        Metadata from keywords.
+    tables : dict of `~astropy.table.Table`
         Tables, indexed by table name.
 
     Notes
@@ -234,15 +232,14 @@ def read_snana_ascii(fname, default_tablename=None, array=True):
                 except ValueError:
                     pass
 
-    # Convert tables to ndarrays, if requested.
-    if array:
-        for tablename in tables.keys():
-            tables[tablename] = dict_to_array(tables[tablename])
+    # All tables are dictionaries. Convert them to Tables
+    for tablename in tables.keys():
+        tables[tablename] = Table(tables[tablename])
 
     return meta, tables
 
 
-def read_snana_ascii_multi(fnames, default_tablename=None, array=True):
+def read_snana_ascii_multi(fnames, default_tablename=None):
     """Like ``read_snana_ascii()``, but read from multiple files containing
     the same tables and glue results together into big tables.
 
@@ -273,30 +270,21 @@ def read_snana_ascii_multi(fnames, default_tablename=None, array=True):
    
     """
 
-    compiled_tables = {}
+    alltables = {}
     for fname in fnames:
-
         meta, tables = read_snana_ascii(fname,
-                                        default_tablename=default_tablename,
-                                        array=False)
+                                        default_tablename=default_tablename)
+
         for key, table in tables.iteritems():
-
-            # If we already have a table with this key,
-            # append this table to it.
-            if key in compiled_tables:
-                colnames = compiled_tables[key].keys()
-                for colname in colnames:
-                    compiled_tables[key][colname].extend(table[colname])
-
-            # Otherwise, start a table
+            if key in alltables:
+                alltables[key].append(table)
             else:
-                compiled_tables[key] = table
+                alltables[key] = [table]
 
-    if array:
-        for key in compiled_tables:
-            compiled_tables[key] = dict_to_array(compiled_tables[key])
+    for key in alltables.keys():
+        alltables[key] = vstack(alltables[key])
 
-    return compiled_tables
+    return alltables
 
 def _parse_meta_from_line(line):
     """Return dictionary from key, value pairs on a line. Helper function for

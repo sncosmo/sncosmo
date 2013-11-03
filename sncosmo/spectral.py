@@ -7,14 +7,15 @@ import numpy as np
 
 from astropy.utils import OrderedDict
 from astropy.utils.misc import lazyproperty
+from astropy.io import ascii
 import astropy.units as u
-from astropy import cosmology
 import astropy.constants as const
+from astropy import cosmology
 
 from . import registry
 
-__all__ = ['get_bandpass', 'get_magsystem', 'Bandpass', 'Spectrum',
-           'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
+__all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
+           'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
 
 def get_bandpass(name):
     """Get a Bandpass from the registry by name."""
@@ -24,6 +25,15 @@ def get_magsystem(name):
     """Get a MagSystem from the registery by name."""
     return registry.retrieve(MagSystem, name)
 
+def read_bandpass(fname, fmt='ascii', wave_unit=u.AA, name=None):
+    """Read two-column bandpass. First column is assumed to be wavelength
+    in Angstroms."""
+
+    if fmt != 'ascii':
+        raise ValueError("format {} not supported. Supported formats: 'ascii'"
+                         .format(fmt))
+    t = ascii.read(fname, names=['wave', 'trans'])
+    return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit, name=name)
 
 class Bandpass(object):
     """Transmission as a function of spectral wavelength.

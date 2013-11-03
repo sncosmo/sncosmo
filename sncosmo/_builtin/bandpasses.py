@@ -15,38 +15,33 @@ from astropy.utils import OrderedDict
 from astropy.config import ConfigurationItem
 
 from .. import registry
-from .. import Bandpass
+from ..spectral import Bandpass, read_bandpass
 
-def load_bandpass_ascii(pkg_data_name, name=None):
-    """Read two-column bandpass. First column is assumed to be wavelength
-    in Angstroms."""
-    
-    filename = get_pkg_data_filename(pkg_data_name)
-    t = ascii.read(filename, names=['disp', 'trans'])
-    return Bandpass(t['disp'], t['trans'], dunit=u.AA, name=name)
+def load_bandpass(pkg_data_name, name=None):
+    fname = get_pkg_data_filename(pkg_data_name)
+    return read_bandpass(fname, wave_unit=u.AA, name=name)
 
 # --------------------------------------------------------------------------
 # DES
-
 decam_url = 'http://www.ctio.noao.edu/noao/content/dark-energy-camera-decam'
 decam_retrieved = '19 June 2012'
-registry.register_loader(Bandpass, 'desg', load_bandpass_ascii,
+registry.register_loader(Bandpass, 'desg', load_bandpass,
                          ['../data/bandpasses/des_g.dat'], filterset='des',
                          description='Dark Energy Camera g band',
                          dataurl=decam_url, retrieved=decam_retrieved)
-registry.register_loader(Bandpass, 'desr', load_bandpass_ascii,
+registry.register_loader(Bandpass, 'desr', load_bandpass,
                          ['../data/bandpasses/des_r.dat'], filterset='des',
                          description='Dark Energy Camera r band',
                          dataurl=decam_url, retrieved=decam_retrieved)
-registry.register_loader(Bandpass, 'desi', load_bandpass_ascii,
+registry.register_loader(Bandpass, 'desi', load_bandpass,
                          ['../data/bandpasses/des_i.dat'], filterset='des',
                          description='Dark Energy Camera i band',
                          dataurl=decam_url, retrieved=decam_retrieved)
-registry.register_loader(Bandpass, 'desz', load_bandpass_ascii,
+registry.register_loader(Bandpass, 'desz', load_bandpass,
                          ['../data/bandpasses/des_z.dat'], filterset='des',
                          description='Dark Energy Camera z band',
                          dataurl=decam_url, retrieved=decam_retrieved)
-registry.register_loader(Bandpass, 'desy', load_bandpass_ascii,
+registry.register_loader(Bandpass, 'desy', load_bandpass,
                          ['../data/bandpasses/des_y.dat'], filterset='des',
                          description='Dark Energy Camera y band',
                          dataurl=decam_url, retrieved=decam_retrieved)
@@ -62,23 +57,23 @@ bessell_ref = ('B90',
 bessell_desc = 'Representation of Johnson-Cousins UBVRI system'
 
 registry.register_loader(
-    Bandpass, 'bessellux', load_bandpass_ascii,
+    Bandpass, 'bessellux', load_bandpass,
     ['../data/bandpasses/bessell_ux.dat'], filterset='bessell',
     description=bessell_desc, reference=bessell_ref)
 registry.register_loader(
-    Bandpass, 'bessellb', load_bandpass_ascii,
+    Bandpass, 'bessellb', load_bandpass,
     ['../data/bandpasses/bessell_b.dat'], filterset='bessell',
     description=bessell_desc, reference=bessell_ref)
 registry.register_loader(
-    Bandpass, 'bessellv', load_bandpass_ascii,
+    Bandpass, 'bessellv', load_bandpass,
     ['../data/bandpasses/bessell_v.dat'], filterset='bessell',
     description=bessell_desc, reference=bessell_ref)
 registry.register_loader(
-    Bandpass, 'bessellr', load_bandpass_ascii,
+    Bandpass, 'bessellr', load_bandpass,
     ['../data/bandpasses/bessell_r.dat'], filterset='bessell',
     description=bessell_desc, reference=bessell_ref)
 registry.register_loader(
-    Bandpass, 'besselli', load_bandpass_ascii,
+    Bandpass, 'besselli', load_bandpass,
     ['../data/bandpasses/bessell_i.dat'], filterset='bessell',
     description=bessell_desc, reference=bessell_ref)
 
@@ -95,23 +90,23 @@ sdss_desc = \
     'SDSS 2.5m imager at airmass 1.3 (including atmosphere), normalized.'
 
 registry.register_loader(
-    Bandpass, 'sdssu', load_bandpass_ascii,
+    Bandpass, 'sdssu', load_bandpass,
     ['../data/bandpasses/sdss_u.dat'], filterset='sdss',
     description=sdss_desc, reference=sdss_ref)
 registry.register_loader(
-    Bandpass, 'sdssg', load_bandpass_ascii,
+    Bandpass, 'sdssg', load_bandpass,
     ['../data/bandpasses/sdss_g.dat'], filterset='sdss',
     description=sdss_desc, reference=sdss_ref)
 registry.register_loader(
-    Bandpass, 'sdssr', load_bandpass_ascii,
+    Bandpass, 'sdssr', load_bandpass,
     ['../data/bandpasses/sdss_r.dat'], filterset='sdss',
     description=sdss_desc, reference=sdss_ref)
 registry.register_loader(
-    Bandpass, 'sdssi', load_bandpass_ascii,
+    Bandpass, 'sdssi', load_bandpass,
     ['../data/bandpasses/sdss_i.dat'], filterset='sdss',
     description=sdss_desc, reference=sdss_ref)
 registry.register_loader(
-    Bandpass, 'sdssz', load_bandpass_ascii,
+    Bandpass, 'sdssz', load_bandpass,
     ['../data/bandpasses/sdss_z.dat'], filterset='sdss',
     description=sdss_desc, reference=sdss_ref)
 

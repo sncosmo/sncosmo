@@ -31,7 +31,7 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
     and ``time`` is used in ObsModel.
     """
 
-    if zp is None and zpsys is None:
+    if zp is not None and zpsys is None:
         raise ValueError('zpsys must be given if zp is not None')
 
     # broadcast arrays
@@ -58,15 +58,15 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
         b = get_bandpass(b)
 
         # Raise an exception if bandpass is out of model range.
-        if (b.wave[0] < self.minwave or b.wave[-1] > self.maxwave):
+        if (b.wave[0] < model.minwave or b.wave[-1] > model.maxwave):
             raise ValueError(
                 'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
                 'outside spectral range [{3:.6g}, .., {4:.6g}]'
                 .format(b.name, b.wave[0], b.wave[-1], 
-                        self.minwave, self.maxwave))
+                        model.minwave, model.maxwave))
 
         # Get the flux
-        f = self._flux(time_or_phase[mask], b.wave)
+        f = model._flux(time_or_phase[mask], b.wave)
         fsum = np.sum(f * b.trans * b.wave * b.dwave, axis=1) / HC_ERG_AA
 
         if zp is not None:
@@ -381,7 +381,7 @@ class SourceModel(_ModelBase):
         name: {}
         version: {}
         phases: [{:.6g}, .., {:.6g}] days ({:d} points)
-        wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""
+        wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
         .format(
             self.__class__.__name__, self.name, self.version,
             self.minphase, self.maxphase, len(self._phase),
@@ -753,8 +753,9 @@ class ObsModel(_ModelBase):
         self._effects = []
         self._effect_names = []
         self._effect_frames = []
+        self._synchronize_parameters()
 
-        # Check effects
+        # Add PropagationEffects
         if (effects is not None or effect_names is not None or
             effect_frames is not None):
             try:
@@ -764,7 +765,7 @@ class ObsModel(_ModelBase):
                 raise ValueError('effects, effect_names, and effect_values '
                                  'should all be iterables.')
             if not same_length:
-                riase ValueError('effects, effect_names and effect_values '
+                raise ValueError('effects, effect_names and effect_values '
                                  'must have matching lengths')
 
             for effect, name, frame in zip(effects, effect_names,
@@ -792,6 +793,21 @@ class ObsModel(_ModelBase):
         self._effect_names.append(name)
         self._effect_frames.append(frame)
         self._synchronize_parameters()
+
+    @property
+    def source(self):
+        """The SourceModel instance. Use to set source apparent mag."""
+        return self._source
+
+    @property
+    def effect_names(self):
+        """Names of propagation effects."""
+        return self._effect_names
+
+    @property
+    def effects(self):
+        """Dictionary of PropagationEffect instances."""
+        return odict(zip(self._effect_names, self._effects))
 
     def _synchronize_parameters(self):
         """Synchronize parameter names and parameter arrays between
@@ -1026,17 +1042,14 @@ class ObsModel(_ModelBase):
         self._source.set_peakmag(m, band, magsys)
 
     def summary(self):
-        summaries = []
-        summaries.append('source:\n  ' +
-                         self._source.summary().replace('\n', '\n  '))
-
+        s = 'source:\n' + self._source.summary()
+        summaries = [s.replace('\n', '\n  ')]
         for effect, name, frame in zip(self._effects,
                                        self._effect_names,
                                        self._effect_frames):
-            summaries.append("effect {} frame={}:\n  {}"
-                             .format(repr(name),
-                                     repr(frame),
-                                     effect.summary().replace('\n','\n  '))
+            s = ('effect {} frame={}:\n{}'
+                 .format(repr(name), repr(frame), effect.summary()))
+            summaries.append(s.replace('\n', '\n  '))
         return '\n'.join(summaries)
 
 class PropagationEffect(_ModelBase):
@@ -1107,7 +1120,7 @@ class InterpolatedRvDust(PropagationEffect):
         class: {}
         model: {}
         r_v: {}
-        wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""
+        wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
         .format(
             self.__class__.__name__, repr(self._model), self._r_v,
             self.minwave, self.maxwave, len(self._wave)
