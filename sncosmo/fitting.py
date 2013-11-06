@@ -7,8 +7,9 @@ import numpy as np
 from .spectral import get_magsystem, get_bandpass
 from .models import get_model
 from .photometric_data import standardize_data, normalize_data
+from . import nest
 
-__all__ = ['fit_lc', 'mcmc_lc']
+__all__ = ['fit_lc', 'sample_lc', 'mcmc_lc']
 
 class Result(dict):
     """Represents the optimization result.
@@ -352,6 +353,30 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     else:
         return res
 
+def sample_lc(data, model, param_bounds, nobj=100, maxiter=10000,
+              verbose=False):
+
+    data = standardize_data(data)
+
+    # which parameters are we varying?
+    names, bounds = param_bounds.keys(), param_bounds.values()
+    idx = np.array([model.param_names.index(name) for name in names])
+    v0 = np.array([bound[0] for bound in bounds])
+    vdiff = np.array([bound[1] - bound[0] for bound in bounds])
+
+    def prior(u):
+        return v0 + u*vdiff
+
+    def loglikelihood(parameters):
+        model.parameters[idx] = parameters
+        mflux = model.bandflux(data['band'], data['time'],
+                               zp=data['zp'], zpsys=data['zpsys'])
+        chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
+        return -chisq / 2.
+
+    res = nest.nest(loglikelihood, prior, len(idx), nobj=nobj,
+                    maxiter=maxiter, verbose=verbose)
+    return Result(res)
 
 def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
             nburn=100, nsamples=500, return_sampler=False, verbose=False):
@@ -384,7 +409,7 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
     try:
         import emcee
     except:
-        raise ImportError("mcmc_model() requires the emcee package.")
+        raise ImportError("mcmc_lc() requires the emcee package.")
 
     data = standardize_data(data)
     model = get_model(model)
@@ -459,3 +484,4 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
         return sampler
     else:
         return sampler.flatchain
+

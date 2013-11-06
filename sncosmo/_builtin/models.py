@@ -142,7 +142,7 @@ del nugent_subclass_cc
 # -----------------------------------------------------------------------
 # Sako et al 2011 models
 
-s11_baseurl = 'http://kbarbary.github.io/data/models/'
+s11_baseurl = 'http://sncosmo.github.io/data/models/'
 s11_ref = ('S11', 'Sako et al. 2011 '
            '<http://adsabs.harvard.edu/abs/2011ApJ...738..162S>')
 s11_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
@@ -219,7 +219,7 @@ def load_stretchmodel_fits(remote_url, name=None, version=None):
     #set_bandfluxerror_sn1a(model)
     return model
 
-hsiao_baseurl = 'http://kbarbary.github.io/data/models/'
+hsiao_baseurl = 'http://sncosmo.github.io/data/models/'
 hsiao_website = 'http://csp.obs.carnegiescience.edu/data/snpy'
 hsiao_subclass = '`~sncosmo.StretchModel`'
 hsiao_ref = ('H07', 'Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/'
@@ -289,12 +289,13 @@ registry.register_loader(
 
 # --------------------------------------------------------------------------
 # SALT2 extended
-salt2ext_url = 'http://kbarbary.github.io/data/models/salt2_extended.tar.gz'
+salt2ext_url = 'http://sncosmo.github.io/data/models/salt2_extended.tar.gz'
 salt2ext_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
 salt2ext_note = "extracted from SNANA's SNDATA_ROOT on 15 August 2013."
 
 registry.register_loader(
-    SourceModel, 'salt2-extended', load_salt2model, [salt2ext_url, 'salt2_extended'],
+    SourceModel, 'salt2-extended',
+    load_salt2model, [salt2ext_url, 'salt2_extended'],
     version='1.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
     url=salt2ext_website, note=salt2ext_note)
 

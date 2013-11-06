@@ -4,7 +4,7 @@
 
 import abc
 import os
-import copy
+from copy import copy as shallowcopy
 from textwrap import dedent
 
 import numpy as np
@@ -20,10 +20,68 @@ from . import registry
 from .spectral import get_bandpass, get_magsystem
 from .extinction import extinction
 
-__all__ = ['get_model', 'SourceModel', 'TimeSeriesModel', 'StretchModel',
-           'SALT2Model', 'ObsModel', 'PropagationEffect', 'InterpolatedRvDust']
+__all__ = ['get_sourcemodel', 'get_obsmodel', 'get_model',
+           'SourceModel', 'TimeSeriesModel', 'StretchModel', 'SALT2Model',
+           'ObsModel', 'PropagationEffect', 'InterpolatedRvDust']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
+
+def get_sourcemodel(name, version=None, copy=False):
+    """Retrieve a model from the registry by name.
+
+    Parameters
+    ----------
+    name : str
+        Name of model in the registry.
+    version : str, optional
+        Version identifier for models with multiple versions. Default is
+        `None` which corresponds to the latest, or only, version.
+    copy : bool, optional
+        If True and if `name` is already a Model instance, return a copy of
+        it. (If `name` is a str a copy of the instance
+        in the registry is always returned, regardless of the value of this
+        parameter.) Default is False.
+    """
+    
+    # If we need to retrieve from the registry, we want to return a shallow
+    # copy, in order to keep the copy in the registry "pristene". However, we
+    # *don't* want a shallow copy otherwise. Therefore,
+    # we need to check if `name` is already an instance of Model before 
+    # going to the registry, so we know whether or not to make a shallow copy.
+    if isinstance(name, SourceModel):
+        if copy:
+            return shallowcopy(name)
+        else:
+            return name
+    else:
+        return shallowcopy(registry.retrieve(SourceModel, name, version=version))
+
+# TODO maybe put ObsModels directly in the registry.
+# TODO clean up 
+def get_obsmodel(name, version=None, copy=False):
+    """Build an ObsModel based on the named SourceModel."""
+
+    if isinstance(name, ObsModel):
+        if copy:
+            return shallowcopy(name)
+        else:
+            return name
+
+    source = shallowcopy(registry.retrieve(SourceModel, name, version=version))
+    if source.__class__.__name__ == 'SALT2Model':
+        effects = [InterpolatedRvDust()]
+        effect_names = ['mw']
+        effect_frames = ['obs']
+    else:
+        effects = [InterpolatedRvDust(), InterpolatedRvDust()]
+        effect_names = ['host', 'mw']
+        effect_frames = ['rest', 'obs']
+    return ObsModel(source, effects=effects, effect_names=effect_names,
+                    effect_frames = effect_frames)
+
+# TODO: deprecate this
+get_model = get_obsmodel
+
 
 def _bandflux(model, band, time_or_phase, zp, zpsys):
     """Support function for bandflux in SourceModel and ObsModel.
@@ -107,37 +165,6 @@ def _bandmag(model, band, magsys, time_or_phase):
     return result
 
 
-def get_model(name, version=None, copy=False):
-    """Retrieve a model from the registry by name.
-
-    Parameters
-    ----------
-    name : str
-        Name of model in the registry.
-    version : str, optional
-        Version identifier for models with multiple versions. Default is
-        `None` which corresponds to the latest, or only, version.
-    copy : bool, optional
-        If True and if `name` is already a Model instance, return a copy of
-        it. (If `name` is a str a copy of the instance
-        in the registry is always returned, regardless of the value of this
-        parameter.) Default is False.
-    """
-    
-    # If we need to retrieve from the registry, we want to return a shallow
-    # copy, in order to keep the copy in the registry "pristene". However, we
-    # *don't* want a shallow copy otherwise. Therefore,
-    # we need to check if `name` is already an instance of Model before 
-    # going to the registry, so we know whether or not to make a shallow copy.
-    if isinstance(name, SourceModel):
-        if copy:
-            return copy.copy(name)
-        else:
-            return name
-    else:
-        return copy.copy(registry.retrieve(SourceModel, name, version=version))
-
-
 class _ModelBase(object):
     """Base class for anything with parameters.
 
@@ -168,7 +195,7 @@ class _ModelBase(object):
             try:
                 i = self._param_names.index(key)
             except ValueError:
-                raise KeyError('Unknown parameter: ' + key)
+                raise KeyError("Unknown parameter: " + repr(key))
             self._parameters[i] = val
 
     def summary(self):
@@ -176,9 +203,11 @@ class _ModelBase(object):
 
     def __str__(self):
         parameter_lines = [self.summary(), 'parameters:']
-        for key, val in zip(self._param_names, self._parameters):
-            line = '  {} = {}'.format(key, val)
-            parameter_lines.append(line)
+        if len(self._param_names) > 0:
+            m = max(map(len, self._param_names)) + 2
+            extralines = [k.rjust(m) + ' = ' + repr(v)
+                          for k, v in zip(self._param_names, self._parameters)]
+            parameter_lines.extend(extralines)
         return '\n'.join(parameter_lines)
 
 
@@ -377,10 +406,10 @@ class SourceModel(_ModelBase):
 
     def summary(self):
         summary = """\
-        class: {}
-        name: {}
-        version: {}
-        phases: [{:.6g}, .., {:.6g}] days ({:d} points)
+              class: {}
+               name: {}
+            version: {}
+             phases: [{:.6g}, .., {:.6g}] days ({:d} points)
         wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
         .format(
             self.__class__.__name__, self.name, self.version,
@@ -417,6 +446,8 @@ class TimeSeriesModel(SourceModel):
     """
 
     _param_names = ['amplitude']
+    param_names_latex = ['A']
+    param_bounds = [(0., None)]
 
     def __init__(self, phase, wave, flux,
                  name=None, version=None):
@@ -446,6 +477,8 @@ class StretchModel(SourceModel):
     """
 
     _param_names = ['amplitude', 's']
+    param_names_latex = ['A', 's']
+    param_bounds = [(0., None), (0., None)]
 
     def __init__(self, phase, wave, flux, name=None, version=None):
         self.name = name
@@ -510,8 +543,9 @@ class SALT2Model(SourceModel):
     interpolation of the other model components.
     """
 
-    # TODO: adjust model values by 10^12 + 0.27 or whatever it is.
     _param_names = ['x0', 'x1', 'c']
+    param_names_latex = ['x_0', 'x_1', 'c']
+    param_bounds = [(0., None), (None, None), (None, None)]
 
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
@@ -748,8 +782,10 @@ class ObsModel(_ModelBase):
     def __init__(self, source_model, effects=None,
                  effect_names=None, effect_frames=None):
         self._param_names = ['z', 't0']
+        self.param_names_latex = ['z', 't_0']
+        self.param_bounds = [(None, None), (None, None)]
         self._parameters = np.array([0., 0.])
-        self._source = copy.copy(source_model)
+        self._source = shallowcopy(source_model)
         self._effects = []
         self._effect_names = []
         self._effect_frames = []
@@ -789,7 +825,7 @@ class ObsModel(_ModelBase):
             raise ValueError('effect is not a PropagationEffect')
         if frame not in ['rest', 'obs']:
             raise ValueError("frame must be one of: 'rest', 'obs'")
-        self._effects.append(copy.copy(effect))
+        self._effects.append(shallowcopy(effect))
         self._effect_names.append(name)
         self._effect_frames.append(frame)
         self._synchronize_parameters()
@@ -821,6 +857,20 @@ class ObsModel(_ModelBase):
         for effect, effect_name in zip(self._effects, self._effect_names):
             self._param_names.extend([effect_name + param_name
                                       for param_name in effect.param_names])
+
+        # Build a new list of latex parameter names
+        self.param_names_latex = self.param_names_latex[0:2]
+        self.param_names_latex.extend(self._source.param_names_latex)
+        for effect, effect_name in zip(self._effects, self._effect_names):
+            self.param_names_latex.extend(
+                [name + '_{' + effect_name + '}' 
+                 for name in effect.param_names_latex])
+
+        # Build a new list of parameter bounds
+        self.param_bounds = self.param_bounds[0:2]
+        self.param_bounds.extend(self._source.param_bounds)
+        for effect in self._effects:
+            self.param_bounds.extend(effect.param_bounds)
 
         # For each "model", get its parameter array.
         param_arrays = [self._parameters[0:2]]
@@ -1038,16 +1088,19 @@ class ObsModel(_ModelBase):
 
     def set_source_peakabsmag(self, absmag, band, magsys,
                               cosmo=cosmology.WMAP9):
+        if self._parameters[0] <= 0.:
+            raise ValueError('absolute magnitude undefined when z<=0.')
         m = absmag + cosmo.distmod(self._parameters[0]).value
         self._source.set_peakmag(m, band, magsys)
 
     def summary(self):
+        head = "<{0:s} at 0x{1:x}>".format(self.__class__.__name__, id(self))
         s = 'source:\n' + self._source.summary()
-        summaries = [s.replace('\n', '\n  ')]
+        summaries = [head, s.replace('\n', '\n  ')]
         for effect, name, frame in zip(self._effects,
                                        self._effect_names,
                                        self._effect_frames):
-            s = ('effect {} frame={}:\n{}'
+            s = ('effect (name={} frame={}):\n{}'
                  .format(repr(name), repr(frame), effect.summary()))
             summaries.append(s.replace('\n', '\n  '))
         return '\n'.join(summaries)
@@ -1079,6 +1132,8 @@ class InterpolatedRvDust(PropagationEffect):
     """
 
     _param_names = ['ebv']
+    param_names_latex = ['E(B-V)']
+    param_bounds = [(None, None)]
 
     def __init__(self, model='f99', ebv=0., r_v=3.1, minwave=1000.,
                  maxwave=30000., spline_points=2000):

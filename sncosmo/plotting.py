@@ -10,17 +10,17 @@ from astropy.utils.misc import isiterable
 from .models import get_model
 from .spectral import get_bandpass, get_magsystem
 from .photometric_data import standardize_data, normalize_data
+from .utils import value_error_str
 
-__all__ = ['plot_lc', 'plot_pdf', 'animate_model']
+__all__ = ['plot_lc', 'plot_param_samples', 'animate_model']
+
+_model_ls = ['-', '--', ':', '-.']
 
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
-# TODO: better example(s)
-# TODO: return the Figure?
-def plot_lc(data=None, model=None, bands=None, show_pulls=True,
-            include_model_error=False, zp=25., zpsys='ab',
-            figtext=None, figtext_ysize=1., offsets=None,
-            xfigsize=None, yfigsize=None, dpi=100, fname=None):
+def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
+            offsets=None, xfigsize=None, yfigsize=None, figtext=None,
+            figtextsize=1., fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
     Parameters
@@ -31,37 +31,34 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list of `sncosmo.Model` or
         string, multiple models are plotted.
-    fname : str, optional
-        Filename to write plot to. If `None` (default), plot is not saved to
-        file, but Figure object is still returned.
     bands : list, optional
         List of Bandpasses, or names thereof, to plot.
-    show_pulls : bool, optional
-        If True (and if model and data are given), plot pulls. Default is
-        ``True``.
     zp : float, optional
         Zeropoint to normalize the flux. Default is 25.
     zpsys : str or `~sncosmo.MagSystem`, optional
         Zeropoint system for `zp`. Default is 'ab'.
-    include_model_error : bool, optional
-        Plot model error as a band around the model.
+    pulls : bool, optional
+        If True (and if model and data are given), plot pulls. Default is
+        ``True``.
+    offsets : list, optional
+        Offsets in flux for given bandpasses.
     figtext : str or list, optional
         Text to add to top of figure. If a list of strings, each item is
         placed in a separate "column". Use newline separators for multiple
         lines.
-    figtext_ysize : float, optional
-        Space to reserve at top of figure for figtext (if not None).
-        Default is 1 inch.
     xfigsize, yfigsize : float, optional
         figure size in inches in x or y. Specify one or the other, not both.
         Default is xfigsize=8.
-    dpi : float, optional
-        dpi parameter to pass to ``savefig()``, when fname is given.
-
-    Returns
-    -------
-    fig : `~matplotlib.pyplot.Figure`
-        Figure object containing the plot. 
+    figtextsize : float, optional
+        Space to reserve at top of figure for figtext (if not None).
+        Default is 1 inch.
+    fname : str, optional
+        Filename to pass to savefig. If `None` (default), plot is shown
+        using `~matplotlib.pyplot.show()`.
+    kwargs :
+        Any additional keyword args are passed to `~matplotlib.pyplot.savefig`.
+        Popular options include ``dpi``, ``format``, ``transparent``. See
+        matplotlib docs for full list.
 
     Examples
     --------
@@ -88,11 +85,10 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         ...                 bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'],
         ...                 fname='output.png')
 
-    Show the plot::
+    Show the plot instead of saving to a file::
 
         >>> from matplotlib import pyplot as plt
         >>> sncosmo.plot_lc(data)
-        >>> plt.show()
 
     Plot figures on a multipage pdf::
 
@@ -100,8 +96,7 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         >>> pp = PdfPages('output.pdf')
         >>> 
         >>> # Do the following as many times as you like:
-        >>> fig = sncosmo.plot_lc(data)
-        >>> pp.savefig(fig)
+        >>> sncosmo.plot_lc(data, fname=pp, format='pdf')
         >>>
         >>> pp.close()  # don't forget to close at the end!
 
@@ -172,8 +167,8 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         raise ValueError('cannot specify both xfigsize and yfigsize')
 
     if figtext is not None:
-        figsize = (figsize[0], figsize[1] + figtext_ysize)
-        figtext_yfrac = figtext_ysize / figsize[1]
+        figsize = (figsize[0], figsize[1] + figtextsize)
+        figtext_yfrac = figtextsize / figsize[1]
     else:
         figtext_yfrac = 0.
 
@@ -222,30 +217,27 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
 
         # Plot model(s) if there are any.
         if len(models) > 0:
-
-            linestyles = ['-', '--', ':', '-.']
             for i, model in enumerate(models):
                 if not model.bandoverlap(band):
                     continue
 
                 plotted_time = model.times() - models[0].params['t0']
 
-                if include_model_error:
-                    mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
-                                                     include_error=True)
-                else:
-                    mflux = model.bandflux(band, zp=zp, zpsys=zpsys,
-                                           include_error=False)
+                #if include_model_error:
+                #    mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
+                #                                     include_error=True)
+                #else:
+                mflux = model.bandflux(band, zp=zp, zpsys=zpsys)
 
                 if offsets is not None and band in offsets:
                     mflux = mflux + offsets[band]
 
-                plt.plot(plotted_time, mflux, ls=linestyles[i%len(linestyles)],
+                plt.plot(plotted_time, mflux, ls=_model_ls[i%len(_model_ls)],
                          marker='None', color=color, label=model.name)
-                if include_model_error:
-                    plt.fill_between(plotted_time, mflux - mfluxerr,
-                                     mflux + mfluxerr, color=color,
-                                     alpha=0.2)
+                #if include_model_error:
+                #    plt.fill_between(plotted_time, mflux - mfluxerr,
+                #                     mflux + mfluxerr, color=color,
+                #                     alpha=0.2)
 
                 if i == 0:
                     mflux_min, mflux_max = mflux.min(), mflux.max()
@@ -278,7 +270,7 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         ax.axhline(y=0., ls='--', c='k')
 
         # steal part of the axes and plot pulls
-        if (show_pulls and data is not None and len(models) == 1 and
+        if (pulls and data is not None and len(models) == 1 and
             models[0].bandoverlap(band)):
             divider = make_axes_locatable(ax)
             axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
@@ -297,52 +289,26 @@ def plot_lc(data=None, model=None, bands=None, show_pulls=True,
         # label the most recent Axes x-axis
         plt.xlabel(xlabel_text)
 
-    plt.subplots_adjust(left=0.1, right=0.95,
-                        bottom=0.1, top=0.97 - figtext_yfrac,
-                        wspace=0.2, hspace=0.2)
+    plt.tight_layout()
 
-    if fname is not None:
-        plt.savefig(fname, dpi=dpi)
-        plt.clf()
+    #plt.subplots_adjust(left=0.1, right=0.95,
+    #                    bottom=0.1, top=0.97 - figtext_yfrac,
+    #                    wspace=0.2, hspace=0.2)
 
-    return fig
-
-
-def pretty_value_and_error(value, error, latex=False):
-    """Return a string representing value and error.
-
-    If latex=True, use '\pm' and '\times'.
-    """
-    pm = '\pm' if latex else '+/-'
-    
-    first = int(math.floor(math.log10(abs(value))))  # first significant digit
-    last = int(math.floor(math.log10(error)))  # last significant digit
-
-    # use exponential notation if
-    # value > 1000 and error > 1000 or value < 0.01
-    if (first > 2 and last > 2) or first < -2:
-        value /= 10**first
-        error /= 10**first
-        p = max(0, first - last + 1)
-        result = (('({:.' + str(p) + 'f} {:s} {:.'+ str(p) + 'f})')
-                  .format(value, pm, error))
-        if latex:
-            result += ' \\times 10^{{{:d}}}'.format(first)
-        else:
-            result += ' x 10^{:d}'.format(first)
-        return result
+    if fname is None:
+        plt.show()
     else:
-        p = max(0, -last + 1)
-        return (('{:.' + str(p) + 'f} {:s} {:.'+ str(p) + 'f}')
-                .format(value, pm, error))
+        plt.savefig(fname, **kwargs)
+    plt.close()
 
-def plot_pdf(parnames, samples, weights=None, fname=None, ncol=2,
-             bins=50, xfigsize=None, yfigsize=None, dpi=100):
+
+def plot_param_samples(param_names, samples, weights=None, fname=None,
+                       bins=50, xfigsize=8., dpi=100):
     """Plot PDFs of parameter values.
     
     Parameters
     ----------
-    parnames : list of str
+    param_names : list of str
         Parameter names.
     samples : `~numpy.ndarray` (nsamples, nparams)
         Parameter values.
@@ -353,9 +319,9 @@ def plot_pdf(parnames, samples, weights=None, fname=None, ncol=2,
     """
     from matplotlib import pyplot as plt
 
-    npar = len(parnames)
+    npar = len(param_names)
 
-    # calculate average and std. dev.
+    # calculate average and std. dev. of each parameter
     avg = np.average(samples, weights=weights, axis=0)
     if weights is None:
         std = np.std(samples, axis=0)
@@ -363,30 +329,50 @@ def plot_pdf(parnames, samples, weights=None, fname=None, ncol=2,
         std = np.sqrt(np.sum(weights[:, np.newaxis] * samples**2, axis=0) -
                       avg**2)
 
-    nrow = (npar-1) // ncol + 1
-    if xfigsize is None and yfigsize is None:
-        figsize = (4. * ncol, 3. * nrow)
-    elif yfigsize is None:
-        figsize = (xfigsize, 3. / 4. * nrow / ncol * xfigsize)
-    elif xfigsize is None:
-        figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
-    else:
-        raise ValueError('cannot specify both xfigsize and yfigsize')
+#    nrow = (npar-1) // ncol + 1
+#    if xfigsize is None and yfigsize is None:
+#        figsize = (4. * ncol, 3. * nrow)
+#    elif yfigsize is None:
+#        figsize = (xfigsize, 3. / 4. * nrow / ncol * xfigsize)
+#    elif xfigsize is None:
+#        figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
+#    else:
+#        raise ValueError('cannot specify both xfigsize and yfigsize')
 
+    figsize=(xfigsize, xfigsize)
     fig = plt.figure(figsize=figsize)
 
-    for i in range(npar):
-        plot_range = (avg[i] - 5*std[i], avg[i] + 5*std[i])
-        plot_text = '$' + parnames[i] + ' = ' + \
-            pretty_value_and_error(avg[i], std[i], latex=True) + '$'
+    for j in range(npar):
+        ylims = (avg[j] - 5*std[j], avg[j] + 5*std[j])
+        for i in range(j + 1):
+            xlims = (avg[i] - 5*std[i], avg[i] + 5*std[i])
 
-        ax = plt.subplot(nrow, ncol, i)
-        plt.hist(samples[:, i], weights=weights, range=plot_range,
-                 bins=bins)
-        plt.text(0.9, 0.9, plot_text, color='k', ha='right', va='top',
-                 transform=ax.transAxes)
-        ymin, ymax = ax.get_ylim()
-        ax.set_ylim(ymax=1.1*ymax)
+            ax = plt.subplot(npar, npar, j * npar + i + 1)
+
+            # On diagonal, show a histogram
+            if i == j:
+                plt.hist(samples[:, i], weights=weights, range=xlims,
+                         bins=bins)
+                text = '${:s} = {:s}$'.format(
+                    param_names[i],
+                    value_error_str(avg[i], std[i], latex=True)
+                    )
+                plt.text(0.9, 0.9, text, color='k', ha='right', va='top',
+                         transform=ax.transAxes)
+                ymin, ymax = ax.get_ylim()
+                ax.set_ylim(ymax=1.15*ymax)
+            
+            # Otherwise, show a countour plot
+            else:
+                H, xedges, yedges = np.histogram2d(samples[:, i],
+                                                   samples[:, j],
+                                                   bins=bins,
+                                                   weights=weights,
+                                                   range=[xlims, ylims])
+                X = 0.5 * (xedges[:-1] + xedges[1:])
+                Y = 0.5 * (yedges[:-1] + yedges[1:])
+                plt.contour(X, Y, H)
+
 
     if fname is None:
         plt.show()
