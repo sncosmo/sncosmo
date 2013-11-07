@@ -1,5 +1,9 @@
+0.4.0
+-----
+
+
 0.3.0 (2013-11-07)
-----------------
+------------------
 
 This is a release with mostly bugfixes but a few new features, designed to be
 backwards compatible with v0.2.0 ahead of API changes coming in the next
