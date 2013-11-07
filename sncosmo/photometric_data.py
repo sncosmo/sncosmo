@@ -1,5 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Convenience class for photometric data."""
+"""Convenience functions for photometric data."""
 from __future__ import division
 
 import math
@@ -7,9 +7,6 @@ import numpy as np
 from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 from .spectral import get_magsystem, get_bandpass
-from .lcio import dict_to_array
-
-__all__ = ['load_example_data']
 
 _photdata_aliases = odict([
     ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs'])),
@@ -38,6 +35,27 @@ _photdata_types = {
     'zpsys': 'str or `~sncosmo.spectral.MagSystem` instance'
     }
 
+def dict_to_array(d):
+    """Convert a dictionary of lists (or single values) to a structured
+    numpy.ndarray."""
+
+    # Convert all lists/values to 1-d arrays, in order to let numpy
+    # figure out the necessary size of the string arrays.
+    new_d = odict()
+    for key in d: 
+        new_d[key] = np.atleast_1d(d[key])
+
+    # Determine dtype of output array.
+    dtype = [(key, arr.dtype) for key, arr in new_d.iteritems()]
+
+    # Initialize ndarray and then fill it.
+    col_len = max([len(v) for v in new_d.values()])
+    result = np.empty(col_len, dtype=dtype)
+    for key in new_d:
+        result[key] = new_d[key]
+
+    return result
+
 def standardize_data(data):
     """Standardize photometric data by converting to a structured numpy array
     with standard column names (if necessary) and sorting entries in order of
@@ -45,12 +63,14 @@ def standardize_data(data):
 
     Parameters
     ----------
-    data : `~numpy.ndarray` or dict (of list or `~numpy.ndarray`)
+    data : `~astropy.table.Table`, `~numpy.ndarray` or dict
 
     Returns
     -------
     standardized_data : `~numpy.ndarray`
     """
+    if isinstance(data, Table):
+        data = np.asarray(data)
 
     if isinstance(data, np.ndarray):
         colnames = data.dtype.names
@@ -90,6 +110,7 @@ def standardize_data(data):
         for newkey, oldkey in zip(_photdata_aliases.keys(),
                                   orig_colnames_to_use):
             new_data[newkey] = data[oldkey]
+        
         new_data = dict_to_array(new_data)
 
     # Sort by time, if necessary.
@@ -101,6 +122,17 @@ def standardize_data(data):
 def normalize_data(data, zp=25., zpsys='ab'):
     """Return a copy of the data with all flux and fluxerr values normalized
     to the given zeropoint. Assumes data has already been standardized.
+
+    Parameters
+    ----------
+    data : `~numpy.ndarray`
+        Structured array.
+    zp : float
+    zpsys : `~sncosmo.MagSystem` or str
+
+    Returns
+    -------
+    normalized_data : `~numpy.ndarray`
     """
 
     zpsys = get_magsystem(zpsys)
@@ -119,32 +151,13 @@ def normalize_data(data, zp=25., zpsys='ab'):
         
         factor[idx] = bandfactor
 
-    ndata = odict([('time', data['time']),
-                   ('band', data['band']),
-                   ('flux', data['flux'] * factor),
-                   ('fluxerr', data['fluxerr'] * factor),
-                   ('zp', zp),
-                   ('zpsys', zpsys)])
-    return dict_to_array(ndata)
-
-def load_example_data():
-    """
-    Load an example photometric data table.
-
-    Returns
-    -------
-    meta : dict
-        Dictionary with model and parameters used to generate the data.
-    data : `~numpy.ndarray`
-        Data.
-    """
-
-    from astropy.utils.data import get_pkg_data_filename
-    from .lcio import read_lc
-
-    filename = get_pkg_data_filename(
-        'data/examples/example_photometric_data.dat')
-    return read_lc(filename, fmt='csv')
+    normalized_data = odict([('time', data['time']),
+                             ('band', data['band']),
+                             ('flux', data['flux'] * factor),
+                             ('fluxerr', data['fluxerr'] * factor),
+                             ('zp', zp),
+                             ('zpsys', zpsys)])
+    return dict_to_array(normalized_data)
 
 # Generate docstring: table of aliases
 lines = [

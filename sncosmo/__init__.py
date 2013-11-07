@@ -1,7 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from .spectral import *
 from .models import *
-from .lcio import *
+from .io import *
 from .snanaio import *
 from .plotting import *
 from .fitting import *

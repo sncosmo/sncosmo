@@ -7,14 +7,15 @@ import numpy as np
 
 from astropy.utils import OrderedDict
 from astropy.utils.misc import lazyproperty
+from astropy.io import ascii
 import astropy.units as u
-from astropy import cosmology
 import astropy.constants as const
+from astropy import cosmology
 
 from . import registry
 
-__all__ = ['get_bandpass', 'get_magsystem', 'Bandpass', 'Spectrum',
-           'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
+__all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
+           'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
 
 def get_bandpass(name):
     """Get a Bandpass from the registry by name."""
@@ -24,71 +25,80 @@ def get_magsystem(name):
     """Get a MagSystem from the registery by name."""
     return registry.retrieve(MagSystem, name)
 
+def read_bandpass(fname, fmt='ascii', wave_unit=u.AA, name=None):
+    """Read two-column bandpass. First column is assumed to be wavelength
+    in Angstroms."""
+
+    if fmt != 'ascii':
+        raise ValueError("format {} not supported. Supported formats: 'ascii'"
+                         .format(fmt))
+    t = ascii.read(fname, names=['wave', 'trans'])
+    return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit, name=name)
 
 class Bandpass(object):
-    """Transmission as a function of spectral dispersion.
+    """Transmission as a function of spectral wavelength.
 
     Parameters
     ----------
-    disp : list_like
-        Dispersion. Monotonically increasing values.
+    wave : list_like
+        Wavelength. Monotonically increasing values.
     trans : list_like
         Transmission fraction.
-    dunit : `~astropy.units.Unit` or str, optional
-        Dispersion unit. Default is Angstroms.
+    wave_unit : `~astropy.units.Unit` or str, optional
+        Wavelength unit. Default is Angstroms.
     name : str, optional
         Identifier. Default is `None`.
 
     Examples
     --------
     >>> band = get_bandpass('sdssg')
-    >>> band.disp  # wavelengths in Angstroms
-    >>> band.ddisp # np.gradient(band.disp)
+    >>> band.wave  # wavelengths in Angstroms
+    >>> band.dwave # np.gradient(band.wave)
     >>> band.trans  # transmisson fraction corresponding to wavelengths
     >>> band.name  # 'sdssg'
     """
 
-    def __init__(self, disp, trans, dunit=u.AA, name=None):
+    def __init__(self, wave, trans, wave_unit=u.AA, name=None):
         
-        disp = np.asarray(disp) 
+        wave = np.asarray(wave) 
         trans = np.asarray(trans)
-        if disp.shape != trans.shape:
-            raise ValueError('shape of disp and trans must match')
-        if disp.ndim != 1:
+        if wave.shape != trans.shape:
+            raise ValueError('shape of wave and trans must match')
+        if wave.ndim != 1:
             raise ValueError('only 1-d arrays supported')
 
-        if dunit is not u.AA:
-            dunit = u.Unit(dunit)
-            disp = dunit.to(u.AA, disp, u.spectral())
+        if wave_unit is not u.AA:
+            wave_unit = u.Unit(wave_unit)
+            wave = wave_unit.to(u.AA, wave, u.spectral())
 
-        # Possibly flip the dispersion and transmission (for cases when
-        # the dispersion was in Hz?)
-        #if disp[0] > disp[-1]:
-        #    disp = np.flipud(disp)
+        # Possibly flip the wavelength and transmission (for cases when
+        # the wavelength was in Hz?)
+        #if wave[0] > wave[-1]:
+        #    wave = np.flipud(wave)
         #    trans = np.flipud(trans)
 
         # Check that values are monotonically increasing.
         # We could sort them, but if this happens, it is more likely a user
         # error or faulty bandpass definition. So we leave it to the user to
         # sort them.
-        if not np.all(np.ediff1d(disp) > 0.):
-            raise ValueError('bandpass dispersion values must be monotonically'
+        if not np.all(np.ediff1d(wave) > 0.):
+            raise ValueError('bandpass wavelength values must be monotonically'
                              ' increasing when supplied in wavelength or '
                              'decreasing when supplied in energy/frequency.')
 
-        self.disp = disp
-        self.ddisp = np.gradient(disp)
+        self.wave = wave
+        self.dwave = np.gradient(wave)
         self.trans = trans
         self.name = name
         
     @lazyproperty
-    def disp_eff(self):
+    def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
-        weights = self.trans * np.gradient(self.disp) 
-        return np.sum(self.disp * weights) / np.sum(weights)
+        weights = self.trans * np.gradient(self.wave) 
+        return np.sum(self.wave * weights) / np.sum(weights)
 
     def to_unit(self, unit):
-        """Return dispersion and transmission in new dispersion units.
+        """Return wavelength and transmission in new wavelength units.
 
         If the requested units are the same as the current units, self is
         returned.
@@ -96,18 +106,18 @@ class Bandpass(object):
         Parameters
         ----------
         unit : `~astropy.units.Unit` or str
-            Target dispersion unit.
+            Target wavelength unit.
 
         Returns
         -------
-        disp : `~numpy.ndarray`
+        wave : `~numpy.ndarray`
         trans : `~numpy.ndarray`
         """
 
         if unit is u.AA:
-            return self.disp, self.trans
+            return self.wave, self.trans
         
-        d = u.AA.to(unit, self.disp, u.spectral())
+        d = u.AA.to(unit, self.wave, u.spectral())
         t = self.trans
         if d[0] > d[-1]:
             d = np.flipud(d)
@@ -122,17 +132,17 @@ class Bandpass(object):
 
 
 class Spectrum(object):
-    """A spectrum, representing dispersion and spectral density values.
+    """A spectrum, representing wavelength and spectral density values.
 
     Parameters
     ----------
-    disp : list_like
-        Dispersion values.
+    wave : list_like
+        Wavelength values.
     flux : list_like
         Spectral flux density values.
     error : list_like, optional
         1 standard deviation uncertainty on flux density values.
-    dunit : `~astropy.units.Unit`
+    wave_unit : `~astropy.units.Unit`
         Units 
     units : `~astropy.units.BaseUnit`
         For now, only units with flux density in energy (not photon counts).
@@ -145,20 +155,20 @@ class Spectrum(object):
         Metadata.
     """
 
-    def __init__(self, disp, flux, error=None,
-                 unit=(u.erg / u.s / u.cm**2 / u.AA), dunit=u.AA,
+    def __init__(self, wave, flux, error=None,
+                 unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA,
                  z=None, dist=None, meta=None):
         
-        self._disp = np.asarray(disp)
+        self._wave = np.asarray(wave)
         self._flux = np.asarray(flux)
-        self._dunit = dunit
+        self._wunit = wave_unit
         self._unit = unit
         self._z = z
         self._dist = dist
 
         if error is not None:
             self._error = np.asarray(error)
-            if self._disp.shape != self._error.shape:
+            if self._wave.shape != self._error.shape:
                 raise ValueError('shape of wavelength and variance must match')
         else:
             self._error = None
@@ -168,16 +178,16 @@ class Spectrum(object):
         else:
             self.meta = deepcopy(meta)
 
-        if self._disp.shape != self._flux.shape:
+        if self._wave.shape != self._flux.shape:
             raise ValueError('shape of wavelength and flux must match')
-        if self._disp.ndim != 1:
+        if self._wave.ndim != 1:
             raise ValueError('only 1-d arrays supported')
 
 
     @property
-    def disp(self):
-        """Dispersion values."""
-        return self._disp
+    def wave(self):
+        """Wavelength values."""
+        return self._wave
         
     @property
     def flux(self):
@@ -190,9 +200,9 @@ class Spectrum(object):
         return self._error
 
     @property
-    def dunit(self):
-        """Units of dispersion."""
-        return self._dunit
+    def wave_unit(self):
+        """Units of wavelength."""
+        return self._wunit
         
     @property
     def unit(self):
@@ -221,7 +231,7 @@ class Spectrum(object):
     def bandflux(self, band):
         """Perform synthentic photometry in a given bandpass.
       
-        The bandpass transmission is interpolated onto the dispersion grid
+        The bandpass transmission is interpolated onto the wavelength grid
         of the spectrum. The result is a weighted sum of the spectral flux
         density values (weighted by transmission values).
         
@@ -240,28 +250,28 @@ class Spectrum(object):
         """
 
         band = get_bandpass(band)
-        bdisp, btrans = band.to_unit(self._dunit)
+        bwave, btrans = band.to_unit(self._wunit)
 
-        if (bdisp[0] < self._disp[0] or
-            bdisp[-1] > self._disp[-1]):
+        if (bwave[0] < self._wave[0] or
+            bwave[-1] > self._wave[-1]):
             return None
 
-        idx = ((self._disp > bdisp[0]) & 
-               (self._disp < bdisp[-1]))
-        d = self._disp[idx]
+        idx = ((self._wave > bwave[0]) & 
+               (self._wave < bwave[-1]))
+        d = self._wave[idx]
         f = self._flux[idx]
 
         #TODO: use spectral density equivalencies once they can do photons.
-        # first convert to ergs / s /cm^2 / (dispersion unit)
-        target_unit = u.erg / u.s / u.cm**2 / self._dunit
+        # first convert to ergs / s /cm^2 / (wavelength unit)
+        target_unit = u.erg / u.s / u.cm**2 / self._wunit
         if self._unit != target_unit:
             f = self._unit.to(target_unit, f, 
-                              u.spectral_density(self._dunit, d))
+                              u.spectral_density(self._wunit, d))
 
         # Then convert ergs to photons: photons = Energy / (h * nu)
-        f = f / const.h.cgs.value / self._dunit.to(u.Hz, d, u.spectral())
+        f = f / const.h.cgs.value / self._wunit.to(u.Hz, d, u.spectral())
 
-        trans = np.interp(d, bdisp, btrans)
+        trans = np.interp(d, bwave, btrans)
         binw = np.gradient(d)
         ftot = np.sum(f * trans * binw)
 
@@ -274,8 +284,8 @@ class Spectrum(object):
             # Do the same conversion as above
             if self._unit != target_unit:
                 e = self._unit.to(target_unit, e, 
-                                  u.spectral_density(self._dunit, d))
-            e = e / const.h.cgs.value / self._dunit.to(u.Hz, d, u.spectral())
+                                  u.spectral_density(self._wunit, d))
+            e = e / const.h.cgs.value / self._wunit.to(u.Hz, d, u.spectral())
             etot = np.sqrt(np.sum((e * binw) ** 2 * trans))
             return ftot, etot
 
@@ -322,14 +332,14 @@ class Spectrum(object):
             raise ValueError('Must set current redshift in order to redshift'
                              ' spectrum')
 
-        if self._dunit.physical_type == u.m.physical_type:
+        if self._wunit.physical_type == u.m.physical_type:
             factor = (1. + z) / (1. + self._z)
-        elif self._dunit.physical_type == u.Hz.physical_type:
+        elif self._wunit.physical_type == u.Hz.physical_type:
             factor = (1. + self._z) / (1. + z)
         else:
-            raise ValueError('dispersion must be in wavelength or frequency')
+            raise ValueError('wavelength must be in wavelength or frequency')
 
-        d = self._disp * factor
+        d = self._wave * factor
         f = self._flux / factor
         if self._error is not None:
             e = self._error / factor
@@ -363,7 +373,7 @@ class Spectrum(object):
             if e is not None: e *= factor
 
         return Spectrum(d, f, error=e, z=z, dist=dist, meta=self.meta,
-                        unit=self._unit, dunit=self._dunit)
+                        unit=self._unit, wave_unit=self._wunit)
 
 
 class MagSystem(object):
@@ -476,14 +486,14 @@ class ABMagSystem(MagSystem):
     frequencies has magnitude 0 in all bands."""
     
     def _refspectrum_bandflux(self, band):
-        bdisp, btrans = band.to_unit(u.Hz)
+        bwave, btrans = band.to_unit(u.Hz)
 
         # AB spectrum is 3631 x 10^{-23} erg/s/cm^2/Hz
-        # Get spectral values in photons/cm^2/s/Hz at bandpass dispersions
+        # Get spectral values in photons/cm^2/s/Hz at bandpass wavelengths
         # by dividing by (h \nu).
-        f = 3631.e-23 / const.h.cgs.value / bdisp
+        f = 3631.e-23 / const.h.cgs.value / bwave
 
-        binw = np.gradient(bdisp)
+        binw = np.gradient(bwave)
         return np.sum(f * btrans * binw)
 
 

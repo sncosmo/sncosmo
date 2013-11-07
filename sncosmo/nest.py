@@ -8,6 +8,8 @@ from sys import stdout
 
 import numpy as np
 
+from .utils import Result
+
 def randsphere(n):
     """Draw a random point within a n-dimensional unit sphere"""
 
@@ -273,14 +275,15 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         samples_parvals.append(np.array(objects_v[i]))
         samples_logwt.append(logwt)
 
-    return {
-        'niter': it + 1,
-        'ncalls': loglcalls,
-        'time': tottime,
-        'logz': logz,
-        'logzerr': math.sqrt(h / nobj),
-        'loglmax': np.max(objects_logl),
-        'h': h,
-        'samples_parvals': np.array(samples_parvals),  #(nsamp, npar)
-        'samples_wt':  np.exp(np.array(samples_logwt) - logz)  #(nsamp,)
-        }
+    return Result([
+        ('niter', it + 1),
+        ('ncalls', loglcalls),
+        ('time', tottime),
+        ('logz', logz),
+        ('logzerr', math.sqrt(h / nobj)),
+        ('loglmax', np.max(objects_logl)),
+        ('h', h),
+        ('samples', np.array(samples_parvals)),  #(nsamp, npar)
+        ('weights', np.exp(np.array(samples_logwt) - logz))  #(nsamp,)
+        ])
+

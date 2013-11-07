@@ -1,169 +1,17 @@
-from sys import stdout
-import time
 import math
-import copy
 from warnings import warn
 
 import numpy as np
-from scipy import integrate, optimize
 from astropy.utils import OrderedDict as odict
 
 from .models import get_model
 from .spectral import get_magsystem
 from .photometric_data import standardize_data
-from . import nest
-
-def _cdf(pdf, x, a):
-    return integrate.quad(pdf, a, x)[0]
-
-def _ppf_to_solve(x, pdf, q, a):
-    return _cdf(pdf, x, a) - q
-
-def _ppf_single_call(pdf, q, a, b):
-    left = right = None
-    if a > -np.inf: left = a
-    if b < np.inf: right = b
-
-    factor = 10.
-
-    # if lower limit is -infinity, adjust to
-    # ensure that cdf(left) < q
-    if  left is None:
-        left = -1. * factor
-        while _cdf(pdf, left, a) > q:
-            right = left
-            left *= factor
-
-    # if upper limit is infinity, adjust to
-    # ensure that cdf(right) > q
-    if  right is None:
-        right = factor
-        while _cdf(pdf, right, a) < q:
-            left = right
-            right *= factor
-
-    return optimize.brentq(_ppf_to_solve, left, right, args=(pdf, q, a))
-
-class Interp1d(object):
-    def __init__(self, xmin, xmax, y):
-        self._xmin = xmin
-        self._xmax = xmax
-        self._n = len(y)
-        self._xstep = (xmax - xmin) / (self._n - 1)
-        self._y = y
-
-    def __call__(self, x):
-        """works only in range [xmin, xmax)"""
-        nsteps = (x - self._xmin) / self._xstep
-        i = int(nsteps)
-        w = nsteps - i
-        return (1.-w) * self._y[i] + w * self._y[i+1]
-
-def pdf_to_ppf(pdf, a, b):
-    """Given a function representing a pdf, return a callable representing the
-    inverse cdf (or ppf) of the pdf."""
-
-    n = 101
-    x = np.linspace(0., 1., n)
-    y = np.empty(n, dtype=np.float)
-    y[0] = a
-    y[-1] = b
-    for i in range(1, n-1):
-        y[i] = _ppf_single_call(pdf, x[i], a, b)
-
-    return Interp1d(0., 1., y)
-
-
-def evidence(model, data, parnames,
-             parlims=None, priors=None, ppfs=None, tied=None,
-             include_error=False, nobj=50, maxiter=10000,
-             verbose=False, verbose_name=''):
-
-    # Construct a list of ppfs to be used in the prior() function...
-    npar = len(parnames)
-    ppflist = npar * [None]
-
-    # ... if a ppf is directly supplied for a parameter, it takes precedence...
-    if ppfs is not None:
-        for i, parname in enumerate(parnames):
-            if parname in ppfs:
-                ppflist[i] = ppfs[parname]
-
-    # ...and for the parameters without ppfs, construct one from limits/prior.
-    for i, parname in enumerate(parnames):
-        if ppflist[i] is not None:
-            continue
-        if parname not in parlims:
-            raise ValueError("Must supply ppf or limits for parameter '{}'"
-                             .format(parname))
-        a, b = parlims[parname]
-        if (priors is not None and parname in priors):
-            ppflist[i] = pdf_to_ppf(priors[parname], a, b)
-        else:
-            ppflist[i] = Interp1d(0., 1., np.array([a, b]))
-
-    def prior(u):
-        v = np.empty(npar, dtype=np.float)
-        for i in range(npar):
-            v[i] = ppflist[i](u[i])
-        return v
-
-    def loglikelihood(parvals):
-        d = dict(zip(parnames, parvals))
-        if tied is not None:
-            for parname, func in tied.iteritems():
-                d[parname] = func(d)
-
-        model.set(**d)
-        if not include_error:
-            mflux = model.bandflux(data['band'], data['time'],
-                                       zp=data['zp'], zpsys=data['zpsys'])
-            chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
-        else:
-            mflux, mfluxerr =  model.bandflux(
-                data['band'], data['time'], zp=data['zp'], zpsys=data['zpsys'],
-                include_error=True)
-            chisq = np.sum(((data['flux'] - mflux)**2 /
-                            (data['fluxerr']**2 + mfluxerr**2)))
-
-        return -chisq / 2.
-
-    res = nest.nest(loglikelihood, prior, npar, nobj=nobj, maxiter=maxiter,
-                    verbose=verbose, verbose_name=verbose_name)
-
-    # Add tied parameters to results. This is inelegant, but, eh.
-    nsamples = len(res['samples_parvals'])
-    res['nsamples'] = nsamples
-    if tied is not None:
-        tiedparnames = tied.keys()
-        ntiedpar = len(tiedparnames)
-        tiedparvals = np.empty((nsamples, ntiedpar), dtype=np.float)
-        for i in range(nsamples):
-            d = dict(zip(parnames, res['samples_parvals'][i, :]))
-            for j, parname in enumerate(tiedparnames):
-                tiedparvals[i, j] = tied[parname](d)
-
-        res['samples_parvals'] = np.hstack((res['samples_parvals'], 
-                                            tiedparvals))
-        parnames = parnames + tiedparnames
-
-    # Sample averages and their standard deviations.
-    res['parvals'] = np.average(res['samples_parvals'],
-                                weights=res['samples_wt'], axis=0)
-    res['parerrs'] = np.sqrt(np.sum(res['samples_wt'][:, np.newaxis] *
-                             res['samples_parvals']**2, axis=0) -
-                             res['parvals']**2)
-
-    # Add some more to results
-    res['parnames'] = parnames
-    res['chisq_min'] = -2. * res.pop('loglmax')
-    res['dof'] = len(data) - npar
-
-    return res
-
+from .fitting import _nest_lc
+from .utils import pdf_to_ppf, Interp1d
 
 class PhotoTyper(object):
-    """Baysian photometric typer.
+    """Bayesian photometric typer.
     
     Parameters
     ----------
@@ -325,7 +173,7 @@ class PhotoTyper(object):
         models = {}
         for name, m in self._models.iteritems():
             parnames = m['ppfs'].keys() + ['t0']
-            models[name] = evidence(
+            models[name] = _nest_lc(
                 m['model'], data, parnames,
                 parlims=parlims, ppfs=m['ppfs'], tied=m['tied'],
                 include_error=m['include_error'],
