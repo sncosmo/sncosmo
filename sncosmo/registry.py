@@ -96,7 +96,7 @@ def register(instance, name=None, data_class=None, force=False):
         _instances[key] = instance
     else:
         raise Exception("{0:s} named {1:s} already in registry. Use force=True"
-                        " to override.".format(dat_class.__name__, name))
+                        " to override.".format(data_class.__name__, name))
 
 def retrieve(data_class, name, version=None):
     """Retrieve a class instance from a registered identifier.

@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from __future__ import division
 from warnings import warn
+import copy
 
 import numpy as np
 
@@ -8,38 +9,9 @@ from .spectral import get_magsystem, get_bandpass
 from .models import get_model
 from .photometric_data import standardize_data, normalize_data
 from . import nest
+from .utils import Result, Interp1d, pdf_to_ppf
 
-__all__ = ['fit_lc', 'sample_lc', 'mcmc_lc']
-
-class Result(dict):
-    """Represents the optimization result.
-
-    Notes
-    -----
-    This is a cut and paste from scipy, normally imported with `from
-    scipy.optimize import Result`. However, it isn't available in
-    scipy 0.9 (or possibly 0.10), so it is included here.
-    Since this class is essentially a subclass of dict with attribute
-    accessors, one can see which attributes are available using the
-    `keys()` method.
-    """
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(name)
-
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-    def __repr__(self):
-        if self.keys():
-            m = max(map(len, list(self.keys()))) + 1
-            return '\n'.join([k.rjust(m) + ': ' + repr(v)
-                              for k, v in self.items()])
-        else:
-            return self.__class__.__name__ + "()"
-
+__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
 
 def guess_parvals(data, model, parnames=['t0', 'fscale']):
     """Guess parameter values based on the data, return dict.
@@ -353,19 +325,86 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     else:
         return res
 
-def sample_lc(data, model, param_bounds, nobj=100, maxiter=10000,
-              verbose=False):
+# ------------------------------------------------------------------------
+# This is the code for adding tied parameters to loglikelihood in nest_lc
+# (d is a dictionary of parameters)
 
-    data = standardize_data(data)
+#         if tied is not None:
+#            for parname, func in tied.iteritems():
+#                d[parname] = func(d)
 
-    # which parameters are we varying?
-    names, bounds = param_bounds.keys(), param_bounds.values()
-    idx = np.array([model.param_names.index(name) for name in names])
-    v0 = np.array([bound[0] for bound in bounds])
-    vdiff = np.array([bound[1] - bound[0] for bound in bounds])
+
+
+# ---------------------------------------------------------------------
+# This is the code for adding tied parameters to results of nest_lc
+# before returning
+
+#    # Add tied parameters to results. This is inelegant, but, eh.
+#    nsamples = len(res['samples_parvals'])
+#    res['nsamples'] = nsamples
+#    if tied is not None:
+#        tiedparnames = tied.keys()
+#        ntiedpar = len(tiedparnames)
+#        tiedparvals = np.empty((nsamples, ntiedpar), dtype=np.float)
+#        for i in range(nsamples):
+#            d = dict(zip(parnames, res['samples_parvals'][i, :]))
+#            for j, parname in enumerate(tiedparnames):
+#                tiedparvals[i, j] = tied[parname](d)
+#
+#        res['samples_parvals'] = np.hstack((res['samples_parvals'], 
+#                                            tiedparvals))
+#        parnames = parnames + tiedparnames
+#
+#    # Sample averages and their standard deviations.
+#    res['parvals'] = np.average(res['samples_parvals'],
+#                                weights=res['samples_wt'], axis=0)
+#    res['parerrs'] = np.sqrt(np.sum(res['samples_wt'][:, np.newaxis] *
+#                             res['samples_parvals']**2, axis=0) -
+#                             res['parvals']**2)
+#
+#    # Add some more to results
+#    res['parnames'] = parnames
+#    res['chisq_min'] = -2. * res.pop('loglmax')
+#    res['dof'] = len(data) - npar
+#
+#    return res
+
+def _nest_lc(data, model, param_names,
+             bounds=None, priors=None, ppfs=None,
+             nobj=100, maxiter=10000, verbose=False):
+    """Assumes that data has already been standardized."""
+
+    # Indicies of the model parameters in param_names 
+    idx = np.array([model.param_names.index(name) for name in param_names])
+
+    # Set up a list of ppfs to be used in the prior() function.
+    npar = len(param_names)
+    ppflist = npar * [None]
+
+    # If a ppf is directly supplied for a parameter, it takes precedence.
+    if ppfs is not None:
+        for i, param_name in enumerate(param_names):
+            if param_name in ppfs:
+                ppflist[i] = ppfs[param_name]
+
+    # For parameters without ppfs, construct one from bounds and prior.
+    for i, param_name in enumerate(param_names):
+        if ppflist[i] is not None:
+            continue
+        if param_name not in bounds:
+            raise ValueError("Must supply ppf or limits for parameter '{}'"
+                             .format(param_name))
+        a, b = bounds[param_name]
+        if (priors is not None and param_name in priors):
+            ppflist[i] = pdf_to_ppf(priors[param_name], a, b)
+        else:
+            ppflist[i] = Interp1d(0., 1., np.array([a, b]))
 
     def prior(u):
-        return v0 + u*vdiff
+        v = np.empty(npar, dtype=np.float)
+        for i in range(npar):
+            v[i] = ppflist[i](u[i])
+        return v
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
@@ -374,9 +413,43 @@ def sample_lc(data, model, param_bounds, nobj=100, maxiter=10000,
         chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
         return -chisq / 2.
 
-    res = nest.nest(loglikelihood, prior, len(idx), nobj=nobj,
-                    maxiter=maxiter, verbose=verbose)
-    return Result(res)
+    res = nest.nest(loglikelihood, prior, npar, nobj=nobj, maxiter=maxiter,
+                    verbose=verbose)
+    res.param_names = param_names
+    return res
+
+def nest_lc(data, model, param_names, bounds=None, priors=None,
+            nobj=100, maxiter=10000, verbose=False):
+    """Run nested sampling algorithm to estimate model parameters and evidence.
+
+    Parameters
+    ----------
+    model : `~sncosmo.ObsModel`
+    data : `~astropy.table.Table` or `~numpy.ndarray`
+    param_names : list of str
+    bounds : dict
+    priors : dict
+    nobj : 
+    maxiter :
+    verbose :
+
+    Returns
+    -------
+    res : Result
+    model : `~sncosmo.ObsModel`
+        Copy of model with parameters set.
+    """
+
+    data = standardize_data(data)
+    model = copy.copy(model)
+    res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
+                   nobj=nobj, maxiter=maxiter, verbose=verbose)
+    
+    # Calculate 'best' values and set a copy of the model to them
+    parameters = np.average(res['samples'], weights=res['weights'], axis=0)
+    model.set(**dict(zip(param_names, parameters)))
+
+    return res, model
 
 def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
             nburn=100, nsamples=500, return_sampler=False, verbose=False):

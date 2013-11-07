@@ -5,7 +5,7 @@ from astropy.table import Table, vstack
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
-def read_snana_fits(head_file, phot_file):
+def read_snana_fits(head_file, phot_file, snid=None):
     """Read the SNANA FITS format: two FITS files jointly representing
     metadata and photometry for a set of SNe.
 
@@ -15,6 +15,8 @@ def read_snana_fits(head_file, phot_file):
         Filename of "HEAD" ("header") FITS file.
     phot_file : str
         Filename of "PHOT" ("photometry") FITS file.
+    snid : str
+        If given, only return the single entry with the matching SNID.
 
     Notes
     -----
@@ -51,9 +53,21 @@ def read_snana_fits(head_file, phot_file):
             head_data['SNID'][:] = np.char.rstrip(head_data['SNID'])
         except TypeError:
             pass
- 
+
+    # Check which indicies to return
+    if snid is None:
+        idx = range(len(head_data))
+    else:
+        if 'SNID' not in head_data.dtype.names:
+            raise RuntimeError('Specific snid requested, but head file does'
+                               ' not contain SNID column')
+        idx = np.flatnonzero(head_data['SNID'] == snid)
+        if len(idx) != 1:
+            raise RuntimeError('Unique snid requested, but there are {:d} '
+                               'matching entries'.format(len(idx)))
+
     # Loop over SNe in HEAD file
-    for i in range(len(head_data)):
+    for i in idx:
         meta = odict(zip(head_data.dtype.names, head_data[i]))
 
         j0 = head_data['PTROBS_MIN'][i] - 1 
@@ -61,6 +75,8 @@ def read_snana_fits(head_file, phot_file):
 	data = phot_data[j0:j1]
 	sne.append(Table(data, meta=meta, copy=False))
 
+    if snid is not None:
+        return sne[0]
     return sne
 
 

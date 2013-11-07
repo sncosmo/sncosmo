@@ -204,11 +204,20 @@ class _ModelBase(object):
     def __str__(self):
         parameter_lines = [self.summary(), 'parameters:']
         if len(self._param_names) > 0:
-            m = max(map(len, self._param_names)) + 2
-            extralines = [k.rjust(m) + ' = ' + repr(v)
+            m = max(map(len, self._param_names))
+            extralines = ['  ' + k.ljust(m) + ' = ' + repr(v)
                           for k, v in zip(self._param_names, self._parameters)]
             parameter_lines.extend(extralines)
         return '\n'.join(parameter_lines)
+
+    def __copy__(self):
+        """Like a normal shallow copy, but makes an actual copy of the
+        parameter array."""
+        new_model = self.__new__(self.__class__)
+        for key, val in self.__dict__.items():
+            new_model.__dict__[key] = val
+        new_model._parameters = self._parameters.copy()
+        return new_model
 
 
 class SourceModel(_ModelBase):
@@ -406,10 +415,10 @@ class SourceModel(_ModelBase):
 
     def summary(self):
         summary = """\
-              class: {}
-               name: {}
-            version: {}
-             phases: [{:.6g}, .., {:.6g}] days ({:d} points)
+        class      : {}
+        name       : {}
+        version    : {}
+        phases     : [{:.6g}, .., {:.6g}] days ({:d} points)
         wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
         .format(
             self.__class__.__name__, self.name, self.version,
@@ -418,14 +427,6 @@ class SourceModel(_ModelBase):
             )
         return dedent(summary)
 
-    def __copy__(self):
-        """Like a normal shallow copy, but makes an actual copy of the
-        parameter array."""
-        new_model = self.__new__(self.__class__)
-        for key, val in self.__dict__.items():
-            new_model.__dict__[key] = val
-            new_model._parameters = self._parameters.copy()
-        return new_model
 
 class TimeSeriesModel(SourceModel):
     """A single-component spectral time series model.
@@ -786,6 +787,7 @@ class ObsModel(_ModelBase):
         self.param_bounds = [(None, None), (None, None)]
         self._parameters = np.array([0., 0.])
         self._source = shallowcopy(source_model)
+        self.name = self._source.name  # TODO be more careful with the name
         self._effects = []
         self._effect_names = []
         self._effect_frames = []
@@ -1105,6 +1107,15 @@ class ObsModel(_ModelBase):
             summaries.append(s.replace('\n', '\n  '))
         return '\n'.join(summaries)
 
+    def __copy__(self):
+        new = ObsModel(self._source,
+                       effects=self._effects,
+                       effect_names=self._effect_names,
+                       effect_frames=self._effect_frames)
+        new._parameters[0:2] = self._parameters[0:2]
+        return new
+
+
 class PropagationEffect(_ModelBase):
     """Base class for propagation effects."""
     
@@ -1172,9 +1183,9 @@ class InterpolatedRvDust(PropagationEffect):
 
     def summary(self):
         summary = """\
-        class: {}
-        model: {}
-        r_v: {}
+        class      : {}
+        model      : {}
+        r_v        : {}
         wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
         .format(
             self.__class__.__name__, repr(self._model), self._r_v,

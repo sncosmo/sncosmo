@@ -7,7 +7,7 @@ import numpy as np
 
 from astropy.utils.misc import isiterable
 
-from .models import get_model
+from .models import get_obsmodel
 from .spectral import get_bandpass, get_magsystem
 from .photometric_data import standardize_data, normalize_data
 from .utils import value_error_str
@@ -108,7 +108,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     # Get colormap and define wavelengths corresponding to (blue, red)
     cmap = cm.get_cmap('gist_rainbow')
-    cm_disp_range = (3000., 10000.)
+    cm_wave_range = (3000., 10000.)
 
     if data is None and model is None:
         raise ValueError('must specify at least one of: data, model')
@@ -121,7 +121,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             models = [model]
         else:
             models = model
-        models = [get_model(m) for m in models]
+        models = [get_obsmodel(m) for m in models]
     else:
         models = []
 
@@ -142,7 +142,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             bands = set([get_bandpass(band) for band in bands])
             bands = bands & unique_data_bands
     bands = list(bands)
-    disps = [b.disp_eff for b in bands]
+    waves = [b.wave_eff for b in bands]
 
     # offsets for each band, if any.
     if offsets is not None:
@@ -185,11 +185,11 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     # Loop over bands.
     axnum = 0
-    for disp, band in sorted(zip(disps, bands)):
+    for wave, band in sorted(zip(waves, bands)):
         axnum += 1
 
-        color = cmap((cm_disp_range[1] - disp) /
-                     (cm_disp_range[1] - cm_disp_range[0]))
+        color = cmap((cm_wave_range[1] - wave) /
+                     (cm_wave_range[1] - cm_wave_range[0]))
 
         ax = plt.subplot(nrow, ncol, axnum)
         if axnum % 2:
@@ -197,8 +197,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                        '} = ' + str(zp) + '$)')
 
         xlabel_text = 'time'
-        if len(models) > 0 and models[0].params['t0'] != 0.:
-            xlabel_text += ' - {:.2f}'.format(models[0].params['t0'])
+        if len(models) > 0 and models[0].parameters[1] != 0.:
+            xlabel_text += ' - {:.2f}'.format(models[0].parameters[1])
 
         # Plot data if there is any.
         if data is not None:
@@ -210,7 +210,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             if len(models) == 0:
                 plotted_time = time
             else:
-                plotted_time = time - models[0].params['t0']
+                plotted_time = time - models[0].parameters[1]
 
             plt.errorbar(plotted_time, flux, fluxerr, ls='None',
                          color=color, marker='.', markersize=3.)
@@ -221,7 +221,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                 if not model.bandoverlap(band):
                     continue
 
-                plotted_time = model.times() - models[0].params['t0']
+                plotted_time = model.times - models[0].parameters[1]
 
                 #if include_model_error:
                 #    mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
@@ -278,8 +278,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             mflux = models[0].bandflux(band, time, zp=zp, zpsys=zpsys) 
             if offsets is not None and band in offsets:
                 mflux = mflux + offsets[band]
-            pulls = (flux - mflux) / fluxerr
-            plt.plot(time - models[0].params['t0'], pulls, marker='.',
+            fluxpulls = (flux - mflux) / fluxerr
+            plt.plot(time - models[0].parameters[1], fluxpulls, marker='.',
                      markersize=5., color=color, ls='None')
             plt.axhline(y=0., color=color)
             plt.setp(ax.get_xticklabels(), visible=False)
@@ -303,7 +303,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
 
 def plot_param_samples(param_names, samples, weights=None, fname=None,
-                       bins=50, xfigsize=8., dpi=100):
+                       bins=50, xfigsize=8., **kwargs):
     """Plot PDFs of parameter values.
     
     Parameters
@@ -373,12 +373,13 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
                 Y = 0.5 * (yedges[:-1] + yedges[1:])
                 plt.contour(X, Y, H)
 
+    plt.tight_layout()
 
     if fname is None:
         plt.show()
     else:
-        plt.savefig(fname, dpi=dpi)
-    plt.clf()
+        plt.savefig(fname, **kwargs)
+    plt.close()
 
 def animate_model(model_or_models, fps=30, length=20.,
                   time_range=(None, None), disp_range=(None, None),
