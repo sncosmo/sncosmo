@@ -1,6 +1,13 @@
-======================================
-What's New in sncosmo 0.3 (unreleased)
-======================================
+===========================
+What's New in sncosmo 0.3.0
+===========================
+
+* New Functions
+
+  - ``sncosmo.get_ebv_from_map``: E(B-V) at given coordinates from SFD map. 
+  - ``sncosmo.read_snana_ascii``: Read SNANA ascii format files.
+  - ``sncosmo.read_snana_fits``: Read SNANA FITS format files.
+  - ``sncosmo.read_snana_simlib``: Read SNANA ascii "SIMLIB" files.
 
 * registry is now case-independent. All of the following now work::
 
@@ -10,3 +17,5 @@ What's New in sncosmo 0.3 (unreleased)
 
 * Photometric data can be unordered in time. Internally, the data are
   sorted before being used in fitting and typing.
+
+* Numerous bugfixes.

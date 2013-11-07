@@ -1,6 +1,16 @@
-0.3 (unreleased)
+0.3.0 (2013-11-07)
 ----------------
 
+This is a release with mostly bugfixes but a few new features, designed to be
+backwards compatible with v0.2.0 ahead of API changes coming in the next
+version.
+
+- New functions:
+
+  - ``sncosmo.get_ebv_from_map``: E(B-V) at given coordinates from SFD map. 
+  - ``sncosmo.read_snana_ascii``: Read SNANA ascii format files.
+  - ``sncosmo.read_snana_fits``: Read SNANA FITS format files.
+  - ``sncosmo.read_snana_simlib``: Read SNANA ascii "SIMLIB" files.
 
 0.2 (2013-08-20)
 ----------------
