@@ -2,8 +2,11 @@
 from __future__ import division
 from warnings import warn
 import copy
+import sys
+from itertools import product
 
 import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 
 from .spectral import get_magsystem, get_bandpass
 from .models import get_model
@@ -11,56 +14,199 @@ from .photometric_data import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
 
+import sys
+MAX_FLOAT = sys.float_info.max
+
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
 
-def guess_parvals(data, model, parnames=['t0', 'fscale']):
-    """Guess parameter values based on the data, return dict.
-    The maximum of `model.bandflux` and the maximum of the data
-    are used to guess `fscale`. The current settings of the parameters
-    't0' and 'fscale' do not affect the results. Other parameters, such as 
-    'z' might affect the guesses somewhat.
+def fit_lc(data, model, param_names, bounds=None, method='iminuit',
+           guess_amplitude=True, refine_guess=False, disp=False, maxiter=10000):
 
-    Assume that data has already been normalized.
-    """
+    # Standardize and normalize data.
+    data = standardize_data(data)
+    data = normalize_data(data)
 
-    band_tmax = []
-    band_fscale = []
-    for band in set(data['band'].tolist()):
-        idx = data['band'] == band
-        time = data['time'][idx]
-        flux = data['flux'][idx]
-        fluxerr = data['fluxerr'][idx]
+    # Make a copy of the model so we can modify it with impunity.
+    model = copy.copy(model)
 
-        weights = flux * np.abs(flux / fluxerr)
-        topn = min(len(weights) // 2, 3)
-        if topn == 0:
-            continue
-        topnidx = np.argsort(weights)[-topn:]
-        band_tmax.append(np.average(time[topnidx],
-                                    weights=weights[topnidx]))
-        maxdataflux = np.average(flux[topnidx], weights=weights[topnidx])
-        maxmodelflux = np.max(model.bandflux(band, zp=data['zp'][0],
-                                             zpsys=data['zpsys'][0]))
-        band_fscale.append(maxdataflux / maxmodelflux *
-                           model._params['fscale']) 
+    # initialize bounds
+    if bounds is None:
+        bounds = {}
 
-    result = {}
-    if 't0' in parnames:
-        result['t0'] = sum(band_tmax) / len(band_tmax) - model.refphase
-    if 'fscale' in parnames:
-        result['fscale'] = sum(band_fscale) / len(band_fscale)
+    # Check that 'z' is bounded (if it is going to be fit).
+    if 'z' in param_names:
+        if 'z' not in bounds:
+            raise ValueError('z must be bounded if fit.')
+        if model['z'] < bounds['z'][0] or model['z'] > bounds['z'][1]:
+            model['z'] = sum(bounds['z']) / 2.
 
-    # check that guessing succeeded
-    if any([np.isnan(v) or np.isinf(v) for v in result.values()]):
-        raise RuntimeError('Parameter guessing failed. Check data values.')
+    # Cut bands that are not allowed by the wavelength range of the model
+    if 'z' not in param_names:
+        valid = model.bandoverlap(data['band'])
+    else:
+        valid = model.bandoverlap(data['band'], z=bounds['z'])
+        valid = np.all(valid, axis=1)
+    if not np.all(valid):
+        if not np.any(valid):
+            raise RuntimeError('No bands in data overlap model.')
+        drop_bands = [repr(b) for b in set(data['band'][np.invert(valid)])]
+        warn("Dropping following bands from data: " + ", ".join(drop_bands) +
+             "(out of model wavelength range)", RuntimeWarning)
+        data = data[valid]
 
-    return result
+    # Unique set of bands in data
+    bands = set(data['band'].tolist())
 
-def fit_lc(data, model, parnames, p0=None, bounds=None,
-           t0_range=20., include_model_error=False,
-           fit_offset=False, offset_zp=25., offset_zpsys='ab',
-           method='iminuit', return_minuit=False, max_ncall=10000,
-           print_level=0):
+    # Find t0 bounds to use, if not explicitly given
+    if 't0' in param_names and 't0' not in bounds:
+        bounds['t0'] = (model['t0'] + np.min(data['time']) - model.maxtime,
+                        model['t0'] + np.max(data['time']) - model.mintime)
+        model['t0'] = sum(bounds['t0']) / 2.
+
+    # If we're fitting for 'amplitude', find its starting point.
+    # (For now we assume it is the 3rd parameter of the model.)
+    if model.param_names[2] in param_names and guess_amplitude:
+        modelflux = {}
+        dataflux = {}
+        zp = data['zp'][0]
+        zpsys = data['zpsys'][0]
+        for band in bands:
+            modelflux[band] = (model.bandflux(band, zp=zp, zpsys=zpsys) /
+                               model.parameters[2])
+            mask = data['band'] == band
+            dataflux[band] = data['flux'][mask]
+
+        # ratio of maximum data flux to maximum model flux in each band
+        amplitude = max([abs(np.max(dataflux[band]) / np.max(modelflux[band]))
+                         for band in bands])
+
+        model.parameters[2] = amplitude
+
+        # Get a refined guess by doing a small grid search
+        #if refine_guess:
+        #
+        #    # Get data times, errors and turn model fluxes into splines
+        #    modeltimes = model.times - model['t0']
+        #    datatimes = {}
+        #    datafluxerr = {}
+        #    for band in bands:
+        #        mask = data['band'] == band
+        #        datatimes[band] = data['time'][mask]
+        #        datafluxerr[band] = data['fluxerr'][mask]
+        #        modelflux[band] = Spline1d(modeltimes, modelflux[band])
+        #
+        #    # set up a grid in (t0, amplitude) space
+        #    t0_grid = np.linspace(bounds['t0'][0], bounds['t0'][1], 50)
+        #    a_grid = np.logspace(np.log10(amplitude) - 2.,
+        #                         np.log10(amplitude) + 1., 20)
+        #    chisqmin = MAX_FLOAT
+        #    best = None
+        #    for t0, a in product(t0_grid, a_grid):
+        #        chisq = 0.
+        #        for band in bands:
+        #            mflux = a * modelflux[band](datatimes[band] - t0)
+        #            chisq += ((dataflux[band] - mflux) / datafluxerr[band])**2
+        #        if chisq < chisqmin:
+        #            chisqmin = chisq
+        #            best = t0, a
+        #
+        #    model.parameters[1] = best[0]
+        #    model.parameters[2] = best[1]
+
+    # add model's default bounds:
+    for name in param_names:
+        if name not in bounds:
+            i = model.param_names.index(name)
+            bounds[name] = model.param_bounds[i]
+
+    # count degrees of freedom
+    ndof = len(data) - len(param_names)
+
+    # Indicies of the model parameters in param_names 
+    idx = np.array([model.param_names.index(name) for name in param_names])
+
+    # define chi2 where input is array_like
+    def chi2_arraylike(parameters):
+        model._parameters[idx] = parameters
+        modelflux = model.bandflux(data['band'], data['time'],
+                                   zp=data['zp'], zpsys=data['zpsys'])
+        return np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
+
+    if method == 'iminuit':
+        try:
+            import iminuit
+        except ImportError:
+            raise ValueError("Minimization method 'iminuit' requires the "
+                             "iminuit package")
+
+        # The iminuit minimizer expects the function signature to have an
+        # argument for each parameter.
+        def chi2(*parameters):
+            return chi2_arraylike(parameters)
+
+        # Set up keyword arguments to pass to Minuit initializer
+        kwargs = {}
+        for name in param_names:
+
+            # starting point
+            i = model.param_names.index(name)
+            kwargs[name] = model.parameters[i]  # starting point
+
+
+            lo, hi = bounds[name]
+            if lo is not None and hi is not None:
+                # iminuit doesn't like bounds to be None...
+                #if lo is None:
+                #    lo = -MAX_FLOAT
+                #if hi is None:
+                #    hi = MAX_FLOAT
+                kwargs['limit_' + name] = (lo, hi)
+
+            # set initial step size
+            if bounds[name][0] is not None and bounds[name][1] is not None:
+                step = 0.02 * (bounds[name][1] - bounds[name][0])
+            elif model.parameters[i] != 0.:
+                step = 0.1 * model.parameters[i]
+            else:
+                step = 1.
+            kwargs['error_' + name] = step
+
+        if disp:
+            print "Initial parameters:"
+            for name in param_names:
+                print name, kwargs[name], 'step=', kwargs['error_' + name],
+                if 'limit_' + name in kwargs:
+                    print 'bounds=', kwargs['limit_' + name]
+                else:
+                    print ''
+
+        m = iminuit.Minuit(chi2,
+                           errordef=1.,
+                           forced_parameters=param_names,
+                           print_level=(1 if disp else 0),
+                           throw_nan=True,
+                           **kwargs)
+        d, l = m.migrad(ncall=maxiter)
+
+        # Compile results
+        res = Result(
+            success=d.is_valid, # need to check if hesse succeeds as well!
+            message='',
+            ncall=d.nfcn,
+            fval=d.fval,
+            param_names=m.values.keys(),
+            values=m.values,
+            errors=m.errors,
+            covariance=m.covariance,
+            ndof=ndof
+            )
+        return res, model
+
+def old_fit_lc(data, model, param_names, p0=None, bounds=None,
+               t0_range=20., include_model_error=False,
+               fit_offset=False, offset_zp=25., offset_zpsys='ab',
+               method='iminuit', return_minuit=False, max_ncall=10000,
+               print_level=0):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -73,7 +219,7 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
         Table of photometric data. Must include certain column names.
     model : `~sncosmo.Model`
         The model to fit.
-    parnames : list
+    param_names : list
         Model parameters to vary in the fit.
     p0 : `dict`, optional
         If given, use these initial parameters in fit. Default is to use
@@ -143,11 +289,11 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     model = get_model(model, copy=True)
 
     # Check that 'z' is bounded (if it is going to be fit).
-    if 'z' in parnames and (bounds is None or 'z' not in bounds):
+    if 'z' in param_names and (bounds is None or 'z' not in bounds):
         raise ValueError('z must be bounded if fit.')
 
     # Cut bands that are not allowed by the wavelength range of the model
-    if 'z' not in parnames:
+    if 'z' not in param_names:
         valid = model.bandoverlap(data['band'])
     else:
         valid = model.bandoverlap(data['band'], z=bounds['z'])
@@ -161,16 +307,16 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     # Set initial parameters, to help with guessing parameters, below.
     if p0 is None:
         p0 = {}
-    if 'z' in parnames and 'z' not in p0:
+    if 'z' in param_names and 'z' not in p0:
         p0['z'] = sum(bounds['z']) / 2.
     model.set(**p0)
 
     # Get list of initial guesses.
     if fit_offset:
-        guesses = guess_parvals(data, model, parnames=['t0', 'fscale'])
+        guesses = guess_parvals(data, model, param_names=['t0', 'fscale'])
     else:
         ndata = normalize_data(data, zp=offset_zp, zpsys=offset_zpsys)
-        guesses = guess_parvals(ndata, model, parnames=['t0', 'fscale'])
+        guesses = guess_parvals(ndata, model, param_names=['t0', 'fscale'])
 
     # Set initial parameters. Order of priority: 
     #   1. p0
@@ -179,7 +325,7 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
     #   4. 0.
     parvals0 = []
     current = model.params
-    for name in parnames:
+    for name in param_names:
         if name in p0:
             parvals0.append(p0[name])
         elif name in guesses:
@@ -196,35 +342,35 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
         for bandname in fit_offset:
             parname = 'offset_' + bandname
             idx = data['band'] == bandname
-            parnames.append(parname)
+            param_names.append(parname)
             parvals0.append(np.min(data['flux'][idx]))
             offset_to_data[parname] = idx
 
     # Set up a complete list of bounds.
     bounds_list = []
-    for name in parnames:
+    for name in param_names:
         if bounds is not None and name in bounds:
             bounds_list.append(bounds[name])
         elif name == 't0':
-            i = parnames.index('t0')
+            i = param_names.index('t0')
             bounds_list.append((parvals0[i] - t0_range,
                                 parvals0[i] + t0_range))
         else:
             bounds_list.append((None, None))
 
     # count degrees of freedom
-    ndof = len(data) - len(parnames)
+    ndof = len(data) - len(param_names)
 
     if print_level > 0:
         print "starting point:"
-        for name, val, bound in zip(parnames, parvals0, bounds_list):
+        for name, val, bound in zip(param_names, parvals0, bounds_list):
             print "   ", name, val, bound
 
     fscale_factor = 1.
 
     # define chi2 where input is array_like
     def chi2_array_like(parvals):
-        params = dict(zip(parnames, parvals))
+        params = dict(zip(param_names, parvals))
 
         if 'fscale' in params:
             params['fscale'] *= fscale_factor
@@ -263,7 +409,7 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
 
         # Set up keyword arguments to pass to Minuit initializer
         kwargs = {}
-        for parname, parval, bounds in zip(parnames, parvals0, bounds_list):
+        for parname, parval, bounds in zip(param_names, parvals0, bounds_list):
             kwargs[parname] = parval
             if bounds is not None and None not in bounds:
                 kwargs['limit_' + parname] = bounds
@@ -277,7 +423,7 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
                 step_size = 1.
             kwargs['error_' + parname] = step_size
 
-        m = iminuit.Minuit(chi2, errordef=1., forced_parameters=parnames,
+        m = iminuit.Minuit(chi2, errordef=1., forced_parameters=param_names,
                            print_level=print_level, **kwargs)
         d, l = m.migrad(ncall=max_ncall)
         res = Result(ncalls=d.nfcn, fval=d.fval, params=m.values,
@@ -288,8 +434,8 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
         from scipy.optimize import fmin_l_bfgs_b
 
         # Scale 'fscale' to ~1 for numerical precision reasons.
-        if 'fscale' in parnames:
-            i = parnames.index('fscale')
+        if 'fscale' in param_names:
+            i = param_names.index('fscale')
             fscale_factor = parvals0[i]
             parvals0[i] = 1.
             if 'fscale' in bounds:
@@ -302,7 +448,7 @@ def fit_lc(data, model, parnames, p0=None, bounds=None,
 
         d['ncalls'] = d.pop('funcalls')
         res = Result(d)
-        res.params = dict(zip(parnames, x))
+        res.params = dict(zip(param_names, x))
         res.fval = f
         res.ndof = ndof
 

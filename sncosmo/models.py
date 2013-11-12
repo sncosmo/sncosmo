@@ -4,7 +4,7 @@
 
 import abc
 import os
-from copy import copy as shallowcopy
+from copy import copy as cp
 from textwrap import dedent
 
 import numpy as np
@@ -50,11 +50,11 @@ def get_sourcemodel(name, version=None, copy=False):
     # going to the registry, so we know whether or not to make a shallow copy.
     if isinstance(name, SourceModel):
         if copy:
-            return shallowcopy(name)
+            return cp(name)
         else:
             return name
     else:
-        return shallowcopy(registry.retrieve(SourceModel, name, version=version))
+        return cp(registry.retrieve(SourceModel, name, version=version))
 
 # TODO maybe put ObsModels directly in the registry.
 # TODO clean up 
@@ -63,11 +63,11 @@ def get_obsmodel(name, version=None, copy=False):
 
     if isinstance(name, ObsModel):
         if copy:
-            return shallowcopy(name)
+            return cp(name)
         else:
             return name
 
-    source = shallowcopy(registry.retrieve(SourceModel, name, version=version))
+    source = cp(registry.retrieve(SourceModel, name, version=version))
     if source.__class__.__name__ == 'SALT2Model':
         effects = [InterpolatedRvDust()]
         effect_names = ['mw']
@@ -197,6 +197,20 @@ class _ModelBase(object):
             except ValueError:
                 raise KeyError("Unknown parameter: " + repr(key))
             self._parameters[i] = val
+
+    def __getitem__(self, name):
+        try:
+            i = self._param_names.index(name)
+        except ValueError:
+            raise KeyError("Model has no parameter " + repr(name))
+        return self._parameters[i]
+
+    def __setitem__(self, name, value):
+        try:
+            i = self._param_names.index(name)
+        except ValueError:
+            raise KeyError("Model has no parameter " + repr(name))
+        self._parameters[i] = value
 
     def summary(self):
         return ''
@@ -786,7 +800,7 @@ class ObsModel(_ModelBase):
         self.param_names_latex = ['z', 't_0']
         self.param_bounds = [(None, None), (None, None)]
         self._parameters = np.array([0., 0.])
-        self._source = shallowcopy(source_model)
+        self._source = cp(source_model)
         self.name = self._source.name  # TODO be more careful with the name
         self._effects = []
         self._effect_names = []
@@ -827,7 +841,7 @@ class ObsModel(_ModelBase):
             raise ValueError('effect is not a PropagationEffect')
         if frame not in ['rest', 'obs']:
             raise ValueError("frame must be one of: 'rest', 'obs'")
-        self._effects.append(shallowcopy(effect))
+        self._effects.append(cp(effect))
         self._effect_names.append(name)
         self._effect_frames.append(frame)
         self._synchronize_parameters()
@@ -985,9 +999,9 @@ class ObsModel(_ModelBase):
         # Return array according to dimension of inputs.
         if np.isscalar(time) or time.ndim == 0:
             if np.isscalar(wave) or wave.ndim == 0:
-                return flux[0, 0]
-            return flux[0, :]
-        return flux
+                return f[0, 0]
+            return f[0, :]
+        return f
 
     # ----------------------------------------------------------------------
     # Bandpass-related functions

@@ -19,7 +19,8 @@ _model_ls = ['-', '--', ':', '-.']
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
-            offsets=None, xfigsize=None, yfigsize=None, figtext=None,
+            offsets=None, xfigsize=None, yfigsize=None, idtext=None,
+            errors=None,
             figtextsize=1., fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
@@ -27,10 +28,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     ----------
     data : `~numpy.ndarray` or dict of list_like, optional
         Structured array or dictionary of arrays or lists.
-    model : `~sncosmo.Model`, str or list, optional
+    model : `~sncosmo.Model` or str or list or tuple thereof, optional
         If given, model light curve is plotted. If a string, the corresponding
-        model is fetched from the registry. If a list of `sncosmo.Model` or
-        string, multiple models are plotted.
+        model is fetched from the registry. If a list or tuple of
+        `sncosmo.Model` or `str`, multiple models are plotted.
     bands : list, optional
         List of Bandpasses, or names thereof, to plot.
     zp : float, optional
@@ -42,7 +43,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         ``True``.
     offsets : list, optional
         Offsets in flux for given bandpasses.
-    figtext : str or list, optional
+    idtext : str, optional
         Text to add to top of figure. If a list of strings, each item is
         placed in a separate "column". Use newline separators for multiple
         lines.
@@ -117,10 +118,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     # Get the model(s).
     if model is not None:
-        if isinstance(model, basestring) or not isiterable(model):
-            models = [model]
-        else:
+        if isinstance(model, (tuple, list)):
             models = model
+        else:
+            models = [model]
         models = [get_obsmodel(m) for m in models]
     else:
         models = []
@@ -152,6 +153,34 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             if band not in offsets:
                 offsets[band] = 0.
 
+    # Build figtext if not given explicitly
+    figtext = None
+    if errors is None:
+        errors = {}
+    if (figtext is None) and (len(models) == 1 or idtext is not None):
+        
+        # Three columns
+        figtext = [idtext, None, None]
+        
+        if len(models) == 1:
+            model = models[0]
+            lines = []
+            for i in range(len(model.param_names)):
+                name = model.param_names[i]
+                lname = model.param_names_latex[i]
+                if name in errors:
+                    v = value_error_str(model.parameters[i], errors[name],
+                                        latex=True)
+                else:
+                    v = '{:.4f}'.format(model.parameters[i])
+                lines.append('${} = {}$'.format(lname, v))
+
+            # split lines into two columns
+            n = len(model.param_names) - len(model.param_names) // 2
+            figtext[1] = '\n'.join(lines[:n])
+            figtext[2] = '\n'.join(lines[n:])
+
+
     # Calculate layout of figure (columns, rows, figure size)
     nsubplots = len(bands)
     ncol = 2
@@ -166,24 +195,27 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     else:
         raise ValueError('cannot specify both xfigsize and yfigsize')
 
+    # Adjust figure size for figtext
     if figtext is not None:
         figsize = (figsize[0], figsize[1] + figtextsize)
-        figtext_yfrac = figtextsize / figsize[1]
     else:
-        figtext_yfrac = 0.
+        figtextsize = 0.
 
+    # Create the figure
     fig = plt.figure(figsize=figsize)
 
-    # Add figure text at the top of the figure
+    # Write figtext
     if figtext is not None:
         if isinstance(figtext, basestring):
             figtext = [figtext]
         for i in range(len(figtext)):
+            if figtext[i] is None:
+                continue
             xpos = 0.05 + 0.9 * (i / len(figtext))
             t = fig.text(xpos, 0.95, figtext[i],
                          va="top", ha="left", multialignment="left")
 
-    # Loop over bands.
+    # Loop over bands
     axnum = 0
     for wave, band in sorted(zip(waves, bands)):
         axnum += 1
@@ -289,7 +321,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         # label the most recent Axes x-axis
         plt.xlabel(xlabel_text)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=(0., 0., 1., 1. - figtextsize / figsize[1]))
 
     #plt.subplots_adjust(left=0.1, right=0.95,
     #                    bottom=0.1, top=0.97 - figtext_yfrac,
