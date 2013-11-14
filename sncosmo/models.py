@@ -561,6 +561,7 @@ class SALT2Model(SourceModel):
     _param_names = ['x0', 'x1', 'c']
     param_names_latex = ['x_0', 'x_1', 'c']
     param_bounds = [(0., None), (None, None), (None, None)]
+    OFFSET_FACTOR = 10.**-12 * 10.**(-0.27/2.5)
 
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
@@ -593,7 +594,6 @@ class SALT2Model(SourceModel):
 
             # Get the model component from the file
             phase, wave, values = read_griddata(name_or_obj)
-            values = 10.**(-12. + 0.27) * values
             self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
@@ -613,7 +613,7 @@ class SALT2Model(SourceModel):
     def _flux(self, phase, wave):
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)
-        return (self._parameters[0] *
+        return ((self._parameters[0] * self.OFFSET_FACTOR) *
                 (m0 + self._parameters[1] * m1) *
                 self._model['clbase'](wave) ** self._parameters[2])
 

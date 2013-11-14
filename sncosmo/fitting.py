@@ -2,7 +2,6 @@
 from __future__ import division
 from warnings import warn
 import copy
-import sys
 from itertools import product
 
 import numpy as np
@@ -19,8 +18,65 @@ MAX_FLOAT = sys.float_info.max
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
 
-def fit_lc(data, model, param_names, bounds=None, method='iminuit',
-           guess_amplitude=True, refine_guess=False, disp=False, maxiter=10000):
+def fit_lc(data, model, param_names, bounds=None, method='minuit',
+           guess_amplitude=True, guess_t0=True, minsnr=5., disp=False,
+           maxcall=10000):
+    """Fit model parameters to data by minimizing chi^2.
+
+    Ths function defines a chi^2 to minimize, makes initial guesses for
+    t0 and amplitude, then runs a minimizer.
+
+    Parameters
+    ----------
+    data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
+        Table of photometric data. Must include certain column names.
+    model : `~sncosmo.ObsModel`
+        The model to fit.
+    param_names : list
+        Model parameters to vary in the fit.
+    bounds : `dict`, optional
+        Bounded range for each parameter. Keys should be parameter
+        names, values are tuples. If a bound is not given for some
+        parameter, the parameter is unbounded. The exception is
+        ``t0``: by default, the minimum bound is such that the latest
+        phase of the model lines up with the earliest data point and
+        the maximum bound is such that the earliest phase of the model
+        lines up with the latest data point.
+    guess_amplitude : bool, optional
+        Whether or not to guess the amplitude from the data. If false, the 
+        current model amplitude is taken as the initial value. Only has an
+        effect when fitting amplitude. Default is True.
+    guess_t0 : bool, optional
+        Whether or not to guess t0. Only has an effect when fitting t0.
+        Default is True.
+    minsnr : float, optional
+        When guessing amplitude and t0, only use data with signal-to-noise
+        ratio (flux / fluxerr) greater than this value. Default is 5.
+    method : {'minuit'}, optional
+        Minimization method to use.
+    disp : bool, optional
+        Print level.
+
+    Returns
+    -------
+    res : Result
+        The optimization result represented as a ``Result`` object (a dict
+        subclass with attribute access). Some important attributes:
+
+        - ``success``: boolean describing whether fit succeeded.
+        - ``ncall``: number of function evaluations.
+        - ``chisq``: minimum chi^2 value.
+        - ``ndof``: number of degrees of freedom (len(data) - len(param_names))
+        - ``param_names``: input parameter names.
+        - ``parameters``: best fit values (dict)
+        - ``errors``: 1-sigma uncertainties (dict)
+        - ``covariance``: coviarance (dict)
+
+        See ``res.keys()`` for all available attributes.
+
+    fitted_model : `~sncosmo.ObsModel`
+        A copy of the model with parameters set to best-fit values.
+    """
 
     # Standardize and normalize data.
     data = standardize_data(data)
@@ -61,26 +117,47 @@ def fit_lc(data, model, param_names, bounds=None, method='iminuit',
     if 't0' in param_names and 't0' not in bounds:
         bounds['t0'] = (model['t0'] + np.min(data['time']) - model.maxtime,
                         model['t0'] + np.max(data['time']) - model.mintime)
-        model['t0'] = sum(bounds['t0']) / 2.
 
     # If we're fitting for 'amplitude', find its starting point.
     # (For now we assume it is the 3rd parameter of the model.)
-    if model.param_names[2] in param_names and guess_amplitude:
+    if ((model.param_names[2] in param_names and guess_amplitude) or
+        ('t0' in param_names and guess_t0)):
+        snr = data['flux'] / data['fluxerr']
+        significant_data = data[snr > minsnr]
         modelflux = {}
         dataflux = {}
-        zp = data['zp'][0]
+        datatime = {}
+        zp = data['zp'][0] # zp is all the same
         zpsys = data['zpsys'][0]
         for band in bands:
-            modelflux[band] = (model.bandflux(band, zp=zp, zpsys=zpsys) /
-                               model.parameters[2])
-            mask = data['band'] == band
-            dataflux[band] = data['flux'][mask]
-
+            mask = significant_data['band'] == band
+            if np.any(mask):
+                modelflux[band] = (model.bandflux(band, zp=zp, zpsys=zpsys) /
+                                   model.parameters[2])
+                dataflux[band] = significant_data['flux'][mask]
+                datatime[band] = significant_data['time'][mask]
+        
+        significant_bands = modelflux.keys()
+        if len(significant_bands) == 0:
+            raise RuntimeError('No data points with S/N > 5. Initial guessing'
+                               ' failed.')
+        
         # ratio of maximum data flux to maximum model flux in each band
-        amplitude = max([abs(np.max(dataflux[band]) / np.max(modelflux[band]))
-                         for band in bands])
+        bandratios = np.array([np.max(dataflux[band]) / np.max(modelflux[band])
+                               for band in significant_bands])
+        
+        # Amplitude guess is biggest ratio one
+        amplitude = abs(max(bandratios))
+        
+        # time guess is time of max in the band with the biggest ratio
+        band = significant_bands[np.argmax(bandratios)]
+        data_tmax = datatime[band][np.argmax(dataflux[band])]
+        model_tmax = model.times[np.argmax(modelflux[band])]
 
-        model.parameters[2] = amplitude
+        if (model.param_names[2] in param_names and guess_amplitude):
+            model.parameters[2] = amplitude
+        if ('t0' in param_names and guess_t0):
+            model['t0'] = model['t0'] + data_tmax - model_tmax
 
         # Get a refined guess by doing a small grid search
         #if refine_guess:
@@ -96,16 +173,17 @@ def fit_lc(data, model, param_names, bounds=None, method='iminuit',
         #        modelflux[band] = Spline1d(modeltimes, modelflux[band])
         #
         #    # set up a grid in (t0, amplitude) space
-        #    t0_grid = np.linspace(bounds['t0'][0], bounds['t0'][1], 50)
+        #    t0_grid = np.linspace(bounds['t0'][0], bounds['t0'][1], 100)
         #    a_grid = np.logspace(np.log10(amplitude) - 2.,
-        #                         np.log10(amplitude) + 1., 20)
+        #                         np.log10(amplitude) + 1., 30)
         #    chisqmin = MAX_FLOAT
         #    best = None
         #    for t0, a in product(t0_grid, a_grid):
         #        chisq = 0.
         #        for band in bands:
         #            mflux = a * modelflux[band](datatimes[band] - t0)
-        #            chisq += ((dataflux[band] - mflux) / datafluxerr[band])**2
+        #            chisq += np.sum(((dataflux[band] - mflux) /
+        #                             datafluxerr[band])**2)
         #        if chisq < chisqmin:
         #            chisqmin = chisq
         #            best = t0, a
@@ -132,7 +210,7 @@ def fit_lc(data, model, param_names, bounds=None, method='iminuit',
                                    zp=data['zp'], zpsys=data['zpsys'])
         return np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
 
-    if method == 'iminuit':
+    if method == 'minuit':
         try:
             import iminuit
         except ImportError:
@@ -152,15 +230,9 @@ def fit_lc(data, model, param_names, bounds=None, method='iminuit',
             i = model.param_names.index(name)
             kwargs[name] = model.parameters[i]  # starting point
 
-
-            lo, hi = bounds[name]
-            if lo is not None and hi is not None:
-                # iminuit doesn't like bounds to be None...
-                #if lo is None:
-                #    lo = -MAX_FLOAT
-                #if hi is None:
-                #    hi = MAX_FLOAT
-                kwargs['limit_' + name] = (lo, hi)
+            # TODO: When iminuit allows 1-sided bounds, update this.
+            if None not in bounds[name]:
+                kwargs['limit_' + name] = bounds[name]
 
             # set initial step size
             if bounds[name][0] is not None and bounds[name][1] is not None:
@@ -186,27 +258,31 @@ def fit_lc(data, model, param_names, bounds=None, method='iminuit',
                            print_level=(1 if disp else 0),
                            throw_nan=True,
                            **kwargs)
-        d, l = m.migrad(ncall=maxiter)
+        d, l = m.migrad(ncall=maxcall)
 
         # Compile results
         res = Result(
             success=d.is_valid, # need to check if hesse succeeds as well!
             message='',
             ncall=d.nfcn,
-            fval=d.fval,
-            param_names=m.values.keys(),
-            values=m.values,
+            chisq=d.fval,
+            param_names=param_names,
+            parameters=m.values,
             errors=m.errors,
             covariance=m.covariance,
             ndof=ndof
             )
-        return res, model
 
-def old_fit_lc(data, model, param_names, p0=None, bounds=None,
-               t0_range=20., include_model_error=False,
-               fit_offset=False, offset_zp=25., offset_zpsys='ab',
-               method='iminuit', return_minuit=False, max_ncall=10000,
-               print_level=0):
+    else:
+        raise ValueError("unknown method {:r}".format(method))
+    
+    return res, model
+
+def deprecated_fit_lc(data, model, param_names, p0=None, bounds=None,
+                      t0_range=20., include_model_error=False,
+                      fit_offset=False, offset_zp=25., offset_zpsys='ab',
+                      method='iminuit', return_minuit=False, max_ncall=10000,
+                      print_level=0):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
