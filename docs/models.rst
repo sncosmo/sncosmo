@@ -2,117 +2,82 @@
 Supernova Models
 ****************
 
+Initializing from built-in models
+=================================
 
-Initializing
-============
-
-There are several built-in models available by name. These models can be
-retrieved using the `sncosmo.get_model` function:
+Create an `~sncosmo.ObsModel` that has the SALT2 model as a source:
 
     >>> import sncosmo
-    >>> model = sncosmo.get_model('hsiao')
-    >>> model
-    <StretchModel 'hsiao' version='3.0' at 0x3daf8d0>
+    >>> model = sncosmo.ObsModel(source='salt2')
+    >>> print model
+    <ObsModel at 0x48585d0>
+    source:
+      class      : SALT2Model
+      name       : salt2
+      version    : 2.0
+      phases     : [-20, .., 50] days (71 points)
+      wavelengths: [2000, .., 9200] Angstroms (721 points)
+    parameters:
+      z  = 0.0
+      t0 = 0.0
+      x0 = 1.0
+      x1 = 0.0
+      c  = 0.0
 
-Some models have multiple versions of the data, which can be retrieved using
-the ``version`` keyword. If the keyword is excluded, the latest version is
-returned.
-
-    >>> model = sncosmo.get_model('hsiao', version='2.0')
-
-.. note:: In fact, the model data is hosted remotely, downloaded
-          as needed, and cached locally. So the first time you
-          load a given model using `~sncosmo.get_model`, you need to be
-          connected to the internet.  You will see a progress bar as
+.. note:: In fact, the data for "built-in" models like SALT2 are hosted
+	  remotely, downloaded as needed, and cached locally. So the first
+	  time you load a given model, you need
+	  to be connected to the internet.  You will see a progress bar as
           the data are downloaded.
 
+Some source models have multiple versions of the data, which can be explicitly
+retrieved using the `~sncosmo.get_sourcemodel` function:
 
-Setting parameters
-==================
+    >>> source = sncosmo.get_sourcemodel('salt2', version='1.1')
+    >>> model = sncosmo.ObsModel(source=source)
 
-Each model instance has a set of "current" parameters. For example,
-the ``hsiao`` model has the following parameters:
 
-    >>> model.parnames
-    ['fscale', 'm', 'mabs', 't0', 'z', 'c', 's']
+Retrieving and setting parameters
+=================================
 
-The first three of these, ``fscale``, ``m``, and ``mabs`` are three
-different ways of representing the absolute flux scale of the model.
-These three, along with ``t0`` (time of phase=0) and ``z`` (redshift)
-are common among all models. The last two, ``c`` and ``s`` are
-particular to this specific class of model (``StretchModel``).
+Each model has a set of parameter names, that can be retrieved via:
 
-To set any of the parameters, specify them as keywords to the ``set`` method:
+    >>> model.param_names
+    ['z', 't0', 'x0', 'x1', 'c']
 
-    >>> model.set(mabs=-19.3, z=0.5, c=0.1, s=1.2)
-    >>> # or...
-    >>> new_params = {'mabs':-19.3, 'z':0.5, 'c':0.1, 's':1.2}
-    >>> model.set(**new_params)
+Each *instance* also has a set of parameter values, corresponding to the
+parameter names:
 
-To see the current parameters:
+    >>> model.parameters
+    array([ 0.,  0.,  1.,  0.,  0.])
 
-    >>> model.params  # note: cannot be used to set parameters
-    OrderedDict([('fscale', 8.2521398493289069e-10), ('m', 22.992512497861608),
-                 ('mabs', -19.3), ('t0', 0.0), ('z', 0.5), ('c', 0.1),
-                 ('s', 1.2)])
+These can also be retrieved as:
 
-Flux scale parameters: ``fscale``, ``m``, and ``mabs``
-------------------------------------------------------
+    >>> model['z']  # Note: this syntax is preliminary!
+    0.0
 
-Above, notice that ``fscale`` and ``m`` have been set, even though we
-didn't specify them. These three parameters are defined as
-follows:
+Parameter values can be set by (1) explicitly indexing the parameter array
+or (2) by using the "dictionary"-like syntax or (3) using the ``set`` method:
 
-* ``fscale``: flux scale relative to native model flux values. All
-  model flux values will be multiplied by this value.
+    >>> model.parameters[0] = 0.5
+    >>> model['z'] = 0.5  # Note: this syntax is preliminary!
+    >>> model.set(z=0.5)
 
-* ``m``: apparent magnitude, in a predefined band, magnitude system
-  and phase.  If specified, this is used to calculate ``fscale`` (and
-  therefore overrides it if both are specified). That is, ``fscale``
-  is set so that the synthetic magnitude in the predefined band and
-  magnitude system, at the predefined phase is ``m``.
+The set method can take multiple parameters.
 
-* ``mabs``: absolute magnitude. Sets ``m`` so that ``m = mabs +
-  (distance modulus)`` where distance modulus is determined from the
-  redshift. If specified, it is used to determine both ``m`` and ``fscale``
-  and therefore overrides them.
+What do these parameters mean? The first two, ``z`` and ``t0`` are common to
+all `~sncosmo.ObsModel` instances. The next three, ``x0``, ``x1`` and ``c``
+are specific to the particular source, in this case the SALT2 model. Other
+source models might have different parameters.
 
-The predefined band, magnitudes system and phase can be set and accessed as
-parameters as such:
+* ``z`` is the redshift of the source.
+* ``t0`` is the observer-frame time corresponding to the model's phase=0.
 
-    >>> model.refphase
-    0.092137760464381685
-    >>> model.refband
-    <Bandpass 'bessellb' at 0x20c1ed0>
-    >>> model.refmagsys
-    <sncosmo.spectral.ABMagSystem object at 0x20c1f10>
+Adding effects to the model
+===========================
 
-By default the reference phase is set to the phase of maximum light in
-the reference band when the model is loaded. You can change them:
+TODO: Write this.
 
-    >>> model.refphase = 3.
-    >>> model.refband = 'sdssg'
-    >>> model.refmagsys = 'vega'
-
-    >>> model.refphase
-    3.
-    >>> model.refband
-    <Bandpass 'sdssg' at 0x20c1d50>
-    >>> model.refmagsys
-    <sncosmo.spectral.SpectralMagSystem object at 0x212ac90>
-
-The luminosity distance is calculated using the `astropy.cosmology` package.
-By default, the cosmology is set to a flat WMAP9 cosmology.
-
-    >>> model.cosmo
-    WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
-
-You can also change the cosmology:
-
-    >>> from astropy.cosmology import FlatLambdaCDM
-    >>> model.cosmo = FlatLambdaCDM(H0=70., Om0=0.3)
-    >>> model.cosmo
-    FlatLambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
 
 Native model phases and wavelengths
 ===================================
@@ -121,14 +86,14 @@ The model is defined at discrete phases and wavelengths and interpolation is
 used to determine flux values at intermediate phase(s) and wavelength(s). To
 see what the native values are:
 
-    >>> model.times(modelframe=True)  # rest-frame phases in days
-    array([ -24. ,  -22.8,  -21.6, ..., 99.6, 100.8,  102. ])
-    >>> model.times()  # observer-frame
+    >>> model.times
     array([ -36. ,  -34.2,  -32.4, ..., 149.4, 151.2,  153. ])
-    >>> model.disp(modelframe=True)  # rest-frame wavelengths in angstroms
-    array([  1000.,   1010.,   1020., ...,  24980.,  24990.,  25000.])
-    >>> model.disp()  # observer-frame
+    >>> model.wave
     array([  1500.,   1515.,   1530., ...,  37470.,  37485.,  37500.])
+
+.. warning::
+   Everything below is from the old docs and hasn't been updated yet.
+
 
 Retrieving a spectrum
 =====================
@@ -161,25 +126,7 @@ the modelframe keyword:
     array([  3.45329754e-22,   4.36235597e-22,   5.51652443e-22, ...,
              1.61948280e-20,   1.61985494e-20,   1.62019061e-20])
 
-Printing a summary
-==================
 
-    >>> print model
-    Model class: StretchModel
-    Model name: hsiao
-    Model version: 3.0
-    Model phases: [-20, .., 85] days (106 points)
-    Model dispersion: [1000, .., 25000] Angstroms (2401 points) 
-    Reference phase: 0.0921378 days
-    Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
-    Current Parameters:
-        fscale = 8.25213984933e-10
-        m = 22.9925124979 [bessellb, ab]
-	mabs = -19.3 [bessellb, ab]
-        t0 = 0.0
-        z = 0.5 [dist. mod. = 42.2925, lum. dist. = 2874.1 Mpc]
-        c = 0.1
-        s = 1.2
 
 
 Synthetic photometry

@@ -47,15 +47,15 @@ Using a Bandpass
 
 Once created, you can access the values:
 
-    >>> band.disp  # always returns wavelengths in Angstroms
+    >>> band.wave  # always returns wavelengths in Angstroms
     array([ 4000.,  4200.,  4400.,  4600.,  4800.,  5000.])
     >>> band.trans
     array([ 0.,  1.,  1.,  1.,  1.,  0.])
     >>> band.name
     'tophatg'
-    >>> band.ddisp  # width of each "bin" in Angstroms
+    >>> band.dwave  # width of each "bin" in Angstroms
     array([ 200.,  200.,  200.,  200.,  200.,  200.])
-    >>> band.disp_eff  # effective dispersion (transmission-weighted)
+    >>> band.wave_eff  # effective wavelength (transmission-weighted)
     4500.0
 
 To convert the dispersion and transmission to a different unit:

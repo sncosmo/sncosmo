@@ -7,7 +7,7 @@ from .plotting import *
 from .fitting import *
 from .typing import *
 from .extinction import *
-from .photometric_data import *
+from .extmap import *
 from . import registry
 from . import _builtin
 

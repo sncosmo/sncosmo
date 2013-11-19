@@ -1,14 +1,16 @@
 import math
 from warnings import warn
+from operator import mul
 
 import numpy as np
 from astropy.utils import OrderedDict as odict
 
-from .models import get_model
+from .models import _ModelBase, ObsModel
 from .spectral import get_magsystem
-from .photometric_data import standardize_data
+from .photdata import standardize_data
 from .fitting import _nest_lc
 from .utils import pdf_to_ppf, Interp1d
+
 
 class PhotoTyper(object):
     """Bayesian photometric typer.
@@ -54,7 +56,7 @@ class PhotoTyper(object):
             Name 
         """
 
-        model = get_model(model)  # This always copies the model.
+        #model = get_model(model)  # This always copies the model.
         if name is None:
             name = model.name
         if name is None:

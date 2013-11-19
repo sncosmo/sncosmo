@@ -19,7 +19,7 @@ for ax, filterset in zip(grid, filtersets):
     for m in bandpass_meta:
         if m['filterset'] != filterset: continue
         b = get_bandpass(m['name'])
-        ax.plot(b.disp, b.trans, label=m['name'])
+        ax.plot(b.wave, b.trans, label=m['name'])
     ax.set_xlabel('Angstroms')
     ax.set_ylabel('Transmission')
     ax.legend(loc='upper right')

@@ -23,13 +23,14 @@ Models, Bandpasses & Magnitude Systems
 .. autosummary::
    :toctree: _generated
 
-   get_model
+   get_sourcemodel
    get_bandpass
    get_magsystem
-   Model
+   SourceModel
    TimeSeriesModel
    StretchModel
    SALT2Model
+   ObsModel
    Bandpass
    MagSystem
    ABMagSystem
@@ -43,7 +44,7 @@ Extinction Functions
 .. autosummary::
    :toctree: _generated
 
-   extinction_ccm
+   extinction
    get_ebv_from_map
 
 Data I/O
@@ -57,10 +58,12 @@ standard (and not-so-standard) formats*
 
    read_lc
    write_lc
+   read_bandpass
    load_example_data
    read_snana_ascii
    read_snana_fits
    read_snana_simlib
+   
 
 Fitting & Typing Photometric Data
 =================================
@@ -71,6 +74,7 @@ Fitting & Typing Photometric Data
    :toctree: _generated
 
    fit_lc
+   nest_lc
    mcmc_lc
    PhotoTyper
 
@@ -83,7 +87,7 @@ Plotting
    :toctree: _generated
 
    plot_lc
-   plot_pdf
+   plot_param_samples
    animate_model
 
 Registry
@@ -101,7 +105,7 @@ Registry
 Class Inheritance Diagrams
 ==========================
 
-.. inheritance-diagram:: Model TimeSeriesModel StretchModel SALT2Model
+.. inheritance-diagram:: SourceModel TimeSeriesModel StretchModel SALT2Model
    :parts: 1
 
 .. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem

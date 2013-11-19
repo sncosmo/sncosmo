@@ -7,9 +7,8 @@ import numpy as np
 
 from astropy.utils.misc import isiterable
 
-from .models import get_obsmodel
 from .spectral import get_bandpass, get_magsystem
-from .photometric_data import standardize_data, normalize_data
+from .photdata import standardize_data, normalize_data
 from .utils import value_error_str
 
 __all__ = ['plot_lc', 'plot_param_samples', 'animate_model']
@@ -19,7 +18,7 @@ _model_ls = ['-', '--', ':', '-.']
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
-            offsets=None, xfigsize=None, yfigsize=None, idtext=None,
+            offsets=None, xfigsize=None, yfigsize=None, figtext=None,
             errors=None,
             figtextsize=1., fname=None, **kwargs):
     """Plot light curve data or model light curves.
@@ -43,7 +42,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         ``True``.
     offsets : list, optional
         Offsets in flux for given bandpasses.
-    idtext : str, optional
+    figtext : str, optional
         Text to add to top of figure. If a list of strings, each item is
         placed in a separate "column". Use newline separators for multiple
         lines.
@@ -122,7 +121,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             models = model
         else:
             models = [model]
-        models = [get_obsmodel(m) for m in models]
     else:
         models = []
 
@@ -153,33 +151,33 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             if band not in offsets:
                 offsets[band] = 0.
 
-    # Build figtext if not given explicitly
-    figtext = None
+    # Initialize errors
     if errors is None:
         errors = {}
-    if (figtext is None) and (len(models) == 1 or idtext is not None):
-        
-        # Three columns
-        figtext = [idtext, None, None]
-        
-        if len(models) == 1:
-            model = models[0]
-            lines = []
-            for i in range(len(model.param_names)):
-                name = model.param_names[i]
-                lname = model.param_names_latex[i]
-                if name in errors:
-                    v = value_error_str(model.parameters[i], errors[name],
-                                        latex=True)
-                else:
-                    v = '{:.4f}'.format(model.parameters[i])
-                lines.append('${} = {}$'.format(lname, v))
 
-            # split lines into two columns
-            n = len(model.param_names) - len(model.param_names) // 2
-            figtext[1] = '\n'.join(lines[:n])
-            figtext[2] = '\n'.join(lines[n:])
+    # Build figtext if not given explicitly
+    if figtext is None:
+        figtext = []
+    elif isinstance(figtext, basestring):
+        figtext = [figtext]
+        
+    if len(models) == 1:
+        model = models[0]
+        lines = []
+        for i in range(len(model.param_names)):
+            name = model.param_names[i]
+            lname = model.param_names_latex[i]
+            if name in errors:
+                v = value_error_str(model.parameters[i], errors[name],
+                                    latex=True)
+            else:
+                v = '{:.4f}'.format(model.parameters[i])
+            lines.append('${} = {}$'.format(lname, v))
 
+        # split lines into two columns
+        n = len(model.param_names) - len(model.param_names) // 2
+        figtext.append('\n'.join(lines[:n]))
+        figtext.append('\n'.join(lines[n:]))
 
     # Calculate layout of figure (columns, rows, figure size)
     nsubplots = len(bands)
@@ -196,7 +194,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         raise ValueError('cannot specify both xfigsize and yfigsize')
 
     # Adjust figure size for figtext
-    if figtext is not None:
+    if len(figtext) > 0:
         figsize = (figsize[0], figsize[1] + figtextsize)
     else:
         figtextsize = 0.
@@ -205,9 +203,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     fig = plt.figure(figsize=figsize)
 
     # Write figtext
-    if figtext is not None:
-        if isinstance(figtext, basestring):
-            figtext = [figtext]
+    if len(figtext) > 0:
         for i in range(len(figtext)):
             if figtext[i] is None:
                 continue
@@ -249,16 +245,13 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
         # Plot model(s) if there are any.
         if len(models) > 0:
+            mflux_mins = []
+            mflux_maxes = []
             for i, model in enumerate(models):
                 if not model.bandoverlap(band):
                     continue
 
                 plotted_time = model.times - models[0].parameters[1]
-
-                #if include_model_error:
-                #    mflux, mfluxerr = model.bandflux(band, zp=zp, zpsys=zpsys,
-                #                                     include_error=True)
-                #else:
                 mflux = model.bandflux(band, zp=zp, zpsys=zpsys)
 
                 if offsets is not None and band in offsets:
@@ -266,22 +259,18 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
                 plt.plot(plotted_time, mflux, ls=_model_ls[i%len(_model_ls)],
                          marker='None', color=color, label=model.name)
-                #if include_model_error:
-                #    plt.fill_between(plotted_time, mflux - mfluxerr,
-                #                     mflux + mfluxerr, color=color,
-                #                     alpha=0.2)
 
-                if i == 0:
-                    mflux_min, mflux_max = mflux.min(), mflux.max()
-                else:
-                    mflux_min = min(mflux_min, mflux.min())
-                    mflux_max = max(mflux_max, mflux.max())
+                mflux_mins.append(mflux.min())
+                mflux_maxes.append(mflux.max())
 
-            # maximum plot range
-            ymin, ymax = ax.get_ylim()
-            ymax = min(ymax, 2. * mflux_max)
-            ymin = max(ymin, mflux_min - (ymax - mflux_max))
-            ax.set_ylim(ymin, ymax)
+            # If we plotted any models, reset axes limits accordingly:
+            if len(mflux_mins) > 0 and len(mflux_maxes) > 0:
+                mflux_min = min(mflux_mins)
+                mflux_max = max(mflux_maxes)
+                ymin, ymax = ax.get_ylim()
+                ymax = min(ymax, 2. * mflux_max)
+                ymin = max(ymin, mflux_min - (ymax - mflux_max))
+                ax.set_ylim(ymin, ymax)
 
             # Add a legend, if this is the first axes and there are two
             # or more models to distinguish between.
@@ -322,10 +311,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         plt.xlabel(xlabel_text)
 
     plt.tight_layout(rect=(0., 0., 1., 1. - figtextsize / figsize[1]))
-
-    #plt.subplots_adjust(left=0.1, right=0.95,
-    #                    bottom=0.1, top=0.97 - figtext_yfrac,
-    #                    wspace=0.2, hspace=0.2)
 
     if fname is None:
         plt.show()

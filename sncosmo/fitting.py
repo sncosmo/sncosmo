@@ -8,8 +8,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 
 from .spectral import get_magsystem, get_bandpass
-from .models import get_model
-from .photometric_data import standardize_data, normalize_data
+from .photdata import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
 
@@ -360,10 +359,6 @@ def deprecated_fit_lc(data, model, param_names, p0=None, bounds=None,
     if fit_offset:
         data = normalize_data(data, zp=offset_zp, zpsys=offset_zpsys)
 
-    # Get a shallow copy of the model so that we can change the parameters
-    # without worrying.
-    model = get_model(model, copy=True)
-
     # Check that 'z' is bounded (if it is going to be fit).
     if 'z' in param_names and (bounds is None or 'z' not in bounds):
         raise ValueError('z must be bounded if fit.')
@@ -707,7 +702,6 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
         raise ImportError("mcmc_lc() requires the emcee package.")
 
     data = standardize_data(data)
-    model = get_model(model)
     ndim = len(parnames)
 
     # --------------------- COPIED FROM FIT_LC ----------------------------

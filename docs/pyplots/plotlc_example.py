@@ -1,9 +1,9 @@
 import numpy as np
 import sncosmo
 
-meta, data = sncosmo.readlc('simulated_salt2_data.dat')
+data = sncosmo.readlc('simulated_salt2_data.dat')
 
-model = sncosmo.get_model('salt2')
-model.set(**meta)
+model = sncosmo.ObsModel(source='salt2')
+model.set(**data.meta)
 
 sncosmo.plotlc(data, fname='plotlc_example.png', model=model)

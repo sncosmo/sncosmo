@@ -20,7 +20,7 @@ from . import registry
 from .spectral import get_bandpass, get_magsystem
 from .extinction import extinction
 
-__all__ = ['get_sourcemodel', 'get_obsmodel', 'get_model',
+__all__ = ['get_sourcemodel',
            'SourceModel', 'TimeSeriesModel', 'StretchModel', 'SALT2Model',
            'ObsModel', 'PropagationEffect', 'InterpolatedRvDust']
 
@@ -58,29 +58,29 @@ def get_sourcemodel(name, version=None, copy=False):
 
 # TODO maybe put ObsModels directly in the registry.
 # TODO clean up 
-def get_obsmodel(name, version=None, copy=False):
-    """Build an ObsModel based on the named SourceModel."""
+#def get_obsmodel(name, version=None, copy=False):
+#    """Build an ObsModel based on the named SourceModel."""
 
-    if isinstance(name, ObsModel):
-        if copy:
-            return cp(name)
-        else:
-            return name
+#    if isinstance(name, ObsModel):
+#        if copy:
+#            return cp(name)
+#        else:
+#            return name
 
-    source = cp(registry.retrieve(SourceModel, name, version=version))
-    if source.__class__.__name__ == 'SALT2Model':
-        effects = [InterpolatedRvDust()]
-        effect_names = ['mw']
-        effect_frames = ['obs']
-    else:
-        effects = [InterpolatedRvDust(), InterpolatedRvDust()]
-        effect_names = ['host', 'mw']
-        effect_frames = ['rest', 'obs']
-    return ObsModel(source, effects=effects, effect_names=effect_names,
-                    effect_frames = effect_frames)
+#    source = cp(registry.retrieve(SourceModel, name, version=version))
+#    if source.__class__.__name__ == 'SALT2Model':
+#        effects = [InterpolatedRvDust()]
+#        effect_names = ['mw']
+#        effect_frames = ['obs']
+#    else:
+#        effects = [InterpolatedRvDust(), InterpolatedRvDust()]
+#        effect_names = ['host', 'mw']
+#        effect_frames = ['rest', 'obs']
+#    return ObsModel(source, effects=effects, effect_names=effect_names,
+#                    effect_frames = effect_frames)
 
 # TODO: deprecate this
-get_model = get_obsmodel
+#get_model = get_obsmodel
 
 
 def _bandflux(model, band, time_or_phase, zp, zpsys):
@@ -445,6 +445,15 @@ class SourceModel(_ModelBase):
 class TimeSeriesModel(SourceModel):
     """A single-component spectral time series model.
 
+    The spectral flux density of this model is given by 
+
+    .. math::
+
+       F(t, \lambda) = A \times M(t, \lambda)
+
+    where _M_ is the flux defined on a grid in phase and wavelength and _A_
+    (amplitude) is the single free parameter of the model.
+
     Parameters
     ----------
     phase : `~numpy.ndarray`
@@ -478,7 +487,16 @@ class TimeSeriesModel(SourceModel):
         return self._parameters[0] * self._model_flux(phase, wave)
 
 class StretchModel(SourceModel):
-    """A single-component spectral time series model, that "stretches".
+    """A single-component spectral time series model, that "stretches" in
+    time.
+
+    The spectral flux density of this model is given by 
+
+    .. math::
+
+       F(t, \lambda) = A \times M(t / s, \lambda)
+
+    where _A_ is the amplitude and _s_ is the "stretch". 
 
     Parameters
     ----------
@@ -522,6 +540,15 @@ class StretchModel(SourceModel):
 
 class SALT2Model(SourceModel):
     """The SALT2 Type Ia supernova spectral timeseries model.
+
+    The spectral flux density of this model is given by 
+
+    .. math::
+
+       F(t, \lambda) = x_0 (M_0(t, \lambda) + x_1 M_1(t, \lambda))
+                       \times CL(\lambda)^c
+
+    where ``x0``, ``x1`` and ``c`` are the free parameters of the model.
 
     Parameters
     ----------
@@ -794,13 +821,13 @@ class ObsModel(_ModelBase):
     SourceModel and PropagationEffects are copied upon instanciation.
     """
 
-    def __init__(self, source_model, effects=None,
+    def __init__(self, source, effects=None,
                  effect_names=None, effect_frames=None):
         self._param_names = ['z', 't0']
         self.param_names_latex = ['z', 't_0']
         self.param_bounds = [(None, None), (None, None)]
         self._parameters = np.array([0., 0.])
-        self._source = cp(source_model)
+        self._source = get_sourcemodel(source, copy=True)
         self.name = self._source.name  # TODO be more careful with the name
         self._effects = []
         self._effect_names = []
@@ -848,7 +875,7 @@ class ObsModel(_ModelBase):
 
     @property
     def source(self):
-        """The SourceModel instance. Use to set source apparent mag."""
+        """The SourceModel instance."""
         return self._source
 
     @property
@@ -902,6 +929,10 @@ class ObsModel(_ModelBase):
             l = len(m._parameters)
             m._parameters = self._parameters[pos:pos+l]
             pos += l
+
+        # Make a name for myself
+        self.name = '+'.join([self._source.name] + self._effect_names)
+        
 
     # ----------------------------------------------------------------
     # Time and wavelength grid

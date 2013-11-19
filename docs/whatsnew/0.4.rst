@@ -1,4 +1,17 @@
-========================================
-What's New in sncosmo 0.4.0 (unreleased)
-========================================
+====================
+What's New in v0.4.0
+====================
 
+This is an entirely backwards-incompatible release, due to changes in the way
+models are defined.
+
+* ``ObsModel`` is now the main class used throughout the package. An
+  ``ObsModel`` instance consists of exactly one ``SourceModel`` and
+  zero or more ``PropagationEffect`` instances. The ``ObsModel`` keeps
+  track of the redshifts of the source and the effects. Previously all
+  this functionality was contained in a single class inheritance. The
+  new system makes it easy and natural to add effects such as host
+  galaxy or Milky-way dust to arbitrary source models, and keeps things like
+  redshift and observer-frame time separated from the models for sources.
+
+* Many other changes yet to be detailed.

@@ -11,7 +11,7 @@ import numpy as np
 from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 
-from .photometric_data import dict_to_array
+from .photdata import dict_to_array
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data']
 
