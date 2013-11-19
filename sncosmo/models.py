@@ -828,7 +828,7 @@ class ObsModel(_ModelBase):
         self.param_bounds = [(None, None), (None, None)]
         self._parameters = np.array([0., 0.])
         self._source = get_sourcemodel(source, copy=True)
-        self.name = self._source.name  # TODO be more careful with the name
+        self.name = self._source.name
         self._effects = []
         self._effect_names = []
         self._effect_frames = []
@@ -841,8 +841,8 @@ class ObsModel(_ModelBase):
                 same_length = (len(effects) == len(effect_names) and
                                len(effects) == len(effect_frames))
             except TypeError:
-                raise ValueError('effects, effect_names, and effect_values '
-                                 'should all be iterables.')
+                raise TypeError('effects, effect_names, and effect_values '
+                                'should all be iterables.')
             if not same_length:
                 raise ValueError('effects, effect_names and effect_values '
                                  'must have matching lengths')
@@ -865,9 +865,9 @@ class ObsModel(_ModelBase):
         frame : {'rest', 'obs'}
         """
         if not isinstance(effect, PropagationEffect):
-            raise ValueError('effect is not a PropagationEffect')
+            raise TypeError('effect is not a PropagationEffect')
         if frame not in ['rest', 'obs']:
-            raise ValueError("frame must be one of: 'rest', 'obs'")
+            raise ValueError("frame must be one of: {'rest', 'obs'}")
         self._effects.append(cp(effect))
         self._effect_names.append(name)
         self._effect_frames.append(frame)
@@ -880,7 +880,7 @@ class ObsModel(_ModelBase):
 
     @property
     def effect_names(self):
-        """Names of propagation effects."""
+        """Names of propagation effects (list of str)."""
         return self._effect_names
 
     @property
@@ -930,8 +930,15 @@ class ObsModel(_ModelBase):
             m._parameters = self._parameters[pos:pos+l]
             pos += l
 
-        # Make a name for myself
-        self.name = '+'.join([self._source.name] + self._effect_names)
+        # Make a name for myself. We have to watch out for None values here.
+        # If all constituents are None, name is None. Otherwise, replace
+        # None's with '?'
+        names = [self._source.name] + self._effect_names
+        if all([name is None for name in names]):
+            self.name = None
+        else:
+            names = ['?' if name is None else name for name in names]
+            self.name = '+'.join(names)
         
 
     # ----------------------------------------------------------------

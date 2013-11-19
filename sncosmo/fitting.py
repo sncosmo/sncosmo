@@ -6,6 +6,7 @@ from itertools import product
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
+from astropy.utils import OrderedDict as odict
 
 from .spectral import get_magsystem, get_bandpass
 from .photdata import standardize_data, normalize_data
@@ -17,9 +18,33 @@ MAX_FLOAT = sys.float_info.max
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
 
+def flatten_result(res):
+    """Turn a result from fit_lc into a simple dictionary of key, value pairs.
+    
+    keys are only strings, values are (float, int, string), suitable for saving
+    to a text file. 
+    """
+
+    flat = odict()
+    flat['success'] = 1 if res.success else 0
+    for key in ['ncall', 'chisq', 'ndof']:
+        flat[key] = res[key]
+
+    param_names = res.param_dict.keys()
+    for key in param_names:
+        flat[key] = res.param_dict[key]
+        flat[key + '_err'] = res.errors[key] if key in res.errors else 0.
+        for key2 in param_names:
+            if (key, key2) in res.covariance:
+                flat[key + '_' + key2 + '_cov'] = res.covariance[(key, key2)]
+            else:
+                flat[key + '_' + key2 + '_cov'] = 0.
+
+    return flat
+
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, minsnr=5., disp=False,
-           maxcall=10000):
+           maxcall=10000, flatten=False):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -55,6 +80,10 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         Minimization method to use.
     disp : bool, optional
         Print level.
+    flatten : bool, optional
+        If True, "flatten" the result before returning it. This converts the
+        result into a simple dictionary where the values consist only of
+        (int, float, str), making it suitable for saving to a text file.
 
     Returns
     -------
@@ -66,10 +95,9 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         - ``ncall``: number of function evaluations.
         - ``chisq``: minimum chi^2 value.
         - ``ndof``: number of degrees of freedom (len(data) - len(param_names))
-        - ``param_names``: input parameter names.
-        - ``parameters``: best fit values (dict)
-        - ``errors``: 1-sigma uncertainties (dict)
-        - ``covariance``: coviarance (dict)
+        - ``param_dict``: best fit values, including fixed parameters (dict)
+        - ``errors``: 1-sigma uncertainties, not including fixed params (dict)
+        - ``covariance``: covariance, not including fixed params (dict)
 
         See ``res.keys()`` for all available attributes.
 
@@ -213,7 +241,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         try:
             import iminuit
         except ImportError:
-            raise ValueError("Minimization method 'iminuit' requires the "
+            raise ValueError("Minimization method 'minuit' requires the "
                              "iminuit package")
 
         # The iminuit minimizer expects the function signature to have an
@@ -261,16 +289,18 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
         # Compile results
         res = Result(
-            success=d.is_valid, # need to check if hesse succeeds as well!
+            success=d.is_valid, # need to check if hesse succeeds as well??
             message='',
             ncall=d.nfcn,
             chisq=d.fval,
-            param_names=param_names,
-            parameters=m.values,
+            ndof=ndof,
+            param_dict=model.param_dict,
             errors=m.errors,
             covariance=m.covariance,
-            ndof=ndof
             )
+    
+        if flatten:
+            res = flatten_result(res)
 
     else:
         raise ValueError("unknown method {:r}".format(method))
@@ -653,7 +683,7 @@ def nest_lc(data, model, param_names, bounds=None, priors=None,
     Returns
     -------
     res : Result
-    model : `~sncosmo.ObsModel`
+    est_model : `~sncosmo.ObsModel`
         Copy of model with parameters set.
     """
 

@@ -19,8 +19,7 @@ _model_ls = ['-', '--', ':', '-.']
 # TODO: standardize docs for `data` in this and other functions.
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             offsets=None, xfigsize=None, yfigsize=None, figtext=None,
-            errors=None,
-            figtextsize=1., fname=None, **kwargs):
+            errors=None, figtextsize=1., fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
     Parameters
