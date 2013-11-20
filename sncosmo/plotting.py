@@ -7,6 +7,7 @@ import numpy as np
 
 from astropy.utils.misc import isiterable
 
+from .models import ObsModel
 from .spectral import get_bandpass, get_magsystem
 from .photdata import standardize_data, normalize_data
 from .utils import value_error_str
