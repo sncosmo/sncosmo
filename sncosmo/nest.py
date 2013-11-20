@@ -277,7 +277,7 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
 
     return Result([
         ('niter', it + 1),
-        ('ncalls', loglcalls),
+        ('ncall', loglcalls),
         ('time', tottime),
         ('logz', logz),
         ('logzerr', math.sqrt(h / nobj)),

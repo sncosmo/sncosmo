@@ -546,7 +546,7 @@ class SALT2Model(SourceModel):
     .. math::
 
        F(t, \lambda) = x_0 (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                       \times CL(\lambda)^c
+                       \\times CL(\lambda)^c
 
     where ``x0``, ``x1`` and ``c`` are the free parameters of the model.
 
@@ -810,15 +810,28 @@ class ObsModel(_ModelBase):
 
     Parameters
     ----------
-    source_model : `~sncosmo.SourceModel`
-        The model for the spectral evolution of the source.
-    effects : list of `~sncosmo.PropagationEffect`s
+    source : `~sncosmo.SourceModel` or str
+        The model for the spectral evolution of the source. If a string
+        is given, it is used to retrieve a `~sncosmo.SourceModel` from
+        the registry.
+    effects : list of `~sncosmo.PropagationEffect`
+        List of `~sncosmo.PropagationEffect` instances to add.
     effect_names : list of str
+        Names of effects (same length as `effects`). The names are used
+        to label the parameters.
     effect_frames : list of str
+        The frame that each effect is in (same length as `effects`).
+        Must be one of {'rest', 'obs'}. 
 
     Notes
     -----
-    SourceModel and PropagationEffects are copied upon instanciation.
+    The SourceModel and PropagationEffects are copied upon instanciation.
+
+    Examples
+    --------
+    
+    >>> model = sncosmo.ObsModel(source='hsiao')
+
     """
 
     def __init__(self, source, effects=None,

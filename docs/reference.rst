@@ -15,23 +15,35 @@ Built-ins
 
 .. currentmodule:: sncosmo
 
-Models, Bandpasses & Magnitude Systems
-======================================
-
-*Core module classes and functions*
+Models
+======
 
 .. autosummary::
    :toctree: _generated
 
    get_sourcemodel
-   get_bandpass
-   get_magsystem
    SourceModel
    TimeSeriesModel
    StretchModel
    SALT2Model
    ObsModel
+
+Bandpasses
+==========
+
+.. autosummary::
+   :toctree: _generated
+
+   get_bandpass
    Bandpass
+
+Magnitude Systems
+=================
+
+.. autosummary::
+   :toctree: _generated
+
+   get_magsystem
    MagSystem
    ABMagSystem
    SpectralMagSystem

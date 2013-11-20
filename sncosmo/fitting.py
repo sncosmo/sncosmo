@@ -77,9 +77,9 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         When guessing amplitude and t0, only use data with signal-to-noise
         ratio (flux / fluxerr) greater than this value. Default is 5.
     method : {'minuit'}, optional
-        Minimization method to use.
+        Minimization method to use. Currently there is only one choice.
     disp : bool, optional
-        Print level.
+        Print messages during fitting.
     flatten : bool, optional
         If True, "flatten" the result before returning it. This converts the
         result into a simple dictionary where the values consist only of
@@ -100,9 +100,22 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         - ``covariance``: covariance, not including fixed params (dict)
 
         See ``res.keys()`` for all available attributes.
-
     fitted_model : `~sncosmo.ObsModel`
         A copy of the model with parameters set to best-fit values.
+
+    Examples
+    --------
+    The ``flatten`` keyword can be used to make the result a dictionary
+    suitable for appending as rows of a table:
+
+    >>> table_rows = []
+    >>> for sn in sne:  # loop over sn data
+    ...     res, fitted_model = sncosmo.fit_lc(sn, model, ..., flatten=True)
+    ...     table_rows.append(res)
+    >>>
+    >>> from astropy.table import Table
+    >>> t = Table(table_rows)
+    >>> t.write('results.txt', format='ascii.basic')
     """
 
     # Standardize and normalize data.
@@ -665,26 +678,62 @@ def _nest_lc(data, model, param_names,
     res.param_names = param_names
     return res
 
-def nest_lc(data, model, param_names, bounds=None, priors=None,
+def nest_lc(data, model, param_names, bounds, priors=None,
             nobj=100, maxiter=10000, verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
     ----------
+    data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
+        Table of photometric data. Must include certain column names.
     model : `~sncosmo.ObsModel`
-    data : `~astropy.table.Table` or `~numpy.ndarray`
-    param_names : list of str
-    bounds : dict
-    priors : dict
-    nobj : 
-    maxiter :
-    verbose :
+        The model to fit.
+    param_names : list
+        Model parameters to vary in the fit.
+    bounds : `dict`
+        Bounded range for each parameter. Bounds must be given for
+        each parameter, with the exception of ``t0``: by default, the
+        minimum bound is such that the latest phase of the model lines
+        up with the earliest data point and the maximum bound is such
+        that the earliest phase of the model lines up with the latest
+        data point.
+    priors : `dict`, optional
+        Not currently used.
+    nobj : int, optional
+        Number of objects (e.g., concurrent sample points) to use. Increasing
+        nobj increases the accuracy (due to denser sampling) and also the time
+        to solution.
+    maxiter : int, optional
+        Maximum number of iterations. Default is 10000.
+    verbose : bool, optional
+
 
     Returns
     -------
     res : Result
+        Attributes are:
+        
+        * ``niter``: total number of iterations
+        * ``ncall``: total number of likelihood function calls
+        * ``time``: time in seconds spent in iteration loop.
+        * ``logz``: natural log of the Bayesian evidence Z.
+        * ``logzerr``: estimate of uncertainty in logz (due to finite sampling)
+        * ``loglmax``: maximum likelihood of all points
+        * ``h``: Baysian information.
+        * ``param_names``: list of parameter names varied.
+        * ``samples``: `~numpy.ndarray`, shape is (nsamples, nparameters).
+          Each row is the parameter values for a single sample.
+        * ``weights``: `~numpy.ndarray`, shape is (nsamples,).
+          Weight corresponding to each sample. The weight is proportional to
+          the prior volume represented by the sample times the likelihood.
+        * ``param_dict``: Dictionary of weighted average of sample parameter
+          values (includes fixed parameters).
+        * ``errors``: Dictionary of weighted standard deviation of sample
+          parameter values (does not include fixed parameters). 
+
     est_model : `~sncosmo.ObsModel`
-        Copy of model with parameters set.
+        Copy of model with parameters set to the weighted average of the 
+        samples.
     """
 
     data = standardize_data(data)
@@ -692,9 +741,16 @@ def nest_lc(data, model, param_names, bounds=None, priors=None,
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
     
-    # Calculate 'best' values and set a copy of the model to them
+    # Weighted average of samples
     parameters = np.average(res['samples'], weights=res['weights'], axis=0)
     model.set(**dict(zip(param_names, parameters)))
+    res.param_dict = dict(zip(model.param_names, model.parameters))
+
+    # Weighted st. dev. of samples
+    std = np.sqrt(np.sum(res['weights'][:, np.newaxis] * res['samples']**2,
+                         axis=0) -
+                  res['parvals']**2)
+    res.errors = dict(zip(res.param_names, std))
 
     return res, model
 

@@ -26,7 +26,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     ----------
     data : `~numpy.ndarray` or dict of list_like, optional
         Structured array or dictionary of arrays or lists.
-    model : `~sncosmo.Model` or str or list or tuple thereof, optional
+    model : `~sncosmo.ObsModel` or list thereof
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
         `sncosmo.Model` or `str`, multiple models are plotted.
@@ -64,7 +64,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Load some example data::
 
-        >>> meta, data = sncosmo.load_example_data()
+        >>> data = sncosmo.load_example_data()
 
     Plot the data::
 
@@ -72,8 +72,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Plot a model along with the data::
     
-        >>> model = sncosmo.get_model('salt2')
-        >>> model.set(z=0.5, c=0.2, t0=55100., mabs=-19.5, x1=0.5)
+        >>> model = sncosmo.ObsModel('salt2')
+        >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5, x1=0.5)
         >>> sncosmo.plot_lc(data, model=model, fname='output.png')
 
     .. image:: /pyplots/plotlc_example.png
@@ -86,7 +86,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Show the plot instead of saving to a file::
 
-        >>> from matplotlib import pyplot as plt
         >>> sncosmo.plot_lc(data)
 
     Plot figures on a multipage pdf::
@@ -112,16 +111,17 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     if data is None and model is None:
         raise ValueError('must specify at least one of: data, model')
     if data is None and bands is None:
-        raise ValueError('must specify bands to plot for model')
+        raise ValueError('must specify bands to plot for model(s)')
 
     # Get the model(s).
-    if model is not None:
-        if isinstance(model, (tuple, list)):
-            models = model
-        else:
-            models = [model]
-    else:
+    if model is None:
         models = []
+    elif isinstance(model, (tuple, list)):
+        models = model
+    else:
+        models = [model]
+    if not all([isinstance(m, ObsModel) for m in models]):
+        raise TypeError('model(s) must be ObsModel instance(s)')
 
     # Standardize and normalize data.
     if data is not None:
