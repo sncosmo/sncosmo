@@ -180,6 +180,7 @@ class _ModelBase(object):
 
     @property
     def parameters(self):
+        """Parameter value array"""
         return self._parameters
 
     @parameters.setter
@@ -188,6 +189,11 @@ class _ModelBase(object):
         if value.shape != self._parameters.shape:
             raise ValueError("Incorrect number of parameters.")
         self._parameters[:] = value
+
+    @property
+    def param_dict(self):
+        """Read-only dictionary of model parameters"""
+        return dict(zip(self._param_names, self._parameters))
 
     def set(self, **param_dict):
         """Set parameters of the model by name."""

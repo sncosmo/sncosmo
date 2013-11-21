@@ -108,14 +108,23 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     The ``flatten`` keyword can be used to make the result a dictionary
     suitable for appending as rows of a table:
 
+    >>> import sncosmo
+    >>> from astropy.table import Table
+    >>> model = sncosmo.ObsModel(source='salt2')
+    >>> sne = [sncosmo.load_example_data(), sncosmo.load_example_data()]
     >>> table_rows = []
     >>> for sn in sne:  # loop over sn data
-    ...     res, fitted_model = sncosmo.fit_lc(sn, model, ..., flatten=True)
+    ...     model['z'] = sn.meta['z']
+    ...     res, fitmodel = sncosmo.fit_lc(sn, model, ['t0', 'x0', 'x1', 'c'],
+    ...                                    flatten=True)
     ...     table_rows.append(res)
-    >>>
-    >>> from astropy.table import Table
     >>> t = Table(table_rows)
-    >>> t.write('results.txt', format='ascii.basic')
+    >>> print t
+          c             c_c_cov           c_err      ... z_x0_cov z_x1_cov z_z_cov
+    -------------- ----------------- --------------- ... -------- -------- -------
+    0.196115074498 0.000748182150438 0.0273529184995 ...      0.0      0.0     0.0
+    0.196115074498 0.000748182150438 0.0273529184995 ...      0.0      0.0     0.0
+
     """
 
     # Standardize and normalize data.
