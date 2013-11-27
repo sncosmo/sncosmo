@@ -728,7 +728,7 @@ def nest_lc(data, model, param_names, bounds, priors=None,
         * ``logz``: natural log of the Bayesian evidence Z.
         * ``logzerr``: estimate of uncertainty in logz (due to finite sampling)
         * ``loglmax``: maximum likelihood of all points
-        * ``h``: Baysian information.
+        * ``h``: Bayesian information.
         * ``param_names``: list of parameter names varied.
         * ``samples``: `~numpy.ndarray`, shape is (nsamples, nparameters).
           Each row is the parameter values for a single sample.
@@ -746,6 +746,12 @@ def nest_lc(data, model, param_names, bounds, priors=None,
     """
 
     data = standardize_data(data)
+    
+    # Find t0 bounds to use, if not explicitly given
+    if 't0' in param_names and 't0' not in bounds:
+        bounds['t0'] = (model['t0'] + np.min(data['time']) - model.maxtime,
+                        model['t0'] + np.max(data['time']) - model.mintime)
+
     model = copy.copy(model)
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
@@ -758,7 +764,7 @@ def nest_lc(data, model, param_names, bounds, priors=None,
     # Weighted st. dev. of samples
     std = np.sqrt(np.sum(res['weights'][:, np.newaxis] * res['samples']**2,
                          axis=0) -
-                  res['parvals']**2)
+                  parameters**2)
     res.errors = dict(zip(res.param_names, std))
 
     return res, model
