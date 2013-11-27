@@ -5,7 +5,7 @@ from astropy.table import Table, vstack
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
-def read_snana_fits(head_file, phot_file, snid=None):
+def read_snana_fits(head_file, phot_file, snids=None, n=None):
     """Read the SNANA FITS format: two FITS files jointly representing
     metadata and photometry for a set of SNe.
 
@@ -15,13 +15,10 @@ def read_snana_fits(head_file, phot_file, snid=None):
         Filename of "HEAD" ("header") FITS file.
     phot_file : str
         Filename of "PHOT" ("photometry") FITS file.
-    snid : str
-        If given, only return the single entry with the matching SNID.
-
-    Notes
-    -----
-    If `head_file` contains a column 'SNID' containing strings, trailing
-    whitespace is stripped from all the values in that column.
+    snids : list of str, optional
+        If given, only return the single entry with the matching SNIDs.
+    n : int
+        If given, only return the first `n` entries.
 
     Returns
     -------
@@ -30,8 +27,11 @@ def read_snana_fits(head_file, phot_file, snid=None):
 
     Notes
     -----
-    If head_file contains a column 'SNID' containing strings, trailing
-    whitespace is stripped from all the values in that column.
+    If `head_file` contains a column 'SNID' containing strings, leading and
+    trailing whitespace is stripped from all the values in that column.
+
+    If `phot_file` contains a column 'FLT', leading and trailing whitespace
+    is stripped from all the values in that column.
 
     Examples
     --------
@@ -42,46 +42,51 @@ def read_snana_fits(head_file, phot_file, snid=None):
 
     """
 
-    sne = []
+    # Should we memmap? Only if we're going to read only a part of the file
+    memmap = (snids is not None or n is not None)
 
     # Get metadata for all the SNe
-    head_data, head_hdr = fits.getdata(head_file, 1, header=True)
-    phot_data, phot_hdr = fits.getdata(phot_file, 1, header=True)
-
-    # Get views of the data as numpy arrays
-    head_data = head_data.view(np.ndarray)
-    phot_data = phot_data.view(np.ndarray)
+    head_data = fits.getdata(head_file, 1, view=np.ndarray)
+    phot_data = fits.getdata(phot_file, 1, view=np.ndarray, memmap=memmap)
 
     # Strip trailing whitespace characters from SNID.
     if 'SNID' in head_data.dtype.names:
         try:
-            head_data['SNID'][:] = np.char.rstrip(head_data['SNID'])
+            head_data['SNID'][:] = np.char.strip(head_data['SNID'])
         except TypeError:
             pass
 
-    # Check which indicies to return
-    if snid is None:
+    # Check which indicies to return.
+    if snids is None and n is None:
         idx = range(len(head_data))
-    else:
+    elif n is None:
         if 'SNID' not in head_data.dtype.names:
-            raise RuntimeError('Specific snid requested, but head file does'
+            raise RuntimeError('Specific snids requested, but head file does'
                                ' not contain SNID column')
-        idx = np.flatnonzero(head_data['SNID'] == snid)
-        if len(idx) != 1:
-            raise RuntimeError('Unique snid requested, but there are {:d} '
-                               'matching entries'.format(len(idx)))
+        idx = []
+        for snid in snids: 
+            i = np.flatnonzero(head_data['SNID'] == snid)
+            if len(i) != 1:
+                raise RuntimeError('Unique snid requested, but there are {:d} '
+                                   'matching entries'.format(len(i)))
+            idx.append(i[0])
+    elif snids is None:
+        idx = range(n)
+    else:
+        raise ValueError("cannot specify both 'snids' and 'n' arguments")
 
     # Loop over SNe in HEAD file
+    sne = []
     for i in idx:
         meta = odict(zip(head_data.dtype.names, head_data[i]))
 
         j0 = head_data['PTROBS_MIN'][i] - 1 
         j1 = head_data['PTROBS_MAX'][i]
 	data = phot_data[j0:j1]
+        if 'FLT' in data.dtype.names:
+            data['FLT'][:] = np.char.strip(data['FLT'])
 	sne.append(Table(data, meta=meta, copy=False))
 
-    if snid is not None:
-        return sne[0]
     return sne
 
 
