@@ -43,8 +43,8 @@ def flatten_result(res):
     return flat
 
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
-           guess_amplitude=True, guess_t0=True, minsnr=5., disp=False,
-           maxcall=10000, flatten=False):
+           guess_amplitude=True, guess_t0=True, guess_z=True,
+           minsnr=5., disp=False, maxcall=10000, flatten=False):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -73,6 +73,9 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     guess_t0 : bool, optional
         Whether or not to guess t0. Only has an effect when fitting t0.
         Default is True.
+    guess_z : bool, optional
+        Whether or not to guess z (redshift). Only has an effect when fitting
+        redshift. Default is True.
     minsnr : float, optional
         When guessing amplitude and t0, only use data with signal-to-noise
         ratio (flux / fluxerr) greater than this value. Default is 5.
@@ -140,10 +143,13 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
     # Check that 'z' is bounded (if it is going to be fit).
     if 'z' in param_names:
-        if 'z' not in bounds:
+        if 'z' not in bounds or None in bounds['z']:
             raise ValueError('z must be bounded if fit.')
-        if model['z'] < bounds['z'][0] or model['z'] > bounds['z'][1]:
+        if guess_z:
             model['z'] = sum(bounds['z']) / 2.
+        if model['z'] < bounds['z'][0] or model['z'] > bounds['z'][1]:
+            raise ValueError('z out of range.')
+
 
     # Cut bands that are not allowed by the wavelength range of the model
     if 'z' not in param_names:
@@ -264,7 +270,13 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             import iminuit
         except ImportError:
             raise ValueError("Minimization method 'minuit' requires the "
-                             "iminuit package")
+                             "iminuit package (v1.0.9 or greater)")
+        
+        if iminuit.__version__ < '1.0.9':
+            raise Exception("iminuit version 1.0.9 or higher is required "
+                            "(installed version is {0:})"
+                            .format(iminuit.__version__))
+
 
         # The iminuit minimizer expects the function signature to have an
         # argument for each parameter.
