@@ -368,7 +368,7 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
                          bins=bins)
 
                 # Write the average and standard deviation.
-                text = '$\\texttt{{{:s}}} = {:s}$'.format(
+                text = '${0:s} = {1:s}$'.format(
                     param_names[i],
                     value_error_str(avg[i], std[i], latex=True)
                     )
@@ -393,10 +393,19 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
                 plt.ylim(ylims)
 
             plt.xlim(xlims)
+
+            # X axis labels
             if j < npar - 1:
                 ax.xaxis.set_major_formatter(nullformatter)
             else:
-                plt.xlabel('$\\texttt{{{:s}}}$'.format(param_names[i]))
+                plt.xlabel(param_names[i])
+
+            # Y axis labels
+            if i > 0:
+                ax.yaxis.set_major_formatter(nullformatter)
+            elif j > 0:
+                plt.ylabel(param_names[j])
+
 
     plt.tight_layout()
 
