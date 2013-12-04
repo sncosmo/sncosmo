@@ -320,7 +320,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
 
 def plot_param_samples(param_names, samples, weights=None, fname=None,
-                       bins=50, xfigsize=8., **kwargs):
+                       bins=25, panelsize=2.5, **kwargs):
     """Plot PDFs of parameter values.
     
     Parameters
@@ -333,9 +333,14 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
         Weight of each sample.
     fname : str
         Output filename.
+    bins : int
+        Number of bins between -5*std and +5*std where std is the standard
+        deviation of the samples for a given parameter.
     """
     from matplotlib import pyplot as plt
-
+    from matplotlib.ticker import NullFormatter
+    nullformatter = NullFormatter()
+    
     npar = len(param_names)
 
     # calculate average and std. dev. of each parameter
@@ -346,17 +351,8 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
         std = np.sqrt(np.sum(weights[:, np.newaxis] * samples**2, axis=0) -
                       avg**2)
 
-#    nrow = (npar-1) // ncol + 1
-#    if xfigsize is None and yfigsize is None:
-#        figsize = (4. * ncol, 3. * nrow)
-#    elif yfigsize is None:
-#        figsize = (xfigsize, 3. / 4. * nrow / ncol * xfigsize)
-#    elif xfigsize is None:
-#        figsize = (4. / 3. * ncol / nrow * yfigsize, yfigsize)
-#    else:
-#        raise ValueError('cannot specify both xfigsize and yfigsize')
-
-    figsize=(xfigsize, xfigsize)
+    # Create figure
+    figsize = (npar*panelsize, npar*panelsize)
     fig = plt.figure(figsize=figsize)
 
     for j in range(npar):
@@ -366,19 +362,24 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
 
             ax = plt.subplot(npar, npar, j * npar + i + 1)
 
-            # On diagonal, show a histogram
+            # On diagonal, show a histogram.
             if i == j:
                 plt.hist(samples[:, i], weights=weights, range=xlims,
                          bins=bins)
-                text = '${:s} = {:s}$'.format(
+
+                # Write the average and standard deviation.
+                text = '$\\texttt{{{:s}}} = {:s}$'.format(
                     param_names[i],
                     value_error_str(avg[i], std[i], latex=True)
                     )
                 plt.text(0.9, 0.9, text, color='k', ha='right', va='top',
                          transform=ax.transAxes)
+
+                # Make room for the text by pushing up the y limit.
                 ymin, ymax = ax.get_ylim()
-                ax.set_ylim(ymax=1.15*ymax)
-            
+                ax.set_ylim(ymax=1.2*ymax)
+                ax.yaxis.set_major_formatter(nullformatter)
+
             # Otherwise, show a countour plot
             else:
                 H, xedges, yedges = np.histogram2d(samples[:, i],
@@ -389,6 +390,13 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
                 X = 0.5 * (xedges[:-1] + xedges[1:])
                 Y = 0.5 * (yedges[:-1] + yedges[1:])
                 plt.contour(X, Y, H)
+                plt.ylim(ylims)
+
+            plt.xlim(xlims)
+            if j < npar - 1:
+                ax.xaxis.set_major_formatter(nullformatter)
+            else:
+                plt.xlabel('$\\texttt{{{:s}}}$'.format(param_names[i]))
 
     plt.tight_layout()
 
