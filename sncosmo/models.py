@@ -477,7 +477,6 @@ class TimeSeriesModel(SourceModel):
 
     _param_names = ['amplitude']
     param_names_latex = ['A']
-    param_bounds = [(0., None)]
 
     def __init__(self, phase, wave, flux,
                  name=None, version=None):
@@ -517,7 +516,6 @@ class StretchModel(SourceModel):
 
     _param_names = ['amplitude', 's']
     param_names_latex = ['A', 's']
-    param_bounds = [(0., None), (0., None)]
 
     def __init__(self, phase, wave, flux, name=None, version=None):
         self.name = name
@@ -593,8 +591,7 @@ class SALT2Model(SourceModel):
 
     _param_names = ['x0', 'x1', 'c']
     param_names_latex = ['x_0', 'x_1', 'c']
-    param_bounds = [(0., None), (None, None), (None, None)]
-    OFFSET_FACTOR = 10.**-12 * 10.**(-0.27/2.5)
+    _SCALE_FACTOR = 10.**-12 * 10.**(-0.27/2.5)
 
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
@@ -627,6 +624,8 @@ class SALT2Model(SourceModel):
 
             # Get the model component from the file
             phase, wave, values = read_griddata(name_or_obj)
+            values *= self._SCALE_FACTOR  # TODO: should this really be
+                                          # for ALL components?
             self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
@@ -646,9 +645,8 @@ class SALT2Model(SourceModel):
     def _flux(self, phase, wave):
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)
-        return ((self._parameters[0] * self.OFFSET_FACTOR) *
-                (m0 + self._parameters[1] * m1) *
-                self._model['clbase'](wave) ** self._parameters[2])
+        return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
+                self._model['clbase'](wave)**self._parameters[2])
 
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
@@ -844,7 +842,6 @@ class ObsModel(_ModelBase):
                  effect_names=None, effect_frames=None):
         self._param_names = ['z', 't0']
         self.param_names_latex = ['z', 't_0']
-        self.param_bounds = [(None, None), (None, None)]
         self._parameters = np.array([0., 0.])
         self._source = get_sourcemodel(source, copy=True)
         self.name = self._source.name
@@ -927,12 +924,6 @@ class ObsModel(_ModelBase):
             self.param_names_latex.extend(
                 [name + '_{' + effect_name + '}' 
                  for name in effect.param_names_latex])
-
-        # Build a new list of parameter bounds
-        self.param_bounds = self.param_bounds[0:2]
-        self.param_bounds.extend(self._source.param_bounds)
-        for effect in self._effects:
-            self.param_bounds.extend(effect.param_bounds)
 
         # For each "model", get its parameter array.
         param_arrays = [self._parameters[0:2]]
@@ -1215,7 +1206,6 @@ class InterpolatedRvDust(PropagationEffect):
 
     _param_names = ['ebv']
     param_names_latex = ['E(B-V)']
-    param_bounds = [(None, None)]
 
     def __init__(self, model='f99', ebv=0., r_v=3.1, minwave=1000.,
                  maxwave=30000., spline_points=2000):

@@ -246,12 +246,6 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         #    model.parameters[1] = best[0]
         #    model.parameters[2] = best[1]
 
-    # add model's default bounds:
-    for name in param_names:
-        if name not in bounds:
-            i = model.param_names.index(name)
-            bounds[name] = model.param_bounds[i]
-
     # count degrees of freedom
     ndof = len(data) - len(param_names)
 
@@ -270,13 +264,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             import iminuit
         except ImportError:
             raise ValueError("Minimization method 'minuit' requires the "
-                             "iminuit package (v1.0.9 or greater)")
-        
-        if iminuit.__version__ < '1.0.9':
-            raise Exception("iminuit version 1.0.9 or higher is required "
-                            "(installed version is {0:})"
-                            .format(iminuit.__version__))
-
+                             "iminuit package")
 
         # The iminuit minimizer expects the function signature to have an
         # argument for each parameter.
@@ -291,12 +279,14 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             i = model.param_names.index(name)
             kwargs[name] = model.parameters[i]  # starting point
 
-            # TODO: When iminuit allows 1-sided bounds, update this.
-            if None not in bounds[name]:
+            if name in bounds:
+                if None in bounds[name]:
+                    raise ValueError('one-sided bounds not allowed for '
+                                     'iminuit fitter')
                 kwargs['limit_' + name] = bounds[name]
 
             # set initial step size
-            if bounds[name][0] is not None and bounds[name][1] is not None:
+            if name in bounds:
                 step = 0.02 * (bounds[name][1] - bounds[name][0])
             elif model.parameters[i] != 0.:
                 step = 0.1 * model.parameters[i]
@@ -309,9 +299,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             for name in param_names:
                 print name, kwargs[name], 'step=', kwargs['error_' + name],
                 if 'limit_' + name in kwargs:
-                    print 'bounds=', kwargs['limit_' + name]
-                else:
-                    print ''
+                    print 'bounds=', kwargs['limit_' + name],
+                print ''
 
         m = iminuit.Minuit(chi2,
                            errordef=1.,
