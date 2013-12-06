@@ -13,9 +13,6 @@ from .photdata import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
 
-import sys
-MAX_FLOAT = sys.float_info.max
-
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
 
 def flatten_result(res):
@@ -106,6 +103,32 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     fitted_model : `~sncosmo.ObsModel`
         A copy of the model with parameters set to best-fit values.
 
+    Notes
+    -----
+
+    **t0 guess:** If ``t0`` is being fit and ``guess_t0=True``, the
+    function will guess the initial starting point for ``t0`` based on
+    the data. The guess is made as follows:
+
+    * Evaluate the time and value of peak flux for the model in each band
+      given the current model parameters.
+    * Determine the data point with maximum flux in each band, for points
+      with signal-to-noise ratio > ``minsnr`` (default is 5). If no points
+      meet this criteria, the band is ignored (for the purpose of guessing
+      only).
+    * For each band, compare model's peak flux to the peak data point. Choose
+      the band with the highest ratio of data / model.
+    * Set ``t0`` so that the model's time of peak in the chosen band
+      corresponds to the peak data point in this band.
+
+    **amplitude guess:** If amplitude (assumed to be the first model parameter)
+    is being fit and ``guess_amplitude=True``, the function will guess the
+    initial starting point for the amplitude based on the data. 
+
+    **redshift guess:** If redshift (``z``) is being fit and ``guess_z=True``,
+    the function will set the initial value of ``z`` to the average of the 
+    bounds on ``z``.
+
     Examples
     --------
     The ``flatten`` keyword can be used to make the result a dictionary
@@ -122,12 +145,6 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     ...                                    flatten=True)
     ...     table_rows.append(res)
     >>> t = Table(table_rows)
-    >>> print t
-          c             c_c_cov           c_err      ... z_x0_cov z_x1_cov z_z_cov
-    -------------- ----------------- --------------- ... -------- -------- -------
-    0.196115074498 0.000748182150438 0.0273529184995 ...      0.0      0.0     0.0
-    0.196115074498 0.000748182150438 0.0273529184995 ...      0.0      0.0     0.0
-
     """
 
     # Standardize and normalize data.
@@ -231,6 +248,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         #    t0_grid = np.linspace(bounds['t0'][0], bounds['t0'][1], 100)
         #    a_grid = np.logspace(np.log10(amplitude) - 2.,
         #                         np.log10(amplitude) + 1., 30)
+        #import sys
+        #MAX_FLOAT = sys.float_info.max
         #    chisqmin = MAX_FLOAT
         #    best = None
         #    for t0, a in product(t0_grid, a_grid):
