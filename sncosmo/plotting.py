@@ -30,7 +30,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     model : `~sncosmo.ObsModel` or list thereof
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
-        `sncosmo.Model` or `str`, multiple models are plotted.
+        `~sncosmo.ObsModel`, multiple models are plotted.
     bands : list, optional
         List of Bandpasses, or names thereof, to plot.
     zp : float, optional
@@ -338,9 +338,12 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
         deviation of the samples for a given parameter.
     """
     from matplotlib import pyplot as plt
-    from matplotlib.ticker import NullFormatter
+    from matplotlib.ticker import (NullFormatter, ScalarFormatter,
+                                   NullLocator, AutoLocator)
     nullformatter = NullFormatter()
-    
+    formatter = ScalarFormatter()
+    formatter.set_powerlimits((-2, 3))
+
     npar = len(param_names)
 
     # calculate average and std. dev. of each parameter
@@ -378,7 +381,6 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
                 # Make room for the text by pushing up the y limit.
                 ymin, ymax = ax.get_ylim()
                 ax.set_ylim(ymax=1.2*ymax)
-                ax.yaxis.set_major_formatter(nullformatter)
 
             # Otherwise, show a countour plot
             else:
@@ -394,18 +396,30 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
 
             plt.xlim(xlims)
 
-            # X axis labels
+            # Tick locations
+            xlocator = AutoLocator()
+            xlocator.set_params(nbins=6)
+            ax.xaxis.set_major_locator(xlocator)
+            if i == j:
+                ylocator = NullLocator()
+            else:
+                ylocator = AutoLocator()
+                ylocator.set_params(nbins=6)
+            ax.yaxis.set_major_locator(ylocator)
+
+            # X axis labels & formatting
             if j < npar - 1:
                 ax.xaxis.set_major_formatter(nullformatter)
             else:
+                ax.xaxis.set_major_formatter(formatter)
                 plt.xlabel(param_names[i])
 
-            # Y axis labels
-            if i > 0:
+            # Y axis labels & formatting
+            if j == 0 or i > 0:
                 ax.yaxis.set_major_formatter(nullformatter)
-            elif j > 0:
+            else:
+                ax.yaxis.set_major_formatter(formatter)
                 plt.ylabel(param_names[j])
-
 
     plt.tight_layout()
 
