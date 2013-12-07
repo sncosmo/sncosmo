@@ -14,6 +14,15 @@ representing a table of photometric observations. For a pretty-printed
 version of this, you can do::
 
     >>> print data
+         time      band        flux          fluxerr      zp  zpsys
+    ------------- ----- ----------------- -------------- ---- -----
+          55070.0 sdssg    0.813499900062 0.651728140824 25.0    ab
+    55072.0512821 sdssr  -0.0852238865812 0.651728140824 25.0    ab
+    55074.1025641 sdssi -0.00681659003089 0.651728140824 25.0    ab
+    55076.1538462 sdssz     2.23929135407 0.651728140824 25.0    ab
+    55078.2051282 sdssg  -0.0308977349373 0.651728140824 25.0    ab
+    55080.2564103 sdssr     2.35450321853 0.651728140824 25.0    ab
+    ...
 
 It has metadata stored in ``data.meta`` as an `OrderedDict`.
 
@@ -95,4 +104,4 @@ Add a column::
 
 Add a constant value to all the entries in a given column::
 
-   >>> data['zp'] += 0.03
+    >>> data['zp'] += 0.03
