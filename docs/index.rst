@@ -43,7 +43,7 @@ NumPy, SciPy and AstroPy.
    models
    bandpasses
    magsystems
-   photometric_data
+   photdata
    fitting
    typing
    registry

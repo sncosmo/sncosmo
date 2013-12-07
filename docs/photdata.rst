@@ -7,33 +7,22 @@ Quick start
 
 For an example of an acceptable photometric data representation, you can do::
 
-    >>> meta, data = sncosmo.load_example_data()
+    >>> data = sncosmo.load_example_data()
 
-``meta`` is an ordered dictionary and ``data`` is a `~numpy.ndarray`
+``data`` is an astropy `~astropy.table.Table`
 representing a table of photometric observations. For a pretty-printed
 version of this, you can do::
 
-    >>> from astropy.table import Table
-    >>> print Table(data)
+    >>> print data
+
+It has metadata stored in ``data.meta`` as an `OrderedDict`.
 
 Photometric Data: Structure
 ===========================
 
 Usually, photometric data can naturally be represented as a table of
 observations. Rather than imposing a new, unfamiliar format or class for
-representing such data, the approach take in sncosmo is to accept
-anything that "looks like a table" in the place where a set of
-photometric data is required. This means that in the functions and
-classes that accept photometric data as an argument, ``data`` can be
-any of:
-
-* A dictionary of columns. Each column is a list or `~numpy.ndarray`
-  of matching lengths, or a single value. If a single value, it is
-  interpreted as applying to all observations.
-* A structured `~numpy.ndarray`
-
-Required Columns
-----------------
+representing such data, the approach taken in sncosmo is to use astropy `~astropy.table.Table` objects.
 
 Whichever structure is used, the data must have certain recognizable
 columns. For photometric data with Gaussian uncertainties in
@@ -44,15 +33,16 @@ uniquely specify a single observation:
 * The bandpass in which the observation was taken
 * The flux
 * The uncertainty on the flux
-* The zeropoint (and magnitude system) tying the flux to a physical system.
+* The zeropoint tying the flux to a physical system.
+* The magnitude system that the zeropoint is in.
 
 Therefore, ``data`` must have a column to represent each quantity. The
-column names are somewhat flexible. The table below shows the
+column *names* are somewhat flexible. The table below shows the
 acceptable column names for ``data``. For example ``data`` must
 contain exactly one of ``'date'``, ``'jd'``, ``'mjdobs'``, ``'mjd'``,
 or ``'time'``.
 
-.. automodule:: sncosmo.photometric_data
+.. automodule:: sncosmo.photdata
 
 Reading and Writing photometric data from files
 ===============================================
@@ -62,12 +52,11 @@ practice there are a plethora of different file formats, both standard
 and non-standard, used to represent tables. Rather than picking a
 single supported file format, or worse, creating yet another new
 "standard", we choose to leave the file format mostly up to the user:
-It is the user's job to read their data into either a `dict` or
-`~numpy.ndarray`.
+It is the user's job to read their data into an `~astropy.table.Table`.
 
 That said, SNCosmo does include a couple convenience functions for
-reading and writing tables: `~sncosmo.read_lc` and
-`~sncosmo.write_lc`.
+reading and writing tables: `sncosmo.read_lc` and
+`sncosmo.write_lc`.
 
 The supported formats are listed below. If your preferred format is
 not available, write your own parser or use a standard one from the
@@ -79,28 +68,31 @@ python universe.
 | csv         | CSV-like, but with metadata | Not actually readable by      |
 |             | lines marked by '@'         | standard CSV parsers :(       |
 +-------------+-----------------------------+-------------------------------+
-| fits        | Standard FITS               | Has poor performance and      |
-|             |                             | storage size for small tables |
-+-------------+-----------------------------+-------------------------------+
 | json        | JavaScript Object Notation  | Good performance, but not as  |
 |             |                             | human-readable as csv         |
 +-------------+-----------------------------+-------------------------------+
 | salt2       | SALT2 new-style data files  | Mostly untested.              |
 +-------------+-----------------------------+-------------------------------+
-| snana       | (Write-only) SNANA-like     | Utility and future support    |
-|             | format                      | uncertain.                    |
+| salt2-old   | SALT2 old-style data files  | Mostly untested.              |
 +-------------+-----------------------------+-------------------------------+
 
 To see what each format looks like, you can do, e.g.::
 
-    >>> meta, data = sncosmo.load_example_data()
-    >>> sncosmo.write_lc(data, fname='test.json', fmt='json')
+    >>> data = sncosmo.load_example_data()
+    >>> sncosmo.write_lc(data, fname='test.json', format='csv')
 
 
-A note on `astropy.table.Table`
-===============================
+Manipulating data tables
+========================
 
-In the future, we may move to using the `~astropy.table.Table`
-provided in AstroPy, for representing tables and/or reading and
-writing. However, the class's ``write`` method does not yet include a
-human-readable format that includes metadata.
+Rename a column::
+
+    >>> data.rename_column('oldname', 'newname')
+
+Add a column::
+
+    >>> data['zp'] = 26.
+
+Add a constant value to all the entries in a given column::
+
+   >>> data['zp'] += 0.03
