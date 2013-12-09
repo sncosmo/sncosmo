@@ -202,7 +202,7 @@ def retrieve(data_class, name, version=None):
 
     if version is None or name not in registered_names:
         raise Exception(
-            "No {0:s} named {1:r} in registry. Registered names: '{2:s}'"
+            "No {0} named {1!r} in registry. Registered names: '{2}'"
             .format(data_class.__name__, name, "', '".join(registered_names)))
 
     registered_versions = [regkey[2] for regkey in _loaders.keys()

@@ -51,11 +51,16 @@ class Bandpass(object):
 
     Examples
     --------
-    >>> band = get_bandpass('sdssg')
-    >>> band.wave  # wavelengths in Angstroms
-    >>> band.dwave # np.gradient(band.wave)
-    >>> band.trans  # transmisson fraction corresponding to wavelengths
-    >>> band.name  # 'sdssg'
+    >>> b = Bandpass([4000., 4200., 4400.], [0.5, 1.0, 0.5])
+    >>> b.wave
+    array([ 4000.,  4200.,  4400.])
+    >>> b.trans
+    array([ 0.5,  1. ,  0.5])
+    >>> b.dwave
+    array([ 200.,  200.,  200.])
+    >>> b.wave_eff
+    4200.0
+
     """
 
     def __init__(self, wave, trans, wave_unit=u.AA, name=None):
@@ -87,10 +92,15 @@ class Bandpass(object):
                              'decreasing when supplied in energy/frequency.')
 
         self.wave = wave
-        self.dwave = np.gradient(wave)
+        self._dwave = np.gradient(wave)
         self.trans = trans
         self.name = name
         
+    @property
+    def dwave(self):
+        """Gradient of wavelengths, numpy.gradient(wave)."""
+        return self._dwave
+
     @lazyproperty
     def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""

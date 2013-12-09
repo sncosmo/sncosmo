@@ -68,7 +68,7 @@ Examples
    >>> sncosmo.write_lc(data, 'mydata.dat', meta=meta, fmt='salt2')
    >>> sncosmo.write_lc(data, 'mydata.fits', meta=meta, fmt='fits')
 
-*See more in* :doc:`photometric_data`
+*See more in* :doc:`photdata`
 
 **Fitting Light Curves**
 

@@ -35,10 +35,10 @@ def read_snana_fits(head_file, phot_file, snids=None, n=None):
 
     Examples
     --------
-    >>> sne = read_snana_fits('HEAD.fits', 'PHOT.fits')
-    >>> for sn in sne:
-    ...     sn.meta  # Metadata in an OrderedDict.
-    ...     sn['MJD']  # MJD column
+    >>> sne = read_snana_fits('HEAD.fits', 'PHOT.fits')  # doctest: +SKIP
+    >>> for sn in sne:                                   # doctest: +SKIP
+    ...     sn.meta  # Metadata in an OrderedDict.       # doctest: +SKIP
+    ...     sn['MJD']  # MJD column                      # doctest: +SKIP
 
     """
 
@@ -126,7 +126,6 @@ def read_snana_ascii(fname, default_tablename=None):
         VARNAMES: A B C
         SN: 1 2.0 x
         SN: 4 5.0 y
-        SN: 5 8.2 z
 
     Behavior:
 
@@ -146,16 +145,29 @@ def read_snana_ascii(fname, default_tablename=None):
 
     Examples
     --------
-    If the above example is contained in the file 'data.txt'::
 
-        >>> meta, tables = read_snana_ascii('data.txt')
-        >>> meta
-        OrderedDict([('META1', 'a'), ('META2', 6)])
-        >>> tables['SN']
-        array([(1, 2.0, 'x'), (4, 5.0, 'y'), (5, 8.2, 'z')], 
-              dtype=[('A', '<i8'), ('B', '<f8'), ('C', '|S1')])
-        >>> tables['SN']['A']
-        array([1, 4, 5])
+    >>> from StringIO import StringIO  # StringIO behaves like a file
+    >>> f = StringIO('META1: a\\n'
+    ...              'META2: 6\\n'
+    ...              'NVAR_SN: 3\\n'
+    ...              'VARNAMES: A B C\\n'
+    ...              'SN: 1 2.0 x\\n'
+    ...              'SN: 4 5.0 y\\n')
+    ...
+    >>> meta, tables = read_snana_ascii(f)
+
+    The first object is a dictionary of metadata:
+
+    >>> meta
+    OrderedDict([('META1', 'a'), ('META2', 6)])
+
+    The second is a dictionary of all the tables in the file:
+
+    >>> tables['SN']
+    <Table rows=2 names=('A','B','C')>
+    array([(1, 2.0, 'x'), (4, 5.0, 'y')], 
+          dtype=[('A', '<i8'), ('B', '<f8'), ('C', 'S1')])
+
 
     If the file had an 'NVAR' keyword rather than 'NVAR_SN', for example::
 
@@ -165,21 +177,22 @@ def read_snana_ascii(fname, default_tablename=None):
         SN: 4 5.0 y
         SN: 5 8.2 z
 
-    it can be read by supplying a default table name::
+    it can be read by supplying a default table name:
 
-        >>> meta, tables = read_snana_ascii('data.txt', default_tablename='SN')
-        >>> tables['SN']
-        array([(1, 2.0, 'x'), (4, 5.0, 'y'), (5, 8.2, 'z')], 
-              dtype=[('A', '<i8'), ('B', '<f8'), ('C', '|S1')])
+     >>> meta, tables = read_snana_ascii(f, default_tablename='SN')  # doctest: +SKIP
 
     """
 
     meta = odict() # initialize structure to hold metadata.
     tables = {} # initialize structure to hold data.
 
-    infile = open(fname, 'r')
-    words = infile.read().split()
-    infile.close()
+    if isinstance(fname, basestring):
+        fh = open(fname, 'U')
+    else:
+        fh = fname
+    words = fh.read().split()
+    fh.close()
+
     i = 0
     nvar = None
     tablename = None
@@ -276,23 +289,13 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
 
     Returns
     -------
-    tables : dictionary of `numpy.ndarray`s or dictionaries.
-
-    Notes
-    -----
-    Reading a lot of large text files in Python can become slow. Try caching
-    results with cPickle, numpy.save, numpy.savez if it makes sense for your
-    application.
+    tables : dictionary of `~astropy.table.Table`
+        Tables indexed by table names.
 
     Examples
     --------
     >>> tables = read_snana_ascii_multi(['data1.txt', 'data1.txt'])
-    >>> tables.keys()
-    ['SN']
-    >>> tables['SN'].dtype.names
-    ('A', 'B', 'C')
-    >>> tables['SN']['A']
-    array([1, 4, 5, 1, 4, 5])
+    ... # doctest: +SKIP
    
     """
 
@@ -382,15 +385,22 @@ def read_snana_simlib(fname):
     
     Examples
     --------
-    >>> meta, obs_sets = sncosmo.read_snana_simlib('DES_hybrid_griz.SIMLIB')
-    >>> len(obs_sets)
-    5
-    >>> obs_sets.keys()  # LIBID for each observation set.
+    >>> meta, obs_sets = read_snana_simlib('filename') # doctest: +SKIP
+
+    The second object is a dictionary of astropy Tables indexed by LIBID:
+
+    >>> obs_sets.keys()  # doctest: +SKIP
     [0, 1, 2, 3, 4] 
-    >>> obs_sets[0].meta  # inspect observation set with LIBID=0
+
+    Each table (libid) has metadata:
+
+    >>> obs_sets[0].meta  # doctest: +SKIP
     OrderedDict([('LIBID', 0), ('RA', 52.5), ('DECL', -27.5), ('NOBS', 161),
                  ('MWEBV', 0.0), ('PIXSIZE', 0.27)])
-    >>> obs_sets[0].colnames
+
+    Each table has the following columns:
+
+    >>> obs_sets[0].colnames  # doctest: +SKIP
     ['SEARCH', 'MJD', 'IDEXPT', 'FLT', 'CCD_GAIN', 'CCD_NOISE', 'SKYSIG',
      'PSF1', 'PSF2', 'PSFRATIO', 'ZPTAVG', 'ZPTSIG', 'MAG']
 

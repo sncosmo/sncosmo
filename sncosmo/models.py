@@ -833,8 +833,7 @@ class ObsModel(_ModelBase):
 
     Examples
     --------
-    
-    >>> model = sncosmo.ObsModel(source='hsiao')
+    >>> model = sncosmo.ObsModel(source='hsiao')  # doctest: +SKIP
 
     """
 

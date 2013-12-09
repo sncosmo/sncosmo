@@ -8,8 +8,8 @@ Initializing from built-in models
 Create an `~sncosmo.ObsModel` that has the SALT2 model as a source:
 
     >>> import sncosmo
-    >>> model = sncosmo.ObsModel(source='salt2')
-    >>> print model
+    >>> model = sncosmo.ObsModel(source='salt2')  # doctest: +SKIP
+    >>> print model                               # doctest: +SKIP
     <ObsModel at 0x48585d0>
     source:
       class      : SALT2Model
@@ -34,7 +34,8 @@ Some source models have multiple versions of the data, which can be explicitly
 retrieved using the `~sncosmo.get_sourcemodel` function:
 
     >>> source = sncosmo.get_sourcemodel('salt2', version='1.1')
-    >>> model = sncosmo.ObsModel(source=source)
+    ... # doctest: +SKIP
+    >>> model = sncosmo.ObsModel(source=source)  # doctest: +SKIP
 
 
 Retrieving and setting parameters
