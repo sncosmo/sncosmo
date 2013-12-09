@@ -39,6 +39,27 @@ def flatten_result(res):
 
     return flat
 
+def cut_bands(data, model, z_bounds=None):
+
+    if z_bounds is None:
+        valid = model.bandoverlap(data['band'])
+    else:
+        valid = model.bandoverlap(data['band'], z=z_bounds)
+        valid = np.all(valid, axis=1)
+
+    if not np.all(valid):
+        # Fail if there are no overlapping bands whatsoever.
+        if not np.any(valid):
+            raise RuntimeError('No bands in data overlap the model.')
+
+        # Otherwise, warn that we are dropping some bands from the data:
+        drop_bands = [repr(b) for b in set(data['band'][np.invert(valid)])]
+        warn("Dropping following bands from data: " + ", ".join(drop_bands) +
+             "(out of model wavelength range)", RuntimeWarning)
+        data = data[valid]
+
+    return data
+
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
            minsnr=5., disp=False, maxcall=10000, flatten=False):
@@ -134,17 +155,15 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     The ``flatten`` keyword can be used to make the result a dictionary
     suitable for appending as rows of a table:
 
-    >>> import sncosmo
-    >>> from astropy.table import Table
-    >>> model = sncosmo.ObsModel(source='salt2')
-    >>> sne = [sncosmo.load_example_data(), sncosmo.load_example_data()]
-    >>> table_rows = []
-    >>> for sn in sne:  # loop over sn data
-    ...     model['z'] = sn.meta['z']
-    ...     res, fitmodel = sncosmo.fit_lc(sn, model, ['t0', 'x0', 'x1', 'c'],
-    ...                                    flatten=True)
-    ...     table_rows.append(res)
-    >>> t = Table(table_rows)
+    >>> from astropy.table import Table   # doctest: +SKIP
+    >>> table_rows = []  # doctest: +SKIP
+    >>> for sn in sne:  # doctest: +SKIP
+    ...     res, fitmodel = sncosmo.fit_lc(  # doctest: +SKIP
+    ...          sn, model, ['t0', 'x0', 'x1', 'c'],  # doctest: +SKIP
+    ...          flatten=True)  # doctest: +SKIP
+    ...     table_rows.append(res)  # doctest: +SKIP
+    >>> t = Table(table_rows)  # doctest: +SKIP
+
     """
 
     # Standardize and normalize data.
@@ -167,20 +186,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if model['z'] < bounds['z'][0] or model['z'] > bounds['z'][1]:
             raise ValueError('z out of range.')
 
-
-    # Cut bands that are not allowed by the wavelength range of the model
-    if 'z' not in param_names:
-        valid = model.bandoverlap(data['band'])
-    else:
-        valid = model.bandoverlap(data['band'], z=bounds['z'])
-        valid = np.all(valid, axis=1)
-    if not np.all(valid):
-        if not np.any(valid):
-            raise RuntimeError('No bands in data overlap model.')
-        drop_bands = [repr(b) for b in set(data['band'][np.invert(valid)])]
-        warn("Dropping following bands from data: " + ", ".join(drop_bands) +
-             "(out of model wavelength range)", RuntimeWarning)
-        data = data[valid]
+    # Cut bands that are not allowed by the wavelength range of the model.
+    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     # Unique set of bands in data
     bands = set(data['band'].tolist())
@@ -344,7 +351,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     elif method == 'l-bfgs-b':
         from scipy.optimize import fmin_l_bfgs_b
 
-        raise NotImplementedError
+        raise NotImplementedError('l-bfgs-b method not yet implemented')
         # TODO: implement this.
         # Scale 'fscale' to ~1 for numerical precision reasons.
         #if 'fscale' in param_names:
@@ -551,9 +558,19 @@ def nest_lc(data, model, param_names, bounds, priors=None,
 
     return res, model
 
-def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
-            nburn=100, nsamples=500, return_sampler=False, verbose=False):
+
+def mcmc_lc(data, model, param_names, errors, bounds=None, nwalkers=10,
+            nburn=100, nsamples=500, verbose=False):
     """Run an MCMC chain to get model parameter samples.
+
+    This is a convenience function around emcee.EnsembleSampler.
+    It defines the likelihood function and starting point and runs
+    the sampler, starting with a burn-in run.
+
+    .. warning::
+
+        This function is experimental and may change or be removed in future
+        versions.
 
     Parameters
     ----------
@@ -561,22 +578,27 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
         Table of photometric data. Must include certain column names.
     model : `~sncosmo.Model`
         The model to fit.
-    parnames : list
-        Model parameters to vary in the fit.
-    p0 : `dict`, optional
-        If given, use these initial parameters in fit. Default is to use
-        current model parameters.
-    errors : `dict`, optional
+    param_names : iterable
+        Model parameters to vary.
+    errors : iterable
+        The starting positions of the walkers are randomly selected from a
+        normal distribution in each dimension. The normal distribution is
+        centered around the current model parameters and `errors` gives the
+        standard deviation of the distribution for each parameter.
+    bounds : dict
     nwalkers : int, optional
+        Number of walkers in the EnsembleSampler
     nburn : int, optional
+        Number of samples in burn-in phase.
     nsamples : int, optional
-    return_sampler : bool, optional
+        Number of samples in production run.
     verbose : bool, optional
+        Print more.
 
     Returns
     -------
-    samples : `~numpy.ndarray`
-        The shape is (nsamples * nwalkers, npar).
+    samples : `~numpy.ndarray` (nsamples * nwalkers, ndim)
+        Samples
     """
 
     try:
@@ -585,66 +607,47 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
         raise ImportError("mcmc_lc() requires the emcee package.")
 
     data = standardize_data(data)
-    ndim = len(parnames)
+    ndim = len(param_names)
+    idx = np.array([model.param_names.index(name) for name in param_names])
 
-    # --------------------- COPIED FROM FIT_LC ----------------------------
-    # Set initial parameters, to help with guessing parameters, below.
-    if p0 is not None:
-        model.set(**p0)
+    # Check that z is bounded if it is being varied.
+    if bounds is None:
+        bounds = {}
+    if 'z' in param_names:
+        if 'z' not in bounds or None in bounds['z']:
+            raise ValueError('z must be bounded if fit.')
 
-    # Get list of initial guesses.
-    ndata = normalize_data(data, zp=25., zpsys='ab')
-    guesses = guess_parvals(ndata, model, parnames=['t0', 'fscale'])
+    # Drop data that the model doesn't cover.
+    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
-    # Set initial parameters. Order of priority: 
-    #   1. p0
-    #   2. guesses
-    #   3. current params (if not None)
-    #   4. 0.
-    parvals0 = []
-    current = model.params
-    for name in parnames:
-        if p0 is not None and name in p0:
-            parvals0.append(p0[name])
-        elif name in guesses:
-            parvals0.append(guesses[name])
-        elif current[name] is not None:
-            parvals0.append(current[name])
-        else:
-            parvals0.append(0.)
-    # --------------------- END OF COPY FROM FIT_LC ------------------------
-
-    step_sizes = []
-    for parname, parval in zip(parnames, parvals0):
-        if errors is not None and parname in errors:
-            step_size = errors[parname]
-        elif parname == 't0':
-            step_size = 0.5
-        elif parname == 'fscale':
-            step_size = 0.1 * parval
-        elif parname == 'z':
-            step_size = 0.05
-        else:
-            step_size = 0.1
-        step_sizes.append(step_size)
-
-    # Starting positions of walkers.
-    randarr = np.random.rand(ndim * nwalkers).reshape((nwalkers, ndim))
-    start = np.array(parvals0) + np.array(step_sizes) * (randarr - 0.5)
+    # Convert bounds indicies to integers
+    bounds_idx = dict([(param_names.index(name), bounds[name])
+                       for name in bounds])
 
     # define likelihood
-    def loglikelihood(parvals):
-        params = dict(zip(parnames, parvals))
-        model.set(**params)
+    def loglikelihood(parameters):
+        
+        # If any parameters are out-of-bounds, return 0 probability.
+        for i, b in bounds_idx.items():
+            if not b[0] < parameters[i] < b[1]:
+                return -np.inf
+
+        model.parameters[idx] = parameters
         mflux = model.bandflux(data['band'], data['time'],
                                zp=data['zp'], zpsys=data['zpsys'])
-        return -0.5 * np.sum(((data['flux'] - mflux) / data['fluxerr']) ** 2)
+        chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
+        return -chisq / 2.
 
     # Create sampler
     sampler = emcee.EnsembleSampler(nwalkers, ndim, loglikelihood)
 
+    # Starting positions of walkers.
+    current = model.parameters[idx]
+    errors = np.asarray(errors)
+    pos = [current + errors*np.random.randn(ndim) for i in range(nwalkers)]
+
     # burn-in
-    pos, prob, state = sampler.run_mcmc(start, nburn)
+    pos, prob, state = sampler.run_mcmc(pos, nburn)
     sampler.reset()
 
     # production run
@@ -652,8 +655,5 @@ def mcmc_lc(data, model, parnames, p0=None, errors=None, nwalkers=10,
     if verbose:
         print "Avg acceptance fraction:", np.mean(sampler.acceptance_fraction)
 
-    if return_sampler:
-        return sampler
-    else:
-        return sampler.flatchain
+    return sampler.flatchain
 
