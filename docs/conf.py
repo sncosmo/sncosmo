@@ -28,6 +28,8 @@
 # Load all of the global Astropy configuration
 from astropy.sphinx.conf import *
 
+# TODO: remove this once astropy#1841 is merged
+intersphinx_mapping['astropy'] = ('http://docs.astropy.org/en/stable/', None)
 
 # -- General configuration ----------------------------------------------------
 
