@@ -99,7 +99,6 @@ Plotting
    :toctree: _generated
 
    plot_lc
-   plot_param_samples
    animate_model
 
 Registry

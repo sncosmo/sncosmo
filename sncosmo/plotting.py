@@ -3,8 +3,9 @@
 from __future__ import division
 
 import math
-import numpy as np
 
+import numpy as np
+from astropy.utils import deprecated
 from astropy.utils.misc import isiterable
 
 from .models import SourceModel, ObsModel, get_sourcemodel
@@ -15,6 +16,9 @@ from .utils import value_error_str
 __all__ = ['plot_lc', 'plot_param_samples', 'animate_model']
 
 _model_ls = ['-', '--', ':', '-.']
+
+# TODO: change plot_lc and animate_model() to return Figures like
+# triangle.corner()?
 
 # TODO: cleanup names: data_bands, etc 
 # TODO: standardize docs for `data` in this and other functions.
@@ -62,42 +66,38 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Examples
     --------
+    Load some example data:
 
-    Load some example data::
+    >>> import sncosmo
+    >>> data = sncosmo.load_example_data()
 
-        >>> data = sncosmo.load_example_data()
+    Plot the data:
 
-    Plot the data::
+    >>> sncosmo.plot_lc(data)  # doctest: +SKIP
 
-        >>> sncosmo.plot_lc(data)
-
-    Plot a model along with the data::
+    Plot a model along with the data:
     
-        >>> model = sncosmo.ObsModel('salt2')
-        >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5, x1=0.5)
-        >>> sncosmo.plot_lc(data, model=model, fname='output.png')
+    >>> model = sncosmo.ObsModel('salt2')                # doctest: +SKIP
+    >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5)  # doctest: +SKIP
+    >>> sncosmo.plot_lc(data, model=model)               # doctest: +SKIP
 
     .. image:: /pyplots/plotlc_example.png
 
-    Plot just the model, for selected bands::
+    Plot just the model, for selected bands:
 
-        >>> sncosmo.plot_lc(model=model,
-        ...                 bands=['sdssg', 'sdssr', 'sdssi', 'sdssz'],
-        ...                 fname='output.png')
+    >>> sncosmo.plot_lc(model=model,                     # doctest: +SKIP
+    ...                 bands=['sdssg', 'sdssr'])        # doctest: +SKIP
 
-    Show the plot instead of saving to a file::
+    Plot figures on a multipage pdf:
 
-        >>> sncosmo.plot_lc(data)
-
-    Plot figures on a multipage pdf::
-
-        >>> from matplotlib.backends.backend_pdf import PdfPages
-        >>> pp = PdfPages('output.pdf')
-        >>> 
-        >>> # Do the following as many times as you like:
-        >>> sncosmo.plot_lc(data, fname=pp, format='pdf')
-        >>>
-        >>> pp.close()  # don't forget to close at the end!
+    >>> from matplotlib.backends.backend_pdf import PdfPages  # doctest: +SKIP
+    >>> pp = PdfPages('output.pdf')                           # doctest: +SKIP
+    ...
+    >>> # Do the following as many times as you like:
+    >>> sncosmo.plot_lc(data, fname=pp, format='pdf')    # doctest: +SKIP
+    ...
+    >>> # Don't forget to close at the end:
+    >>> pp.close()                                       # doctest: +SKIP
 
     """
 
@@ -319,6 +319,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     plt.close()
 
 
+# TODO remove this function.
+@deprecated(since='0.4', message='use corner() from the triangle.py module: '
+            'https://github.com/dfm/triangle.py')
 def plot_param_samples(param_names, samples, weights=None, fname=None,
                        bins=25, panelsize=2.5, **kwargs):
     """Plot PDFs of parameter values.
@@ -475,19 +478,19 @@ def animate_model(model_or_models, fps=30, length=20.,
 
     Examples
     --------
+    Compare the salt2 and hsiao models:
 
-    Compare the salt2 and hsiao models::
+    >>> animate_model(['salt2', 'hsiao'],  phase_range=(None, 30.),
+    ...                                           # doctest: +SKIP
+    ...               wave_range=(2000., 9200.))  # doctest: +SKIP
 
-        animate_model(['salt2', 'hsiao'],  phase_range=(None, 30.),
-                      wave_range=(2000., 9200.))
+    Compare the salt2 model with ``x1=1`` to the same model with ``x1=0.``:
 
-    Compare the salt2 model with x1 = 1. to the same model with x1 = 0.::
-
-        m1 = sncosmo.get_sourcemodel('salt2')
-        m1.set(x1=1.)
-        m2 = sncosmo.get_sourcemodel('salt2')
-        m2.set(x1=0.)
-        animate_model([m1, m2])
+    >>> m1 = sncosmo.get_sourcemodel('salt2')  # doctest: +SKIP
+    >>> m1.set(x1=1.)                          # doctest: +SKIP
+    >>> m2 = sncosmo.get_sourcemodel('salt2')  # doctest: +SKIP
+    >>> m2.set(x1=0.)                          # doctest: +SKIP
+    >>> animate_model([m1, m2])                # doctest: +SKIP
 
     """
 
