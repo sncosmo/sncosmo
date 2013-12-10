@@ -5,6 +5,8 @@ from __future__ import division
 import numpy as np
 import warnings
 
+__all__ = ['extinction', 'reddening']
+
 def extinction(wave, ebv=None, a_v=None, r_v=3.1, model='f99'):
     """Return extinction in magnitudes at given wavelength(s).
 
