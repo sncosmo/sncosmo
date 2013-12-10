@@ -28,6 +28,23 @@ Models
    SALT2Model
    ObsModel
 
+Extinction Functions & PropagationEffects
+=========================================
+
+*Functions related to interstellar dust extinction*
+
+.. autosummary::
+   :toctree: _generated
+
+   extinction
+   get_ebv_from_map
+   PropagationEffect
+   RvDust
+   CCM89Dust
+   OD94Dust
+   F99Dust
+
+
 Bandpasses
 ==========
 
@@ -47,17 +64,6 @@ Magnitude Systems
    MagSystem
    ABMagSystem
    SpectralMagSystem
-
-Extinction Functions
-====================
-
-*Functions related to interstellar dust extinction*
-
-.. autosummary::
-   :toctree: _generated
-
-   extinction
-   get_ebv_from_map
 
 Data I/O
 ========
@@ -117,6 +123,9 @@ Class Inheritance Diagrams
 ==========================
 
 .. inheritance-diagram:: SourceModel TimeSeriesModel StretchModel SALT2Model
+   :parts: 1
+
+.. inheritance-diagram:: PropagationEffect RvDust F99Dust OD94Dust CCM89Dust
    :parts: 1
 
 .. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem

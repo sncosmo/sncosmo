@@ -22,7 +22,9 @@ from .extinction import extinction
 
 __all__ = ['get_sourcemodel',
            'SourceModel', 'TimeSeriesModel', 'StretchModel', 'SALT2Model',
-           'ObsModel', 'PropagationEffect', 'InterpolatedRvDust']
+           'ObsModel', 
+           'PropagationEffect', 'RvDust', 'CCM89Dust', 'OD94Dust', 'F99Dust',
+           'InterpolatedRvDust']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
@@ -55,32 +57,6 @@ def get_sourcemodel(name, version=None, copy=False):
             return name
     else:
         return cp(registry.retrieve(SourceModel, name, version=version))
-
-# TODO maybe put ObsModels directly in the registry.
-# TODO clean up 
-#def get_obsmodel(name, version=None, copy=False):
-#    """Build an ObsModel based on the named SourceModel."""
-
-#    if isinstance(name, ObsModel):
-#        if copy:
-#            return cp(name)
-#        else:
-#            return name
-
-#    source = cp(registry.retrieve(SourceModel, name, version=version))
-#    if source.__class__.__name__ == 'SALT2Model':
-#        effects = [InterpolatedRvDust()]
-#        effect_names = ['mw']
-#        effect_frames = ['obs']
-#    else:
-#        effects = [InterpolatedRvDust(), InterpolatedRvDust()]
-#        effect_names = ['host', 'mw']
-#        effect_frames = ['rest', 'obs']
-#    return ObsModel(source, effects=effects, effect_names=effect_names,
-#                    effect_frames = effect_frames)
-
-# TODO: deprecate this
-#get_model = get_obsmodel
 
 
 def _bandflux(model, band, time_or_phase, zp, zpsys):
@@ -625,7 +601,7 @@ class SALT2Model(SourceModel):
             # Get the model component from the file
             phase, wave, values = read_griddata(name_or_obj)
             values *= self._SCALE_FACTOR  # TODO: should this really be
-                                          # for ALL components?
+                                          # done for ALL components?
             self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
@@ -1189,6 +1165,57 @@ class PropagationEffect(_ModelBase):
     @abc.abstractmethod
     def propagate(self, wave, flux):
         pass
+
+class RvDust(PropagationEffect):
+    """Base class for dust effects.
+
+    Derived classes must define _model (str), minwave (float), maxwave (float).
+    """
+
+    _param_names = ['ebv', 'r_v']
+    param_names_latex = ['E(B-V)', 'R_V']
+
+    def __init__(self, ebv=0., r_v=3.1):
+        self._parameters = np.array([ebv, r_v])
+
+    def propagate(self, wave, flux):
+        """Propagate the flux."""
+        trans = 10.**(-0.4 * extinction(wave,
+                                        ebv=self._parameters[0],
+                                        r_v=self._parameters[1],
+                                        model=self._model))
+        return trans * flux
+
+    def __repr__(self):
+        return "{0}(ebv={1}, r_v={2})".format(self.__class__.__name__,
+                                              self._parameters[0],
+                                              self._parameters[1])
+
+    def summary(self):
+        summary = """\
+        class           : {0}
+        wavelength range: [{1:.6g}, {2:.6g}] Angstroms"""\
+        .format(self.__class__.__name__, self.minwave, self.maxwave)
+        return dedent(summary)
+
+class CCM89Dust(RvDust):
+    """Cardelli, Clayton, Mathis (1989) extinction law"""
+    _model = 'ccm89'
+    minwave = 1250.
+    maxwave = 33333.
+
+class OD94Dust(RvDust):
+    """Fitzpatrick (1999) extinction law"""
+    _model = 'od94'
+    minwave = 1250.
+    maxwave = 60000.
+
+class F99Dust(RvDust):
+    """Fitzpatrick (1999) extinction law"""
+    _model = 'f99'
+    minwave = 1150.
+    maxwave = 60000.
+
 
 class InterpolatedRvDust(PropagationEffect):
     """Dust propagation effect. Wraps extinction functions.

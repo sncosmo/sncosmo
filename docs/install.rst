@@ -13,7 +13,7 @@ SNCosmo depends on the following standard scientific python packages:
 
 - `SciPy <http://www.scipy.org/>`_ 0.9 or later
 
-- AstroPy_ 0.2 or later
+- AstroPy_ 0.3 or later
 
 In addition, several optional packages provide additional functionality:
 
@@ -24,6 +24,9 @@ In addition, several optional packages provide additional functionality:
 
 - Optional: `emcee <http://dan.iel.fm/emcee/>`_ for Monte Carlo parameter
   estimation in `sncosmo.mcmc_lc`.
+
+- Optional: `triangle <https://github.com/dfm/triangle.py>`_ for plotting
+  results from `sncosmo.mcmc_lc` and `sncosmo.nest_lc` 
 
 Install AstroPy
 ---------------
