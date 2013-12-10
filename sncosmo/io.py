@@ -221,12 +221,12 @@ def _read_salt2_old(dirname, **kwargs):
 
     # Get list of files in directory.
     if not (os.path.exists(dirname) and os.path.isdir(dirname)):
-        raise IOError("Not a directory: '{}'".format(dirname))
+        raise IOError("Not a directory: '{0}'".format(dirname))
     dirfilenames = os.listdir(dirname)
 
     # Read metadata from lightfile.
     if 'lightfile' not in dirfilenames:
-        raise IOError("no lightfile in directory: '{}'".format(dirname))
+        raise IOError("no lightfile in directory: '{0}'".format(dirname))
     with open(os.path.join(dirname, 'lightfile'), 'r') as lightfile:
         meta = odict()
         for line in lightfile.readlines():
@@ -236,7 +236,7 @@ def _read_salt2_old(dirname, **kwargs):
                 key, val = line.split()
             except ValueError:
                 raise ValueError('expected space-separated key value pairs in '
-                                 'lightfile: {}'
+                                 'lightfile: {0}'
                                  .format(os.path.join(dirname, 'lightfile')))
             meta[key] = val
 
@@ -257,15 +257,15 @@ def _read_salt2_old(dirname, **kwargs):
         if not ('INSTRUMENT' in filemeta and 'BAND' in filemeta and
                 'MAGSYS' in filemeta):
             raise ValueError('not all necessary global keys (INSTRUMENT, '
-                             'BAND, MAGSYS) are defined in file {}'
+                             'BAND, MAGSYS) are defined in file {0}'
                              .format(fname))
 
         # Add the instrument/band to the file data, in anticipation of
         # aggregating it with other files.
         firstkey = filedata.keys()[0]
         data_length = len(filedata[firstkey])
-        filter_name = '{}::{}'.format(filemeta.pop('INSTRUMENT'),
-                                      filemeta.pop('BAND'))
+        filter_name = '{0}::{1}'.format(filemeta.pop('INSTRUMENT'),
+                                        filemeta.pop('BAND'))
         filedata['Filter'] = data_length * [filter_name]
         filedata['MagSys'] = data_length * [filemeta.pop('MAGSYS')]
 
@@ -340,7 +340,7 @@ def read_lc(file_or_dir, format='csv', **kwargs):
     """
 
     if format not in READERS:
-        raise ValueError("Reader not defined for format '{}'. Options: "
+        raise ValueError("Reader not defined for format {0!r}. Options: "
                          .format(format) + ", ".join(READERS.keys()))
 
     if format == 'salt2-old':
@@ -363,7 +363,7 @@ def _write_csv(f, data, meta, **kwargs):
     
     if meta is not None:
         for key, val in meta.iteritems():
-            f.write('{}{}{}{}\n'.format(metachar, key, delim, str(val)))
+            f.write('{0}{1}{2}{3}\n'.format(metachar, key, delim, str(val)))
 
     keys = data.dtype.names
     length = len(data)
@@ -403,7 +403,7 @@ def _write_salt2(f, data, meta, **kwargs):
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SALT2KEY_META.get(key, key)
-            f.write('@{} {}\n'.format(key, str(val)))
+            f.write('@{0} {1}\n'.format(key, str(val)))
 
     keys = data.dtype.names
     length = len(data)
@@ -414,7 +414,7 @@ def _write_salt2(f, data, meta, **kwargs):
         if not raw:
             key = key.capitalize()
             key = KEY_TO_SALT2KEY_COLUMN.get(key, key)
-        f.write('#{} :\n'.format(key))
+        f.write('#{0} :\n'.format(key))
         keys_as_written.append(key)
     f.write('#end :\n')
 
@@ -457,7 +457,7 @@ def _write_snana(f, data, meta, **kwargs):
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SNANAKEY_META.get(key, key)
-            f.write('{}: {}\n'.format(key, str(val)))
+            f.write('{0}: {1}\n'.format(key, str(val)))
             keys_as_written.append(key)
 
     # Check that necessary metadata was written
@@ -489,9 +489,9 @@ def _write_snana(f, data, meta, **kwargs):
             '# ==========================================\n'
             '# TERSE LIGHT CURVE OUTPUT:\n'
             '#\n'
-            'NOBS: {:d}\n'
-            'NVAR: {:d}\n'
-            'VARLIST: {}\n'
+            'NOBS: {0:d}\n'
+            'NVAR: {1:d}\n'
+            'VARLIST: {2}\n'
             .format(length, len(keys), ' '.join(keys_to_write)))
 
     # Write data
@@ -547,7 +547,7 @@ def write_lc(data, fname, format='csv', **kwargs):
     """
 
     if format not in WRITERS:
-        raise ValueError("Writer not defined for format '{}'. Options: "
+        raise ValueError("Writer not defined for format {0!r}. Options: "
                          .format(format) + ", ".join(WRITERS.keys()))
     if isinstance(data, Table):
         meta = data.meta

@@ -411,11 +411,11 @@ class SourceModel(_ModelBase):
 
     def summary(self):
         summary = """\
-        class      : {}
-        name       : {}
-        version    : {}
-        phases     : [{:.6g}, .., {:.6g}] days ({:d} points)
-        wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
+        class      : {0}
+        name       : {1}
+        version    : {2}
+        phases     : [{3:.6g}, .., {4:.6g}] days ({5:d} points)
+        wavelengths: [{6:.6g}, .., {7:.6g}] Angstroms ({8:d} points)"""\
         .format(
             self.__class__.__name__, self.name, self.version,
             self.minphase, self.maxphase, len(self._phase),
@@ -668,8 +668,8 @@ class SALT2Model(SourceModel):
             self._colorlaw = self._colorlaw_v1
             self._colorlaw_range = colorlaw_range
         else:
-            raise Exception('unrecognized Salt2ExtinctionLaw.version: {}'
-                            .format(version))
+            raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
+                            version)
 
 
     def _colorlaw_v0(self, wave):
@@ -1139,7 +1139,7 @@ class ObsModel(_ModelBase):
         for effect, name, frame in zip(self._effects,
                                        self._effect_names,
                                        self._effect_frames):
-            s = ('effect (name={} frame={}):\n{}'
+            s = ('effect (name={0} frame={1}):\n{2}'
                  .format(repr(name), repr(frame), effect.summary()))
             summaries.append(s.replace('\n', '\n  '))
         return '\n'.join(summaries)
@@ -1262,18 +1262,18 @@ class InterpolatedRvDust(PropagationEffect):
         return flux * self._spline(wave) ** self._parameters[0]
 
     def __repr__(self):
-        return "{}(model={}, ebv={}, r_v={}, minwave={}, maxwave={}, " + \
-            "spline_points={})".format(
+        return "{0}(model={1}, ebv={2}, r_v={3}, minwave={4}, maxwave={5}, " + \
+            "spline_points={6})".format(
             self.__class__.__name__, repr(self._model),
             self._parameters[0], self._r_v,
             self._wave[0], self._wave[-1], len(self._wave))
 
     def summary(self):
         summary = """\
-        class      : {}
-        model      : {}
-        r_v        : {}
-        wavelengths: [{:.6g}, .., {:.6g}] Angstroms ({:d} points)"""\
+        class      : {0}
+        model      : {1}
+        r_v        : {2}
+        wavelengths: [{3:.6g}, .., {4:.6g}] Angstroms ({5:d} points)"""\
         .format(
             self.__class__.__name__, repr(self._model), self._r_v,
             self.minwave, self.maxwave, len(self._wave)

@@ -197,10 +197,10 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
     for it in range(maxiter):
         if verbose:
             if logz > -1.e6:
-                print "\r{} iter={:6d} logz={:8f}".format(verbose_name, it,
-                                                          logz),
+                print "\r{0} iter={1:6d} logz={2:8f}".format(verbose_name, it,
+                                                             logz),
             else:
-                print "\r{} iter={:6d} logz=".format(verbose_name, it),
+                print "\r{0} iter={1:6d} logz=".format(verbose_name, it),
             stdout.flush()
 
         # worst object in collection and its weight (= width * likelihood)
@@ -257,7 +257,7 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
 
     tottime = time.time() - time0
     if verbose:
-        print 'calls={:d} time={:7.3f}s'.format(loglcalls, tottime)
+        print 'calls={0:d} time={1:7.3f}s'.format(loglcalls, tottime)
 
     # Add remaining objects.
     # After N samples have been taken out, the remaining width is e^(-N/nobj)

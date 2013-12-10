@@ -119,7 +119,7 @@ del sdss_desc
 lines = [
     '',
     '  '.join([11*'=', 80*'=', 14*'=', 8*'=', 12*'=']),
-    '{:11}  {:80}  {:14}  {:8}  {:12}'
+    '{0:11}  {1:80}  {2:14}  {3:8}  {4:12}'
     .format('Name', 'Description', 'Reference', 'Data URL', 'Retrieved')
     ]
 lines.append(lines[1])
@@ -133,7 +133,7 @@ for m in registry.get_loaders_metadata(Bandpass):
     retrieved = ''
 
     if 'reference' in m:
-        reflink = '[{}]_'.format(m['reference'][0])
+        reflink = '[{0}]_'.format(m['reference'][0])
         if m['reference'] not in allrefs:
             allrefs.append(m['reference'])
 
@@ -142,7 +142,7 @@ for m in registry.get_loaders_metadata(Bandpass):
         if dataurl not in urlnums:
             if len(urlnums) == 0: urlnums[dataurl] = 0
             else: urlnums[dataurl] = max(urlnums.values()) + 1
-        urllink = '`{}`_'.format(string.letters[urlnums[dataurl]])
+        urllink = '`{0}`_'.format(string.letters[urlnums[dataurl]])
 
     if 'retrieved' in m:
         retrieved = m['retrieved']
@@ -152,10 +152,10 @@ for m in registry.get_loaders_metadata(Bandpass):
 
 lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
-    lines.append('.. [{}] {}'.format(refkey, ref))
+    lines.append('.. [{0}] {1}'.format(refkey, ref))
 lines.append('')
 for url, urlnum in urlnums.iteritems():
-    lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
+    lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
 lines.append('')
 __doc__ = '\n'.join(lines)
 

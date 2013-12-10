@@ -190,7 +190,6 @@ def extinction(wave, ebv=None, a_v=None, r_v=3.1, model='f99'):
     --------
 
     >>> import numpy as np
-    >>> from specutils.extinction import extinction
     >>> wave = np.array([2000., 2500., 3000.])
     >>> extinction(wave, a_v=1., r_v=3.1, model='f99')
     array([ 2.76225609,  2.27590036,  1.79939955])
@@ -242,7 +241,7 @@ def extinction(wave, ebv=None, a_v=None, r_v=3.1, model='f99'):
     elif model == 'fm07':
         a_lambda = _f99_like(x, ebv, r_v, model='fm07')
     else:
-        raise ValueError('unknown model: {}'.format(model))
+        raise ValueError('unknown model: {0}'.format(model))
 
     if return_scalar:
         return a_lambda[0]

@@ -171,8 +171,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                 v = value_error_str(model.parameters[i], errors[name],
                                     latex=True)
             else:
-                v = '{:.4f}'.format(model.parameters[i])
-            lines.append('${} = {}$'.format(lname, v))
+                v = '{0:.4g}'.format(model.parameters[i])
+            lines.append('${0} = {1}$'.format(lname, v))
 
         # split lines into two columns
         n = len(model.param_names) - len(model.param_names) // 2
@@ -226,7 +226,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
         xlabel_text = 'time'
         if len(models) > 0 and models[0].parameters[1] != 0.:
-            xlabel_text += ' - {:.2f}'.format(models[0].parameters[1])
+            xlabel_text += ' - {0:.2f}'.format(models[0].parameters[1])
 
         # Plot data if there is any.
         if data is not None:
@@ -582,7 +582,7 @@ def animate_model(model_or_models, fps=30, length=20.,
         for j in range(len(models)):
             y = models[j].flux(current_phase + phase_offsets[j])
             lines[j].set_data(waves[j], y * scaling_factors[j])
-        phase_text.set_text('phase = {:.1f}'.format(current_phase))
+        phase_text.set_text('phase = {0:.1f}'.format(current_phase))
         return tuple(lines) + (phase_text,)
 
     ani = animation.FuncAnimation(fig, animate, init_func=init,

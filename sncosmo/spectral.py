@@ -30,7 +30,7 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA, name=None):
     in Angstroms."""
 
     if fmt != 'ascii':
-        raise ValueError("format {} not supported. Supported formats: 'ascii'"
+        raise ValueError("format {0} not supported. Supported formats: 'ascii'"
                          .format(fmt))
     t = ascii.read(fname, names=['wave', 'trans'])
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit, name=name)

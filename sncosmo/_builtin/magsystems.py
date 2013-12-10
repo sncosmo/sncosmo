@@ -55,7 +55,7 @@ registry.register_loader(
 
 lines = ['',
          '  '.join([10*'=', 60*'=', 35*'=', 15*'=']),
-         '{:10}  {:60}  {:35}  {:15}'
+         '{0:10}  {1:60}  {2:35}  {3:15}'
          .format('Name', 'Description', 'Subclass', 'Spectrum Source')]
 lines.append(lines[1])
 
@@ -73,14 +73,14 @@ for m in registry.get_loaders_metadata(MagSystem):
         if url not in urlnums:
             if len(urlnums) == 0: urlnums[url] = 0
             else: urlnums[url] = max(urlnums.values()) + 1
-        urllink = '`{}`_'.format(string.letters[urlnums[url]])
+        urllink = '`{0}`_'.format(string.letters[urlnums[url]])
 
     lines.append("{0!r:10}  {1:60}  {2:35}  {3:15}"
                  .format(m['name'], description, m['subclass'], urllink))
 
 lines.extend([lines[1], ''])
 for url, urlnum in urlnums.iteritems():
-    lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
+    lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
 lines.append('')
 __doc__ = '\n'.join(lines)
 

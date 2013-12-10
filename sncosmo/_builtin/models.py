@@ -19,28 +19,28 @@ from .. import io
 # ------------------------------------------------------------------------
 # Bandflux relative errors
 
-def set_bandfluxerror_sn1a(model):
-    dmin, dmax = model.disp(modelframe=True)[[0, -1]]
-    disp = np.linspace(dmin, dmax, (dmax-dmin)/100. + 1)
-    phase = model.times(modelframe=True)
-    relphase = np.abs(phase - model.refphase)
-    relerror = np.empty(relphase.shape, dtype=np.float)
-    idx = relphase < 20.
-    relerror[idx] = 0.08 + 0.04 * relphase[idx] / 20.
-    idx = np.invert(idx)
-    relerror[idx] = 0.12 + 0.08 * (relphase[idx] - 20.) / 60.
-    relerror = relerror[:, np.newaxis]
-    relerror = relerror * (((disp < 4000.) | (disp > 8300.)) + 1.)
-    model.set_bandflux_relative_error(phase, disp, relerror)
+#def set_bandfluxerror_sn1a(model):
+#    dmin, dmax = model.disp(modelframe=True)[[0, -1]]
+#    disp = np.linspace(dmin, dmax, (dmax-dmin)/100. + 1)
+#    phase = model.times(modelframe=True)
+#    relphase = np.abs(phase - model.refphase)
+#    relerror = np.empty(relphase.shape, dtype=np.float)
+#    idx = relphase < 20.
+#    relerror[idx] = 0.08 + 0.04 * relphase[idx] / 20.
+#    idx = np.invert(idx)
+#    relerror[idx] = 0.12 + 0.08 * (relphase[idx] - 20.) / 60.
+#    relerror = relerror[:, np.newaxis]
+#    relerror = relerror * (((disp < 4000.) | (disp > 8300.)) + 1.)
+#    model.set_bandflux_relative_error(phase, disp, relerror)
 
-def set_bandfluxerror_sncc(model):
-    dmin, dmax = model.disp(modelframe=True)[[0, -1]]
-    disp = np.linspace(dmin, dmax, (dmax-dmin)/100. + 1)
-    phase = model.times(modelframe=True)
-    relphase = phase - model.refphase
-    relerror = (0.08 + 0.08 * np.abs(relphase) / 60.)[:, np.newaxis]
-    relerror = relerror * (((disp < 4000.) | (disp > 8300.)) + 1.)
-    model.set_bandflux_relative_error(phase, disp, relerror)
+#def set_bandfluxerror_sncc(model):
+#    dmin, dmax = model.disp(modelframe=True)[[0, -1]]
+#    disp = np.linspace(dmin, dmax, (dmax-dmin)/100. + 1)
+#    phase = model.times(modelframe=True)
+#    relphase = phase - model.refphase
+#    relerror = (0.08 + 0.08 * np.abs(relphase) / 60.)[:, np.newaxis]
+#    relerror = relerror * (((disp < 4000.) | (disp > 8300.)) + 1.)
+#    model.set_bandflux_relative_error(phase, disp, relerror)
 
 # ------------------------------------------------------------------------
 # Nugent models
@@ -375,7 +375,7 @@ registry.register_loader(
 lines = [
     '',
     '  '.join([16*'=', 7*'=', 8*'=', 27*'=', 14*'=', 7*'=', 7*'=']),
-    '{:16}  {:7}  {:8}  {:27}  {:14}  {:7}  {:50}'.format(
+    '{0:16}  {1:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}'.format(
         'Name', 'Version', 'Type', 'Subclass', 'Reference', 'Website', 'Notes')
     ]
 lines.append(lines[1])
@@ -392,10 +392,10 @@ for m in registry.get_loaders_metadata(SourceModel):
     if 'note' in m:
         if m['note'] not in allnotes: allnotes.append(m['note'])
         notenum = allnotes.index(m['note'])
-        notelink = '[{}]_'.format(notenum + 1)
+        notelink = '[{0}]_'.format(notenum + 1)
 
     if 'reference' in m:
-        reflink = '[{}]_'.format(m['reference'][0])
+        reflink = '[{0}]_'.format(m['reference'][0])
         if m['reference'] not in allrefs:
             allrefs.append(m['reference'])
 
@@ -404,7 +404,7 @@ for m in registry.get_loaders_metadata(SourceModel):
         if url not in urlnums:
             if len(urlnums) == 0: urlnums[url] = 0
             else: urlnums[url] = max(urlnums.values()) + 1
-        urllink = '`{}`_'.format(string.letters[urlnums[url]])
+        urllink = '`{0}`_'.format(string.letters[urlnums[url]])
 
     lines.append("{0!r:16}  {1!r:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}"
                  .format(m['name'], m['version'], m['type'], m['subclass'],
@@ -412,13 +412,13 @@ for m in registry.get_loaders_metadata(SourceModel):
 
 lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
-    lines.append('.. [{}] `{}`__'.format(refkey, ref))
+    lines.append('.. [{0}] `{1}`__'.format(refkey, ref))
 lines.append('')
 for url, urlnum in urlnums.iteritems():
-    lines.append('.. _`{}`: {}'.format(string.letters[urlnum], url))
+    lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
 lines.append('')
 for i, note in enumerate(allnotes):
-    lines.append('.. [{}] {}'.format(i + 1, note))
+    lines.append('.. [{0}] {1}'.format(i + 1, note))
 lines.append('')
 __doc__ = '\n'.join(lines)
 

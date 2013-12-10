@@ -67,7 +67,7 @@ def read_snana_fits(head_file, phot_file, snids=None, n=None):
         for snid in snids: 
             i = np.flatnonzero(head_data['SNID'] == snid)
             if len(i) != 1:
-                raise RuntimeError('Unique snid requested, but there are {:d} '
+                raise RuntimeError('Unique snid requested, but there are {0:d} '
                                    'matching entries'.format(len(i)))
             idx.append(i[0])
     elif snids is None:

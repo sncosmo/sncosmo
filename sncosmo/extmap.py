@@ -56,7 +56,7 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
         mapdir = SFD_MAP_DIR()
     mapdir = os.path.expanduser(mapdir)
     mapdir = os.path.expandvars(mapdir)
-    fname = os.path.join(mapdir, 'SFD_dust_4096_{}.fits')
+    fname = os.path.join(mapdir, 'SFD_dust_4096_{0}.fits')
 
     # Parse input 
     if not isinstance(coordinates, coord.SphericalCoordinatesBase):

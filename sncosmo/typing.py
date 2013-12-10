@@ -93,12 +93,12 @@ class PhotoTyper(object):
     def __str__(self):
         lines = []
         for model_type in self.types:
-            lines.append('Type: {}'.format(model_type))
+            lines.append('Type: {0}'.format(model_type))
             for name, d in self._models.iteritems():
                 if d['type'] != model_type: continue
-                lines.append('  Model: {}'.format(name))
+                lines.append('  Model: {0}'.format(name))
                 for parname, parvals in d['parlims'].iteritems():
-                    lines.append('    {}: [{} .. {}]'
+                    lines.append('    {0}: [{1} .. {2}]'
                                  .format(parname, parvals[0], parvals[1]))
         return '\n'.join(lines)
 
@@ -206,7 +206,7 @@ class PhotoTyper(object):
             d['perr'] = (p_up - p, p - p_dn)
 
         # get probability for each type
-        types = {name: {'p': 0.} for name in self.types}
+        types = dict([(name, {'p': 0.}) for name in self.types])
         for name, d in models.iteritems():
             types[d['type']]['p'] += d['p']
 

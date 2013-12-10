@@ -88,7 +88,7 @@ def standardize_data(data):
         raise ValueError('Unrecognized data type')
 
     # Create mapping from lowercased column names to originals
-    lower_to_orig = {colname.lower(): colname for colname in colnames}
+    lower_to_orig = dict([(colname.lower(), colname) for colname in colnames])
         
     # Set of lowercase column names
     lower_colnames = set(lower_to_orig.keys())
@@ -97,7 +97,7 @@ def standardize_data(data):
     for aliases in _photdata_aliases.values():
         i = lower_colnames & aliases
         if len(i) != 1:
-            raise ValueError('Data must include exactly one column from {} '
+            raise ValueError('Data must include exactly one column from {0} '
                              '(case independent)'.format(', '.join(aliases)))
         orig_colnames_to_use.append(lower_to_orig[i.pop()])
 
@@ -163,13 +163,14 @@ def normalize_data(data, zp=25., zpsys='ab'):
 lines = [
     '',
     '  '.join([60 * '=', 50 * '=', 50 * '=']),
-    '{:60}  {:50}  {:50}'.format('Acceptable column names (case-independent)',
-                                 'Description', 'Type')
+    '{0:60}  {1:50}  {2:50}'
+    .format('Acceptable column names (case-independent)',
+            'Description', 'Type')
     ]
 lines.append(lines[1])
 
 for field, aliases in _photdata_aliases.iteritems():
-    lines.append('{:60}  {:50}  {:50}'
+    lines.append('{0:60}  {1:50}  {2:50}'
                  .format(', '.join([repr(a) for a in aliases]),
                          _photdata_descriptions[field],
                          _photdata_types[field]))
