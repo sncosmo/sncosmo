@@ -1,0 +1,17 @@
+{% extends "!layout.html" %}
+
+{% block header %}
+<div class="topbar">
+  <a class="brand" title="{{ _('Documentation Home') }}" href="{{ pathto(master_doc) }}"><span id="logotext1">{{ theme_logotext1 }}</span><span id="logotext2">{{ theme_logotext2 }}</span><span id="logotext3">{{ theme_logotext3 }}</span></a>
+  <ul>
+    <li><a class="homelink" title="sncosmo homepage" href="http://sncosmo.github.io">Homepage</a></li>
+    <li><a title="{{ _('General Index') }}" href="{{ pathto('genindex') }}">Index</a></li>
+    <li><a title="{{ _('Module Index') }}" href="{{ pathto('py-modindex') }}">Modules</a></li>
+    <li>
+      {% block sidebarsearch %}
+      {% include "searchbox.html" %}
+      {% endblock %}
+    </li>
+  </ul>
+</div>
+{% endblock %}

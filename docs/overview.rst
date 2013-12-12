@@ -1,6 +1,6 @@
-***********************
-Overview & Contributing
-***********************
+***************************
+Package Overview & Examples
+***************************
 
 Package Functionality
 =====================
@@ -155,9 +155,7 @@ supernova cosmology. These include (but are not limited to) `snfit`_
 
 
 .. _`snfit`: http://supernovae.in2p3.fr/~guy/salt/index.html
-
 .. _`SNANA`: http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/
-
 .. _`SNooPy`: http://csp.obs.carnegiescience.edu/data/snpy
 
 
