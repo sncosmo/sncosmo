@@ -28,6 +28,29 @@ __all__ = ['get_sourcemodel',
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
+def _check_for_fitpack_error(e, a, name):
+    """Raise a more informative error message for fitpack errors.
+
+    This is implemented as a separate function rather than subclassing Spline2d
+    so that we can raise the error closer to user-facing functions. We
+    may wish to change this behavior in the future. For example, if some
+    models are implemented not based on RectBivariateSpline so that they
+    don't have this restriction.
+
+    Parameters
+    ----------
+    e : ValueError
+    a : `~numpy.ndarray` (0-d or 1-d)
+    name : str
+    """
+
+    # Check if the error is a specific one raise by RectBivariateSpline
+    # If it is, check if supplied array is *not* monotonically increasing
+    if (len(e.args) > 0 and
+        e.args[0].startswith("Error code returned by bispev: 10") and
+        np.any(np.ediff1d(a) < 0.)):
+            raise ValueError(name + ' must be monotonically increasing')
+
 def get_sourcemodel(name, version=None, copy=False):
     """Retrieve a model from the registry by name.
 
@@ -274,11 +297,11 @@ class SourceModel(_ModelBase):
         Parameters
         ----------
         phase : float or list_like, optional
-            Phase(s) in days. If `None` (default), the native phases of
-            the model are used.
+            Phase(s) in days. Must be monotonically increasing.
+            If `None` (default), the native phases of the model are used. 
         wave : float or list_like, optional
-            Wavelength(s) in Angstroms. If `None` (default), the native
-            wavelengths of the model are used.
+            Wavelength(s) in Angstroms. Must be monotonically increasing.
+            If `None` (default), the native wavelengths of the model are used.
 
         Returns
         -------
@@ -299,7 +322,12 @@ class SourceModel(_ModelBase):
             raise ValueError('requested wavelength value(s) outside '
                              'model range')
 
-        f = self._flux(phase, wave)
+        try:
+            f = self._flux(phase, wave)
+        except ValueError as e:
+            _check_for_fitpack_error(e, phase, 'phase')
+            _check_for_fitpack_error(e, wave, 'wave')
+            raise e
 
         if phase.ndim == 0:
             if wave.ndim == 0:
@@ -338,8 +366,11 @@ class SourceModel(_ModelBase):
 
         if phase is None:
             phase = self.phases
-        return _bandflux(self, band, phase, zp, zpsys)
-
+        try:
+            return _bandflux(self, band, phase, zp, zpsys)
+        except ValueError as e:
+            _check_for_fitpack_error(e, phase, 'phase')
+            raise e
 
     def bandmag(self, band, magsys, phase=None):
         """Magnitude at the given phase(s) through the given 
@@ -1017,7 +1048,12 @@ class ObsModel(_ModelBase):
                              'model range')
 
         # Get the flux
-        f = self._flux(time, wave)
+        try:
+            f = self._flux(time, wave)
+        except ValueError as e:
+            _check_for_fitpack_error(e, time, 'time')
+            _check_for_fitpack_error(e, wave, 'wave')
+            raise e
 
         # Return array according to dimension of inputs.
         if np.isscalar(time) or time.ndim == 0:
@@ -1095,7 +1131,11 @@ class ObsModel(_ModelBase):
 
         if time is None:
             time = self.times
-        return _bandflux(self, band, time, zp, zpsys)
+        try:
+            return _bandflux(self, band, time, zp, zpsys)
+        except ValueError as e:
+            _check_for_fitpack_error(e, time, 'time')
+            raise e
 
     def bandmag(self, band, magsys, time=None):
         """Magnitude at the given time(s) through the given 
