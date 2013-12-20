@@ -34,7 +34,7 @@ def load_spectral_magsys_fits(remote_url, name=None):
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
     refspectrum = Spectrum(dispersion, flux_density, 
-                           unit=(u.erg / u.s / u.cm**2 / u.AA), dunit=u.AA)
+                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return SpectralMagSystem(refspectrum, name=name)
 
 calspec_url = 'ftp://ftp.stsci.edu/cdbs/current_calspec/'

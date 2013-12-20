@@ -21,9 +21,9 @@ def value_error_str(value, error, latex=False):
         result = (('({0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f})')
                   .format(value, pm, error))
         if latex:
-            result += ' \\times 10^{{{1:d}}}'.format(first)
+            result += ' \\times 10^{{{0:d}}}'.format(first)
         else:
-            result += ' x 10^{1:d}'.format(first)
+            result += ' x 10^{0:d}'.format(first)
         return result
     else:
         p = max(0, -last + 1)
