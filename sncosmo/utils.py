@@ -2,34 +2,42 @@ import math
 import numpy as np
 from scipy import integrate, optimize
 
-def value_error_str(value, error, latex=False):
+def format_value(value, error=None, latex=False):
     """Return a string representing value and uncertainty.
 
     If latex=True, use '\pm' and '\times'.
     """
     pm = '\pm' if latex else '+/-'
-    
+    suffix = ''
+
+    # First significant digit
     first = int(math.floor(math.log10(abs(value))))  # first significant digit
-    last = int(math.floor(math.log10(error)))  # last significant digit
+
+    if error is None:
+        last = first - 6  # Pretend there are 7 significant figures.
+    else:
+        last = int(math.floor(math.log10(error)))  # last significant digit
 
     # use exponential notation if
     # value > 1000 and error > 1000 or value < 0.01
     if (first > 2 and last > 2) or first < -2:
         value /= 10**first
-        error /= 10**first
+        if error is not None: error /= 10**first
         p = max(0, first - last + 1)
-        result = (('({0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f})')
-                  .format(value, pm, error))
         if latex:
-            result += ' \\times 10^{{{0:d}}}'.format(first)
+            suffix = ' \\times 10^{{{0:d}}}'.format(first)
         else:
-            result += ' x 10^{0:d}'.format(first)
-        return result
+            suffix = ' x 10^{0:d}'.format(first)
     else:
         p = max(0, -last + 1)
-        return (('{0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f}')
-                .format(value, pm, error))
 
+    if error is None:
+        prefix = '{0:g}'.format(value)
+    else:
+        prefix = (('({0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f})')
+                  .format(value, pm, error))
+
+    return prefix + suffix
 
 class Result(dict):
     """Represents an optimization result.

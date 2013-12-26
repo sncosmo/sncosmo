@@ -11,26 +11,25 @@ from astropy.utils.misc import isiterable
 from .models import SourceModel, ObsModel, get_sourcemodel
 from .spectral import get_bandpass, get_magsystem
 from .photdata import standardize_data, normalize_data
-from .utils import value_error_str
+from .utils import format_value
 
 __all__ = ['plot_lc', 'plot_param_samples', 'animate_model']
 
 _model_ls = ['-', '--', ':', '-.']
+_cm_wavelims = (3000., 10000.)
 
 # TODO: change plot_lc and animate_model() to return Figures like
 # triangle.corner()?
 
-# TODO: cleanup names: data_bands, etc 
-# TODO: standardize docs for `data` in this and other functions.
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
-            offsets=None, xfigsize=None, yfigsize=None, figtext=None,
+            xfigsize=None, yfigsize=None, figtext=None,
             errors=None, figtextsize=1., fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
     Parameters
     ----------
-    data : `~numpy.ndarray` or dict of list_like, optional
-        Structured array or dictionary of arrays or lists.
+    data : astropy `~astropy.table.Table` or similar
+        Table of photometric data points.
     model : `~sncosmo.ObsModel` or list thereof
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
@@ -44,8 +43,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     pulls : bool, optional
         If True (and if model and data are given), plot pulls. Default is
         ``True``.
-    offsets : list, optional
-        Offsets in flux for given bandpasses.
     figtext : str, optional
         Text to add to top of figure. If a list of strings, each item is
         placed in a separate "column". Use newline separators for multiple
@@ -102,12 +99,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     """
 
     from matplotlib import pyplot as plt
-    from matplotlib import cm
+    from matplotlib.ticker import MaxNLocator, NullFormatter
     from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-    # Get colormap and define wavelengths corresponding to (blue, red)
-    cmap = cm.get_cmap('gist_rainbow')
-    cm_wave_range = (3000., 10000.)
+    from matplotlib import cm
+    cmap = cm.get_cmap('jet_r')
 
     if data is None and model is None:
         raise ValueError('must specify at least one of: data, model')
@@ -131,59 +126,38 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     # Bands to plot
     if data is None:
-        bands = set([get_bandpass(band) for band in bands])
+        bands = set(bands)
+    elif bands is None:
+        bands = set(data['band'])
     else:
-        data_bands = np.array([get_bandpass(band) for band in data['band']])
-        unique_data_bands = set(data_bands)
-        if bands is None:
-            bands = unique_data_bands
-        else:
-            bands = set([get_bandpass(band) for band in bands])
-            bands = bands & unique_data_bands
-    bands = list(bands)
-    waves = [b.wave_eff for b in bands]
-
-    # offsets for each band, if any.
-    if offsets is not None:
-        for key, value in offsets.iteritems():
-            offsets[get_bandpass(key)] = offsets.pop(key)
-        for band in bands:
-            if band not in offsets:
-                offsets[band] = 0.
+        bands = set(data['band']) & set(bands)
 
     # Initialize errors
     if errors is None:
         errors = {}
 
-    # Build figtext if not given explicitly
+    # Build figtext if not given explicitly.
     if figtext is None:
         figtext = []
     elif isinstance(figtext, basestring):
         figtext = [figtext]
-        
     if len(models) == 1:
         model = models[0]
         lines = []
         for i in range(len(model.param_names)):
             name = model.param_names[i]
             lname = model.param_names_latex[i]
-            if name in errors:
-                v = value_error_str(model.parameters[i], errors[name],
-                                    latex=True)
-            else:
-                v = '{0:.4g}'.format(model.parameters[i])
+            v = format_value(model.parameters[i], errors.get(name), latex=True)
             lines.append('${0} = {1}$'.format(lname, v))
 
-        # split lines into two columns
+        # Split lines into two columns.
         n = len(model.param_names) - len(model.param_names) // 2
         figtext.append('\n'.join(lines[:n]))
         figtext.append('\n'.join(lines[n:]))
 
-    # Calculate layout of figure (columns, rows, figure size)
-    nsubplots = len(bands)
+    # Calculate layout of figure (columns, rows, figure size).
     ncol = 2
-    nrow = (nsubplots - 1) // ncol + 1
-
+    nrow = (len(bands) - 1) // ncol + 1
     if xfigsize is None and yfigsize is None:
         figsize = (4. * ncol, 3. * nrow)
     elif yfigsize is None:
@@ -193,16 +167,16 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     else:
         raise ValueError('cannot specify both xfigsize and yfigsize')
 
-    # Adjust figure size for figtext
+    # Adjust figure size for figtext.
     if len(figtext) > 0:
         figsize = (figsize[0], figsize[1] + figtextsize)
     else:
         figtextsize = 0.
 
-    # Create the figure
-    fig = plt.figure(figsize=figsize)
+    # Create the figure and axes.
+    fig, axes = plt.subplots(nrow, ncol, figsize=figsize)
 
-    # Write figtext
+    # Write figtext at the top of the figure.
     if len(figtext) > 0:
         for i in range(len(figtext)):
             if figtext[i] is None:
@@ -211,54 +185,56 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             t = fig.text(xpos, 0.95, figtext[i],
                          va="top", ha="left", multialignment="left")
 
+    # If there is exactly one model, offset the time axis by model's t0.
+    if len(models) == 1 and data is not None:
+        toff = models[0].parameters[1]
+    else:
+        toff = 0.
+
+    # Global min and max of time axis.
+    tmin, tmax = [], []
+    if data is not None:
+        tmin.append(np.min(data['time']) - 10.)
+        tmax.append(np.max(data['time']) + 10.)
+    for model in models:
+        tmin.append(model.mintime)
+        tmax.append(model.maxtime)
+    tmin = min(tmin)
+    tmax = max(tmax)
+            
     # Loop over bands
-    axnum = 0
-    for wave, band in sorted(zip(waves, bands)):
-        axnum += 1
+    bands = list(bands)
+    waves = [get_bandpass(b).wave_eff for b in bands]
+    for axnum, (wave, band) in enumerate(sorted(zip(waves, bands))):
+        row = axnum // ncol
+        col = axnum % ncol
+        ax = axes[row, col]
+        bandname_coords = (0.92, 0.92)
+        color = cmap((_cm_wavelims[1] - wave) /
+                     (_cm_wavelims[1] - _cm_wavelims[0]))
 
-        color = cmap((cm_wave_range[1] - wave) /
-                     (cm_wave_range[1] - cm_wave_range[0]))
-
-        ax = plt.subplot(nrow, ncol, axnum)
-        if axnum % 2:
-            plt.ylabel('flux ($ZP_{' + get_magsystem(zpsys).name.upper() +
-                       '} = ' + str(zp) + '$)')
-
-        xlabel_text = 'time'
-        if len(models) > 0 and models[0].parameters[1] != 0.:
-            xlabel_text += ' - {0:.2f}'.format(models[0].parameters[1])
-
-        # Plot data if there is any.
+        # Plot data if there are any.
         if data is not None:
-            idx = data_bands == band
+            idx = data['band'] == band
             time = data['time'][idx]
             flux = data['flux'][idx]
             fluxerr = data['fluxerr'][idx]
-
-            if len(models) == 0:
-                plotted_time = time
-            else:
-                plotted_time = time - models[0].parameters[1]
-
-            plt.errorbar(plotted_time, flux, fluxerr, ls='None',
-                         color=color, marker='.', markersize=3.)
+            ax.errorbar(time - toff, flux, fluxerr, ls='None',
+                        color=color, marker='.', markersize=3.)
 
         # Plot model(s) if there are any.
         if len(models) > 0:
+            tgrid = np.linspace(tmin, tmax, int(tmax - tmin) + 1) 
             mflux_mins = []
             mflux_maxes = []
             for i, model in enumerate(models):
                 if not model.bandoverlap(band):
                     continue
 
-                plotted_time = model.times - models[0].parameters[1]
-                mflux = model.bandflux(band, zp=zp, zpsys=zpsys)
-
-                if offsets is not None and band in offsets:
-                    mflux = mflux + offsets[band]
-
-                plt.plot(plotted_time, mflux, ls=_model_ls[i%len(_model_ls)],
-                         marker='None', color=color, label=model.name)
+                mflux = model.bandflux(band, tgrid, zp=zp, zpsys=zpsys)
+                ax.plot(tgrid - toff, mflux,
+                        ls=_model_ls[i%len(_model_ls)],
+                        marker='None', color=color, label=model.name)
 
                 mflux_mins.append(mflux.min())
                 mflux_maxes.append(mflux.max())
@@ -268,47 +244,83 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                 mflux_min = min(mflux_mins)
                 mflux_max = max(mflux_maxes)
                 ymin, ymax = ax.get_ylim()
-                ymax = min(ymax, 2. * mflux_max)
+                ymax = min(ymax, 4. * mflux_max)
                 ymin = max(ymin, mflux_min - (ymax - mflux_max))
                 ax.set_ylim(ymin, ymax)
 
             # Add a legend, if this is the first axes and there are two
             # or more models to distinguish between.
-            if axnum == 1 and len(models) >= 2:
-                leg = plt.legend(loc='upper right',
-                                 fontsize='small', frameon=True)
+            if row == 0 and col == 0 and len(models) >= 2:
+                leg = ax.legend(loc='upper right',
+                                fontsize='small', frameon=True)
+                bandname_coords = (0.08, 0.92)  # Move bandname to upper left
 
-        # Band name in corner: upper right if there is no legend, otherwise
-        # upper left.
-        if (axnum == 1 and len(models) > 1):
-            plt.text(0.08, 0.92, band.name, color='k', ha='left', va='top',
-                     transform=ax.transAxes)
-        else:
-            plt.text(0.92, 0.92, band.name, color='k', ha='right', va='top',
-                     transform=ax.transAxes)
+        # Band name in corner
+        ax.text(bandname_coords[0], bandname_coords[1], band,
+                color='k', ha='left', va='top', transform=ax.transAxes)
 
-        # plot a horizontal line at flux=0.
-        ax.axhline(y=0., ls='--', c='k')
+        ax.axhline(y=0., ls='--', c='k')  # horizontal line at flux = 0.
+        ax.set_xlim((tmin-toff, tmax-toff))
+
+        if col == 0:
+            ax.set_ylabel('flux ($ZP_{{{0}}} = {1}$)'
+                          .format(get_magsystem(zpsys).name.upper(), zp))
+
+        show_pulls = (pulls and
+                      data is not None and
+                      len(models) == 1 and models[0].bandoverlap(band))
 
         # steal part of the axes and plot pulls
-        if (pulls and data is not None and len(models) == 1 and
-            models[0].bandoverlap(band)):
+        if show_pulls:
             divider = make_axes_locatable(ax)
-            axpulls = divider.append_axes("bottom", size=0.7, pad=0.1,
+            axpulls = divider.append_axes('bottom', size=0.7, pad=0.15,
                                           sharex=ax)
             mflux = models[0].bandflux(band, time, zp=zp, zpsys=zpsys) 
-            if offsets is not None and band in offsets:
-                mflux = mflux + offsets[band]
             fluxpulls = (flux - mflux) / fluxerr
-            plt.plot(time - models[0].parameters[1], fluxpulls, marker='.',
-                     markersize=5., color=color, ls='None')
-            plt.axhline(y=0., color=color)
-            plt.setp(ax.get_xticklabels(), visible=False)
-            if axnum % 2:
-                plt.ylabel('pull')
+            axpulls.axhspan(ymin=-1., ymax=1., color='0.95')
+            axpulls.axhline(y=0., color=color)
+            axpulls.plot(time - toff, fluxpulls, marker='.',
+                         markersize=5., color=color, ls='None')
 
-        # label the most recent Axes x-axis
-        plt.xlabel(xlabel_text)
+            # Ensure y range is centered at 0.
+            ymin, ymax = axpulls.get_ylim()
+            absymax = max(abs(ymin), abs(ymax))
+            axpulls.set_ylim((-absymax, absymax))
+
+            # Set x limits to global values.
+            axpulls.set_xlim((tmin-toff, tmax-toff))
+
+            # Set small number of y ticks so tick labels don't overlap.
+            axpulls.yaxis.set_major_locator(MaxNLocator(5))
+
+            # Label the y axis and make sure ylabels align between axes.
+            if col == 0:
+                axpulls.set_ylabel('pull')
+                axpulls.yaxis.set_label_coords(-0.25, 0.5)
+                ax.yaxis.set_label_coords(-0.25, 0.5)
+
+            # Set top axis ticks invisible
+            for l in ax.get_xticklabels():
+                l.set_visible(False)
+
+            # Set ax to axpulls in order to adjust plots.
+            bottomax = axpulls
+
+        else:
+            bottomax = ax
+
+        # If the last row, set x label and rotate tick labels.
+        # Otherwise don't show tick labels.
+        if row == nrow - 1:
+            if toff == 0.:
+                bottomax.set_xlabel('time')
+            else:
+                bottomax.set_xlabel('time - {0:.2f}'.format(toff))
+            #for l in bottomax.get_xticklabels():
+            #    l.set_rotation(22.5)
+        else:
+            for l in bottomax.get_xticklabels():
+                l.set_visible(False)
 
     plt.tight_layout(rect=(0., 0., 1., 1. - figtextsize / figsize[1]))
 
@@ -376,7 +388,7 @@ def plot_param_samples(param_names, samples, weights=None, fname=None,
                 # Write the average and standard deviation.
                 text = '${0:s} = {1:s}$'.format(
                     param_names[i],
-                    value_error_str(avg[i], std[i], latex=True)
+                    format_value(avg[i], std[i], latex=True)
                     )
                 plt.text(0.9, 0.9, text, color='k', ha='right', va='top',
                          transform=ax.transAxes)
