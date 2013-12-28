@@ -10,6 +10,10 @@ from .extinction import *
 from .extmap import *
 from . import registry
 from . import _builtin
+try:
+    from plotting import *
+except ImportError:
+    pass
 
 #this indicates whether or not we are in the package's setup.py
 try:
