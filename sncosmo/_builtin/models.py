@@ -64,186 +64,183 @@ def load_timeseries_ascii_sncc(remote_url, name=None, version=None):
 # ------------------------------------------------------------------------
 # Nugent models
 
-nugent_baseurl = 'http://supernova.lbl.gov/~nugent/templates/'
-nugent_website = 'http://supernova.lbl.gov/~nugent/nugent_templates.html'
-nugent_subclass_1a = '`~sncosmo.StretchModel`'
-nugent_subclass_cc = '`~sncosmo.TimeSeriesModel`'
+baseurl = 'http://supernova.lbl.gov/~nugent/templates/'
+website = 'http://supernova.lbl.gov/~nugent/nugent_templates.html'
+subclass_1a = '`~sncosmo.StretchModel`'
+subclass_cc = '`~sncosmo.TimeSeriesModel`'
+n02ref = ('N02', 'Nugent, Kim & Permutter 2002 '
+          '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>')
+s04ref = ('S04', 'Stern, et al. 2004 '
+          '<http://adsabs.harvard.edu/abs/2004ApJ...612..690S>')
+l05ref = ('L05', 'Levan et al. 2005 '
+          '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>')
+g99ref = ('G99', 'Gilliland, Nugent & Phillips 1999 '
+          '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>')
 
+registry.register_loader(SourceModel, 'nugent-sn1a',
+                         load_timeseries_ascii_sn1a, 
+                         args=[baseurl + 'sn1a_flux.v1.2.dat.gz'],
+                         version='1.2',
+                         meta={'url': website, 'type': 'SN Ia',
+                               'subclass': subclass_1a, 'reference': n02ref})
+registry.register_loader(SourceModel, 'nugent-sn91t',
+                         load_timeseries_ascii_sn1a, 
+                         args=[baseurl + 'sn91t_flux.v1.1.dat.gz'],
+                         version='1.1',
+                         meta={'url': website, 'type': 'SN Ia',
+                               'subclass': subclass_1a, 'reference': s04ref})
+registry.register_loader(SourceModel, 'nugent-sn91bg',
+                         load_timeseries_ascii_sn1a,
+                         args=[baseurl + 'sn91bg_flux.v1.1.dat.gz'],
+                         version='1.1',
+                         meta={'url': website, 'type': 'SN Ia',
+                               'subclass': subclass_1a, 'reference': n02ref})
+registry.register_loader(SourceModel, 'nugent-sn1bc',
+                         load_timeseries_ascii_sncc, 
+                         args=[baseurl + 'sn1bc_flux.v1.1.dat.gz'],
+                         version='1.1',
+                         meta={'url': website, 'type': 'SN Ib/c',
+                               'subclass': subclass_cc, 'reference': l05ref})
+registry.register_loader(SourceModel, 'nugent-hyper',
+                         load_timeseries_ascii_sncc,
+                         args=[baseurl + 'hyper_flux.v1.2.dat.gz'],
+                         version='1.2',
+                         meta={'url': website, 'type': 'SN Ib/c',
+                               'subclass': subclass_cc, 'reference': l05ref})
+registry.register_loader(SourceModel, 'nugent-sn2p',
+                         load_timeseries_ascii_sncc, 
+                         args=[baseurl + 'sn2p_flux.v1.2.dat.gz'],
+                         version='1.2',
+                         meta={'url': website, 'type': 'SN IIP',
+                               'subclass': subclass_cc, 'reference': g99ref})
+registry.register_loader(SourceModel, 'nugent-sn2l',
+                         load_timeseries_ascii_sncc, 
+                         args=[baseurl + 'sn2l_flux.v1.2.dat.gz'],
+                         version='1.2',
+                         meta={'url': website, 'type': 'SN IIL',
+                               'subclass': subclass_cc, 'reference': g99ref})
+registry.register_loader(SourceModel, 'nugent-sn2n',
+                         load_timeseries_ascii_sncc, 
+                         args=[baseurl + 'sn2n_flux.v2.1.dat.gz'],
+                         version='2.1',
+                         meta={'url': website, 'type': 'SN IIn',
+                               'subclass': subclass_cc, 'reference': g99ref})
 
-registry.register_loader(
-    SourceModel, 'nugent-sn1a', load_timeseries_ascii_sn1a, 
-    [nugent_baseurl + 'sn1a_flux.v1.2.dat.gz'],
-    version='1.2', url=nugent_website, type='SN Ia',
-    subclass=nugent_subclass_1a,
-    reference=('N02', 'Nugent, Kim & Permutter 2002 '
-               '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-sn91t', load_timeseries_ascii_sn1a, 
-    [nugent_baseurl + 'sn91t_flux.v1.1.dat.gz'],
-    version='1.1', url=nugent_website, type='SN Ia',
-    subclass=nugent_subclass_1a,
-    reference=('S04', 'Stern, et al. 2004 '
-               '<http://adsabs.harvard.edu/abs/2004ApJ...612..690S>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-sn91bg', load_timeseries_ascii_sn1a, 
-    [nugent_baseurl + 'sn91bg_flux.v1.1.dat.gz'],
-    version='1.1', url=nugent_website, type='SN Ia',
-    subclass=nugent_subclass_1a,
-    reference=('N02', 'Nugent, Kim & Permutter 2002 '
-               '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-sn1bc', load_timeseries_ascii_sncc, 
-    [nugent_baseurl + 'sn1bc_flux.v1.1.dat.gz'],
-    version='1.1', url=nugent_website, type='SN Ib/c',
-    subclass=nugent_subclass_cc,
-    reference=('L05', 'Levan et al. 2005 '
-               '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-hyper', load_timeseries_ascii_sncc, 
-    [nugent_baseurl + 'hyper_flux.v1.2.dat.gz'],
-    version='1.2', url=nugent_website, type='SN Ib/c',
-    subclass=nugent_subclass_cc,
-    reference=('L05', 'Levan et al. 2005 '
-               '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-sn2p', load_timeseries_ascii_sncc, 
-    [nugent_baseurl + 'sn2p_flux.v1.2.dat.gz'],
-    version='1.2', url=nugent_website, type='SN IIP',
-    subclass=nugent_subclass_cc,
-    reference=('G99', 'Gilliland, Nugent & Phillips 1999 '
-               '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-sn2l', load_timeseries_ascii_sncc, 
-    [nugent_baseurl + 'sn2l_flux.v1.2.dat.gz'],
-    version='1.2', url=nugent_website, type='SN IIL',
-    subclass=nugent_subclass_cc,
-    reference=('G99', 'Gilliland, Nugent & Phillips 1999 '
-               '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
-
-registry.register_loader(
-    SourceModel, 'nugent-sn2n', load_timeseries_ascii_sncc, 
-    [nugent_baseurl + 'sn2n_flux.v2.1.dat.gz'],
-    version='2.1', url=nugent_website, type='SN IIn',
-    subclass=nugent_subclass_cc,
-    reference=('G99', 'Gilliland, Nugent & Phillips 1999 '
-               '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>'))
-
-del nugent_website
-del nugent_baseurl
-del nugent_subclass_1a
-del nugent_subclass_cc
+del website
+del baseurl
+del subclass_1a
+del subclass_cc
 
 # -----------------------------------------------------------------------
 # Sako et al 2011 models
 
-s11_baseurl = 'http://sncosmo.github.io/data/models/'
-s11_ref = ('S11', 'Sako et al. 2011 '
-           '<http://adsabs.harvard.edu/abs/2011ApJ...738..162S>')
-s11_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
-s11_subclass = '`~sncosmo.TimeSeriesModel`'
-s11_note = "extracted from SNANA's SNDATA_ROOT on 29 March 2013."
+baseurl = 'http://sncosmo.github.io/data/models/'
+ref = ('S11', 'Sako et al. 2011 '
+       '<http://adsabs.harvard.edu/abs/2011ApJ...738..162S>')
+website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
+subclass = '`~sncosmo.TimeSeriesModel`'
+note = "extracted from SNANA's SNDATA_ROOT on 29 March 2013."
 
 registry.register_loader(
-    SourceModel, 's11-2004hx', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-000018.SED'], version='1.0', url=s11_website,
-    type='SN IIL/P', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+        SourceModel, 's11-2004hx', load_timeseries_ascii_sncc,
+        args=[baseurl + 'S11_SDSS-000018.SED'], version='1.0',
+        meta={'url': website, 'type': 'SN IIL/P', 'subclass': subclass,
+              'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2005lc', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-001472.SED'], version='1.0', url=s11_website,
-    type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-001472.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN IIP', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2005hl', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-002000.SED'], version='1.0', url=s11_website,
-    type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-002000.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN Ib', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2005hm', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-002744.SED'], version='1.0', url=s11_website,
-    type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-002744.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN Ib', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2005gi', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-003818.SED'], version='1.0', url=s11_website,
-    type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-003818.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN IIP', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2006fo', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-013195.SED'], version='1.0', url=s11_website,
-    type='SN Ic', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-013195.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN Ic', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2006jo', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-014492.SED'], version='1.0', url=s11_website,
-    type='SN Ib', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-014492.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN Ib', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
 registry.register_loader(
     SourceModel, 's11-2006jl', load_timeseries_ascii_sncc,
-    [s11_baseurl + 'S11_SDSS-014599.SED'], version='1.0', url=s11_website,
-    type='SN IIP', subclass=s11_subclass, reference=s11_ref, note=s11_note)
+    args=[baseurl + 'S11_SDSS-014599.SED'], version='1.0',
+    meta={'url': website, 'type': 'SN IIP', 'subclass': subclass,
+          'reference': ref, 'note': note})
 
-del s11_baseurl
-del s11_ref
-del s11_website
-del s11_subclass
-del s11_note
+del baseurl
+del ref
+del website
+del subclass
+del note
 
 # -----------------------------------------------------------------------
 # Hsiao models
 
 def load_stretchmodel_fits(remote_url, name=None, version=None):
     fn = download_file(remote_url, cache=True)
-    hdulist = fits.open(fn)
-    w = wcs.WCS(hdulist[0].header)
-    flux_density = hdulist[0].data
-    hdulist.close()
-    
-    ny, nx = flux_density.shape
-    xcoords = np.arange(nx)
-    ycoords = np.arange(ny)
+    phase, wave, flux = io.read_griddata_fits(fn)
+    return StretchModel(phase, wave, flux, name=name, version=version)
 
-    coords = np.swapaxes([xcoords, np.zeros(nx)], 0, 1)
-    dispersion = w.wcs_pix2world(coords, 0)[:,0]
+baseurl = 'http://sncosmo.github.io/data/models/'
+hsiao_meta = {'url': 'http://csp.obs.carnegiescience.edu/data/snpy',
+              'type': 'SN Ia',
+              'subclass': '`~sncosmo.StretchModel`',
+              'reference': ('H07', 'Hsiao et al. 2007 '
+                            '<http://adsabs.harvard.edu/abs/'
+                            '2007ApJ...663.1187H>'),
+              'note': 'extracted from the SNooPy package on 21 Dec 2012.'}
 
-    coords = np.swapaxes([np.zeros(ny), ycoords], 0, 1)
-    phase = w.wcs_pix2world(coords, 0)[:,1]
-    model = StretchModel(phase, dispersion, flux_density, name=name,
-                         version=version)
-    #set_bandfluxerror_sn1a(model)
-    return model
+registry.register_loader(SourceModel, 'hsiao', load_stretchmodel_fits,
+                         args=[baseurl + 'Hsiao_SED.fits'], version='1.0',
+                         meta=hsiao_meta)
+registry.register_loader(SourceModel, 'hsiao', load_stretchmodel_fits,
+                         args=[baseurl + 'Hsiao_SED_V2.fits'], version='2.0',
+                         meta=hsiao_meta)
+registry.register_loader(SourceModel, 'hsiao', load_stretchmodel_fits,
+                         args=[baseurl + 'Hsiao_SED_V3.fits'], version='3.0',
+                         meta=hsiao_meta)
+del baseurl
 
-hsiao_baseurl = 'http://sncosmo.github.io/data/models/'
-hsiao_website = 'http://csp.obs.carnegiescience.edu/data/snpy'
-hsiao_subclass = '`~sncosmo.StretchModel`'
-hsiao_ref = ('H07', 'Hsiao et al. 2007 <http://adsabs.harvard.edu/abs/'
-             '2007ApJ...663.1187H>')
-hsiao_note = 'extracted from the SNooPy package on 21 Dec 2012.'
+# special version of Hsiao model included with the source code
+def load_stretchmodel_fits_local(pkg_data_name, name=None, version=None):
+    fname = get_pkg_data_filename(pkg_data_name)
+    phase, wave, flux = io.read_griddata_fits(fname)
+    return StretchModel(phase, wave, flux, name=name, version=version)
 
+hsiao_subsampled_meta = {
+        'url': 'http://csp.obs.carnegiescience.edu/data/snpy',
+        'type': 'SN Ia',
+        'subclass': '`~sncosmo.StretchModel`',
+        'reference': ('H07', 'Hsiao et al. 2007 '
+                      '<http://adsabs.harvard.edu/abs/'
+                      '2007ApJ...663.1187H>'),
+        'note': 'extracted from the SNooPy package on 21 Dec 2012.'}
 registry.register_loader(
-    SourceModel, 'hsiao', load_stretchmodel_fits, [hsiao_baseurl+'Hsiao_SED.fits'],
-    version='1.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
-    reference=hsiao_ref, note=hsiao_note)
-registry.register_loader(
-    SourceModel, 'hsiao', load_stretchmodel_fits,[hsiao_baseurl+'Hsiao_SED_V2.fits'],
-    version='2.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
-    reference=hsiao_ref, note=hsiao_note)
-registry.register_loader(
-    SourceModel, 'hsiao', load_stretchmodel_fits,[hsiao_baseurl+'Hsiao_SED_V3.fits'],
-    version='3.0', url=hsiao_website, type='SN Ia', subclass=hsiao_subclass,
-    reference=hsiao_ref, note=hsiao_note)
-
-del hsiao_baseurl
-del hsiao_website
-del hsiao_subclass
-del hsiao_ref
-del hsiao_note
+        SourceModel, 'hsiao-subsampled', load_stretchmodel_fits_local,
+        args=['../data/models/Hsiao_SED_V3_subsampled.fits'], version='3.0',
+        meta=hsiao_subsampled_meta)
 
 # -----------------------------------------------------------------------
 # SALT2 models
@@ -270,41 +267,43 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
     #set_bandfluxerror_sn1a(model)
     return model
 
-salt2_baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
-salt2_website = 'http://supernovae.in2p3.fr/~guy/salt/download_templates.html'
-salt2_reference = ('G07', 'Guy et al. 2007 '
-                   '<http://adsabs.harvard.edu/abs/2007A%26A...466...11G>')
-salt2_2_reference = ('G10', 'Guy et al. 2010 '
-                   '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
+baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
+website = 'http://supernovae.in2p3.fr/~guy/salt/download_templates.html'
+g07ref = ('G07', 'Guy et al. 2007 '
+          '<http://adsabs.harvard.edu/abs/2007A%26A...466...11G>')
+g10ref = ('G10', 'Guy et al. 2010 '
+          '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
 registry.register_loader(
     SourceModel, 'salt2', load_salt2model,
-    [salt2_baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
-    version='1.1', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
-    url=salt2_website, reference=salt2_reference)
+    args=[baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
+    version='1.1',
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Model`', 
+          'url': website, 'reference': g07ref})
 registry.register_loader(
     SourceModel, 'salt2', load_salt2model,
-    [salt2_baseurl + 'salt2_model_data-2-0.tar.gz', 'salt2-2-0'],
-    version='2.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
-    url=salt2_website, reference=salt2_2_reference)
+    args=[baseurl + 'salt2_model_data-2-0.tar.gz', 'salt2-2-0'],
+    version='2.0',
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Model`', 
+          'url': website, 'reference': g10ref})
 
 # --------------------------------------------------------------------------
 # SALT2 extended
-salt2ext_url = 'http://sncosmo.github.io/data/models/salt2_extended.tar.gz'
-salt2ext_website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
-salt2ext_note = "extracted from SNANA's SNDATA_ROOT on 15 August 2013."
-
 registry.register_loader(
-    SourceModel, 'salt2-extended',
-    load_salt2model, [salt2ext_url, 'salt2_extended'],
-    version='1.0', type='SN Ia', subclass='`~sncosmo.SALT2Model`', 
-    url=salt2ext_website, note=salt2ext_note)
+    SourceModel, 'salt2-extended', load_salt2model,
+    args=['http://sncosmo.github.io/data/models/salt2_extended.tar.gz',
+          'salt2_extended'],
+    version='1.0',
+    meta={'type': 'SN Ia',
+          'subclass': '`~sncosmo.SALT2Model`', 
+          'url': 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/',
+          'note': "extracted from SNANA's SNDATA_ROOT on 15 August 2013."})
 
 # --------------------------------------------------------------------------
 # 2011fe
 
-sn2011fe_url = "http://snfactory.lbl.gov/snf/data/SN2011fe.tar.gz"
+def load_2011fe(name=None, version=None):
 
-def load_2011fe(remote_url, name=None, version=None):
+    remote_url = "http://snfactory.lbl.gov/snf/data/SN2011fe.tar.gz"
 
     # filter warnings about RADESYS keyword in files
     warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
@@ -359,15 +358,13 @@ def load_2011fe(remote_url, name=None, version=None):
                         name=name, version=version)
 
 
-sn2011fe_url = "http://snfactory.lbl.gov/snf/data/SN2011fe.tar.gz"
-sn2011fe_website = "http://snfactory.lbl.gov/snf/data"
-sn2011fe_reference = ('P13', 'Pereira et al. 2013 '
-                      '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')
-
-registry.register_loader(
-    SourceModel, '2011fe', load_2011fe, [sn2011fe_url],
-    version='1.0', type='SN Ia', subclass='`~sncosmo.StretchModel`', 
-    url=sn2011fe_website, reference=sn2011fe_reference)
+p13ref = ('P13', 'Pereira et al. 2013 '
+          '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')
+registry.register_loader(SourceModel, '2011fe', load_2011fe, version='1.0',
+                         meta={'type': 'SN Ia',
+                               'subclass': '`~sncosmo.StretchModel`', 
+                               'url': 'http://snfactory.lbl.gov/snf/data',
+                               'reference': p13ref})
 
 # --------------------------------------------------------------------------
 # Generate docstring

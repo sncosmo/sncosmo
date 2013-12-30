@@ -3,7 +3,6 @@ from .spectral import *
 from .models import *
 from .io import *
 from .snanaio import *
-from .plotting import *
 from .fitting import *
 from .typing import *
 from .extinction import *

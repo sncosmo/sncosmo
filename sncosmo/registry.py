@@ -8,8 +8,8 @@ __all__ = ['register_loader', 'register', 'retrieve', 'get_loaders_metadata']
 _loaders = OrderedDict()
 _instances = OrderedDict()
 
-def register_loader(data_class, name, function, function_args=None,
-                    version=None, force=False, **meta):
+def register_loader(data_class, name, func, args=None,
+                    version=None, meta=None, force=False):
     """Register a data reading function.
 
     Parameters
@@ -18,23 +18,24 @@ def register_loader(data_class, name, function, function_args=None,
         The class of the object that the loader returns.
     name : str
         The data identifier.
-    function : function
-        The function to read in the data. Should accept a name and version
+    func : callable
+        The function to read in the data. Must accept a name and version
         keyword argument.
-    function_args : list, optional
+    args : list, optional
         Arguments to pass to the function. Default is an empty list.
     version : str, optional
         Sub-version of name, if desired. Use formats such as ``'1'``,
         ``'1.0'``, ``'1.0.0'``, etc. Default is `None`. 
     force : bool, optional
         Whether to override any existing function if already present.
-    **meta : optional
-        Any additional keyword arguments are assumed to be metadata and
-        are saved as a dictionary describing this loader.
+    meta : dict, optional
+        Metadata describing this loader. Default is an empty dictionary.
     """
 
-    if function_args is None:
-        function_args = []
+    if args is None:
+        args = []
+    if meta is None:
+        meta = {}
 
     # Convert name to lowercase. The registry stores names in all-lowercase.
     name = name.lower()
@@ -47,7 +48,7 @@ def register_loader(data_class, name, function, function_args=None,
 
     # Add the loader to the registry if it is not already there.
     if not key in _loaders or force:
-        _loaders[key] = function, function_args, meta
+        _loaders[key] = func, args, meta
     else:
         if version is not None:
             versionstr = " (version='{0:s}')".format(version)
@@ -170,12 +171,12 @@ def retrieve(data_class, name, version=None):
 
     # Try to retrieve from the loaders.
     if key in _loaders:
-        function, function_args, meta = _loaders[key]
+        func, args, meta = _loaders[key]
         if version is None:
-            _instances[key] = function(*function_args, name=name)
+            _instances[key] = func(*args, name=name)
         else:
-            _instances[key] = function(*function_args, name=name, 
-                                        version=version)
+            _instances[key] = func(*args, name=name, 
+                                    version=version)
             
         return _instances[key]
 
@@ -187,9 +188,8 @@ def retrieve(data_class, name, version=None):
                 latest_version = regkey[2]
         if latest_version is not None:
             regkey = (key[0], key[1], latest_version)
-            function, function_args, meta = _loaders[regkey]
-            _instances[regkey] = function(
-                *function_args, name=name, version=latest_version)
+            func, args, meta = _loaders[regkey]
+            _instances[regkey] = func(*args, name=name, version=latest_version)
             _instances[key] = _instances[regkey]
             return _instances[key]
 

@@ -18,11 +18,10 @@ from .. import Spectrum, MagSystem, SpectralMagSystem, ABMagSystem
 
 def load_ab(name=None):
     return ABMagSystem(name=name)
-
 registry.register_loader(
-    MagSystem, 'ab', load_ab, subclass='`~sncosmo.ABMagSystem`',
-    description='Source of 3631 Jy has magnitude 0 in all bands')
-
+    MagSystem, 'ab', load_ab,
+    meta={'subclass': '`~sncosmo.ABMagSystem`',
+          'description': 'Source of 3631 Jy has magnitude 0 in all bands'})
 
 # ---------------------------------------------------------------------------
 # Spectral systems
@@ -38,17 +37,20 @@ def load_spectral_magsys_fits(remote_url, name=None):
     return SpectralMagSystem(refspectrum, name=name)
 
 calspec_url = 'ftp://ftp.stsci.edu/cdbs/current_calspec/'
-vega_url = calspec_url + 'alpha_lyr_stis_005.fits'
-registry.register_loader(
-    MagSystem, 'vega', load_spectral_magsys_fits, [vega_url],
-    subclass='`~sncosmo.SpectralMagSystem`', url=calspec_url,
-    description='Vega (alpha lyrae) has magnitude 0 in all bands')
 
-bd17_url = calspec_url + 'bd_17d4708_stisnic_003.fits'
 registry.register_loader(
-    MagSystem, 'bd17', load_spectral_magsys_fits, [bd17_url],
-    subclass='`~sncosmo.SpectralMagSystem`', url=calspec_url,
-    description='BD+17d4708 has magnitude 0 in all bands.')
+    MagSystem, 'vega', load_spectral_magsys_fits,
+    args=[calspec_url + 'alpha_lyr_stis_005.fits'],
+    meta={'subclass': '`~sncosmo.SpectralMagSystem`', 'url': calspec_url,
+          'description': 'Vega (alpha lyrae) has magnitude 0 in all bands'})
+
+registry.register_loader(
+    MagSystem, 'bd17', load_spectral_magsys_fits,
+    args=[calspec_url + 'bd_17d4708_stisnic_003.fits'],
+    meta={'subclass': '`~sncosmo.SpectralMagSystem`', 'url': calspec_url,
+          'description': 'BD+17d4708 has magnitude 0 in all bands.'})
+
+del calspec_url
 
 # --------------------------------------------------------------------------
 # Generate docstring

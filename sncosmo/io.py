@@ -10,6 +10,8 @@ import json
 import numpy as np
 from astropy.utils import OrderedDict as odict
 from astropy.table import Table
+from astropy.io import fits
+from astropy import wcs
 
 from .photdata import dict_to_array
 
@@ -87,6 +89,75 @@ def read_griddata(name_or_obj):
 
     f.close()
     return np.array(x0), np.array(x1), np.array(y)
+
+def read_griddata_fits(name_or_obj, ext=0):
+    """Read a 2-d grid of data from a FITS file, where the grid coordinates
+    are encoded in the FITS-WCS header keywords.
+
+    Parameters
+    ----------
+    name_or_obj : str or file-like object
+
+    Returns
+    -------
+    x0 : numpy.ndarray
+        1-d array.
+    x1 : numpy.ndarray
+        1-d array.
+    y : numpy.ndarray
+        2-d array of shape (len(x0), len(x1)).
+    """
+    
+    hdulist = fits.open(name_or_obj)
+    w = wcs.WCS(hdulist[ext].header)
+    y = hdulist[ext].data
+    nx0, nx1 = y.shape
+
+    # get x0 values
+    coords = np.empty((nx0, 2), dtype=np.float32)
+    coords[:, 0] = 0.
+    coords[:, 1] = np.arange(nx0)  # x0 = FITS AXIS2 ("y" coordinates)
+    x0 = w.wcs_pix2world(coords, 0)[:, 1]
+
+    # get x1 values
+    coords = np.empty((nx1, 2), dtype=np.float32)
+    coords[:, 0] = np.arange(nx1)  # x1 = FITS AXIS1 ("x" coordinates)
+    coords[:, 1] = 0.
+    x1 = w.wcs_pix2world(coords, 0)[:, 0]
+
+    hdulist.close()
+
+    return x0, x1, y
+
+def write_griddata_fits(x0, x1, y, name_or_obj):
+    """Write a 2-d grid of data to a FITS file
+
+    The grid coordinates are encoded in the FITS-WCS header keywords.
+
+    Parameters
+    ----------
+    x0 : numpy.ndarray
+        1-d array.
+    x1 : numpy.ndarray
+        1-d array.
+    y : numpy.ndarray
+        2-d array of shape (len(x0), len(x1)).
+    name_or_obj : str or file-like object
+        Filename to write to or open file.
+    """
+
+    d0, d1 = np.ediff1d(x0), np.ediff1d(x1)
+    if not (np.allclose(d0, d0[0]) and np.allclose(d1, d1[0])):
+        raise ValueError('grid must be regularly spaced in both x0 and x1')
+    if not (len(x0), len(x1)) == y.shape:
+        raise ValueError('length of x0 and x1 do not match shape of y')
+
+    w = wcs.WCS(naxis=2)
+    w.wcs.crpix = [1, 1]
+    w.wcs.crval = [x1[0], x0[0]]
+    w.wcs.cdelt = [d1[0], d0[0]]
+    hdu = fits.PrimaryHDU(y, header=w.to_header())
+    hdu.writeto(name_or_obj)
 
 # Reader: csv =============================================================== #
 def _read_csv(f, **kwargs):

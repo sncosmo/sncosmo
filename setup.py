@@ -62,11 +62,12 @@ adjust_compiler(PACKAGENAME)
 generate_version_py(PACKAGENAME, VERSION, RELEASE, get_debug_option())
 
 # Treat everything in scripts except README.rst as a script to be installed
-ignore_scripts = ['generate_example_data.py']
-scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
-           if (os.path.basename(fname) != 'README.rst' and
-               fname[-1] != '~' and
-               os.path.basename(fname) not in ignore_scripts)]
+#ignore_scripts = ['generate_example_data.py']
+#scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
+#           if (os.path.basename(fname) != 'README.rst' and
+#               fname[-1] != '~' and
+#               os.path.basename(fname) not in ignore_scripts)]
+scripts = []
 
 # Get configuration information from all of the various subpackages.
 # See the docstring for setup_helpers.update_package_files for more

@@ -23,95 +23,73 @@ def load_bandpass(pkg_data_name, name=None):
 
 # --------------------------------------------------------------------------
 # DES
-decam_url = 'http://www.ctio.noao.edu/noao/content/dark-energy-camera-decam'
-decam_retrieved = '19 June 2012'
+des_meta = {'filterset': 'des',
+            'dataurl': ('http://www.ctio.noao.edu/noao/content/'
+                        'dark-energy-camera-decam'),
+            'retrieved': '19 June 2012',
+            'description': 'Dark Energy Camera grizy filter set'}
 registry.register_loader(Bandpass, 'desg', load_bandpass,
-                         ['../data/bandpasses/des_g.dat'], filterset='des',
-                         description='Dark Energy Camera g band',
-                         dataurl=decam_url, retrieved=decam_retrieved)
+                         args=['../data/bandpasses/des_g.dat'], meta=des_meta)
 registry.register_loader(Bandpass, 'desr', load_bandpass,
-                         ['../data/bandpasses/des_r.dat'], filterset='des',
-                         description='Dark Energy Camera r band',
-                         dataurl=decam_url, retrieved=decam_retrieved)
+                         args=['../data/bandpasses/des_r.dat'], meta=des_meta)
 registry.register_loader(Bandpass, 'desi', load_bandpass,
-                         ['../data/bandpasses/des_i.dat'], filterset='des',
-                         description='Dark Energy Camera i band',
-                         dataurl=decam_url, retrieved=decam_retrieved)
+                         args=['../data/bandpasses/des_i.dat'], meta=des_meta)
 registry.register_loader(Bandpass, 'desz', load_bandpass,
-                         ['../data/bandpasses/des_z.dat'], filterset='des',
-                         description='Dark Energy Camera z band',
-                         dataurl=decam_url, retrieved=decam_retrieved)
+                         args=['../data/bandpasses/des_z.dat'], meta=des_meta)
 registry.register_loader(Bandpass, 'desy', load_bandpass,
-                         ['../data/bandpasses/des_y.dat'], filterset='des',
-                         description='Dark Energy Camera y band',
-                         dataurl=decam_url, retrieved=decam_retrieved)
-del decam_url
-del decam_retrieved
+                         args=['../data/bandpasses/des_y.dat'], meta=des_meta)
+del des_meta
 
 # --------------------------------------------------------------------------
 # Bessel 1990
+bessell_meta = {
+    'filterset': 'bessell',
+    'reference': ('B90', '`Bessell 1990 <http://adsabs.harvard.edu/'
+                  'abs/1990PASP..102.1181B>`__, Table 2'),
+    'description': 'Representation of Johnson-Cousins UBVRI system'}
 
-bessell_ref = ('B90',
-               '`Bessell 1990 <http://adsabs.harvard.edu/'
-               'abs/1990PASP..102.1181B>`__, Table 2')
-bessell_desc = 'Representation of Johnson-Cousins UBVRI system'
-
-registry.register_loader(
-    Bandpass, 'bessellux', load_bandpass,
-    ['../data/bandpasses/bessell_ux.dat'], filterset='bessell',
-    description=bessell_desc, reference=bessell_ref)
-registry.register_loader(
-    Bandpass, 'bessellb', load_bandpass,
-    ['../data/bandpasses/bessell_b.dat'], filterset='bessell',
-    description=bessell_desc, reference=bessell_ref)
-registry.register_loader(
-    Bandpass, 'bessellv', load_bandpass,
-    ['../data/bandpasses/bessell_v.dat'], filterset='bessell',
-    description=bessell_desc, reference=bessell_ref)
-registry.register_loader(
-    Bandpass, 'bessellr', load_bandpass,
-    ['../data/bandpasses/bessell_r.dat'], filterset='bessell',
-    description=bessell_desc, reference=bessell_ref)
-registry.register_loader(
-    Bandpass, 'besselli', load_bandpass,
-    ['../data/bandpasses/bessell_i.dat'], filterset='bessell',
-    description=bessell_desc, reference=bessell_ref)
-
-del bessell_ref
-del bessell_desc
+registry.register_loader(Bandpass, 'bessellux', load_bandpass,
+                         args=['../data/bandpasses/bessell_ux.dat'],
+                         meta=bessell_meta)
+registry.register_loader(Bandpass, 'bessellb', load_bandpass,
+                         args=['../data/bandpasses/bessell_b.dat'],
+                         meta=bessell_meta)
+registry.register_loader(Bandpass, 'bessellv', load_bandpass,
+                         args=['../data/bandpasses/bessell_v.dat'],
+                         meta=bessell_meta)
+registry.register_loader(Bandpass, 'bessellr', load_bandpass,
+                         args=['../data/bandpasses/bessell_r.dat'],
+                         meta=bessell_meta)
+registry.register_loader(Bandpass, 'besselli', load_bandpass,
+                         args=['../data/bandpasses/bessell_i.dat'],
+                         meta=bessell_meta)
+del bessell_meta
 
 # --------------------------------------------------------------------------
 # SDSS
+sdss_meta = {
+    'filterset': 'sdss',
+    'reference':('D10', '`Doi et al. 2010 <http://adsabs.harvard.edu/'
+                 'abs/2010AJ....139.1628D>`__, Table 4'),
+    'description':
+        'SDSS 2.5m imager at airmass 1.3 (including atmosphere), normalized'}
 
-sdss_ref = ('D10', 
-            '`Doi et al. 2010 '
-            '<http://adsabs.harvard.edu/abs/2010AJ....139.1628D>`__, Table 4')
-sdss_desc = \
-    'SDSS 2.5m imager at airmass 1.3 (including atmosphere), normalized.'
-
-registry.register_loader(
-    Bandpass, 'sdssu', load_bandpass,
-    ['../data/bandpasses/sdss_u.dat'], filterset='sdss',
-    description=sdss_desc, reference=sdss_ref)
-registry.register_loader(
-    Bandpass, 'sdssg', load_bandpass,
-    ['../data/bandpasses/sdss_g.dat'], filterset='sdss',
-    description=sdss_desc, reference=sdss_ref)
-registry.register_loader(
-    Bandpass, 'sdssr', load_bandpass,
-    ['../data/bandpasses/sdss_r.dat'], filterset='sdss',
-    description=sdss_desc, reference=sdss_ref)
-registry.register_loader(
-    Bandpass, 'sdssi', load_bandpass,
-    ['../data/bandpasses/sdss_i.dat'], filterset='sdss',
-    description=sdss_desc, reference=sdss_ref)
-registry.register_loader(
-    Bandpass, 'sdssz', load_bandpass,
-    ['../data/bandpasses/sdss_z.dat'], filterset='sdss',
-    description=sdss_desc, reference=sdss_ref)
-
-del sdss_ref
-del sdss_desc
+registry.register_loader(Bandpass, 'sdssu', load_bandpass,
+                         args=['../data/bandpasses/sdss_u.dat'],
+                         meta=sdss_meta)
+registry.register_loader(Bandpass, 'sdssg', load_bandpass,
+                         args=['../data/bandpasses/sdss_g.dat'],
+                         meta=sdss_meta)
+registry.register_loader(Bandpass, 'sdssr', load_bandpass,
+                         args=['../data/bandpasses/sdss_r.dat'],
+                         meta=sdss_meta)
+registry.register_loader(Bandpass, 'sdssi', load_bandpass,
+                         args=['../data/bandpasses/sdss_i.dat'],
+                         meta=sdss_meta)
+registry.register_loader(Bandpass, 'sdssz', load_bandpass,
+                         args=['../data/bandpasses/sdss_z.dat'],
+                         meta=sdss_meta)
+del sdss_meta
 
 # --------------------------------------------------------------------------
 # Generate docstring

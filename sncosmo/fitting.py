@@ -339,7 +339,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         # Compile results
         res = Result(
             success=d.is_valid, # need to check if hesse succeeds as well??
-            message='',
+            message='',  # TODO: where is the message?
             ncall=d.nfcn,
             chisq=d.fval,
             ndof=ndof,
