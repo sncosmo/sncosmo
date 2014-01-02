@@ -22,20 +22,26 @@ def flatten_result(res):
     to a text file. 
     """
 
-    flat = odict()
-    flat['success'] = 1 if res.success else 0
-    for key in ['ncall', 'chisq', 'ndof']:
-        flat[key] = res[key]
+    flat = Result(success=(1 if res.success else 0),
+                  ncall=res.ncall,
+                  chisq=res.chisq,
+                  ndof=res.ndof)
 
-    param_names = res.param_dict.keys()
-    for key in param_names:
-        flat[key] = res.param_dict[key]
-        flat[key + '_err'] = res.errors[key] if key in res.errors else 0.
-        for key2 in param_names:
-            if (key, key2) in res.covariance:
-                flat[key + '_' + key2 + '_cov'] = res.covariance[(key, key2)]
+    # Parameters and uncertainties
+    for i, n in enumerate(res.param_names):
+        flat[n] = res.parameters[i]
+        flat[n + '_err'] = res.errors.get(n, 0.)
+
+    # Covariances.
+    for n1 in res.param_names:
+        for n2 in res.param_names:
+            key = n1 + '_' + n2 + '_cov'
+            if n1 not in res.cov_names or n2 not in res.cov_names:
+                flat[key] = 0.
             else:
-                flat[key + '_' + key2 + '_cov'] = 0.
+                i = res.cov_names.index(n1)
+                j = res.cov_names.index(n2)
+                flat[key] = res.covariance[i, j]
 
     return flat
 
@@ -62,7 +68,7 @@ def cut_bands(data, model, z_bounds=None):
 
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5., disp=False, maxcall=10000, flatten=False):
+           minsnr=5., verbose=False, maxcall=10000, flatten=False):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -99,7 +105,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         ratio (flux / fluxerr) greater than this value. Default is 5.
     method : {'minuit'}, optional
         Minimization method to use. Currently there is only one choice.
-    disp : bool, optional
+    verbose : bool, optional
         Print messages during fitting.
     flatten : bool, optional
         If True, "flatten" the result before returning it. This converts the
@@ -109,19 +115,25 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     Returns
     -------
     res : Result
-        The optimization result represented as a ``Result`` object (a dict
-        subclass with attribute access). Some important attributes:
+        The optimization result represented as a ``Result`` object, which is
+        a `dict` subclass with attribute access. Therefore, ``res.keys()``
+        provides a list of the attributes:
 
         - ``success``: boolean describing whether fit succeeded.
+        - ``message``: string with more information about exit status.
         - ``ncall``: number of function evaluations.
         - ``chisq``: minimum chi^2 value.
         - ``ndof``: number of degrees of freedom (len(data) - len(param_names))
-        - ``param_dict``: best fit values, including fixed parameters (dict)
-        - ``errors``: 1-sigma uncertainties, not including fixed params (dict)
-        - ``covariance``: covariance, not including fixed params (dict)
+        - ``param_names``: same as ``model.param_names``.
+        - ``parameters``: 1-d `~numpy.ndarray` of parameter values
+          (including fixed parameters), in order of ``param_names``.
+        - ``cov_names``: list of varied parameter names, in same order as
+          ``param_names``.
+        - ``covariance``: 2-d `~numpy.ndarray` of parameter covariance;
+          indicies correspond to order of ``cov_names``.
+        - ``errors``: dictionary of parameter uncertainties.
 
-        See ``res.keys()`` for all available attributes.
-    fitted_model : `~sncosmo.ObsModel`
+    fitmodel : `~sncosmo.ObsModel`
         A copy of the model with parameters set to best-fit values.
 
     Notes
@@ -238,52 +250,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if ('t0' in param_names and guess_t0):
             model['t0'] = model['t0'] + data_tmax - model_tmax
 
-        # Get a refined guess by doing a small grid search
-        #if refine_guess:
-        #
-        #    # Get data times, errors and turn model fluxes into splines
-        #    modeltimes = model.times - model['t0']
-        #    datatimes = {}
-        #    datafluxerr = {}
-        #    for band in bands:
-        #        mask = data['band'] == band
-        #        datatimes[band] = data['time'][mask]
-        #        datafluxerr[band] = data['fluxerr'][mask]
-        #        modelflux[band] = Spline1d(modeltimes, modelflux[band])
-        #
-        #    # set up a grid in (t0, amplitude) space
-        #    t0_grid = np.linspace(bounds['t0'][0], bounds['t0'][1], 100)
-        #    a_grid = np.logspace(np.log10(amplitude) - 2.,
-        #                         np.log10(amplitude) + 1., 30)
-        #import sys
-        #MAX_FLOAT = sys.float_info.max
-        #    chisqmin = MAX_FLOAT
-        #    best = None
-        #    for t0, a in product(t0_grid, a_grid):
-        #        chisq = 0.
-        #        for band in bands:
-        #            mflux = a * modelflux[band](datatimes[band] - t0)
-        #            chisq += np.sum(((dataflux[band] - mflux) /
-        #                             datafluxerr[band])**2)
-        #        if chisq < chisqmin:
-        #            chisqmin = chisq
-        #            best = t0, a
-        #
-        #    model.parameters[1] = best[0]
-        #    model.parameters[2] = best[1]
-
     # count degrees of freedom
     ndof = len(data) - len(param_names)
-
-    # Indicies of the model parameters in param_names 
-    idx = np.array([model.param_names.index(name) for name in param_names])
-
-    # define chi2 where input is array_like
-    def chi2_arraylike(parameters):
-        model._parameters[idx] = parameters
-        modelflux = model.bandflux(data['band'], data['time'],
-                                   zp=data['zp'], zpsys=data['zpsys'])
-        return np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
 
     if method == 'minuit':
         try:
@@ -295,32 +263,39 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         # The iminuit minimizer expects the function signature to have an
         # argument for each parameter.
         def chi2(*parameters):
-            return chi2_arraylike(parameters)
+            model.parameters = parameters
+            modelflux = model.bandflux(data['band'], data['time'],
+                                       zp=data['zp'], zpsys=data['zpsys'])
+            return np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
 
-        # Set up keyword arguments to pass to Minuit initializer
+        # Set up keyword arguments to pass to Minuit initializer.
         kwargs = {}
-        for name in param_names:
+        for name in model.param_names:
+            kwargs[name] = model[name]  # Starting point.
 
-            # starting point
-            i = model.param_names.index(name)
-            kwargs[name] = model.parameters[i]  # starting point
+            # Fix parameters not being varied in the fit.
+            if name not in param_names:
+                kwargs['fix_' + name] = True
+                kwargs['error_' + name] = 0.
+                continue
 
+            # Bounds
             if name in bounds:
                 if None in bounds[name]:
                     raise ValueError('one-sided bounds not allowed for '
-                                     'iminuit fitter')
+                                     'minuit minimizer')
                 kwargs['limit_' + name] = bounds[name]
 
-            # set initial step size
+            # Initial step size
             if name in bounds:
                 step = 0.02 * (bounds[name][1] - bounds[name][0])
-            elif model.parameters[i] != 0.:
-                step = 0.1 * model.parameters[i]
+            elif model[name] != 0.:
+                step = 0.1 * model[name]
             else:
                 step = 1.
             kwargs['error_' + name] = step
 
-        if disp:
+        if verbose:
             print "Initial parameters:"
             for name in param_names:
                 print name, kwargs[name], 'step=', kwargs['error_' + name],
@@ -328,53 +303,49 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
                     print 'bounds=', kwargs['limit_' + name],
                 print ''
 
-        m = iminuit.Minuit(chi2,
-                           errordef=1.,
-                           forced_parameters=param_names,
-                           print_level=(1 if disp else 0),
-                           throw_nan=True,
-                           **kwargs)
+        m = iminuit.Minuit(chi2, errordef=1.,
+                           forced_parameters=model.param_names,
+                           print_level=(1 if verbose else 0),
+                           throw_nan=True, **kwargs)
         d, l = m.migrad(ncall=maxcall)
 
+        # Build a message.
+        message = []
+        if d.has_reached_call_limit:
+            message.append('Reached call limit.')
+        if d.hesse_failed:
+            message.append('Hesse Failed.')
+        if not d.has_covariance:
+            message.append('No covariance.')
+        elif not d.has_accurate_covar:  # iminuit docs wrong
+            message.append('Covariance may not be accuate.')
+        if not d.has_posdef_covar:  # iminuit docs wrong
+            message.append('Covariance not positive definite.')
+        if d.has_made_posdef_covar:
+            message.append('Covariance forced positive definite.')
+        if not d.has_valid_parameters:
+            message.append('Parameter(s) value and/or error invalid.')
+        if len(message) == 0:
+            message.append('Minimization exited successfully.')
+        # iminuit: m.np_matrix() doesn't work
+
+        cov_names = [n for n in model.param_names
+                     if n in param_names]
+        covariance = [[m.covariance[(n1, n2)] for n1 in cov_names]
+                      for n2 in cov_names]
+        errors = odict([(key, m.errors[key]) for key in cov_names])
+
         # Compile results
-        res = Result(
-            success=d.is_valid, # need to check if hesse succeeds as well??
-            message='',  # TODO: where is the message?
-            ncall=d.nfcn,
-            chisq=d.fval,
-            ndof=ndof,
-            param_dict=model.param_dict,
-            errors=m.errors,
-            covariance=m.covariance,
-            )
-    
-    elif method == 'l-bfgs-b':
-        from scipy.optimize import fmin_l_bfgs_b
-
-        raise NotImplementedError('l-bfgs-b method not yet implemented')
-        # TODO: implement this.
-        # Scale 'fscale' to ~1 for numerical precision reasons.
-        #if 'fscale' in param_names:
-        #    i = param_names.index('fscale')
-        #    fscale_factor = parvals0[i]
-        #    parvals0[i] = 1.
-        #    if 'fscale' in bounds:
-        #        bounds_list[i] = (bounds_list[i][0] / fscale_factor,
-        #                          bounds_list[i][1] / fscale_factor)
-
-        #x, f, d = fmin_l_bfgs_b(chi2_array_like, parvals0,
-        #                        bounds=bounds_list, approx_grad=True,
-        #                        iprint=(print_level - 1))
-
-        #d['ncalls'] = d.pop('funcalls')
-        #res = Result(d)
-        #res.params = dict(zip(param_names, x))
-        #res.fval = f
-        #res.ndof = ndof
-
-        # adjust fscale
-        #if 'fscale' in res.values:
-        #    res.values['fscale'] *= fscale_factor
+        res = Result(success=d.is_valid,
+                     message=' '.join(message),
+                     ncall=d.nfcn,
+                     chisq=d.fval,
+                     ndof=ndof,
+                     param_names=model.param_names,
+                     parameters=model.parameters.copy(),
+                     cov_names=cov_names,
+                     covariance=np.array(covariance),
+                     errors=errors)
 
     else:
         raise ValueError("unknown method {0:r}".format(method))
