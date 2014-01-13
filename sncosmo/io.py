@@ -373,7 +373,7 @@ READERS = {'csv': _read_csv,
            'salt2': _read_salt2,
            'salt2-old': _read_salt2_old}
 def read_lc(file_or_dir, format='csv', **kwargs):
-    """Read light curve data.
+    """Read light curve data for a single supernova.
 
     Parameters
     ----------
@@ -392,7 +392,7 @@ def read_lc(file_or_dir, format='csv', **kwargs):
     metachar : str, optional
         **[csv only]** Lines whose first non-whitespace character is `metachar`
         are treated as metadata lines, where the key and value are split on
-        the first whitespace. Default is '@'
+        the first whitespace. Default is ``'@'``
     commentchar : str, optional
         **[csv only]** One-character string indicating a comment. Default is
         '#'.
@@ -402,12 +402,10 @@ def read_lc(file_or_dir, format='csv', **kwargs):
 
     Returns
     -------
-    t : `~astropy.table.Table`
-        Table of data, including metadata.
-    meta : dict
-        A (possibly empty) dictionary of metadata in the file.
-    data : `~numpy.ndarray` or dict
-        Data.
+    t : astropy `~astropy.table.Table`
+        Table of data. Metadata (as an `OrderedDict`) can be accessed via
+        the ``t.meta`` attribute. For example: ``t.meta['key']``. The key
+        is case-sensitive.
     """
 
     if format not in READERS:
