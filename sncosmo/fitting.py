@@ -66,6 +66,58 @@ def cut_bands(data, model, z_bounds=None):
 
     return data
 
+def t0_bounds(data, model):
+    """Determine bounds on t0 parameter of the model.
+
+    The lower bound is such that the latest model time is equal to the
+    earliest data time. The upper bound is such that the earliest
+    model time is equal to the latest data time.
+
+    Assumes the data has been standardized."""
+
+    return (model['t0'] + np.min(data['time']) - model.maxtime,
+            model['t0'] + np.max(data['time']) - model.mintime)
+
+def guess_t0_and_amplitude(data, model, minsnr):
+    """Guess t0 and amplitude of the model based on the data.
+
+    Assumes the data has been standardized."""
+
+    snr = data['flux'] / data['fluxerr']
+    significant_data = data[snr > minsnr]
+    modelflux = {}
+    dataflux = {}
+    datatime = {}
+    zp = data['zp'][0]  # Same for all entries in "standardized" data.
+    zpsys = data['zpsys'][0]  # Same for all entries in "standardized" data.
+    for band in set(data['band']):
+        mask = significant_data['band'] == band
+        if np.any(mask):
+            modelflux[band] = (model.bandflux(band, zp=zp, zpsys=zpsys) /
+                               model.parameters[2])
+            dataflux[band] = significant_data['flux'][mask]
+            datatime[band] = significant_data['time'][mask]
+
+    significant_bands = modelflux.keys()
+    if len(significant_bands) == 0:
+        raise RuntimeError('No data points with S/N > 5. Initial guessing'
+                           ' failed.')
+
+    # ratio of maximum data flux to maximum model flux in each band
+    bandratios = np.array([np.max(dataflux[band]) / np.max(modelflux[band])
+                           for band in significant_bands])
+
+    # Amplitude guess is biggest ratio one
+    amplitude = abs(max(bandratios))
+
+    # time guess is time of max in the band with the biggest ratio
+    band = significant_bands[np.argmax(bandratios)]
+    data_tmax = datatime[band][np.argmax(dataflux[band])]
+    model_tmax = model.times[np.argmax(modelflux[band])]
+    t0 = model['t0'] + data_tmax - model_tmax
+
+    return t0, amplitude
+
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
            minsnr=5., verbose=False, maxcall=10000, flatten=False):
@@ -206,49 +258,20 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in param_names and 't0' not in bounds:
-        bounds['t0'] = (model['t0'] + np.min(data['time']) - model.maxtime,
-                        model['t0'] + np.max(data['time']) - model.mintime)
+        bounds['t0'] = t0_bounds(data, model)
 
-    # If we're fitting for 'amplitude', find its starting point.
-    # (For now we assume it is the 3rd parameter of the model.)
+    # Make guesses for t0 and amplitude.
+    # (For now, we assume it is the 3rd parameter of the model.)
     if ((model.param_names[2] in param_names and guess_amplitude) or
         ('t0' in param_names and guess_t0)):
-        snr = data['flux'] / data['fluxerr']
-        significant_data = data[snr > minsnr]
-        modelflux = {}
-        dataflux = {}
-        datatime = {}
-        zp = data['zp'][0] # zp is all the same
-        zpsys = data['zpsys'][0]
-        for band in bands:
-            mask = significant_data['band'] == band
-            if np.any(mask):
-                modelflux[band] = (model.bandflux(band, zp=zp, zpsys=zpsys) /
-                                   model.parameters[2])
-                dataflux[band] = significant_data['flux'][mask]
-                datatime[band] = significant_data['time'][mask]
-        
-        significant_bands = modelflux.keys()
-        if len(significant_bands) == 0:
-            raise RuntimeError('No data points with S/N > 5. Initial guessing'
-                               ' failed.')
-        
-        # ratio of maximum data flux to maximum model flux in each band
-        bandratios = np.array([np.max(dataflux[band]) / np.max(modelflux[band])
-                               for band in significant_bands])
-        
-        # Amplitude guess is biggest ratio one
-        amplitude = abs(max(bandratios))
-        
-        # time guess is time of max in the band with the biggest ratio
-        band = significant_bands[np.argmax(bandratios)]
-        data_tmax = datatime[band][np.argmax(dataflux[band])]
-        model_tmax = model.times[np.argmax(modelflux[band])]
+
+        t0, amplitude = guess_t0_and_amplitude(data, model, minsnr)
 
         if (model.param_names[2] in param_names and guess_amplitude):
             model.parameters[2] = amplitude
+
         if ('t0' in param_names and guess_t0):
-            model['t0'] = model['t0'] + data_tmax - model_tmax
+            model['t0'] = t0
 
     # count degrees of freedom
     ndof = len(data) - len(param_names)
@@ -447,8 +470,8 @@ def _nest_lc(data, model, param_names,
     res.param_names = param_names
     return res
 
-def nest_lc(data, model, param_names, bounds, priors=None,
-            nobj=100, maxiter=10000, verbose=False):
+def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
+            minsnr=5., priors=None, nobj=100, maxiter=10000, verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -466,7 +489,16 @@ def nest_lc(data, model, param_names, bounds, priors=None,
         up with the earliest data point and the maximum bound is such
         that the earliest phase of the model lines up with the latest
         data point.
-    priors : `dict`, optional
+    guess_amplitude_bound : bool, optional
+        If true, bounds for the model's amplitude parameter are determined
+        automatically based on the data and do not need to be included in 
+        `bounds`. The lower limit is set to zero and the upper limit is 10
+        times the amplitude "guess" (which is based on the highest-flux
+        data point in any band). Default is False.
+    minsnr : float, optional
+        Minimum signal-to-noise ratio of data points to use when guessing 
+        amplitude bound. Default is 5.
+    priors : dict, optional
         Not currently used.
     nobj : int, optional
         Number of objects (e.g., concurrent sample points) to use. Increasing
@@ -475,7 +507,6 @@ def nest_lc(data, model, param_names, bounds, priors=None,
     maxiter : int, optional
         Maximum number of iterations. Default is 10000.
     verbose : bool, optional
-
 
     Returns
     -------
@@ -499,20 +530,25 @@ def nest_lc(data, model, param_names, bounds, priors=None,
           values (includes fixed parameters).
         * ``errors``: Dictionary of weighted standard deviation of sample
           parameter values (does not include fixed parameters). 
-
+        * ``bounds``: Dictionary of bounds on varied parameters (including
+          any automatically determined bounds)
     est_model : `~sncosmo.ObsModel`
         Copy of model with parameters set to the weighted average of the 
         samples.
     """
 
     data = standardize_data(data)
-    
+    model = copy.copy(model)
+    bounds = copy.copy(bounds)
+
     # Find t0 bounds to use, if not explicitly given
     if 't0' in param_names and 't0' not in bounds:
-        bounds['t0'] = (model['t0'] + np.min(data['time']) - model.maxtime,
-                        model['t0'] + np.max(data['time']) - model.mintime)
+        bounds['t0'] = t0_bounds(data, model)
 
-    model = copy.copy(model)
+    if model.param_names[2] not in bounds and guess_amplitude_bound:
+        _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+        bounds[model.param_names[2]] = (0., 10. * amplitude)
+        
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
     
@@ -525,7 +561,8 @@ def nest_lc(data, model, param_names, bounds, priors=None,
     std = np.sqrt(np.sum(res['weights'][:, np.newaxis] * res['samples']**2,
                          axis=0) -
                   parameters**2)
-    res.errors = dict(zip(res.param_names, std))
+    res.errors = odict(zip(res.param_names, std))
+    res.bounds = bounds
 
     return res, model
 
