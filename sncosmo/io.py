@@ -159,8 +159,8 @@ def write_griddata_fits(x0, x1, y, name_or_obj):
     hdu = fits.PrimaryHDU(y, header=w.to_header())
     hdu.writeto(name_or_obj)
 
-# Reader: csv =============================================================== #
-def _read_csv(f, **kwargs):
+# Reader: ascii =============================================================== #
+def _read_ascii(f, **kwargs):
 
     delim = kwargs.get('delim', None)
     metachar = kwargs.get('metachar', '@')
@@ -368,33 +368,33 @@ def _read_json(f, **kwargs):
     return t['meta'], d
 
 # All readers =============================================================== #
-READERS = {'csv': _read_csv,
+READERS = {'ascii': _read_ascii,
            'json': _read_json,
            'salt2': _read_salt2,
            'salt2-old': _read_salt2_old}
-def read_lc(file_or_dir, format='csv', **kwargs):
+def read_lc(file_or_dir, format='ascii', **kwargs):
     """Read light curve data for a single supernova.
 
     Parameters
     ----------
     file_or_dir : str
-        Filename (formats 'csv', 'json', 'salt2') or directory name
+        Filename (formats 'ascii', 'json', 'salt2') or directory name
         (format 'salt2-old'). For 'salt2-old' format, directory must contain
         a file named 'lightfile'. All other files in the directory are
         assumed to be photometry files, unless the `filenames` keyword argument
         is set.
-    format : {'csv', 'json', 'salt2', 'salt2-old'}, optional
-        Format of file. Default is 'csv'. 'salt2' is the new format available
+    format : {'ascii', 'json', 'salt2', 'salt2-old'}, optional
+        Format of file. Default is 'ascii'. 'salt2' is the new format available
         in snfit version >= 2.3.0.
     delim : str, optional
-        **[csv only]** Used to split entries on a line. Default is `None`.
+        **[ascii only]** Used to split entries on a line. Default is `None`.
         Extra whitespace is ignored.
     metachar : str, optional
-        **[csv only]** Lines whose first non-whitespace character is `metachar`
-        are treated as metadata lines, where the key and value are split on
-        the first whitespace. Default is ``'@'``
+        **[ascii only]** Lines whose first non-whitespace character is
+        `metachar` are treated as metadata lines, where the key and value
+        are split on the first whitespace. Default is ``'@'``
     commentchar : str, optional
-        **[csv only]** One-character string indicating a comment. Default is
+        **[ascii only]** One-character string indicating a comment. Default is
         '#'.
     filenames : list, optional
         **[salt2-old only]** Only try to read the given filenames as
@@ -406,17 +406,44 @@ def read_lc(file_or_dir, format='csv', **kwargs):
         Table of data. Metadata (as an `OrderedDict`) can be accessed via
         the ``t.meta`` attribute. For example: ``t.meta['key']``. The key
         is case-sensitive.
+
+    Examples
+    --------
+
+    Read an ascii format file that includes metadata:
+
+    >>> from StringIO import StringIO  # StringIO behaves like a file object.
+    >>> f = StringIO('''
+    ... @id 1
+    ... @RA 36.0
+    ... @description good
+    ... time band flux fluxerr zp zpsys
+    ... 50000. g 1. 0.1 25. ab
+    ... 50000.1 r 2. 0.1 25. ab
+    ... ''')
+    >>> t = read_lc(f, format='ascii')
+    >>> print t
+      time  band flux fluxerr  zp  zpsys
+    ------- ---- ---- ------- ---- -----
+    50000.0    g  1.0     0.1 25.0    ab
+    50000.1    r  2.0     0.1 25.0    ab
+    >>> t.meta
+    OrderedDict([('id', 1), ('RA', 36.0), ('description', 'good')])
     """
 
-    if format not in READERS:
+    try:
+        readfunc = READERS[format]
+    except KeyError:
         raise ValueError("Reader not defined for format {0!r}. Options: "
                          .format(format) + ", ".join(READERS.keys()))
 
     if format == 'salt2-old':
-        meta, data = READERS[format](file_or_dir, **kwargs)
-    else:
+        meta, data = readfunc(file_or_dir, **kwargs)
+    elif isinstance(file_or_dir, basestring):
         with open(file_or_dir, 'rb') as f:
-            meta, data = READERS[format](f, **kwargs)
+            meta, data = readfunc(f, **kwargs)
+    else:
+        meta, data = readfunc(file_or_dir, **kwargs)
 
     return Table(data, meta=meta)
 
@@ -424,8 +451,8 @@ def read_lc(file_or_dir, format='csv', **kwargs):
 # Writers                                                                     #
 # =========================================================================== #
 
-# Writer: csv =============================================================== #
-def _write_csv(f, data, meta, **kwargs):
+# Writer: ascii ============================================================= #
+def _write_ascii(f, data, meta, **kwargs):
     
     delim = kwargs.get('delim', ' ')
     metachar = kwargs.get('metachar', '@')
@@ -581,12 +608,12 @@ def _write_json(f, data, meta, **kwargs):
     del output
 
 # All writers =============================================================== #
-WRITERS = {'csv': _write_csv,
+WRITERS = {'ascii': _write_ascii,
            'salt2': _write_salt2,
            'snana': _write_snana,
            'json': _write_json}
 
-def write_lc(data, fname, format='csv', **kwargs):
+def write_lc(data, fname, format='ascii', **kwargs):
     """Write light curve data.
 
     Parameters
@@ -595,14 +622,14 @@ def write_lc(data, fname, format='csv', **kwargs):
         Light curve data.
     fname : str
         Filename.
-    format : {'csv', 'salt2', 'snana', 'json'}, optional
-        Format of file. Default is 'csv'. 'salt2' is the new format available
+    format : {'ascii', 'salt2', 'snana', 'json'}, optional
+        Format of file. Default is 'ascii'. 'salt2' is the new format available
         in snfit version >= 2.3.0.
     delim : str, optional
-        **[csv only]** Character used to separate entries on a line.
+        **[ascii only]** Character used to separate entries on a line.
         Default is ' '.
     metachar : str, optional
-        **[csv only]** Metadata designator. Default is '@'.
+        **[ascii only]** Metadata designator. Default is '@'.
     raw : bool, optional
         **[salt2, snana]** By default, the SALT2 and SNANA writers rename
         some metadata keys and column names in order to comply with what
@@ -639,4 +666,4 @@ def load_example_data():
     from astropy.utils.data import get_pkg_data_filename
     filename = get_pkg_data_filename(
         'data/examples/example_photometric_data.dat')
-    return read_lc(filename, format='csv')
+    return read_lc(filename, format='ascii')
