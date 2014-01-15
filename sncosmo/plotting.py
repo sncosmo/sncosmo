@@ -76,15 +76,18 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Examples
     --------
-    Load some example data:
 
     >>> import sncosmo
+    >>> import matplotlib.pyplot as plt
+
+    Load some example data:
+
     >>> data = sncosmo.load_example_data()
 
     Plot the data, displaying to the screen:
 
-    >>> fig = sncosmo.plot_lc(data)
-    >>> fig.show()  # doctest: + SKIP
+    >>> fig = plot_lc(data)
+    >>> plt.show()  # doctest: +SKIP
 
     Plot a model along with the data:
     
