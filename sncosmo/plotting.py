@@ -173,8 +173,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     trspace = 0.2
     nrow = (len(bands) - 1) // ncol + 1
     if xfigsize is None and yfigsize is None:
-        hpanel = 3.
-        wpanel = 2.25
+        hpanel = 2.25
+        wpanel = 3.
     elif xfigsize is None:
         hpanel = (yfigsize - figtextsize - bspace - trspace -
                   hspace * (nrow - 1)) / nrow
@@ -242,6 +242,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         wave, band = waves_and_bands[axnum]
 
         bandname_coords = (0.92, 0.92)
+        bandname_ha = 'right'
         color = _cmap((_cmap_wavelims[1] - wave) /
                       (_cmap_wavelims[1] - _cmap_wavelims[0]))
 
@@ -270,10 +271,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             leg = ax.legend(loc='upper right',
                             fontsize='small', frameon=True)
             bandname_coords = (0.08, 0.92)  # Move bandname to upper left
-
+            bandname_ha = 'left'
         # Band name in corner
         ax.text(bandname_coords[0], bandname_coords[1], band,
-                color='k', ha='left', va='top', transform=ax.transAxes)
+                color='k', ha=bandname_ha, va='top', transform=ax.transAxes)
 
         ax.axhline(y=0., ls='--', c='k')  # horizontal line at flux = 0.
         ax.set_xlim((tmin-toff, tmax-toff))
