@@ -64,7 +64,7 @@ single supported file format, or worse, creating yet another new
 It is the user's job to read their data into an `~astropy.table.Table`.
 
 That said, SNCosmo does include a couple convenience functions for
-reading and writing tables: `sncosmo.read_lc` and
+reading and writing tables of photometric data: `sncosmo.read_lc` and
 `sncosmo.write_lc`.
 
 The supported formats are listed below. If your preferred format is
@@ -74,11 +74,11 @@ python universe.
 +-------------+-----------------------------+-------------------------------+
 | Format name | Description                 | Notes                         |
 +=============+=============================+===============================+
-| csv         | CSV-like, but with metadata | Not actually readable by      |
-|             | lines marked by '@'         | standard CSV parsers :(       |
+| ascii       | ASCII with metadata         | Not readable by               |
+|             | lines marked by '@'         | standard ASCII table parsers  |
 +-------------+-----------------------------+-------------------------------+
 | json        | JavaScript Object Notation  | Good performance, but not as  |
-|             |                             | human-readable as csv         |
+|             |                             | human-readable as ascii       |
 +-------------+-----------------------------+-------------------------------+
 | salt2       | SALT2 new-style data files  | Mostly untested.              |
 +-------------+-----------------------------+-------------------------------+
@@ -88,7 +88,7 @@ python universe.
 To see what each format looks like, you can do, e.g.::
 
     >>> data = sncosmo.load_example_data()
-    >>> sncosmo.write_lc(data, fname='test.json', format='csv')
+    >>> sncosmo.write_lc(data, fname='test.json', format='json')
 
 
 Manipulating data tables
