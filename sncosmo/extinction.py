@@ -133,7 +133,7 @@ def extinction(wave, ebv=None, a_v=None, r_v=3.1, model='f99'):
        import numpy as np
        import matplotlib.pyplot as plt
        from mpl_toolkits.axes_grid1 import make_axes_locatable
-       from specutils.extinction import extinction
+       from sncosmo import extinction
 
        models = ['ccm89', 'od94', 'gcc09', 'f99', 'fm07']
        wave = np.logspace(np.log10(910.), np.log10(30000.), 2000)
