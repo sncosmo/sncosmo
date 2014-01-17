@@ -54,6 +54,7 @@ Usage guide
    bandpasses
    magsystems
    photdata
+   cuts
    fitting
    typing
    registry
