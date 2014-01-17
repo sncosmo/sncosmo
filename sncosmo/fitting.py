@@ -15,6 +15,9 @@ from .utils import Result, Interp1d, pdf_to_ppf
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
 
+class DataQualityError(Exception):
+    pass
+
 def flatten_result(res):
     """Turn a result from fit_lc into a simple dictionary of key, value pairs.
     
@@ -75,8 +78,8 @@ def t0_bounds(data, model):
 
     Assumes the data has been standardized."""
 
-    return (model['t0'] + np.min(data['time']) - model.maxtime,
-            model['t0'] + np.max(data['time']) - model.mintime)
+    return (model.get('t0') + np.min(data['time']) - model.maxtime,
+            model.get('t0') + np.max(data['time']) - model.mintime)
 
 def guess_t0_and_amplitude(data, model, minsnr):
     """Guess t0 and amplitude of the model based on the data.
@@ -100,8 +103,8 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
     significant_bands = modelflux.keys()
     if len(significant_bands) == 0:
-        raise RuntimeError('No data points with S/N > 5. Initial guessing'
-                           ' failed.')
+        raise DataQualityError('No data points with S/N > {0}. Initial '
+                               'guessing failed.'.format(minsnr))
 
     # ratio of maximum data flux to maximum model flux in each band
     bandratios = np.array([np.max(dataflux[band]) / np.max(modelflux[band])
@@ -114,7 +117,7 @@ def guess_t0_and_amplitude(data, model, minsnr):
     band = significant_bands[np.argmax(bandratios)]
     data_tmax = datatime[band][np.argmax(dataflux[band])]
     model_tmax = model.times[np.argmax(modelflux[band])]
-    t0 = model['t0'] + data_tmax - model_tmax
+    t0 = model.get('t0') + data_tmax - model_tmax
 
     return t0, amplitude
 
@@ -130,7 +133,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     ----------
     data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
         Table of photometric data. Must include certain column names.
-    model : `~sncosmo.ObsModel`
+    model : `~sncosmo.Model`
         The model to fit.
     param_names : list
         Model parameters to vary in the fit.
@@ -185,7 +188,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
           indicies correspond to order of ``cov_names``.
         - ``errors``: dictionary of parameter uncertainties.
 
-    fitmodel : `~sncosmo.ObsModel`
+    fitmodel : `~sncosmo.Model`
         A copy of the model with parameters set to best-fit values.
 
     Notes
@@ -246,8 +249,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if 'z' not in bounds or None in bounds['z']:
             raise ValueError('z must be bounded if fit.')
         if guess_z:
-            model['z'] = sum(bounds['z']) / 2.
-        if model['z'] < bounds['z'][0] or model['z'] > bounds['z'][1]:
+            model.get('z') = sum(bounds['z']) / 2.
+        if model.get('z') < bounds['z'][0] or model.get('z') > bounds['z'][1]:
             raise ValueError('z out of range.')
 
     # Cut bands that are not allowed by the wavelength range of the model.
@@ -271,7 +274,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             model.parameters[2] = amplitude
 
         if ('t0' in param_names and guess_t0):
-            model['t0'] = t0
+            model.set(t0=t0)
 
     # count degrees of freedom
     ndof = len(data) - len(param_names)
@@ -294,7 +297,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         # Set up keyword arguments to pass to Minuit initializer.
         kwargs = {}
         for name in model.param_names:
-            kwargs[name] = model[name]  # Starting point.
+            kwargs[name] = model.get(name)  # Starting point.
 
             # Fix parameters not being varied in the fit.
             if name not in param_names:
@@ -312,8 +315,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             # Initial step size
             if name in bounds:
                 step = 0.02 * (bounds[name][1] - bounds[name][0])
-            elif model[name] != 0.:
-                step = 0.1 * model[name]
+            elif model.get(name) != 0.:
+                step = 0.1 * model.get(name)
             else:
                 step = 1.
             kwargs['error_' + name] = step
@@ -478,7 +481,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     ----------
     data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
         Table of photometric data. Must include certain column names.
-    model : `~sncosmo.ObsModel`
+    model : `~sncosmo.Model`
         The model to fit.
     param_names : list
         Model parameters to vary in the fit.
@@ -532,7 +535,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
           parameter values (does not include fixed parameters). 
         * ``bounds``: Dictionary of bounds on varied parameters (including
           any automatically determined bounds)
-    est_model : `~sncosmo.ObsModel`
+    est_model : `~sncosmo.Model`
         Copy of model with parameters set to the weighted average of the 
         samples.
     """
@@ -545,10 +548,14 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     if 't0' in param_names and 't0' not in bounds:
         bounds['t0'] = t0_bounds(data, model)
 
-    if model.param_names[2] not in bounds and guess_amplitude_bound:
-        _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
-        bounds[model.param_names[2]] = (0., 10. * amplitude)
-        
+    if guess_amplitude_bound:
+        if model.param_names[2] in bounds:
+            raise ValueError("cannot supply bounds for parameter {0!r}"
+                             " when guess_amplitude_bound=True")
+        else:
+            _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+            bounds[model.param_names[2]] = (0., 10. * amplitude)
+
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
     

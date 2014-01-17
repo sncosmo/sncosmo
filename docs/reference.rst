@@ -9,27 +9,38 @@ Built-ins
 .. toctree::
    :maxdepth: 1
 
-   builtins/models
+   builtins/sources
    builtins/bandpasses
    builtins/magsystems
 
 .. currentmodule:: sncosmo
 
-Models
-======
+Model, Sources & Effects
+========================
 
 .. autosummary::
    :toctree: _generated
 
-   get_sourcemodel
-   SourceModel
-   TimeSeriesModel
-   StretchModel
-   SALT2Model
-   ObsModel
+   Model
+   Source
+   TimeSeriesSource
+   StretchSource
+   SALT2Source
+   CCM89Dust
+   OD94Dust
+   F99Dust
 
-Extinction Functions & PropagationEffects
-=========================================
+.. inheritance-diagram:: Model
+   :parts: 1
+
+.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source
+   :parts: 1
+
+.. inheritance-diagram:: PropagationEffect RvDust F99Dust OD94Dust CCM89Dust
+   :parts: 1
+
+Extinction
+==========
 
 *Functions related to interstellar dust extinction*
 
@@ -38,12 +49,6 @@ Extinction Functions & PropagationEffects
 
    extinction
    get_ebv_from_map
-   PropagationEffect
-   RvDust
-   CCM89Dust
-   OD94Dust
-   F99Dust
-
 
 Bandpasses
 ==========
@@ -64,6 +69,10 @@ Magnitude Systems
    MagSystem
    ABMagSystem
    SpectralMagSystem
+
+.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
+   :parts: 1
+
 
 Data I/O
 ========
@@ -118,18 +127,3 @@ Registry
    registry.register_loader
    registry.register
    registry.retrieve
-
-Class Inheritance Diagrams
-==========================
-
-.. inheritance-diagram:: SourceModel TimeSeriesModel StretchModel SALT2Model
-   :parts: 1
-
-.. inheritance-diagram:: PropagationEffect RvDust F99Dust OD94Dust CCM89Dust
-   :parts: 1
-
-.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
-   :parts: 1
-
-.. inheritance-diagram:: Bandpass
-   :parts: 1

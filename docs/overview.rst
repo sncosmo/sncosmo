@@ -42,7 +42,7 @@ Examples
     >>> model.bandmag('sdssr', 'ab', times=[55075., 55100., 55140.])
     array([ 27.1180182 ,  25.68243714,  28.28456537])
 
-*See more in* :doc:`models` *and* :doc:`builtins/models`
+*See more in* :doc:`models` *and* :doc:`builtins/sources`
 
 
 **Model spectra**

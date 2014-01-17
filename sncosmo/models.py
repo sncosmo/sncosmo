@@ -20,11 +20,10 @@ from . import registry
 from .spectral import get_bandpass, get_magsystem
 from .extinction import extinction
 
-__all__ = ['get_sourcemodel',
-           'SourceModel', 'TimeSeriesModel', 'StretchModel', 'SALT2Model',
-           'ObsModel', 
-           'PropagationEffect', 'RvDust', 'CCM89Dust', 'OD94Dust', 'F99Dust',
-           'InterpolatedRvDust']
+__all__ = ['get_source',
+           'Source', 'TimeSeriesSource', 'StretchSource', 'SALT2Source',
+           'Model', 
+           'PropagationEffect', 'RvDust', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
@@ -51,18 +50,18 @@ def _check_for_fitpack_error(e, a, name):
         np.any(np.ediff1d(a) < 0.)):
             raise ValueError(name + ' must be monotonically increasing')
 
-def get_sourcemodel(name, version=None, copy=False):
-    """Retrieve a model from the registry by name.
+def get_source(name, version=None, copy=False):
+    """Retrieve a Source from the registry by name.
 
     Parameters
     ----------
     name : str
-        Name of model in the registry.
+        Name of source in the registry.
     version : str, optional
-        Version identifier for models with multiple versions. Default is
+        Version identifier for sources with multiple versions. Default is
         `None` which corresponds to the latest, or only, version.
     copy : bool, optional
-        If True and if `name` is already a Model instance, return a copy of
+        If True and if `name` is already a Source instance, return a copy of
         it. (If `name` is a str a copy of the instance
         in the registry is always returned, regardless of the value of this
         parameter.) Default is False.
@@ -73,19 +72,19 @@ def get_sourcemodel(name, version=None, copy=False):
     # *don't* want a shallow copy otherwise. Therefore,
     # we need to check if `name` is already an instance of Model before 
     # going to the registry, so we know whether or not to make a shallow copy.
-    if isinstance(name, SourceModel):
+    if isinstance(name, Source):
         if copy:
             return cp(name)
         else:
             return name
     else:
-        return cp(registry.retrieve(SourceModel, name, version=version))
+        return cp(registry.retrieve(Source, name, version=version))
 
 
 def _bandflux(model, band, time_or_phase, zp, zpsys):
-    """Support function for bandflux in SourceModel and ObsModel.
-    This is necessary to have outside because ``phase`` is used in SourceModel
-    and ``time`` is used in ObsModel.
+    """Support function for bandflux in Source and Model.
+    This is necessary to have outside because ``phase`` is used in Source
+    and ``time`` is used in Model.
     """
 
     if zp is not None and zpsys is None:
@@ -142,9 +141,9 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
     return bandflux
 
 def _bandmag(model, band, magsys, time_or_phase):
-    """Support function for bandflux in SourceModel and ObsModel.
+    """Support function for bandflux in Source and Model.
     This is necessary to have outside the models because ``phase`` is used in
-    SourceModel and ``time`` is used in ObsModel.
+    Source and ``time`` is used in Model.
     """
     bandflux = _bandflux(model, band, time_or_phase, None, None)
     band, magsys, bandflux = np.broadcast_arrays(band, magsys, bandflux)
@@ -203,19 +202,12 @@ class _ModelBase(object):
                 raise KeyError("Unknown parameter: " + repr(key))
             self._parameters[i] = val
 
-    def __getitem__(self, name):
+    def get(self, name):
         try:
             i = self._param_names.index(name)
         except ValueError:
             raise KeyError("Model has no parameter " + repr(name))
         return self._parameters[i]
-
-    def __setitem__(self, name, value):
-        try:
-            i = self._param_names.index(name)
-        except ValueError:
-            raise KeyError("Model has no parameter " + repr(name))
-        self._parameters[i] = value
 
     def summary(self):
         return ''
@@ -239,7 +231,7 @@ class _ModelBase(object):
         return new_model
 
 
-class SourceModel(_ModelBase):
+class Source(_ModelBase):
     """An abstract base class for transient models.
     
     A "transient model" in this case is the spectral time evolution
@@ -247,7 +239,7 @@ class SourceModel(_ModelBase):
 
     This is an abstract base class -- You can't create instances of
     this class. Instead, you must work with subclasses such as
-    `TimeSeriesModel`. Subclasses must define (at minimum): 
+    `TimeSeriesSource`. Subclasses must define (at minimum): 
 
     * `__init__()`
     * `_param_names` (list of str)
@@ -389,8 +381,8 @@ class SourceModel(_ModelBase):
         -------
         mag : float or `~numpy.ndarray`
             Magnitude for each item in band, magsys, phase.
-            The return value is a float if all parameters are not interables.
-            The return value is an `~numpy.ndarray` if any are interable.
+            The return value is a float if all parameters are not iterables.
+            The return value is an `~numpy.ndarray` if any are iterable.
         """
         if phase is None:
             phase = self.phases
@@ -455,7 +447,7 @@ class SourceModel(_ModelBase):
         return dedent(summary)
 
 
-class TimeSeriesModel(SourceModel):
+class TimeSeriesSource(Source):
     """A single-component spectral time series model.
 
     The spectral flux density of this model is given by 
@@ -485,9 +477,7 @@ class TimeSeriesModel(SourceModel):
     _param_names = ['amplitude']
     param_names_latex = ['A']
 
-    def __init__(self, phase, wave, flux,
-                 name=None, version=None):
-
+    def __init__(self, phase, wave, flux, name=None, version=None):
         self.name = name
         self.version = version
         self._phase = phase
@@ -498,7 +488,7 @@ class TimeSeriesModel(SourceModel):
     def _flux(self, phase, wave):
         return self._parameters[0] * self._model_flux(phase, wave)
 
-class StretchModel(SourceModel):
+class StretchSource(Source):
     """A single-component spectral time series model, that "stretches" in
     time.
 
@@ -549,7 +539,7 @@ class StretchModel(SourceModel):
                 self._model_flux(phase / self._parameters[1], wave))
 
 
-class SALT2Model(SourceModel):
+class SALT2Source(Source):
     """The SALT2 Type Ia supernova spectral timeseries model.
 
     The spectral flux density of this model is given by 
@@ -816,14 +806,14 @@ class SALT2Model(SourceModel):
             return self._colorlaw(wave)
 
 
-class ObsModel(_ModelBase):
+class Model(_ModelBase):
     """An observer-frame model.
 
     Parameters
     ----------
-    source : `~sncosmo.SourceModel` or str
+    source : `~sncosmo.Source` or str
         The model for the spectral evolution of the source. If a string
-        is given, it is used to retrieve a `~sncosmo.SourceModel` from
+        is given, it is used to retrieve a `~sncosmo.Source` from
         the registry.
     effects : list of `~sncosmo.PropagationEffect`
         List of `~sncosmo.PropagationEffect` instances to add.
@@ -836,11 +826,11 @@ class ObsModel(_ModelBase):
 
     Notes
     -----
-    The SourceModel and PropagationEffects are copied upon instanciation.
+    The Source and PropagationEffects are copied upon instanciation.
 
     Examples
     --------
-    >>> model = sncosmo.ObsModel(source='hsiao')  # doctest: +SKIP
+    >>> model = sncosmo.Model(source='hsiao')  # doctest: +SKIP
 
     """
 
@@ -849,7 +839,7 @@ class ObsModel(_ModelBase):
         self._param_names = ['z', 't0']
         self.param_names_latex = ['z', 't_0']
         self._parameters = np.array([0., 0.])
-        self._source = get_sourcemodel(source, copy=True)
+        self._source = get_source(source, copy=True)
         self.name = self._source.name
         self._effects = []
         self._effect_names = []
@@ -897,7 +887,7 @@ class ObsModel(_ModelBase):
 
     @property
     def source(self):
-        """The SourceModel instance."""
+        """The Source instance."""
         return self._source
 
     @property
@@ -1185,10 +1175,10 @@ class ObsModel(_ModelBase):
         return '\n'.join(summaries)
 
     def __copy__(self):
-        new = ObsModel(self._source,
-                       effects=self._effects,
-                       effect_names=self._effect_names,
-                       effect_frames=self._effect_frames)
+        new = Model(self._source,
+                    effects=self._effects,
+                    effect_names=self._effect_names,
+                    effect_frames=self._effect_frames)
         new._parameters[0:2] = self._parameters[0:2]
         return new
 
@@ -1256,7 +1246,7 @@ class F99Dust(RvDust):
     minwave = 1150.
     maxwave = 60000.
 
-
+# TODO remove this class?
 class InterpolatedRvDust(PropagationEffect):
     """Dust propagation effect. Wraps extinction functions.
 

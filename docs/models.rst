@@ -2,156 +2,174 @@
 Supernova Models
 ****************
 
-Initializing from built-in models
-=================================
+A Model in sncosmo consists of a "source" (e.g., a supernova) and zero or more
+"propagation effects" (e.g., host galaxy dust, milky way dust).
 
-Create an `~sncosmo.ObsModel` that has the SALT2 model as a source:
+Creating a model using a built-in source
+========================================
+
+First, let's create a model with no propagation effects. The easiest
+way to do this is to use the built-in ``Source`` instances that come
+with sncosmo.  These can be retrieved by name (see the
+:ref:`list-of-built-in-sources`).  For example, the Hsiao SN template can be
+used as a source:
 
     >>> import sncosmo
-    >>> model = sncosmo.ObsModel(source='salt2')  # doctest: +SKIP
-    >>> print model                               # doctest: +SKIP
-    <ObsModel at 0x48585d0>
-    source:
-      class      : SALT2Model
-      name       : salt2
-      version    : 2.0
-      phases     : [-20, .., 50] days (71 points)
-      wavelengths: [2000, .., 9200] Angstroms (721 points)
-    parameters:
-      z  = 0.0
-      t0 = 0.0
-      x0 = 1.0
-      x1 = 0.0
-      c  = 0.0
+    >>> model = sncosmo.Model(source='hsiao')
 
-.. note:: In fact, the data for "built-in" models like SALT2 are hosted
-	  remotely, downloaded as needed, and cached locally. So the first
-	  time you load a given model, you need
-	  to be connected to the internet.  You will see a progress bar as
-          the data are downloaded.
+.. note:: In fact, the data for "built-in" sources are hosted
+	  remotely, downloaded as needed, and cached locally. So the
+	  first time you load a given model, you need to be connected
+	  to the internet.  You will see a progress bar as the data
+	  are downloaded.
 
-Some source models have multiple versions of the data, which can be explicitly
-retrieved using the `~sncosmo.get_sourcemodel` function:
+Some built-in source models have multiple versions, which can
+be explicitly retrieved using the `~sncosmo.get_source` function:
 
-    >>> source = sncosmo.get_sourcemodel('salt2', version='1.1')
-    ... # doctest: +SKIP
-    >>> model = sncosmo.ObsModel(source=source)  # doctest: +SKIP
-
+    >>> source = sncosmo.get_source('hsiao', version='2.0')
+    >>> model = sncosmo.Model(source=source)
 
 Retrieving and setting parameters
 =================================
 
-Each model has a set of parameter names, that can be retrieved via:
+Each model has a set of parameter names and values:
 
     >>> model.param_names
-    ['z', 't0', 'x0', 'x1', 'c']
-
-Each *instance* also has a set of parameter values, corresponding to the
-parameter names:
-
+    ['z', 't0', 'amplitude']
     >>> model.parameters
-    array([ 0.,  0.,  1.,  0.,  0.])
+    array([ 0.,  0.,  1.])
 
 These can also be retrieved as:
 
-    >>> model['z']  # Note: this syntax is preliminary!
+    >>> model.get('z')
     0.0
 
-Parameter values can be set by (1) explicitly indexing the parameter array
-or (2) by using the "dictionary"-like syntax or (3) using the ``set`` method:
+Parameter values can be set by explicitly indexing the parameter array
+or by using the ``set`` method:
 
     >>> model.parameters[0] = 0.5
-    >>> model['z'] = 0.5  # Note: this syntax is preliminary!
     >>> model.set(z=0.5)
 
-The set method can take multiple parameters.
+The set method can take multiple parameters:
 
-What do these parameters mean? The first two, ``z`` and ``t0`` are common to
-all `~sncosmo.ObsModel` instances. The next three, ``x0``, ``x1`` and ``c``
-are specific to the particular source, in this case the SALT2 model. Other
-source models might have different parameters.
+    >>> model.set(z=0.5, amplitude=2.0)
+
+What do these parameters mean? The first two, ``z`` and ``t0`` are
+common to all `~sncosmo.Model` instances:
 
 * ``z`` is the redshift of the source.
-* ``t0`` is the observer-frame time corresponding to the model's phase=0.
+* ``t0`` is the observer-frame time corresponding to the source's phase=0.
 
-Adding effects to the model
-===========================
-
-TODO: Write this.
-
-
-Native model phases and wavelengths
-===================================
-
-The model is defined at discrete phases and wavelengths and interpolation is
-used to determine flux values at intermediate phase(s) and wavelength(s). To
-see what the native values are:
-
-    >>> model.times
-    array([ -36. ,  -34.2,  -32.4, ..., 149.4, 151.2,  153. ])
-    >>> model.wave
-    array([  1500.,   1515.,   1530., ...,  37470.,  37485.,  37500.])
-
-.. warning::
-   Everything below is from the old docs and hasn't been updated yet.
+The next,``amplitude``, is specific to the particular type of
+source. In this case the source is a simple spectral timeseries that
+can only be scaled up and down. Other sources could have other
+parameters that affect the shape of the spectrum at each phase.
 
 
-Retrieving a spectrum
-=====================
-To retrieve a spectrum (in ergs / s / cm^2 / Angstrom) at a given observer-frame time:
+Creating a model with a source and effect(s)
+============================================
 
-    >>> model.flux(-10.5)  # spectrum at time=-10.5 at all the native wavelength values
-    array([  2.98208588e-22,   3.81370282e-22,   4.88207315e-22, ...,
-             1.52182808e-20,   1.52257192e-20,   1.52324162e-20])
-    >>> model.flux(-10.5, [3000., 4000.]) # ... at just two (observer-frame) wavelengths
-    >>> model.flux([-10.5, -9.4], [3000., 4000.]) # ... at two times and two wavelengths
-    >>> model.flux(None, 4000.)  # ... at all native phases, single wavelength
-    >>> model.flux(None, [3000., 4000.])  # flux at all native phases, two wavelengths
-    >>> model.flux()  # All native flux values
+Let's create a slightly more complex model. Again we will use the Hsiao
+spectral time series as a source, but this time we will add host galaxy
+dust.
 
-The shape of the returned array depends on the input. If there are multiple phases returned, it will be a 2-d array:
+    >>> dust = sncosmo.CCM89Dust()
+    >>> model = sncosmo.Model(source='hsiao',
+    ...                       effects=[dust],
+    ...                       effect_names=['host'],
+    ...                       effect_frames=['rest'])
 
-    >>> model.flux(-10.5, 4000.) # scalar
-    >>> model.flux(-10.5)  # 1-d array, shape=(2401,)
-    >>> model.flux(-10.5, [3000., 4000.]) # 1-d array, shape=(2,)
-    >>> model.flux([-10.5, -9.4], [3000., 4000.]) # 2-d array, shape=(2, 2)
-    >>> model.flux(None, 4000.)  # 2-d array, shape=(106, 1)
-    >>> model.flux(None, [3000., 4000.]) # 2-d array, shape=(106, 2)
-    >>> model.flux()  # 2-d array, shape (106, 2401)
+The model now has additional parameters that describe the dust, ``hostebv``
+and ``hostr_v``:
 
-The above are all for observer-frame times and wavelengths. To
-interpret the times and wavelengths as being in the rest-frame, use
-the modelframe keyword:
+    >>> model.param_names
+    ['z', 't0', 'amplitude', 'hostebv', 'hostr_v']
+    >>> model.parameters
+    array([ 0. ,  0. ,  1. ,  0. ,  3.1])
 
-    >>> model.flux(-10.5, modelframe=True)
-    array([  3.45329754e-22,   4.36235597e-22,   5.51652443e-22, ...,
-             1.61948280e-20,   1.61985494e-20,   1.62019061e-20])
+These are the parameters of the ``CCM89Dust`` instance we created:
+
+    >>> dust.param_names
+    ['ebv', 'r_v']
+
+In the model, the parameter names are prefixed with the name of the effect
+(``host``).
+
+At any time you can print the model to get a nicely formatted string
+representation of its components and current parameter values:
+
+    >>> print model
+    <Model at 0x...>
+    source:
+      class      : TimeSeriesSource
+      name       : hsiao
+      version    : 3.0
+      phases     : [-20, .., 85] days (22 points)
+      wavelengths: [1000, .., 25000] Angstroms (481 points)
+    effect (name='host' frame='rest'):
+      class           : CCM89Dust
+      wavelength range: [1250, 33333] Angstroms
+    parameters:
+      z         = 0.0
+      t0        = 0.0
+      amplitude = 1.0
+      hostebv   = 0.0
+      hostr_v   = 3.1000000000000001
 
 
+Model spectrum
+==============
+
+To retrieve a spectrum (in ergs / s / cm^2 / Angstrom) at a given
+observer-frame time and set of wavelengths:
+
+    >>> wave = np.array([3000., 3500., 4000., 4500., 5000., 5500.])
+    >>> model.flux(-5., wave)
+    array([  5.29779465e-09,   7.77702880e-09,   7.13309678e-09,
+             5.68369041e-09,   3.06860759e-09,   2.59024291e-09])
+
+We can supply a list or array of times and get a 2-d array back,
+representing the spectrum at each time:
+
+    >>> model.flux([-5., 2.], wave)
+    array([[  5.29779465e-09,   7.77702880e-09,   7.13309678e-09,
+              5.68369041e-09,   3.06860759e-09,   2.59024291e-09],
+           [  2.88166481e-09,   6.15186858e-09,   7.87880448e-09,
+              6.93919846e-09,   3.59077596e-09,   3.27623932e-09]])
+
+Changing the model parameters changes the results:
+
+    >>> model.parameters
+    array([0., 0., 1., 0., 3.1])
+    >>> model.flux(-5., [4000., 4500.])
+    array([  7.13309678e-09,   5.68369041e-09])
+    >>> model.set(amplitude=2., hostebv=0.1)
+    >>> model.flux(-5., [4000., 4500.])
+    array([  9.39081327e-09,   7.86972003e-09])
 
 
 Synthetic photometry
 ====================
 
-To get the flux (photons / s / cm^2) in the SDSS i band at a phase of 0 days:
+To integrate the spectrum through a bandpass, use the bandflux method:
 
-    >>> model.bandflux('sdssi', 0.)
-    0.00032041370572056057
-    >>> model.bandflux(['sdssi', 'sdssz', 'sdssi', 'sdssz'], [0., 0., 1., 1.])
-    array([  3.20413706e-04,   5.72410077e-05,   3.20367693e-04,
-             5.74384657e-05])
-    >>> model.bandflux('sdssi', [0., 1.])
-    array([ 0.00032041,  0.00032037])
-    >>> model.bandflux('sdssi') # all native phases (length 106 array)
-    array([ -2.14661119e-23,   2.80447011e-07,   2.51377548e-06, ...,
-             1.74574662e-05,   1.71958548e-05, 1.69633095e-05])
+    >>> model.bandflux('sdssi', -5.)
+    180213.72886169454
+
+Here we are using the SDSS I band, at time -5. days. The return value is in
+photons / s / cm^2. It is also possible to supply multiple times or bands:
+
+    >>> model.bandflux('sdssi', [-5., 2.])
+    array([ 180213.72886169,  176662.68287381])
+    >>> model.bandflux(['sdssi', 'sdssz'], [-5., -5.])
+    array([ 180213.72886169,   27697.76705621])
 
 Instead of returning flux in photons / s / cm^2, the flux can be normalized
 to a desired zeropoint by specifying the ``zp`` and ``zpsys`` keywords,
 which can also be scalars, lists, or arrays.
 
-    >>> model.bandflux('sdssi', [0., 1.], zp=25., zpsys='ab')
-    array([ 8.38386893,  8.43995715])
+    >>> model.bandflux(['sdssi', 'sdssz'], [-5., -5.], zp=25., zpsys='ab')
+    array([  5.01036850e+09,   4.74414435e+09])
 
 Instead of flux, magnitude can be returned. It works very similarly to flux:
 
@@ -159,10 +177,6 @@ Instead of flux, magnitude can be returned. It works very similarly to flux:
     array([ 22.6255077 ,  22.62566363])
     >>> model.bandmag('sdssi', 'vega', [0., 1.])
     array([ 22.26843273,  22.26858865])
-
-
-Bandpasses & magnitude systems
-------------------------------
 
 We have been specifying the bandpasses as strings (``'sdssi'`` and
 ``'sdssz'``).  This works because these bandpasses are in the sncosmo
@@ -177,8 +191,9 @@ The magnitude systems work similarly to bandpasses: ``'ab'`` and
 also directly supply custom `~sncosmo.MagSystem` objects. See
 :doc:`magsystems` for details.
 
-Model particulars: ``TimeSeriesModel`` & ``StretchModel``
-=========================================================
+
+Initializing Sources directly
+=============================
 
 Different classes of models have a very similar API, but a few aspects
 differ, by necessity. For example, you can initialize a model directly
@@ -282,7 +297,7 @@ parameters:
 
 See `~sncosmo.SALT2Model` for more details.
 
-Creating New Models Classes
+Creating New Source Classes
 ===========================
 
 In this package, a "model" is something that specifies the spectral

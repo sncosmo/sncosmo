@@ -5,7 +5,7 @@ from operator import mul
 import numpy as np
 from astropy.utils import OrderedDict as odict
 
-from .models import _ModelBase, ObsModel
+from .models import Model
 from .spectral import get_magsystem
 from .photdata import standardize_data
 from .fitting import _nest_lc

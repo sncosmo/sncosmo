@@ -11,7 +11,7 @@ from matplotlib.ticker import MaxNLocator, NullFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import cm
 
-from .models import SourceModel, ObsModel, get_sourcemodel
+from .models import Source, Model, get_source
 from .spectral import get_bandpass, get_magsystem
 from .photdata import standardize_data, normalize_data
 from .utils import format_value
@@ -31,10 +31,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     ----------
     data : astropy `~astropy.table.Table` or similar
         Table of photometric data points.
-    model : `~sncosmo.ObsModel` or list thereof
+    model : `~sncosmo.Model` or list thereof
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
-        `~sncosmo.ObsModel`, multiple models are plotted.
+        `~sncosmo.Model`, multiple models are plotted.
     errors : dict, optional
         Uncertainty on model parameters. If given, along with exactly one
         model, uncertainty will be displayed with model parameters at the top
@@ -91,7 +91,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Plot a model along with the data:
     
-    >>> model = sncosmo.ObsModel('salt2')                # doctest: +SKIP
+    >>> model = sncosmo.Model('salt2')                # doctest: +SKIP
     >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5)  # doctest: +SKIP
     >>> sncosmo.plot_lc(data, model=model)               # doctest: +SKIP
 
@@ -127,8 +127,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         models = model
     else:
         models = [model]
-    if not all([isinstance(m, ObsModel) for m in models]):
-        raise TypeError('model(s) must be ObsModel instance(s)')
+    if not all([isinstance(m, Model) for m in models]):
+        raise TypeError('model(s) must be Model instance(s)')
 
     # Standardize and normalize data.
     if data is not None:
@@ -367,7 +367,7 @@ def animate_model(model_or_models, fps=30, length=20.,
 
     Parameters
     ----------
-    model_or_models : `~sncosmo.SourceModel` or str or iterable thereof
+    model_or_models : `~sncosmo.Source` or str or iterable thereof
         The model to animate or list of models to animate.
     fps : int, optional
         Frames per second. Default is 30.
@@ -411,11 +411,11 @@ def animate_model(model_or_models, fps=30, length=20.,
 
     Compare the salt2 model with ``x1=1`` to the same model with ``x1=0.``:
 
-    >>> m1 = sncosmo.get_sourcemodel('salt2')  # doctest: +SKIP
-    >>> m1.set(x1=1.)                          # doctest: +SKIP
-    >>> m2 = sncosmo.get_sourcemodel('salt2')  # doctest: +SKIP
-    >>> m2.set(x1=0.)                          # doctest: +SKIP
-    >>> animate_model([m1, m2])                # doctest: +SKIP
+    >>> m1 = sncosmo.get_source('salt2')  # doctest: +SKIP
+    >>> m1.set(x1=1.)                     # doctest: +SKIP
+    >>> m2 = sncosmo.get_source('salt2')  # doctest: +SKIP
+    >>> m2.set(x1=0.)                     # doctest: +SKIP
+    >>> animate_model([m1, m2])           # doctest: +SKIP
 
     """
     from matplotlib import animation
@@ -427,12 +427,12 @@ def animate_model(model_or_models, fps=30, length=20.,
     else:
         models = model_or_models
 
-    # Check that all entries are SourceModel or strings.
+    # Check that all entries are Source or strings.
     for m in models:
-        if not (isinstance(m, basestring) or isinstance(m, SourceModel)):
-            raise ValueError('str or SourceModel instance expected for '
+        if not (isinstance(m, basestring) or isinstance(m, Source)):
+            raise ValueError('str or Source instance expected for '
                              'model(s)')
-    models = [get_sourcemodel(m) for m in models]
+    models = [get_source(m) for m in models]
 
     # Phase offsets needed to match peak phases.
     peakphases = [m.peakphase(peakband) for m in models]
