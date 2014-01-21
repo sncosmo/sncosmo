@@ -78,8 +78,8 @@ def t0_bounds(data, model):
 
     Assumes the data has been standardized."""
 
-    return (model.get('t0') + np.min(data['time']) - model.maxtime,
-            model.get('t0') + np.max(data['time']) - model.mintime)
+    return (model.get('t0') + np.min(data['time']) - model.maxtime(),
+            model.get('t0') + np.max(data['time']) - model.mintime())
 
 def guess_t0_and_amplitude(data, model, minsnr):
     """Guess t0 and amplitude of the model based on the data.

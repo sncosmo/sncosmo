@@ -6,6 +6,7 @@ import abc
 import os
 from copy import copy as cp
 from textwrap import dedent
+from math import ceil
 
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
@@ -114,12 +115,12 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
         b = get_bandpass(b)
 
         # Raise an exception if bandpass is out of model range.
-        if (b.wave[0] < model.minwave or b.wave[-1] > model.maxwave):
+        if (b.wave[0] < model.minwave() or b.wave[-1] > model.maxwave()):
             raise ValueError(
                 'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
                 'outside spectral range [{3:.6g}, .., {4:.6g}]'
                 .format(b.name, b.wave[0], b.wave[-1], 
-                        model.minwave, model.maxwave))
+                        model.minwave(), model.maxwave()))
 
         # Get the flux
         f = model._flux(time_or_phase[mask], b.wave)
@@ -188,11 +189,6 @@ class _ModelBase(object):
             raise ValueError("Incorrect number of parameters.")
         self._parameters[:] = value
 
-    @property
-    def param_dict(self):
-        """Read-only dictionary of model parameters"""
-        return dict(zip(self._param_names, self._parameters))
-
     def set(self, **param_dict):
         """Set parameters of the model by name."""
         for key, val in param_dict.items():
@@ -244,9 +240,11 @@ class Source(_ModelBase):
     * `__init__()`
     * `_param_names` (list of str)
     * `_parameters` (`numpy.ndarray`)
-    * `_phase` or `phases` property (`numpy.ndarray`)
-    * `_wave` (`numpy.ndarray`)
     * `_flux(ndarray, ndarray)` 
+    * `minphase()`
+    * `maxphase()`
+    * `minwave()`
+    * `maxwave()`
     """
 
     __metaclass__ = abc.ABCMeta
@@ -255,27 +253,15 @@ class Source(_ModelBase):
     def __init__(self):
         pass
 
-    @property
-    def phases(self):
-        return self._phase
-
-    @property
     def minphase(self):
         return self._phase[0]
 
-    @property
     def maxphase(self):
         return self._phase[-1]
 
-    @property
-    def wavelengths(self):
-        return self._wave
-
-    @property
     def minwave(self):
         return self._wave[0]
 
-    @property
     def maxwave(self):
         return self._wave[-1]
 
@@ -283,7 +269,7 @@ class Source(_ModelBase):
     def _flux(self, phase, wave):
         pass
 
-    def flux(self, phase=None, wave=None):
+    def flux(self, phase, wave):
         """The spectral flux density at the given phase and wavelength values.
 
         Parameters
@@ -300,20 +286,11 @@ class Source(_ModelBase):
         flux : float or `~numpy.ndarray`
             Spectral flux density values in ergs / s / cm^2 / Angstrom.
         """
-        if phase is None:
-            phase = self.phases
-        else:
-            phase = np.asarray(phase)
-
-        if wave is None:
-            wave = self._wave
-        else:
-            wave = np.asarray(wave)
-
-        if np.any(wave < self.minwave) or np.any(wave > self.maxwave):
+        phase = np.asarray(phase)
+        wave = np.asarray(wave)
+        if np.any(wave < self.minwave()) or np.any(wave > self.maxwave()):
             raise ValueError('requested wavelength value(s) outside '
                              'model range')
-
         try:
             f = self._flux(phase, wave)
         except ValueError as e:
@@ -327,7 +304,7 @@ class Source(_ModelBase):
             return f[0, :]
         return f
 
-    def bandflux(self, band, phase=None, zp=None, zpsys=None):
+    def bandflux(self, band, phase, zp=None, zpsys=None):
         """Flux through the given bandpass(es) at the given phase(s).
 
         Default return value is flux in photons / s / cm^2. If zp and zpsys
@@ -355,16 +332,13 @@ class Source(_ModelBase):
             to the requested zeropoint. Return value is `float` if all
             input parameters are scalars, `~numpy.ndarray` otherwise.
         """
-
-        if phase is None:
-            phase = self.phases
         try:
             return _bandflux(self, band, phase, zp, zpsys)
         except ValueError as e:
             _check_for_fitpack_error(e, phase, 'phase')
             raise e
 
-    def bandmag(self, band, magsys, phase=None):
+    def bandmag(self, band, magsys, phase):
         """Magnitude at the given phase(s) through the given 
         bandpass(es), and for the given magnitude system(s).
 
@@ -384,21 +358,27 @@ class Source(_ModelBase):
             The return value is a float if all parameters are not iterables.
             The return value is an `~numpy.ndarray` if any are iterable.
         """
-        if phase is None:
-            phase = self.phases
         return _bandmag(self, band, magsys, phase)
 
-    def peakphase(self, band):
-        """Determine phase of maximum flux in the given band.
+    def peakphase(self, band_or_wave, sampling=1.):
+        """Determine phase of maximum flux for the given band/wavelength.
         
-        This method generates the light curve in the given band and
+        This method generates the light curve in the given band/wavelength and
         finds the highest-flux point. It then finds the parabola that
         passes through this point and the two neighboring points, and
         returns the position of the peak of the parabola.
         """
 
-        phases = self.phases
-        fluxes = self.bandflux(band)
+        # Array of phases to sample at.
+        nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
+        phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
+
+        if (isinstance(band_or_wave, basestring) or
+            isinstance(band_or_wave, Bandpass):
+            fluxes = self.bandflux(band_or_wave, phases)
+        else:
+            fluxes = self.flux(phases, band_or_wave)
+
         i = np.argmax(fluxes)
         if (i == 0) or (i == len(phases) - 1):
             return phases[i]
@@ -409,16 +389,16 @@ class Source(_ModelBase):
         a, b, c = np.linalg.solve(A, y)
         return -b / (2 * a)
 
-    def peakmag(self, band, magsys):
+    def peakmag(self, band, magsys, sampling=1.):
         """Calculate peak apparent magnitude in rest-frame bandpass."""
 
-        peakphase = self.peakphase(band)
-        return self.bandmag(band, magsys, phase=peakphase)
+        peakphase = self.peakphase(band, sampling=sampling)
+        return self.bandmag(band, magsys, peakphase)
 
-    def set_peakmag(self, m, band, magsys):
+    def set_peakmag(self, m, band, magsys, sampling=1.):
         """Set peak apparent magnitude in rest-frame bandpass."""
 
-        m_current = self.peakmag(band, magsys)
+        m_current = self.peakmag(band, magsys, sampling=sampling)
         factor = 10.**(0.4 * (m_current - m))
         self._parameters[0] = factor * self._parameters[0]
 
@@ -435,15 +415,14 @@ class Source(_ModelBase):
     def summary(self):
         summary = """\
         class      : {0}
-        name       : {1}
+        name       : {1!r}
         version    : {2}
-        phases     : [{3:.6g}, .., {4:.6g}] days ({5:d} points)
-        wavelengths: [{6:.6g}, .., {7:.6g}] Angstroms ({8:d} points)"""\
+        phases     : [{3:.6g}, .., {4:.6g}] days
+        wavelengths: [{6:.6g}, .., {7:.6g}] Angstroms"""\
         .format(
             self.__class__.__name__, self.name, self.version,
-            self.minphase, self.maxphase, len(self._phase),
-            self.minwave, self.maxwave, len(self._wave)
-            )
+            self.minphase(), self.maxphase(),
+            self.minwave(), self.maxwave())
         return dedent(summary)
 
 
@@ -522,15 +501,9 @@ class StretchSource(Source):
         self._parameters = np.array([1., 1.])
         self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
 
-    @property
-    def phases(self):
-        return self._parameters[1] * self._phase
-
-    @property
     def minphase(self):
         return self._parameters[1] * self._phase[0]
 
-    @property
     def maxphase(self):
         return self._parameters[1] * self._phase[-1]
 
@@ -588,7 +561,7 @@ class SALT2Source(Source):
 
     _param_names = ['x0', 'x1', 'c']
     param_names_latex = ['x_0', 'x_1', 'c']
-    _SCALE_FACTOR = 10.**-12 * 10.**(-0.27/2.5)
+    _SCALE_FACTOR = 1e-12
 
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
@@ -631,13 +604,13 @@ class SALT2Source(Source):
                 self._phase = phase
                 self._wave = wave
             
-        # Set the colorlaw based on the "color correction" file.
+        # Set the colorlaw function based on the "color correction" file.
         self._set_colorlaw_from_file(names_or_objs[-1])
 
         # add extinction component
         cl = self._colorlaw(self._wave)
         clbase = 10. ** (-0.4 * cl)
-        self._model['clbase'] = Spline1d(self._wave, clbase, k=2)
+        self._model['clbase'] = Spline1d(self._wave, clbase, k=1)
 
     def _flux(self, phase, wave):
         m0 = self._model['M0'](phase, wave)
@@ -793,8 +766,7 @@ class SALT2Source(Source):
         calculating the model flux, a spline fit to this function is
         used rather than the function itself. Therefore this will not be
         *exactly* equivalent to the color law used when evaluating the model
-        flux for arbitrary wavelengths. However, it will be exactly
-        equivalent at the native model wavelengths.
+        flux for arbitrary wavelengths.
         """
         if wave is None:
             wave = self._wave
@@ -807,7 +779,7 @@ class SALT2Source(Source):
 
 
 class Model(_ModelBase):
-    """An observer-frame model.
+    """An observer-frame model, composed of a Source and zero or more effects.
 
     Parameters
     ----------
@@ -840,7 +812,7 @@ class Model(_ModelBase):
         self.param_names_latex = ['z', 't_0']
         self._parameters = np.array([0., 0.])
         self._source = get_source(source, copy=True)
-        self.name = self._source.name
+        self.description = None
         self._effects = []
         self._effect_names = []
         self._effect_frames = []
@@ -897,8 +869,8 @@ class Model(_ModelBase):
 
     @property
     def effects(self):
-        """Dictionary of PropagationEffect instances."""
-        return odict(zip(self._effect_names, self._effects))
+        """List of constituent propagation effects."""
+        return self._effects
 
     def _synchronize_parameters(self):
         """Synchronize parameter names and parameter arrays between
@@ -918,7 +890,7 @@ class Model(_ModelBase):
         self.param_names_latex.extend(self._source.param_names_latex)
         for effect, effect_name in zip(self._effects, self._effect_names):
             self.param_names_latex.extend(
-                [name + '_{' + effect_name + '}' 
+                [name + '_{\\rm ' + effect_name + '}' 
                  for name in effect.param_names_latex])
 
         # For each "model", get its parameter array.
@@ -941,46 +913,28 @@ class Model(_ModelBase):
         # None's with '?'
         names = [self._source.name] + self._effect_names
         if all([name is None for name in names]):
-            self.name = None
+            self.description = None
         else:
             names = ['?' if name is None else name for name in names]
-            self.name = '+'.join(names)
+            self.description = '+'.join(names)
         
-
-    # ----------------------------------------------------------------
-    # Time and wavelength grid
-
-    @property
-    def times(self):
-        """Native times at which the source model is sampled."""
-        return (self._parameters[1] +
-                (1. + self._parameters[0]) * self._source.phases)
-
-    @property
     def mintime(self):
-        """Minimum time at which the model is defined."""
+        """Minimum observer-frame time at which the model is defined."""
         return (self._parameters[1] +
-                (1. + self._parameters[0]) * self._source.minphase)
-    @property
+                (1. + self._parameters[0]) * self._source.minphase())
+
     def maxtime(self):
-        """Maximum time at which the model is defined."""
+        """Maximum observer-frame time at which the model is defined."""
         return (self._parameters[1] +
-                (1. + self._parameters[0]) * self._source.maxphase)
+                (1. + self._parameters[0]) * self._source.maxphase())
 
-    @property
-    def wavelengths(self):
-        """Native observer-frame wavelengths at which the model is sampled."""
-        return self._source.wavelengths * (1. + self._parameters[0])
-
-    @property
     def minwave(self):
         """Minimum observer-frame wavelength of the model."""
-        return self._source.minwave * (1. + self._parameters[0])
+        return self._source.minwave() * (1. + self._parameters[0])
 
-    @property
     def maxwave(self):
         """Maximum observer-frame wavelength of the model."""
-        return self._source.maxwave * (1. + self._parameters[0])
+        return self._source.maxwave() * (1. + self._parameters[0])
 
     # ----------------------------------------------------------------
     # Flux
@@ -1004,15 +958,15 @@ class Model(_ModelBase):
 
         return f
 
-    def flux(self, time=None, wave=None):
+    def flux(self, time, wave):
         """The spectral flux density at the given time and wavelength values.
 
         Parameters
         ----------
-        time : float or list_like, optional
+        time : float or list_like
             Time(s) in days. If `None` (default), the times corresponding
             to the native phases of the model are used.
-        wave : float or list_like, optional
+        wave : float or list_like
             Wavelength(s) in Angstroms. If `None` (default), the native
             wavelengths of the model are used.
 
@@ -1022,18 +976,11 @@ class Model(_ModelBase):
             Spectral flux density values in ergs / s / cm^2 / Angstrom.
         """
         
-        # Defaults
-        if time is None:
-            time = self.times
-        else:
-            time = np.asarray(time)
-        if wave is None:
-            wave = self.wavelengths
-        else:
-            wave = np.asarray(wave)
+        time = np.asarray(time)
+        wave = np.asarray(wave)
 
         # Check wavelength values
-        if np.any(wave < self.minwave) or np.any(wave > self.maxwave):
+        if np.any(wave < self.minwave()) or np.any(wave > self.maxwave()):
             raise ValueError('requested wavelength value(s) outside '
                              'model range')
 
@@ -1082,15 +1029,15 @@ class Model(_ModelBase):
         overlap = np.empty((len(band), len(z)), dtype=np.bool)
         for i, b in enumerate(band):
             b = get_bandpass(b)
-            overlap[i, :] = ((b.wave[0] > self._source.minwave * (1. + z)) &
-                             (b.wave[-1] < self._source.maxwave * (1. + z)))
+            overlap[i, :] = ((b.wave[0] > self._source.minwave() * (1. + z)) &
+                             (b.wave[-1] < self._source.maxwave() * (1. + z)))
         if ndim == (0, 0):
             return overlap[0, 0]
         if ndim[1] == 0:
             return overlap[:, 0]
         return overlap
 
-    def bandflux(self, band, time=None, zp=None, zpsys=None):
+    def bandflux(self, band, time, zp=None, zpsys=None):
         """Flux through the given bandpass(es) at the given time(s).
 
         Default return value is flux in photons / s / cm^2. If zp and zpsys
@@ -1100,9 +1047,8 @@ class Model(_ModelBase):
         ----------
         band : `~sncosmo.Bandpass` or str or list_like
             Bandpass(es) or name(s) of bandpass(es) in registry.
-        time : float or list_like, optional
-            Time(s) in days. Default is `None`, which corresponds to the full
-            native time sampling of the model.
+        time : float or list_like
+            Time(s) in days.
         zp : float or list_like, optional
             If given, zeropoint to scale flux to. If `None` (default) flux
             is not scaled.
@@ -1119,22 +1065,20 @@ class Model(_ModelBase):
             input parameters are scalars, `~numpy.ndarray` otherwise.
         """
 
-        if time is None:
-            time = self.times
         try:
             return _bandflux(self, band, time, zp, zpsys)
         except ValueError as e:
             _check_for_fitpack_error(e, time, 'time')
             raise e
 
-    def bandmag(self, band, magsys, time=None):
+    def bandmag(self, band, magsys, time):
         """Magnitude at the given time(s) through the given 
         bandpass(es), and for the given magnitude system(s).
 
         Parameters
         ----------
         time : float or list_like
-            Time(s) in days.
+            Observer-frame time(s) in days.
         band : `Bandpass` or str (or list_like)
             Bandpass or name of bandpass in registry.
         magsys : `MagSystem` or str (or list_like)
@@ -1147,8 +1091,6 @@ class Model(_ModelBase):
             The return value is a float if all parameters are not interables.
             The return value is an `~numpy.ndarray` if any are interable.
         """
-        if time is None:
-            time = self.times
         return _bandmag(self, band, magsys, time)
 
     def source_peakabsmag(self, band, magsys, cosmo=cosmology.WMAP9):
@@ -1187,10 +1129,6 @@ class PropagationEffect(_ModelBase):
     """Base class for propagation effects."""
     
     __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
-    def __init__(self):
-        pass
 
     @abc.abstractmethod
     def propagate(self, wave, flux):
@@ -1245,67 +1183,3 @@ class F99Dust(RvDust):
     _model = 'f99'
     minwave = 1150.
     maxwave = 60000.
-
-# TODO remove this class?
-class InterpolatedRvDust(PropagationEffect):
-    """Dust propagation effect. Wraps extinction functions.
-
-    Parameters
-    ----------
-    model : str, optional
-        The dust extinction model to use.
-
-    See Also
-    --------
-    extinction
-    """
-
-    _param_names = ['ebv']
-    param_names_latex = ['E(B-V)']
-
-    def __init__(self, model='f99', ebv=0., r_v=3.1, minwave=1000.,
-                 maxwave=30000., spline_points=2000):
-        self._parameters = np.array([ebv])
-        self.minwave = minwave
-        self.maxwave = maxwave
-        self._wave = np.logspace(np.log10(minwave), np.log10(maxwave),
-                                 spline_points)
-        self._model = model
-        self.r_v = r_v
-
-    @property
-    def r_v(self):
-        """R_V value"""
-        return self._r_v
-
-    @r_v.setter
-    def r_v(self, value):
-        self._r_v = value
-
-        # Recalculate spline
-        trans_base = 10.**(-0.4 * extinction(self._wave, ebv=1.,
-                                             r_v=value, model=self._model))
-        self._spline = Spline1d(self._wave, trans_base)
-
-    def propagate(self, wave, flux):
-        """Propagate the flux."""
-        return flux * self._spline(wave) ** self._parameters[0]
-
-    def __repr__(self):
-        return "{0}(model={1}, ebv={2}, r_v={3}, minwave={4}, maxwave={5}, " + \
-            "spline_points={6})".format(
-            self.__class__.__name__, repr(self._model),
-            self._parameters[0], self._r_v,
-            self._wave[0], self._wave[-1], len(self._wave))
-
-    def summary(self):
-        summary = """\
-        class      : {0}
-        model      : {1}
-        r_v        : {2}
-        wavelengths: [{3:.6g}, .., {4:.6g}] Angstroms ({5:d} points)"""\
-        .format(
-            self.__class__.__name__, repr(self._model), self._r_v,
-            self.minwave, self.maxwave, len(self._wave)
-            )
-        return dedent(summary)

@@ -222,8 +222,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         tmin.append(np.min(data['time']) - 10.)
         tmax.append(np.max(data['time']) + 10.)
     for model in models:
-        tmin.append(model.mintime)
-        tmax.append(model.maxtime)
+        tmin.append(model.mintime())
+        tmax.append(model.maxtime())
     tmin = min(tmin)
     tmax = max(tmax)
     tgrid = np.linspace(tmin, tmax, int(tmax - tmin) + 1)
@@ -360,7 +360,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 def animate_model(model_or_models, fps=30, length=20.,
                   phase_range=(None, None), wave_range=(None, None),
                   match_peakphase=True, match_peakflux=True,
-                  peakband='bessellb', fname=None, still=False):
+                  peakwave=4000., fname=None, still=False):
     """Animate spectral timeseries of model(s) using matplotlib.animation.
 
     *Note:* Requires matplotlib v1.1 or higher.
@@ -387,9 +387,9 @@ def animate_model(model_or_models, fps=30, length=20.,
     match_peakphase : bool, optional
         For multiple models, shift additional models so that the model's
         reference phase matches that of the first model.
-    peakband : `~sncosmo.Bandpass` or str, optional
-        Bandpass used in match_peakflux and match_peakphase. Default is
-        ``'bessellb'``.
+    peakwave : float, optional
+        Wavelength used in match_peakflux and match_peakphase. Default is
+        4000.
     fname : str, optional
         If not `None`, save animation to file `fname`. Requires ffmpeg
         to be installed with the appropriate codecs: If `fname` has
@@ -434,8 +434,12 @@ def animate_model(model_or_models, fps=30, length=20.,
                              'model(s)')
     models = [get_source(m) for m in models]
 
+    # Get a wavelength array for each model.
+    waves = [np.arange(m.minwave(), m.maxwave(), 10.) for m in models]
+
+
     # Phase offsets needed to match peak phases.
-    peakphases = [m.peakphase(peakband) for m in models]
+    peakphases = [m.peakphase(peakwave) for m in models]
     if match_peakphase:
         phase_offsets = [p - peakphases[0] for p in peakphases]
     else:
@@ -444,31 +448,32 @@ def animate_model(model_or_models, fps=30, length=20.,
     # Determine phase range to display.
     minphase, maxphase = phase_range
     if minphase is None:
-        minphase = min([models[i].minphase - phase_offsets[i] for
+        minphase = min([models[i].minphase() - phase_offsets[i] for
                         i in range(len(models))])
     if maxphase is None:
-        maxphase = max([models[i].maxphase - phase_offsets[i] for
+        maxphase = max([models[i].maxphase() - phase_offsets[i] for
                         i in range(len(models))])
     
     # Determine the wavelength range to display.
     minwave, maxwave = wave_range
     if minwave is None:
-        minwave = min([m.minwave for m in models])
+        minwave = min([m.minwave() for m in models])
     if maxwave is None:
-        maxwave = max([m.maxwave for m in models])
+        maxwave = max([m.maxwave() for m in models])
 
     # model time interval between frames
     phase_interval = (maxphase - minphase) / (length * fps)
 
-    # maximum flux density of each model at the peak phase
-    max_fluxes = [np.max(m.flux(phase))
-                  for m, phase in zip(models, peakphases)]
+    # maximum flux density of entire spectrum at the peak phase
+    # for each model
+    max_fluxes = [np.max(m.flux(phase, w))
+                  for m, phase, w in zip(models, peakphases, waves)]
 
     # scaling factors
     if match_peakflux:
-        max_bandfluxes = [m.bandflux(peakband, phase)
-                          for m, phase in zip(models, peakphases)]
-        scaling_factors = [max_bandfluxes[0] / f for f in max_bandfluxes]
+        peakfluxes = [m.flux(phase, peakwave)  # Not the same as max_fluxes!
+                      for m, phase in zip(models, peakphases)]
+        scaling_factors = [peakfluxes[0] / f for f in peakfluxes]
         global_max_flux = max_fluxes[0]
     else:
         scaling_factors = [1.] * len(models)
@@ -476,9 +481,6 @@ def animate_model(model_or_models, fps=30, length=20.,
 
     ymin = -0.06 * global_max_flux
     ymax = 1.1 * global_max_flux
-
-    # Pre-get wavelength array for each model.
-    waves = [m.wavelengths for m in models]
 
     # Set up the figure, the axis, and the plot element we want to animate
     fig = plt.figure()
@@ -503,7 +505,7 @@ def animate_model(model_or_models, fps=30, length=20.,
     def animate(i):
         current_phase = minphase + phase_interval * i
         for j in range(len(models)):
-            y = models[j].flux(current_phase + phase_offsets[j])
+            y = models[j].flux(current_phase + phase_offsets[j], waves[j])
             lines[j].set_data(waves[j], y * scaling_factors[j])
         phase_text.set_text('phase = {0:.1f}'.format(current_phase))
         return tuple(lines) + (phase_text,)
