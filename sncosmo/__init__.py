@@ -7,6 +7,7 @@ from .fitting import *
 from .typing import *
 from .extinction import *
 from .extmap import *
+from .simulation import *
 from . import registry
 from . import _builtin
 try:

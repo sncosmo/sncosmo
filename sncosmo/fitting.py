@@ -249,7 +249,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if 'z' not in bounds or None in bounds['z']:
             raise ValueError('z must be bounded if fit.')
         if guess_z:
-            model.get('z') = sum(bounds['z']) / 2.
+            model.set(z=sum(bounds['z']) / 2.)
         if model.get('z') < bounds['z'][0] or model.get('z') > bounds['z'][1]:
             raise ValueError('z out of range.')
 

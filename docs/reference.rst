@@ -116,6 +116,14 @@ Plotting
    plot_lc
    animate_model
 
+Simulation
+==========
+
+.. autosummary::
+   :toctree: _generated
+
+   simulate_vol
+
 Registry
 ========
 
