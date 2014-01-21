@@ -11,9 +11,13 @@ def format_value(value, error=None, latex=False):
     suffix = ''
 
     # First significant digit
-    first = int(math.floor(math.log10(abs(value))))  # first significant digit
+    absval = abs(value)
+    if absval == 0.:
+        first = 0
+    else:
+        first = int(math.floor(math.log10(absval)))
 
-    if error is None:
+    if error is None or error == 0.:
         last = first - 6  # Pretend there are 7 significant figures.
     else:
         last = int(math.floor(math.log10(error)))  # last significant digit

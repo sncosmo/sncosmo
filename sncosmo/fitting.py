@@ -521,23 +521,27 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         * ``time``: time in seconds spent in iteration loop.
         * ``logz``: natural log of the Bayesian evidence Z.
         * ``logzerr``: estimate of uncertainty in logz (due to finite sampling)
-        * ``loglmax``: maximum likelihood of all points
         * ``h``: Bayesian information.
         * ``param_names``: list of parameter names varied.
-        * ``samples``: `~numpy.ndarray`, shape is (nsamples, nparameters).
-          Each row is the parameter values for a single sample.
-        * ``weights``: `~numpy.ndarray`, shape is (nsamples,).
+        * ``samples``: 2-d `~numpy.ndarray`, shape is (nsamples, nparameters).
+          Each row is the parameter values for a single sample. For example,
+          ``samples[0, :]`` is the parameter values for the first sample.
+        * ``weights``: 1-d `~numpy.ndarray`, length=nsamples;
           Weight corresponding to each sample. The weight is proportional to
-          the prior volume represented by the sample times the likelihood.
+          the prior * likelihood for the sample.
+        * ``priors``: 1-d `~numpy.ndarray`, length=nsamples; prior for
+          each sample.
+        * ``likelihoods``: 1-d `~numpy.ndarray`, length=nsamples; likelihood
+          for each sample.
         * ``param_dict``: Dictionary of weighted average of sample parameter
           values (includes fixed parameters).
         * ``errors``: Dictionary of weighted standard deviation of sample
           parameter values (does not include fixed parameters). 
         * ``bounds``: Dictionary of bounds on varied parameters (including
-          any automatically determined bounds)
+          any automatically determined bounds).
+        * ``ndof``: Number of degrees of freedom.
     est_model : `~sncosmo.Model`
-        Copy of model with parameters set to the weighted average of the 
-        samples.
+        Copy of model with parameters set to the values in ``res.param_dict``.
     """
 
     data = standardize_data(data)
@@ -565,12 +569,11 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     res.param_dict = dict(zip(model.param_names, model.parameters))
 
     # Weighted st. dev. of samples
-    std = np.sqrt(np.sum(res['weights'][:, np.newaxis] * res['samples']**2,
-                         axis=0) -
-                  parameters**2)
+    std = np.sqrt(np.sum(res['weights'][:, np.newaxis] *
+                         (res['samples']-parameters)**2, axis=0))
     res.errors = odict(zip(res.param_names, std))
     res.bounds = bounds
-
+    res.ndof = len(data) - len(param_names)
     return res, model
 
 

@@ -153,9 +153,11 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         * `logzerr` (float) error on `logz`.
         * `loglmax` (float) Maximum likelihood of any sample.
         * `h` (float) information.
-        * `samples_parvals` (array, shape=(nsamples, npar)) parameter values
+        * `samples` (array, shape=(nsamples, npar)) parameter values
           of each sample.
-        * `samples_wt` (array, shape=(nsamples,) Weight of each sample.
+        * `weights` (array, shape=(nsamples,) Weight of each sample.
+        * `priors` (array, shape=(nsamples,)) Prior volume of each sample.
+        * `likelihoods` (array, shape=(nsamples,)) Likelihood of each sample.
 
     Notes
     -----
@@ -182,6 +184,8 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
 
     # Initialize values for nested sampling loop.
     samples_parvals = [] # stored objects for posterior results
+    samples_logl = []
+    samples_logprior = []
     samples_logwt = []
     loglstar = None  # ln(Likelihood constraint)
     h = 0.  # Information, initially 0.
@@ -217,6 +221,8 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         # Add worst object to samples.
         samples_parvals.append(np.array(objects_v[worst]))
         samples_logwt.append(logwt)
+        samples_logprior.append(logwidth)
+        samples_logl.append(objects_logl[worst])
 
         # The new likelihood constraint is that of the worst object.
         loglstar = objects_logl[worst]
@@ -274,6 +280,8 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         logz = logz_new
         samples_parvals.append(np.array(objects_v[i]))
         samples_logwt.append(logwt)
+        samples_logl.append(objects_logl[i])
+        samples_logprior.append(logwidth)
 
     return Result([
         ('niter', it + 1),
@@ -283,7 +291,9 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         ('logzerr', math.sqrt(h / nobj)),
         ('loglmax', np.max(objects_logl)),
         ('h', h),
-        ('samples', np.array(samples_parvals)),  #(nsamp, npar)
-        ('weights', np.exp(np.array(samples_logwt) - logz))  #(nsamp,)
+        ('samples', np.array(samples_parvals)),  # (nsamp, npar)
+        ('weights', np.exp(np.array(samples_logwt) - logz)),  # (nsamp,)
+        ('priors', np.exp(np.array(samples_logprior))),  # (nsamp,)
+        ('likelihoods', np.exp(np.array(samples_logl)))  # (nsamp,)
         ])
 
