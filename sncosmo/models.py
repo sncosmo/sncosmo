@@ -620,6 +620,7 @@ class SALT2Source(Source):
             phase, wave, values = read_griddata(name_or_obj)
             if name_or_obj in ["M0", "M1"]:
                 values *= self._SCALE_FACTOR              
+
             self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
