@@ -18,7 +18,7 @@ from astropy import (cosmology,
 
 from .io import read_griddata
 from . import registry
-from .spectral import get_bandpass, get_magsystem
+from .spectral import get_bandpass, get_magsystem, Bandpass
 from .extinction import extinction
 
 __all__ = ['get_source',
@@ -377,7 +377,7 @@ class Source(_ModelBase):
             isinstance(band_or_wave, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
-            fluxes = self.flux(phases, band_or_wave)
+            fluxes = self.flux(phases, band_or_wave)[:, 0]
 
         i = np.argmax(fluxes)
         if (i == 0) or (i == len(phases) - 1):

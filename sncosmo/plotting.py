@@ -23,7 +23,7 @@ _cmap = cm.get_cmap('jet_r')
 _cmap_wavelims = (3000., 10000.)
 
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
-            xfigsize=None, yfigsize=None, figtext=None,
+            xfigsize=None, yfigsize=None, figtext=None, model_label=None,
             errors=None, ncol=2, figtextsize=1., fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
@@ -31,10 +31,13 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     ----------
     data : astropy `~astropy.table.Table` or similar
         Table of photometric data points.
-    model : `~sncosmo.Model` or list thereof
+    model : `~sncosmo.Model` or list thereof, optional
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
         `~sncosmo.Model`, multiple models are plotted.
+    model_label : str or list, optional
+        If given, model(s) will be labeled in a legend in the upper left
+        subplot. Must be same length as model.
     errors : dict, optional
         Uncertainty on model parameters. If given, along with exactly one
         model, uncertainty will be displayed with model parameters at the top
@@ -130,6 +133,17 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     if not all([isinstance(m, Model) for m in models]):
         raise TypeError('model(s) must be Model instance(s)')
 
+    # Get the model labels
+    if model_label is None:
+        model_labels = [None] * len(models)
+    elif isinstance(model_label, basestring):
+        model_labels = [model_label]
+    else:
+        model_labels = model_label
+    if len(model_labels) != len(models):
+        raise ValueError('if given, length of model_label must match '
+                         'that of model')
+
     # Standardize and normalize data.
     if data is not None:
         data = standardize_data(data)
@@ -192,7 +206,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                figtextsize)
 
     # Create the figure and axes.
-    fig, axes = plt.subplots(nrow, ncol, figsize=figsize)
+    fig, axes = plt.subplots(nrow, ncol, figsize=figsize, squeeze=False)
+    
 
     fig.subplots_adjust(left=lspace / figsize[0],
                         bottom=bspace / figsize[1],
@@ -266,15 +281,16 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                 mflux_ranges.append((mflux.min(), mflux.max()))
                 ax.plot(tgrid - toff, mflux,
                         ls=_model_ls[i%len(_model_ls)],
-                        marker='None', color=color, label=model.name)
+                        marker='None', color=color, label=model_labels[i])
 
         # Add a legend, if this is the first axes and there are two
         # or more models to distinguish between.
-        if row == 0 and col == 0 and len(models) >= 2:
+        if row == 0 and col == 0 and model_label is not None:
             leg = ax.legend(loc='upper right',
                             fontsize='small', frameon=True)
             bandname_coords = (0.08, 0.92)  # Move bandname to upper left
             bandname_ha = 'left'
+
         # Band name in corner
         ax.text(bandname_coords[0], bandname_coords[1], band,
                 color='k', ha=bandname_ha, va='top', transform=ax.transAxes)
@@ -357,7 +373,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     plt.savefig(fname, **kwargs)
     plt.close()
 
-def animate_model(model_or_models, fps=30, length=20.,
+def animate_model(model, label=None, fps=30, length=20.,
                   phase_range=(None, None), wave_range=(None, None),
                   match_peakphase=True, match_peakflux=True,
                   peakwave=4000., fname=None, still=False):
@@ -367,8 +383,11 @@ def animate_model(model_or_models, fps=30, length=20.,
 
     Parameters
     ----------
-    model_or_models : `~sncosmo.Source` or str or iterable thereof
+    model : `~sncosmo.Source` or str or iterable thereof
         The model to animate or list of models to animate.
+    label : str or list of str, optional
+        If given, label(s) for models, to be displayed in a legend on
+        the animation.
     fps : int, optional
         Frames per second. Default is 30.
     length : float, optional
@@ -401,13 +420,19 @@ def animate_model(model_or_models, fps=30, length=20.,
         When writing to a file, also save the first frame as a png file.
         This is useful for displaying videos on a webpage.
 
+    Returns
+    -------
+    ani : `~matplotlib.animation.FuncAnimation`
+        Animation object that can be shown or saved.
+
     Examples
     --------
     Compare the salt2 and hsiao models:
 
-    >>> animate_model(['salt2', 'hsiao'],  phase_range=(None, 30.),
+    >>> ani = animate_model(['salt2', 'hsiao'],  phase_range=(None, 30.),
     ...                                           # doctest: +SKIP
-    ...               wave_range=(2000., 9200.))  # doctest: +SKIP
+    ...                     wave_range=(2000., 9200.))  # doctest: +SKIP
+    >>> ani.show()
 
     Compare the salt2 model with ``x1=1`` to the same model with ``x1=0.``:
 
@@ -415,17 +440,19 @@ def animate_model(model_or_models, fps=30, length=20.,
     >>> m1.set(x1=1.)                     # doctest: +SKIP
     >>> m2 = sncosmo.get_source('salt2')  # doctest: +SKIP
     >>> m2.set(x1=0.)                     # doctest: +SKIP
-    >>> animate_model([m1, m2])           # doctest: +SKIP
+    >>> ani = animate_model([m1, m2], label=['salt2, x1=1', 'salt2, x1=0'])
+    ...                                   # doctest: +SKIP
+    >>> ani.show()
 
     """
     from matplotlib import animation
 
     # Convert input to a list (if it isn't already).
-    if (not isiterable(model_or_models) or
-        isinstance(model_or_models, basestring)):
-        models = [model_or_models]
+    if (not isiterable(model) or
+        isinstance(model, basestring)):
+        models = [model]
     else:
-        models = model_or_models
+        models = model
 
     # Check that all entries are Source or strings.
     for m in models:
@@ -433,6 +460,17 @@ def animate_model(model_or_models, fps=30, length=20.,
             raise ValueError('str or Source instance expected for '
                              'model(s)')
     models = [get_source(m) for m in models]
+
+    # Get the model labels
+    if label is None:
+        labels = [None] * len(models)
+    elif isinstance(label, basestring):
+        labels = [label]
+    else:
+        labels = label
+    if len(labels) != len(models):
+        raise ValueError('if given, length of label must match '
+                         'that of model')
 
     # Get a wavelength array for each model.
     waves = [np.arange(m.minwave(), m.maxwave(), 10.) for m in models]
@@ -492,9 +530,10 @@ def animate_model(model_or_models, fps=30, length=20.,
                         transform=ax.transAxes)
     empty_lists = 2 * len(models) * [[]]
     lines = ax.plot(*empty_lists, lw=1)
-    for line, model in zip(lines, models):
-        line.set_label(model.name)
-    legend = plt.legend(loc='upper right')
+    if label is not None:
+        for line, l in zip(lines, labels):
+            line.set_label(l)
+        legend = plt.legend(loc='upper right')
 
     def init():
         for line in lines:
@@ -525,7 +564,6 @@ def animate_model(model_or_models, fps=30, length=20.,
         codec = {'mp4': 'libx264', 'webm': 'libvpx'}.get(ext, 'mpeg4')
         ani.save(fname, fps=fps, codec=codec, extra_args=['-vcodec', codec],
                  writer='ffmpeg_file', bitrate=1800)
+        plt.close()
     else:
-        plt.show()
-
-    plt.close()
+        return ani
