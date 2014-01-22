@@ -418,7 +418,7 @@ class Source(_ModelBase):
         name       : {1!r}
         version    : {2}
         phases     : [{3:.6g}, .., {4:.6g}] days
-        wavelengths: [{6:.6g}, .., {7:.6g}] Angstroms"""\
+        wavelengths: [{5:.6g}, .., {6:.6g}] Angstroms"""\
         .format(
             self.__class__.__name__, self.name, self.version,
             self.minphase(), self.maxphase(),
