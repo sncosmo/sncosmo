@@ -429,10 +429,10 @@ def animate_model(model, label=None, fps=30, length=20.,
     --------
     Compare the salt2 and hsiao models:
 
+    >>> import matplotlib.pyplot as plt
     >>> ani = animate_model(['salt2', 'hsiao'],  phase_range=(None, 30.),
-    ...                                           # doctest: +SKIP
     ...                     wave_range=(2000., 9200.))  # doctest: +SKIP
-    >>> ani.show()
+    >>> plt.show()  # doctest: +SKIP
 
     Compare the salt2 model with ``x1=1`` to the same model with ``x1=0.``:
 
@@ -441,9 +441,8 @@ def animate_model(model, label=None, fps=30, length=20.,
     >>> m2 = sncosmo.get_source('salt2')  # doctest: +SKIP
     >>> m2.set(x1=0.)                     # doctest: +SKIP
     >>> ani = animate_model([m1, m2], label=['salt2, x1=1', 'salt2, x1=0'])
-    ...                                   # doctest: +SKIP
-    >>> ani.show()
-
+    ... # doctest: +SKIP
+    >>> plt.show()                        # doctest: +SKIP
     """
     from matplotlib import animation
 

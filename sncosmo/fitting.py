@@ -86,6 +86,9 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
     Assumes the data has been standardized."""
 
+    times = np.linspace(model.mintime(), model.maxtime(),
+                        int(model.maxtime() - model.mintime() + 1))
+
     snr = data['flux'] / data['fluxerr']
     significant_data = data[snr > minsnr]
     modelflux = {}
@@ -96,7 +99,7 @@ def guess_t0_and_amplitude(data, model, minsnr):
     for band in set(data['band']):
         mask = significant_data['band'] == band
         if np.any(mask):
-            modelflux[band] = (model.bandflux(band, zp=zp, zpsys=zpsys) /
+            modelflux[band] = (model.bandflux(band, times, zp=zp, zpsys=zpsys)/
                                model.parameters[2])
             dataflux[band] = significant_data['flux'][mask]
             datatime[band] = significant_data['time'][mask]
