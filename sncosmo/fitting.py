@@ -119,7 +119,7 @@ def guess_t0_and_amplitude(data, model, minsnr):
     # time guess is time of max in the band with the biggest ratio
     band = significant_bands[np.argmax(bandratios)]
     data_tmax = datatime[band][np.argmax(dataflux[band])]
-    model_tmax = model.times[np.argmax(modelflux[band])]
+    model_tmax = times[np.argmax(modelflux[band])]
     t0 = model.get('t0') + data_tmax - model_tmax
 
     return t0, amplitude
