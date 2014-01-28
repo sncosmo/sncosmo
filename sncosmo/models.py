@@ -889,9 +889,9 @@ class Model(_ModelBase):
         self.param_names_latex = self.param_names_latex[0:2]
         self.param_names_latex.extend(self._source.param_names_latex)
         for effect, effect_name in zip(self._effects, self._effect_names):
-            self.param_names_latex.extend(
-                [name + '_{\\rm ' + effect_name + '}' 
-                 for name in effect.param_names_latex])
+            for name in effect.param_names_latex:
+                self.param_names_latex.append('{\\rm ' + effect_name + '}\,' +
+                                              name)
 
         # For each "model", get its parameter array.
         param_arrays = [self._parameters[0:2]]
