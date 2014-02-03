@@ -30,14 +30,6 @@ Model, Sources & Effects
    OD94Dust
    F99Dust
 
-.. inheritance-diagram:: Model
-   :parts: 1
-
-.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source
-   :parts: 1
-
-.. inheritance-diagram:: PropagationEffect RvDust F99Dust OD94Dust CCM89Dust
-   :parts: 1
 
 Extinction
 ==========
@@ -70,10 +62,6 @@ Magnitude Systems
    ABMagSystem
    SpectralMagSystem
 
-.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
-   :parts: 1
-
-
 Data I/O
 ========
 
@@ -90,7 +78,9 @@ standard (and not-so-standard) formats*
    read_snana_ascii
    read_snana_fits
    read_snana_simlib
-   
+   read_griddata_ascii
+   read_griddata_fits
+   write_griddata_fits
 
 Fitting & Typing Photometric Data
 =================================
@@ -135,3 +125,16 @@ Registry
    registry.register_loader
    registry.register
    registry.retrieve
+
+Class Inheritance Diagrams
+==========================
+
+.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source
+   :parts: 1
+
+.. inheritance-diagram:: PropagationEffect RvDust F99Dust OD94Dust CCM89Dust
+   :parts: 1
+
+.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
+   :parts: 1
+

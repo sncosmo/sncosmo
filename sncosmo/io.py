@@ -15,7 +15,8 @@ from astropy import wcs
 
 from .photdata import dict_to_array
 
-__all__ = ['read_lc', 'write_lc', 'load_example_data']
+__all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
+           'read_griddata_fits', 'write_griddata_fits']
 
 def _stripcomment(line, char='#'):
     pos = line.find(char)
@@ -31,7 +32,7 @@ def _cast_str(s):
         except:
             return s.strip()
 
-def read_griddata(name_or_obj):
+def read_griddata_ascii(name_or_obj):
     """Read 2-d grid data from a text file.
 
     Each line has values `x0 x1 y`. Space separated.
@@ -40,7 +41,7 @@ def read_griddata(name_or_obj):
 
     Parameters
     ----------
-    filename : str or file-like object
+    name_or_obj : str or file-like object
 
     Returns
     -------

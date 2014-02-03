@@ -16,7 +16,7 @@ from astropy import (cosmology,
                      units as u,
                      constants as const)
 
-from .io import read_griddata
+from .io import read_griddata_ascii
 from . import registry
 from .spectral import get_bandpass, get_magsystem, Bandpass
 from .extinction import extinction
@@ -593,7 +593,7 @@ class SALT2Source(Source):
             if name_or_obj is None: continue
 
             # Get the model component from the file
-            phase, wave, values = read_griddata(name_or_obj)
+            phase, wave, values = read_griddata_ascii(name_or_obj)
             values *= self._SCALE_FACTOR  # TODO: should this really be
                                           # done for ALL components?
             self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)

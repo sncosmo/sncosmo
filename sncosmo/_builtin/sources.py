@@ -18,7 +18,7 @@ from .. import io
 
 def load_timeseries_ascii(remote_url, name=None, version=None):
     with get_readable_fileobj(remote_url, cache=True) as f:
-        phases, wavelengths, flux = io.read_griddata(f)
+        phases, wavelengths, flux = io.read_griddata_ascii(f)
     return TimeSeriesSource(phases, wavelengths, flux,
                             name=name, version=version)
 
