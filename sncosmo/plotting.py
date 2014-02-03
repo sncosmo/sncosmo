@@ -24,7 +24,8 @@ _cmap_wavelims = (3000., 10000.)
 
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             xfigsize=None, yfigsize=None, figtext=None, model_label=None,
-            errors=None, ncol=2, figtextsize=1., fname=None, **kwargs):
+            errors=None, ncol=2, figtextsize=1., show_model_params=True,
+            fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
     Parameters
@@ -63,6 +64,11 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     figtextsize : float, optional
         Space to reserve at top of figure for figtext (if not None).
         Default is 1 inch.
+    show_model_params : bool, optional
+        If there is exactly one model plotted, the parameters of the model
+        are added to ``figtext`` by default (as two additional columns) so
+        that they are printed at the top of the figure. Set this to False to
+        disable this behavior.
     fname : str, optional
         Filename to pass to savefig. If `None` (default), figure is returned.
     kwargs : optional
@@ -164,7 +170,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         figtext = []
     elif isinstance(figtext, basestring):
         figtext = [figtext]
-    if len(models) == 1:
+    if len(models) == 1 and show_model_params:
         model = models[0]
         lines = []
         for i in range(len(model.param_names)):
