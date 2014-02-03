@@ -56,6 +56,5 @@ Usage guide
    photdata
    cuts
    fitting
-   typing
    registry
    reference

@@ -19,7 +19,7 @@ Model, Sources & Effects
 ========================
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    Model
    Source
@@ -37,7 +37,7 @@ Extinction
 *Functions related to interstellar dust extinction*
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    extinction
    get_ebv_from_map
@@ -46,7 +46,7 @@ Bandpasses
 ==========
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    get_bandpass
    Bandpass
@@ -55,7 +55,7 @@ Magnitude Systems
 =================
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    get_magsystem
    MagSystem
@@ -69,7 +69,7 @@ Data I/O
 standard (and not-so-standard) formats*
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    read_lc
    write_lc
@@ -82,18 +82,17 @@ standard (and not-so-standard) formats*
    read_griddata_fits
    write_griddata_fits
 
-Fitting & Typing Photometric Data
-=================================
+Fitting Photometric Data
+========================
 
-*Fit model parameters to photometric data & compare models to data*
+*Fit model parameters to photometric data*
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    fit_lc
    nest_lc
    mcmc_lc
-   PhotoTyper
 
 Plotting
 ========
@@ -101,7 +100,7 @@ Plotting
 *Convenience functions for quick standard plots (requires matplotlib)*
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    plot_lc
    animate_model
@@ -110,17 +109,17 @@ Simulation
 ==========
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    simulate_vol
 
 Registry
 ========
 
-*Customizing "built-in" models, bandpasses, and magnitude systems*
+*Connecting strings to models, bandpasses, and magnitude systems*
 
 .. autosummary::
-   :toctree: _generated
+   :toctree: api
 
    registry.register_loader
    registry.register
