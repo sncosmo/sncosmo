@@ -9,7 +9,7 @@ For an example of an acceptable photometric data representation, you can do::
 
     >>> data = sncosmo.load_example_data()
 
-``data`` is an astropy `~astropy.table.Table`
+``data`` is an astropy `~astropy.table.table.Table`
 representing a table of photometric observations. For a pretty-printed
 version of this, you can do::
 
@@ -31,7 +31,7 @@ Photometric Data: Structure
 
 Usually, photometric data can naturally be represented as a table of
 observations. Rather than imposing a new, unfamiliar format or class for
-representing such data, the approach taken in sncosmo is to use astropy `~astropy.table.Table` objects.
+representing such data, the approach taken in sncosmo is to use astropy `~astropy.table.table.Table` objects.
 
 Whichever structure is used, the data must have certain recognizable
 columns. For photometric data with Gaussian uncertainties in
@@ -61,7 +61,7 @@ practice there are a plethora of different file formats, both standard
 and non-standard, used to represent tables. Rather than picking a
 single supported file format, or worse, creating yet another new
 "standard", we choose to leave the file format mostly up to the user:
-It is the user's job to read their data into an `~astropy.table.Table`.
+It is the user's job to read their data into an `~astropy.table.table.Table`.
 
 That said, SNCosmo does include a couple convenience functions for
 reading and writing tables of photometric data: `sncosmo.read_lc` and

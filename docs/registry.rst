@@ -7,29 +7,29 @@ What is it?
 
 The registry (`sncosmo.registry`) is responsible for translating
 string identifiers to objects, for user convenience. For example, it is
-used in `sncosmo.get_bandpass` and `sncosmo.get_model` to return a
+used in `sncosmo.get_bandpass` and `sncosmo.get_source` to return a
 `~sncosmo.Bandpass` or `sncosmo.Model` object based on the name of
 the bandpass or model:
 
     >>> sncosmo.get_bandpass('sdssi')
     <Bandpass 'sdssi' at 0x28e7c90>
 
-It is also used in methods like `~sncosmo.StretchModel.bandflux` to
+It is also used in methods like `~sncosmo.Model.bandflux` to
 give it the ability to accept either a `~sncosmo.Bandpass` object or
 the name of a bandpass:
 
-    >>> model = sncosmo.get_model('hsiao')
-    >>> model.bandflux('sdssg')  # works!
+    >>> model = sncosmo.Model(source='hsiao')
+    >>> model.bandflux('sdssg', 0.)  # works, thanks to registry.
 
 Under the covers, the ``bandflux`` method retrieves the `~sncosmo.Bandpass`
 corresponding to ``'sdssg'`` by calling the
 `sncosmo.registry.retrieve` function.
 
 The registry is actually quite simple: it basically amounts to a
-dictionary and a few special functions for accessing the
-dictionary. Most of the time, a user doesn't need to know anything
-about the registry (or that it even exists!). However, it is useful if
-you want to add your own "built-ins" or change the name of existing ones.
+dictionary and a few functions for accessing the dictionary. Most of
+the time, a user doesn't need to know anything about the
+registry. However, it is useful if you want to add your own
+"built-ins" or change the name of existing ones.
 
 Using the registry to achieve custom "built-ins"
 ------------------------------------------------
@@ -43,14 +43,15 @@ Create a file ``mydefs.py`` that registers all your custom definitions::
     import numpy as np
     import sncosmo
 
-    dispersion = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
+    wave = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
     trans = np.array([0., 1., 1., 1., 1., 0.])
-    band = sncosmo.Bandpass(dispersion, trans, name='tophatg')
+    band = sncosmo.Bandpass(wave, trans, name='tophatg')
 
     sncosmo.registry.register(band)
 
-Make sure ``mydefs.py`` is somewhere in your ``$PYTHONPATH``. Now in
-your script import your definitions at the beginning::
+Make sure ``mydefs.py`` is somewhere in your ``$PYTHONPATH`` or the
+directory you are running your main script from. Now in your script
+import your definitions at the beginning::
 
     >>> import sncosmo
     >>> import mydefs

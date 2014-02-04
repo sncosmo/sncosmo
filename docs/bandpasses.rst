@@ -43,7 +43,7 @@ dispersion unit, use a unit from the `astropy.units` package:
     >>> transmission = np.array([0., 1., 1., 1., 1., 0.])
     >>> band = Bandpass(wavelength, transmission, wave_unit=u.nm)
 
-Outside the defined dispersion range, the transmission is generally treated as being 0 in `sncosmo`. 
+Outside the defined dispersion range, the transmission is treated as being 0. 
 
 Using a Bandpass
 ----------------

@@ -38,8 +38,10 @@ def format_value(value, error=None, latex=False):
     if error is None:
         prefix = '{0:g}'.format(value)
     else:
-        prefix = (('({0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f})')
+        prefix = (('{0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f}')
                   .format(value, pm, error))
+        if suffix != '':
+            prefix = '({0})'.format(prefix)
 
     return prefix + suffix
 

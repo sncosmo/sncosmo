@@ -2,13 +2,6 @@
 Supernova Models
 ****************
 
-A Model in sncosmo consists of
-
-* *One "source"* A model of the spectral evolution of the source
-  (e.g., a supernova).
-* *Zero or more "propagation effects"* Models of how interveneing structures
-  (e.g., host galaxy dust, milky way dust) affect the spectrum.
-
 Getting Started
 ===============
 
@@ -21,7 +14,7 @@ Set the redshift, time-of-zero-phase and the amplitude:
 
     >>> model.set(z=0.5, t0=55000., amplitude=1.e-10)
 
-Generate synthetic photometry through an observed bandpass:
+Generate synthetic photometry through an observer-frame bandpass:
 
     >>> model.bandmag('desr', 'ab', [54990., 55000., 55020.])
     array([ 24.82381795,  24.41496701,  25.2950865 ])
@@ -36,7 +29,7 @@ Equivalent values scaled so that 1 is equivalent to an AB magnitude of 25:
     >>> model.bandflux('desr', [54990., 55000., 55020.], zp=25., zpsys='ab')
     array([ 1.17617737,  1.71400939,  0.7620183 ])
 
-Generate an observed spectrum at a given time and wavelengths
+Generate an observer-frame spectrum at a given time and wavelengths
 (in ergs/s/cm^2/Angstrom):
 
     >>> model.flux(54990., [4000., 4100., 4200.])
@@ -45,6 +38,13 @@ Generate an observed spectrum at a given time and wavelengths
 
 Creating a model using a built-in source
 ========================================
+
+A Model in sncosmo consists of
+
+* **One "source"** A model of the spectral evolution of the source
+  (e.g., a supernova).
+* **Zero or more "propagation effects"** Models of how interveneing structures
+  (e.g., host galaxy dust, milky way dust) affect the spectrum.
 
 In the above example, we created a model with no propagation effects,
 using one of the built-in ``Source`` instances that sncosmo knows
