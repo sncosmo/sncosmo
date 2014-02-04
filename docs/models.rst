@@ -2,20 +2,54 @@
 Supernova Models
 ****************
 
-A Model in sncosmo consists of a "source" (e.g., a supernova) and zero or more
-"propagation effects" (e.g., host galaxy dust, milky way dust).
+A Model in sncosmo consists of
+
+* *One "source"* A model of the spectral evolution of the source
+  (e.g., a supernova).
+* *Zero or more "propagation effects"* Models of how interveneing structures
+  (e.g., host galaxy dust, milky way dust) affect the spectrum.
+
+Getting Started
+===============
+
+Create a model using the built-in "source" named ``'hsiao'``:
+
+    >>> import sncosmo
+    >>> model = sncosmo.Model(source='hsiao')
+
+Set the redshift, time-of-zero-phase and the amplitude:
+
+    >>> model.set(z=0.5, t0=55000., amplitude=1.e-10)
+
+Generate synthetic photometry through an observed bandpass:
+
+    >>> model.bandmag('desr', 'ab', [54990., 55000., 55020.])
+    array([ 24.82381795,  24.41496701,  25.2950865 ])
+
+Equivalent values in photons / s / cm^2:
+
+    >>> model.bandflux('desr', [54990., 55000., 55020.])
+    array([  7.22413301e-05,   1.05275209e-04,   4.68034980e-05])
+
+Equivalent values scaled so that 1 is equivalent to an AB magnitude of 25:
+
+    >>> model.bandflux('desr', [54990., 55000., 55020.], zp=25., zpsys='ab')
+    array([ 1.17617737,  1.71400939,  0.7620183 ])
+
+Generate an observed spectrum at a given time and wavelengths
+(in ergs/s/cm^2/Angstrom):
+
+    >>> model.flux(54990., [4000., 4100., 4200.])
+    array([  4.31210900e-20,   7.46619962e-20,   1.42182787e-19])
+
 
 Creating a model using a built-in source
 ========================================
 
-First, let's create a model with no propagation effects. The easiest
-way to do this is to use the built-in ``Source`` instances that come
-with sncosmo.  These can be retrieved by name (see the
-:ref:`list-of-built-in-sources`).  For example, the Hsiao SN template can be
-used as a source:
-
-    >>> import sncosmo
-    >>> model = sncosmo.Model(source='hsiao')
+In the above example, we created a model with no propagation effects,
+using one of the built-in ``Source`` instances that sncosmo knows
+about: ``'hsiao'``. See the full :ref:`list-of-built-in-sources` that
+sncosmo knows about.
 
 .. note:: In fact, the data for "built-in" sources are hosted
 	  remotely, downloaded as needed, and cached locally. So the
@@ -29,8 +63,8 @@ be explicitly retrieved using the `~sncosmo.get_source` function:
     >>> source = sncosmo.get_source('hsiao', version='2.0')
     >>> model = sncosmo.Model(source=source)
 
-Retrieving and setting parameters
-=================================
+Model parameters
+================
 
 Each model has a set of parameter names and values:
 
@@ -49,10 +83,7 @@ or by using the ``set`` method:
 
     >>> model.parameters[0] = 0.5
     >>> model.set(z=0.5)
-
-The set method can take multiple parameters:
-
-    >>> model.set(z=0.5, amplitude=2.0)
+    >>> model.set(z=0.5, amplitude=2.0)  # Can specify multiple parameters
 
 What do these parameters mean? The first two, ``z`` and ``t0`` are
 common to all `~sncosmo.Model` instances:
@@ -60,8 +91,10 @@ common to all `~sncosmo.Model` instances:
 * ``z`` is the redshift of the source.
 * ``t0`` is the observer-frame time corresponding to the source's phase=0.
 
-The next,``amplitude``, is specific to the particular type of
-source. In this case the source is a simple spectral timeseries that
+Note that in some sources phase=0 might be at explosion while others might be at max: the definition of phase is arbitrary. However, observed time is always related to phase via ``time = t0 + phase / (1 + z)``
+
+The next, ``amplitude``, is specific to the particular type of
+source. In this case, the source is a simple spectral timeseries that
 can only be scaled up and down. Other sources could have other
 parameters that affect the shape of the spectrum at each phase.
 
@@ -195,114 +228,48 @@ also directly supply custom `~sncosmo.MagSystem` objects. See
 Initializing Sources directly
 =============================
 
-Different classes of models have a very similar API, but a few aspects
-differ, by necessity. For example, you can initialize a model directly
-from data (in files on disk or in numpy arrays) rather than using the
-built-in model data. The initialization for ``TimeSeriesModel`` is
-different from the initialization for ``SALT2Model`` (for example)
-because the underlying data are very different.
+You can initialize a source directly from your own model rather than
+using the built-in model data.
 
-Here we describe particulars of the ``TimeSeriesModel`` and
-``StretchModel`` (which only differ by the addition of a stretch
-parameter ``s``).
+Initializing a ``TimeSeriesSource``
+-----------------------------------
 
-Initializing
-------------
-
-These models can be initialized directly from numpy arrays. Below, we build a
+These sources are created directly from numpy arrays. Below, we build a
 very simple model, of a source with a flat spectrum at all times,
 rising from phase -50 to 0, then declining from phase 0 to +50.
 
+    >>> import numpy as np
     >>> phase = np.linspace(-50., 50., 11)
-    array([-50., -40., -30., -20., -10.,   0.,  10.,  20.,  30.,  40.,  50.])
     >>> disp = np.linspace(3000., 8000., 6)
-    array([ 3000.,  4000.,  5000.,  6000.,  7000.,  8000.])
     >>> flux = np.repeat(np.array([[0.], [1.], [2.], [3.], [4.], [5.],
     ...                            [4.], [3.], [2.], [1.], [0.]]),
     ...                  6, axis=1)
-    array([[ 0.,  0.,  0.,  0.,  0.,  0.],
-           [ 1.,  1.,  1.,  1.,  1.,  1.],
-	   [ 2.,  2.,  2.,  2.,  2.,  2.],
-	   [ 3.,  3.,  3.,  3.,  3.,  3.],
-	   [ 4.,  4.,  4.,  4.,  4.,  4.],
-	   [ 5.,  5.,  5.,  5.,  5.,  5.],
-	   [ 4.,  4.,  4.,  4.,  4.,  4.],
-	   [ 3.,  3.,  3.,  3.,  3.,  3.],
-	   [ 2.,  2.,  2.,  2.,  2.,  2.],
-	   [ 1.,  1.,  1.,  1.,  1.,  1.],
-	   [ 0.,  0.,  0.,  0.,  0.,  0.]])
-    >>> model = sncosmo.TimeSeriesModel(phase, disp, flux)
-    >>> print model
-    Model class: TimeSeriesModel
-    Model name: None
-    Model version: None
-    Model phases: [-50, .., 50] days (11 points)
-    Model dispersion: [3000, .., 8000] Angstroms (6 points) 
-    Reference phase: 0 days
-    Cosmology: WMAP9(H0=69.3, Om0=0.286, Ode0=0.713)
-    Current Parameters:
-        fscale = 1.0
-        m = None [bessellb, ab]
-        mabs = None [bessellb, ab]
-        t0 = 0.0
-        z = None
-        c = None
+    >>> model = sncosmo.TimeSeriesSource(phase, disp, flux)
 
-Extinction
-----------
 
-Extinction in both models is specified by a function that accepts an
-array of wavelengths in Angstroms and returns the extinction in
-magnitudes for each wavelength for ``c=1``. (In other words, it should
-return the *ratio* of extinction in magnitudes to the ``c``
-parameter). By default, the extinction is the Cardelli, Clayton and
-Mathis (CCM) law, with :math:`R_V = 3.1`. The extinction
-function can be changed two ways:
-
-1. Using the ``set_extinction_func`` method on an existing model object. This example will change the extinction to a CCM law with :math:`R_V = 2`.
-
-    >>> model.set_extinction_func(sncosmo.extinction_ccm, extra_params={'ebv':1., r_v=2.}
-
-2. Upon initialization of the model from data (as above), specify the
-   ``extinction_func`` and ``extinction_kwargs`` parameters:
-
-    >>> model = sncosmo.TimeSeriesModel(phase, disp, flux,
-    ...                                 extinction_func=sncosmo.extinction_ccm,
-    ...                                 extinction_kwargs={'ebv':1., 'r_v':2.})
-
-Internally, the model evaluates the extinction once at the native
-wavelengths of the model and stores the flux transmission values
-(interpreted as corresponding to ``c=1``. When needed, the extinction
-flux transmission values are calculated as ``(stored flux
-transmission) ** c``. Spline interpolation is used to interpolate
-between native model wavelengths.
-
-Model Particulars: ``SALT2Model``
-=================================
-
-Initializing
-------------
+Initializing a ``SALT2Source``
+------------------------------
 
 The SALT2 model is initialized directly from data files representing the model.
 You can initialize it by giving it a path to a directory containing the files.
 
-    >>> model = sncosmo.SALT2Model(modeldir='/path/to/dir')
+    >>> model = sncosmo.SALT2Source(modeldir='/path/to/dir')
 
 By default, the initializer looks for files with names like 
 ``'salt2_template_0.dat'``, but this behavior can be altered with keyword
 parameters:
 
-    >>> model = sncosmo.SALT2Model(modeldir='/path/to/dir',
-    ...                            m0file='mytemplate0file.dat')
+    >>> model = sncosmo.SALT2Source(modeldir='/path/to/dir',
+    ...                             m0file='mytemplate0file.dat')
 
-See `~sncosmo.SALT2Model` for more details.
+See `~sncosmo.SALT2Source` for more details.
 
 Creating New Source Classes
 ===========================
 
-In this package, a "model" is something that specifies the spectral
+A "source" is something that specifies the spectral
 timeseries as a function of an arbitrary number of parameters. For
-example, the SALT2 model has two parameters (`x1` and `c`) that
+example, the SALT2 model has two parameters (``x0``, ``x1`` and ``c``) that
 determine a unique spectrum as a function of phase. New models can be
 easily implemented by deriving from the abstract base class
-`sncosmo.Model` and inheriting most of the functionality described here.
+`sncosmo.Source` and inheriting most of the functionality described here.

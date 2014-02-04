@@ -433,7 +433,7 @@ class TimeSeriesSource(Source):
 
     .. math::
 
-       F(t, \lambda) = A \times M(t, \lambda)
+       F(t, \lambda) = A \\times M(t, \lambda)
 
     where _M_ is the flux defined on a grid in phase and wavelength and _A_
     (amplitude) is the single free parameter of the model.
@@ -475,7 +475,7 @@ class StretchSource(Source):
 
     .. math::
 
-       F(t, \lambda) = A \times M(t / s, \lambda)
+       F(t, \lambda) = A \\times M(t / s, \lambda)
 
     where _A_ is the amplitude and _s_ is the "stretch". 
 

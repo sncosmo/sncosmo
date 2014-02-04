@@ -28,7 +28,7 @@ pip-log.txt
 
 #  Documentation
 docs/_build
-docs/_generated
+docs/api
 
 # Auto-generated version module
 sncosmo/version.py
