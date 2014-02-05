@@ -1103,6 +1103,31 @@ class Model(_ModelBase):
             return overlap[:, 0]
         return overlap
 
+    def bandfluxerrorcov(self, band, time):
+        """Model Flux error through the given bandpass(es) at the given 
+	time(s).
+
+
+        Parameters
+        ----------
+        band : `~sncosmo.Bandpass` or str or list_like
+            Bandpass(es) or name(s) of bandpass(es) in registry.
+        time : float or list_like
+            Time(s) in days.
+
+        Returns
+        -------
+        bandfluxerrorcov : float or `~numpy.ndarray`
+            Flux covariance
+            to the requested zeropoint. Return value is `float` if all
+            input parameters are scalars, `~numpy.ndarray` otherwise.
+        """
+
+        try:
+            return _bandflux(self, band, time, zp, zpsys)
+        except ValueError as e:
+            _check_for_fitpack_error(e, time, 'time')
+            raise e
     def bandflux(self, band, time, zp=None, zpsys=None):
         """Flux through the given bandpass(es) at the given time(s).
 
