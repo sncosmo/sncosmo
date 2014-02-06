@@ -657,7 +657,7 @@ class SALT2Source(Source):
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
                 self._model['clbase'](wave)**self._parameters[2])
 
-    def _errsnake(self, phase, wave):
+    def _errorsnake(self, phase, wave):
 
         lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
         lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
@@ -668,13 +668,26 @@ class SALT2Source(Source):
 	
 	
         errsnakesq  = (lcrv00 + _x1*_x1 * lcrv11 + 2.*_x1 * lcrv01) 
-	return np.diagflat(S* errsnakesq)
+	mask = errsnakesq < 0.0
+	errsnakesq [mask] = 0.01*0.01
+	return S* errsnakesq
+	#return np.diagflat(S* errsnakesq)
 
-    def lcrelcovariance(self, phase, wave) :
+    def _kcor (self, wave) :
 
 	mask = wave == wave[:,np.newaxis]
         kcor = mask *self._colordisp(wave)
-	return self._errsnake(phase, wave) + kcor  
+
+	return kcor 
+
+    def lcrelcovariance(self, phase, wave) :
+	"""
+	returns the model relative covariance  
+
+	"""
+
+	return self._errsnake(phase, wave) + self._kcor(wave) 
+
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
         as well as some parameters used in that function.
@@ -1148,7 +1161,7 @@ class Model(_ModelBase):
 
 	if zp is not None and zpsys is None:
     	    raise ValueError('zpsys must be given if zp is not None')
-###
+
 	# broadcast arrays
        	time_or_phase = time
 	if zp is None:
@@ -1157,7 +1170,6 @@ class Model(_ModelBase):
 	    time_or_phase, band, zp, zpsys = \
 	    np.broadcast_arrays(time_or_phase, band, zp, zpsys)
 
-###
 	# convert all to 1d arrays
 	ndim = time_or_phase.ndim # save input ndim for return val
 	time_or_phase = np.atleast_1d(time_or_phase)
@@ -1166,17 +1178,15 @@ class Model(_ModelBase):
 	if zp is not None:
 	    zp = np.atleast_1d(zp)
      	    zpsys = np.atleast_1d(zpsys)
-###
 	# initialize output arrays
 	bandflux = np.zeros(time_or_phase.shape, dtype=np.float)
 	effwave = np.zeros(len(bandflux), dtype= np.float) 
-###
-###    # Loop over unique bands.
+        # Loop over unique bands.
     	for b in set(band):
 	    mask = band == b
             b = get_bandpass(b)
-###
-###        # Raise an exception if bandpass is out of model range.
+
+            # Raise an exception if bandpass is out of model range.
    	    if (b.wave[0] < self.minwave() or b.wave[-1] > self.maxwave()):
                 raise ValueError(
                     'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
@@ -1199,20 +1209,36 @@ class Model(_ModelBase):
     
             bandflux[mask] = fsum
 
-	#Get the relative errors 
+	#Get the relative covariance from source 
 	a  = 1.0/(1+ self._parameters[0]) 
         phase = (time - self._parameters[1]) * a
         restwave = effwave * a
-	sourcerelcov = self.source.lcrelcovariance( phase, restwave) 
+
+	#if source == SALT2source (how to do this?)
+		#Get ratio of bandfluxes
+	savex1 = self._parameters[3] 
+	savec  = self._parameters[4]
+	self.set(c = 0.)
+	ftot = self.bandflux(band, time , zp = zp, zpsys = zpsys)
+	#print "x1 is still non-zero", self 
+	self.set(x1 = 0.)
+	f0 = self.bandflux(band, time , zp = zp, zpsys = zpsys)
+	fratio = f0/ftot
+	#print "x1 is 0"
+
+	#print self 
+	self.set(x1 = savex1, c = savec)
+	#print self 
+
+	errorsnake  = self.source._errorsnake (phase, restwave) 
+	sourcerelcov  = np.diagflat(fratio*errorsnake)
+	sourcerelcov += self.source._kcor ( restwave)  
+	#else
+	#sourcerelcov = self.source.lcrelcovariance( phase, restwave) 
 
 	#Multilpy by fluxes to get covariance
-	#for i in len(errorcov):
-	#	for j in len(errorv
 	errorcov = bandflux*sourcerelcov*bandflux[:, np.newaxis]
 
-	#if ndim == 0:
-	#    return bandflux[0]*
-	print np.shape(errorcov) 
 	return errorcov
 
     def bandflux(self, band, time, zp=None, zpsys=None):
