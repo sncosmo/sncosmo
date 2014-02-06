@@ -1132,6 +1132,28 @@ class Model(_ModelBase):
             return overlap[:, 0]
         return overlap
 
+#    def chisq ( self, band, time, dataflux , datafluxerrors, zp = None , zpsys = None ) :
+#	Need to give it data flux errors too !
+#	"""returns chisq of the data for the model. 
+#
+#	"""
+#	try:
+#            bandflux =  _bandflux(self, band, time, zp, zpsys)
+#        except ValueError as e:
+#            _check_for_fitpack_error(e, time, 'time')
+#            raise e
+#	try:
+#	    modelcovmat = bandfluxerrorcov (self, band, time, zp , zpsys) 
+#
+#	datacovmat = np.diagflat(datafluxerrors) 
+#	covmat = modelcovmat + datacovmat 
+#	invcovmat = np.inverse(covmat) 
+#	deltaflux = bandflux - dataflux 
+#	chisq = np.dot(bandflux, np.dot(bandflux,invcovmat) )
+
+#	return chisq 
+
+
     def bandfluxerrorcov(self, band, time, zp = None, zpsys = None ):
         """Model Flux error through the given bandpass(es) at the given 
 	time(s).
