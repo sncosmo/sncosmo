@@ -618,10 +618,10 @@ class SALT2Source(Source):
 
             # Get the model component from the file
             phase, wave, values = read_griddata(name_or_obj)
-            if name_or_obj in ["M0", "M1"]:
-                values *= self._SCALE_FACTOR              
 
-            self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+            if component in ["M0", "M1"]:
+                values *= self._SCALE_FACTOR
+	    self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
@@ -635,11 +635,12 @@ class SALT2Source(Source):
             #print "cdfile" , names_or_objs[-2]
             cdarray = np.loadtxt(names_or_objs[-2])
             wave = cdarray[:,0]
-            values = cdarray[:,0]
+            values = cdarray[:,1]
 		#choosing linear interpolation for now
                 #RB Q.  
-		#How about bounding boxes?   
-            colordisp = Spline1d(wave, values,  k=1)  
+		#How about bounding boxes?
+
+            self._colordisp = Spline1d(wave, values,  k = 1 )  
         
         # Set the colorlaw based on the "color correction" file.
         self._set_colorlaw_from_file(names_or_objs[-1])
@@ -657,19 +658,23 @@ class SALT2Source(Source):
                 self._model['clbase'](wave)**self._parameters[2])
 
     def _errsnake(self, phase, wave):
-        lcrv00 = self._model['LCRV00'](phase, wave)
-        lcrv11 = self._model['LCRV11'](phase, wave)
-        lcrv01 = self._model['LCRV01'](phase, wave)
-	S = self._model['errscale'](phase, wave ) 
+
+        lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
+        lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
+        lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
+	S = np.diagonal(self._model['errscale'](phase, wave ))
 	_x0 = self._parameters[0]
 	_x1 = self._parameters[1]
+	
 	
         errsnakesq  = (lcrv00 + _x1*_x1 * lcrv11 + 2.*_x1 * lcrv01) 
 	return np.diagflat(S* errsnakesq)
 
     def lcrelcovariance(self, phase, wave) :
 
-	return self._errsnake(phase, wave) 
+	mask = wave == wave[:,np.newaxis]
+        kcor = mask *self._colordisp(wave)
+	return self._errsnake(phase, wave) + kcor  
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
         as well as some parameters used in that function.
@@ -1023,6 +1028,7 @@ class Model(_ModelBase):
         """Array flux function."""
 
 	f = self._baseflux(time, wave) 
+        a = 1. / (1. + self._parameters[0])
         restwave = wave * a
 
         # Pass the flux through the PropagationEffects.
@@ -1178,7 +1184,7 @@ class Model(_ModelBase):
                     .format(b.name, b.wave[0], b.wave[-1], 
                             self.minwave(), self.maxwave()))
 	    effwave[mask] = b.wave_eff
-	    f = model._baseflux(time_or_phase[mask], b.wave)
+	    f = self._baseflux(time_or_phase[mask], b.wave)
 	    fsum = np.sum(f * b.trans * b.wave * b.dwave, axis=1) / HC_ERG_AA
 
 	    #rescale to zp  
@@ -1197,13 +1203,16 @@ class Model(_ModelBase):
 	a  = 1.0/(1+ self._parameters[0]) 
         phase = (time - self._parameters[1]) * a
         restwave = effwave * a
-	sourcerelcov = self.source.relcovariance( phase, restwave) 
+	sourcerelcov = self.source.lcrelcovariance( phase, restwave) 
 
 	#Multilpy by fluxes to get covariance
-	errorcov = np.dot(bandflux.T,np.dot(sourcerelcov,bandflux))
+	#for i in len(errorcov):
+	#	for j in len(errorv
+	errorcov = bandflux*sourcerelcov*bandflux[:, np.newaxis]
 
 	#if ndim == 0:
 	#    return bandflux[0]*
+	print np.shape(errorcov) 
 	return errorcov
 
     def bandflux(self, band, time, zp=None, zpsys=None):
