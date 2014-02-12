@@ -17,7 +17,7 @@ bands = np.array((ndata/4) * ['desg', 'desr', 'desi', 'sdssg'])
 niter = 100
 
 # models
-f99dust = sncosmo.F99Dust()
+f99dust = sncosmo.F99Dust(3.1)
 models = OrderedDict([
     ('salt2', sncosmo.Model(source='salt2')),
     ('hsiao', sncosmo.Model(source='hsiao')),

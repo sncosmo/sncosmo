@@ -4,8 +4,6 @@ from .models import *
 from .io import *
 from .snanaio import *
 from .fitting import *
-from .typing import *
-from .extinction import *
 from .extmap import *
 from .simulation import *
 from . import registry

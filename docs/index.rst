@@ -42,10 +42,10 @@ possible. It is built on NumPy, SciPy and AstroPy.
 * Check out the source code & contribute: https://github.com/sncosmo/sncosmo
 * Report bugs and request features: https://github.com/sncosmo/sncosmo/issues
 * Contact the main author directly: Use kylebarbary [at] gmail [dot] com
+* Mail list: sncosmo@googlegroups.com
 
-
-Usage guide
-===========
+Usage
+=====
 
 .. toctree::
    :maxdepth: 1

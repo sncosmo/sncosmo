@@ -10,7 +10,8 @@ from math import ceil
 
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
-                               RectBivariateSpline as Spline2d)
+                               RectBivariateSpline as Spline2d,
+                               splmake, spleval)
 from astropy.utils import OrderedDict as odict
 from astropy import (cosmology,
                      units as u,
@@ -19,12 +20,11 @@ from astropy import (cosmology,
 from .io import read_griddata_ascii
 from . import registry
 from .spectral import get_bandpass, get_magsystem, Bandpass
-from .extinction import extinction
+from ._extinction import ccm89, od94, f99kknots, f99uv
 
-__all__ = ['get_source',
-           'Source', 'TimeSeriesSource', 'StretchSource', 'SALT2Source',
-           'Model', 
-           'PropagationEffect', 'RvDust', 'CCM89Dust', 'OD94Dust', 'F99Dust']
+__all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
+           'SALT2Source', 'Model',
+           'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
@@ -1126,60 +1126,97 @@ class Model(_ModelBase):
 
 
 class PropagationEffect(_ModelBase):
-    """Base class for propagation effects."""
+    """Abstract base class for propagation effects.
+
+    Derived classes must define _minwave (float), _maxwave (float).
+    """
     
     __metaclass__ = abc.ABCMeta
+
+
+    def minwave(self):
+        return self._minwave
+
+    def maxwave(self):
+        return self._maxwave
 
     @abc.abstractmethod
     def propagate(self, wave, flux):
         pass
 
-class RvDust(PropagationEffect):
-    """Base class for dust effects.
-
-    Derived classes must define _model (str), minwave (float), maxwave (float).
-    """
-
-    _param_names = ['ebv', 'r_v']
-    param_names_latex = ['E(B-V)', 'R_V']
-
-    def __init__(self, ebv=0., r_v=3.1):
-        self._parameters = np.array([ebv, r_v])
-
-    def propagate(self, wave, flux):
-        """Propagate the flux."""
-        trans = 10.**(-0.4 * extinction(wave,
-                                        ebv=self._parameters[0],
-                                        r_v=self._parameters[1],
-                                        model=self._model))
-        return trans * flux
-
-    def __repr__(self):
-        return "{0}(ebv={1}, r_v={2})".format(self.__class__.__name__,
-                                              self._parameters[0],
-                                              self._parameters[1])
-
     def summary(self):
         summary = """\
         class           : {0}
         wavelength range: [{1:.6g}, {2:.6g}] Angstroms"""\
-        .format(self.__class__.__name__, self.minwave, self.maxwave)
+        .format(self.__class__.__name__, self._minwave, self._maxwave)
         return dedent(summary)
 
-class CCM89Dust(RvDust):
-    """Cardelli, Clayton, Mathis (1989) extinction law"""
-    _model = 'ccm89'
-    minwave = 1250.
-    maxwave = 33333.
 
-class OD94Dust(RvDust):
-    """Fitzpatrick (1999) extinction law"""
-    _model = 'od94'
-    minwave = 1250.
-    maxwave = 60000.
+class CCM89Dust(PropagationEffect):
+    """Cardelli, Clayton, Mathis (1989) extinction model dust."""
+    _param_names = ['ebv', 'r_v']
+    param_names_latex = ['E(B-V)', 'R_V']
+    _minwave = 909.09
+    _maxwave = 33333.33
 
-class F99Dust(RvDust):
-    """Fitzpatrick (1999) extinction law"""
-    _model = 'f99'
-    minwave = 1150.
-    maxwave = 60000.
+    def __init__(self):
+        self._parameters = np.array([0., 3.1])
+
+    def propagate(self, wave, flux):
+        """Propagate the flux."""
+        a_v = self._parameters[0] * self._parameters[1]
+        trans = 10.**(-0.4 *  ccm89(wave, a_v, self._parameters[1]))
+        return trans * flux
+
+
+class OD94Dust(PropagationEffect):
+    """O'Donnell (1994) extinction model dust."""
+    _param_names = ['ebv', 'r_v']
+    param_names_latex = ['E(B-V)', 'R_V']
+    _minwave = 909.09
+    _maxwave = 33333.33
+
+    def __init__(self):
+        self._parameters = np.array([0., 3.1])
+
+    def propagate(self, wave, flux):
+        """Propagate the flux."""
+        a_v = self._parameters[0] * self._parameters[1]
+        trans = 10.**(-0.4 * od94(wave, a_v, self._parameters[1]))
+        return trans * flux
+
+
+class F99Dust(PropagationEffect):
+    """Fitzpatrick (1999) extinction model dust with fixed R_V."""
+    _minwave = 909.09
+    _maxwave = 60000.
+    _XKNOTS = 1.e4 / np.array([np.inf, 26500., 12200., 6000., 5470.,
+                               4670., 4110., 2700., 2600.])
+    def __init__(self, r_v=3.1):
+
+        self._param_names = ['ebv']
+        self.param_names_latex = ['E(B-V)']
+        self._parameters = np.array([0.])
+        self._r_v = r_v
+
+        kknots = f99kknots(self._XKNOTS, r_v)
+        self._spline = splmake(self._XKNOTS, kknots, order=3)
+
+    def propagate(self, wave, flux):
+
+        ext = np.empty(len(wave), dtype=np.float)
+
+        # Analytic function in the UV.
+        uvmask = wave < 2700.
+        if np.any(uvmask):
+            a_v = self._parameters[0] * self._r_v
+            ext[uvmask] = f99uv(wave[uvmask], a_v, self._r_v)
+
+        # Spline in the Optical/IR
+        oirmask = ~uvmask
+        if np.any(oirmask):
+            k = spleval(self._spline, 1.e4 / wave[oirmask])
+            ext[oirmask] = self._parameters[0] * (k + self._r_v)
+
+        trans = 10.**(-0.4 * ext)
+        return trans * flux

@@ -1,6 +1,6 @@
-***************************
-Package Overview & Examples
-***************************
+*************
+About SNCosmo
+*************
 
 Package Functionality
 =====================

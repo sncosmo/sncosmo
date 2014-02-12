@@ -15,32 +15,31 @@ Built-ins
 
 .. currentmodule:: sncosmo
 
-Model, Sources & Effects
-========================
+Model & Sources
+===============
 
 .. autosummary::
    :toctree: api
 
-   Model
+   get_source
    Source
    TimeSeriesSource
    StretchSource
    SALT2Source
-   CCM89Dust
-   OD94Dust
-   F99Dust
-   get_source
+   Model
 
-Extinction
-==========
+PropagationEffects
+==================
 
-*Functions related to interstellar dust extinction*
+*Effects for interstellar dust extinction*
 
 .. autosummary::
    :toctree: api
 
-   extinction
-   get_ebv_from_map
+   PropagationEffect
+   CCM89Dust
+   OD94Dust
+   F99Dust
 
 Bandpasses
 ==========
@@ -62,11 +61,10 @@ Magnitude Systems
    ABMagSystem
    SpectralMagSystem
 
-Data I/O
-========
+I/O
+===
 
-*Convenience functions for reading and writing photometric data to
-standard (and not-so-standard) formats*
+*Functions for reading and writing photometric data, gridded data, extinction maps, and more.*
 
 .. autosummary::
    :toctree: api
@@ -81,6 +79,7 @@ standard (and not-so-standard) formats*
    read_griddata_ascii
    read_griddata_fits
    write_griddata_fits
+   get_ebv_from_map
 
 Fitting Photometric Data
 ========================
@@ -131,7 +130,7 @@ Class Inheritance Diagrams
 .. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source
    :parts: 1
 
-.. inheritance-diagram:: PropagationEffect RvDust F99Dust OD94Dust CCM89Dust
+.. inheritance-diagram:: PropagationEffect F99Dust OD94Dust CCM89Dust
    :parts: 1
 
 .. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
