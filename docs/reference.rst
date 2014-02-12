@@ -102,7 +102,7 @@ Plotting
    :toctree: api
 
    plot_lc
-   animate_model
+   animate_source
 
 Simulation
 ==========
