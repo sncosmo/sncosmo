@@ -383,15 +383,6 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         res = flatten_result(res)
     return res, model
 
-# ------------------------------------------------------------------------
-# This is the code for adding tied parameters to loglikelihood in nest_lc
-# (d is a dictionary of parameters)
-
-#         if tied is not None:
-#            for parname, func in tied.iteritems():
-#                d[parname] = func(d)
-
-
 
 # ---------------------------------------------------------------------
 # This is the code for adding tied parameters to results of nest_lc
@@ -428,41 +419,56 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 #    return res
 
 def _nest_lc(data, model, param_names,
-             bounds=None, priors=None, ppfs=None,
+             bounds=None, priors=None, ppfs=None, tied=None,
              nobj=100, maxiter=10000, verbose=False):
-    """Assumes that data has already been standardized."""
+    """Assumes that data has already been standardized.
 
-    # Indicies of the model parameters in param_names 
-    idx = np.array([model.param_names.index(name) for name in param_names])
+    Run `data = standardize_data(data)`"""
 
-    # Set up a list of ppfs to be used in the prior() function.
-    npar = len(param_names)
-    ppflist = npar * [None]
+    if ppfs is None:
+        ppfs = {}
+    if tied is None:
+        tied = {}
 
-    # If a ppf is directly supplied for a parameter, it takes precedence.
-    if ppfs is not None:
-        for i, param_name in enumerate(param_names):
-            if param_name in ppfs:
-                ppflist[i] = ppfs[param_name]
+    # Convert bounds/priors combinations into ppfs
+    if bounds is not None:
+        for key, val in bounds.iteritems():
+            if key in ppfs:
+                continue  # ppfs take priority over bounds/priors
+            a, b = val
+            if priors is not None and key in priors:
+                f = pdf_to_ppf(priors[key], a, b)
+            else:
+                f = Interp1d(0., 1., np.array([a, b]))
+            ppfs[key] = f
 
-    # For parameters without ppfs, construct one from bounds and prior.
-    for i, param_name in enumerate(param_names):
-        if ppflist[i] is not None:
+    iparam_names = ppfs.keys()
+    ppflist = [ppfs[n] for n in iparam_names]
+    nipar = len(iparam_names)  # length of u
+    npar = len(param_names)  # length of v
+
+    # Check that all param_names either have a direct prior or are tied.
+    for name in param_names:
+        if name in iparam_names:
             continue
-        if param_name not in bounds:
-            raise ValueError("Must supply ppf or limits for parameter '{}'"
-                             .format(param_name))
-        a, b = bounds[param_name]
-        if (priors is not None and param_name in priors):
-            ppflist[i] = pdf_to_ppf(priors[param_name], a, b)
-        else:
-            ppflist[i] = Interp1d(0., 1., np.array([a, b]))
+        if name in tied:
+            continue
+        raise ValueError("Must supply ppf or bounds or tied for parameter '{}'"
+                         .format(name))
 
     def prior(u):
+        d = {iparam_names[i]: ppflist[i](u[i]) for i in range(nipar)}
         v = np.empty(npar, dtype=np.float)
         for i in range(npar):
-            v[i] = ppflist[i](u[i])
+            key = param_names[i]
+            try:
+                v[i] = d[key]
+            except KeyError:
+                v[i] = tied[key](d)
         return v
+
+    # Indicies of the model parameters in param_names
+    idx = np.array([model.param_names.index(name) for name in param_names])
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
@@ -471,9 +477,10 @@ def _nest_lc(data, model, param_names,
         chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
         return -chisq / 2.
 
-    res = nest.nest(loglikelihood, prior, npar, nobj=nobj, maxiter=maxiter,
-                    verbose=verbose)
+    res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
+                    maxiter=maxiter, verbose=verbose)
     res.param_names = param_names
+    res.ndof = len(data) - len(param_names)
     return res
 
 def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
@@ -532,9 +539,9 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         * ``weights``: 1-d `~numpy.ndarray`, length=nsamples;
           Weight corresponding to each sample. The weight is proportional to
           the prior * likelihood for the sample.
-        * ``priors``: 1-d `~numpy.ndarray`, length=nsamples; prior for
-          each sample.
-        * ``likelihoods``: 1-d `~numpy.ndarray`, length=nsamples; likelihood
+        * ``logprior``: 1-d `~numpy.ndarray`, length=nsamples;
+          log(prior volume) for each sample.
+        * ``logl``: 1-d `~numpy.ndarray`, length=nsamples; log(likelihood)
           for each sample.
         * ``param_dict``: Dictionary of weighted average of sample parameter
           values (includes fixed parameters).
@@ -549,7 +556,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
 
     data = standardize_data(data)
     model = copy.copy(model)
-    bounds = copy.copy(bounds)
+    bounds = copy.copy(bounds)  # need to copy this dict b/c we modify it below
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in param_names and 't0' not in bounds:
@@ -576,7 +583,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
                          (res['samples']-parameters)**2, axis=0))
     res.errors = odict(zip(res.param_names, std))
     res.bounds = bounds
-    res.ndof = len(data) - len(param_names)
+
     return res, model
 
 

@@ -44,11 +44,6 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
     ebv : float or `~numpy.ndarray`
         Specific extinction E(B-V) at the given locations.
 
-    Notes
-    -----
-    For large arrays of (RA, Dec) this function takes about 0.01 seconds
-    per coordinate, where the runtime is (probably) dominated by the
-    coordinate system conversion.
     """
     
     # Get mapdir

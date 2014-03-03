@@ -104,7 +104,7 @@ def sample_ellipsoid(vs, mean, nsamples=1):
         x[i, :] = np.dot(vs, randsphere(ndim)) + mean
     return x
 
-def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
+def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
          verbose=False, verbose_name=''):
     """Simple nested sampling algorithm to evaluate Bayesian evidence.
 
@@ -126,7 +126,12 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
                 return 2. * u
 
     npar : int
-        Number of parameters.
+        Number of parameters returned by prior and accepted by loglikelihood.
+    nipar : int
+        Number of parameters accepted by prior. This might differ from npar
+        in the case where a parameter of loglikelihood is dependent upon
+        multiple independently distributed parameters, some of which may be
+        nuisance parameters.
     nobj : int, optional
         Number of random samples. Larger numbers result in a more finely
         sampled posterior (more accurate evidence), but also a larger
@@ -146,18 +151,19 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
     results : dict
         Containing following keys:
 
-        * `niter` (int) number of iterations.
-        * `ncalls` (int) number of likelihood calls.
-        * `time` (float) time in seconds.
-        * `logz` (float) log of evidence.
-        * `logzerr` (float) error on `logz`.
-        * `loglmax` (float) Maximum likelihood of any sample.
-        * `h` (float) information.
-        * `samples` (array, shape=(nsamples, npar)) parameter values
+        * ``niter`` (int) number of iterations.
+        * ``ncalls`` (int) number of likelihood calls.
+        * ``time`` (float) time in seconds.
+        * ``logz`` (float) log of evidence.
+        * ``logzerr`` (float) error on ``logz``.
+        * ``loglmax`` (float) Maximum likelihood of any sample.
+        * ``h`` (float) information.
+        * ``samples`` (array, shape=(nsamples, npar)) parameter values
           of each sample.
-        * `weights` (array, shape=(nsamples,) Weight of each sample.
-        * `priors` (array, shape=(nsamples,)) Prior volume of each sample.
-        * `likelihoods` (array, shape=(nsamples,)) Likelihood of each sample.
+        * ``weights`` (array, shape=(nsamples,)) Weight of each sample.
+        * ``logprior`` (array, shape=(nsamples,)) log(Prior volume) of
+          each sample.
+        * ``logl`` (array, shape=(nsamples,)) log(Likelihood) of each sample.
 
     Notes
     -----
@@ -175,7 +181,7 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
     """
 
     # Initialize objects and calculate likelihoods
-    objects_u = np.random.random((nobj, npar)) #position in unit cube
+    objects_u = np.random.random((nobj, nipar)) #position in unit cube
     objects_v = np.empty((nobj, npar), dtype=np.float) #position in unit cube
     objects_logl = np.empty(nobj, dtype=np.float)  # log likelihood
     for i in range(nobj):
@@ -251,13 +257,13 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         # Shrink interval
         logwidth -= 1./nobj
 
-        # stop when the logwt has been declining for more than 10 or niter/4
-        # consecutive iterations.
+        # stop when the logwt has been declining for more than nobj* 2
+        # or niter/4 consecutive iterations.
         if logwt < logwt_old:
             ndecl += 1
         else:
             ndecl = 0
-        if ndecl > 10 and ndecl > it / 6:
+        if ndecl > nobj * 2 and ndecl > it / 6:
             break
         logwt_old = logwt
 
@@ -293,7 +299,7 @@ def nest(loglikelihood, prior, npar, nobj=50, maxiter=10000,
         ('h', h),
         ('samples', np.array(samples_parvals)),  # (nsamp, npar)
         ('weights', np.exp(np.array(samples_logwt) - logz)),  # (nsamp,)
-        ('priors', np.exp(np.array(samples_logprior))),  # (nsamp,)
-        ('likelihoods', np.exp(np.array(samples_logl)))  # (nsamp,)
+        ('logprior', np.array(samples_logprior)),  # (nsamp,)
+        ('logl', np.array(samples_logl))  # (nsamp,)
         ])
 
