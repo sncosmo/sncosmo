@@ -312,17 +312,17 @@ class Source(_ModelBase):
 
         Parameters
         ----------
-        band : `~sncosmo.Bandpass` or str or list_like
-            Bandpass(es) or name(s) of bandpass(es) in registry.
+        band : str or list_like
+            Name(s) of bandpass(es) in registry.
         phase : float or list_like, optional
             Phase(s) in days. Default is `None`, which corresponds to the full
             native phase sampling of the model.
         zp : float or list_like, optional
-            If given, zeropoint to scale flux to. If `None` (default) flux
-            is not scaled.
-        zpsys : `~sncosmo.MagSystem` or str (or list_like), optional
-            Determines the magnitude system of the requested zeropoint.
-            Cannot be `None` if `zp` is not `None`.
+            If given, zeropoint to scale flux to (must also supply ``zpsys``).
+            If not given, flux is not scaled.
+        zpsys : str or list_like, optional
+            Name of a magnitude system in the registry, specifying the system
+            that ``zp`` is in.
 
         Returns
         -------
@@ -346,10 +346,10 @@ class Source(_ModelBase):
         ----------
         phase : float or list_like
             Phase(s) in days.
-        band : `Bandpass` or str (or list_like)
-            Bandpass or name of bandpass in registry.
-        magsys : `MagSystem` or str (or list_like)
-            MagSystem or name of MagSystem in registry.
+        band : str or list_like
+            Name(s) of bandpass in registry.
+        magsys : str or list_like
+            Name(s) of `~sncosmo.MagSystem` in registry.
 
         Returns
         -------
@@ -373,8 +373,7 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if (isinstance(band_or_wave, basestring) or
-            isinstance(band_or_wave, Bandpass)):
+        if isinstance(band_or_wave, basestring):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
@@ -1045,16 +1044,16 @@ class Model(_ModelBase):
 
         Parameters
         ----------
-        band : `~sncosmo.Bandpass` or str or list_like
-            Bandpass(es) or name(s) of bandpass(es) in registry.
+        band : str or list_like
+            Name(s) of Bandpass(es) in registry.
         time : float or list_like
             Time(s) in days.
         zp : float or list_like, optional
-            If given, zeropoint to scale flux to. If `None` (default) flux
-            is not scaled.
-        zpsys : `~sncosmo.MagSystem` or str (or list_like), optional
-            Determines the magnitude system of the requested zeropoint.
-            Cannot be `None` if `zp` is not `None`.
+            If given, zeropoint to scale flux to (must also supply ``zpsys``).
+            If not given, flux is not scaled.
+        zpsys : str or list_like, optional
+            Name of a magnitude system in the registry, specifying the system
+            that ``zp`` is in.
 
         Returns
         -------
@@ -1079,10 +1078,10 @@ class Model(_ModelBase):
         ----------
         time : float or list_like
             Observer-frame time(s) in days.
-        band : `Bandpass` or str (or list_like)
-            Bandpass or name of bandpass in registry.
-        magsys : `MagSystem` or str (or list_like)
-            MagSystem or name of MagSystem in registry.
+        band : str or list_like
+            Name(s) of bandpass in registry.
+        magsys : str or list_like
+            Name(s) of `~sncosmo.MagSystem` in registry.
 
         Returns
         -------
