@@ -33,7 +33,10 @@ def flatten_result(res):
     # Parameters and uncertainties
     for i, n in enumerate(res.param_names):
         flat[n] = res.parameters[i]
-        flat[n + '_err'] = res.errors.get(n, 0.)
+        if res.errors is None:
+            flat[n + '_err'] = float('nan')
+        else:
+            flat[n + '_err'] = res.errors.get(n, 0.)
 
     # Covariances.
     for n1 in res.param_names:
@@ -41,6 +44,8 @@ def flatten_result(res):
             key = n1 + '_' + n2 + '_cov'
             if n1 not in res.cov_names or n2 not in res.cov_names:
                 flat[key] = 0.
+            elif res.covariance is None:
+                flat[key] = float('nan')
             else:
                 i = res.cov_names.index(n1)
                 j = res.cov_names.index(n2)
