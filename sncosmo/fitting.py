@@ -358,14 +358,15 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             message.append('Minimization exited successfully.')
         # iminuit: m.np_matrix() doesn't work
 
+        cov_names = [n for n in model.param_names
+                     if n in param_names]
+
         if m.covariance is None:
-            cov_names = None
             covariance = None
         else:
-            cov_names = [n for n in model.param_names
-                         if n in param_names]
             covariance = np.array([[m.covariance[(n1, n2)] for n1 in cov_names]
                                    for n2 in cov_names])
+
         if m.errors is None:
             errors = None
         else:
