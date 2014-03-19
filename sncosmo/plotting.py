@@ -6,10 +6,10 @@ import math
 
 import numpy as np
 from astropy.utils.misc import isiterable
+from matplotlib import cm
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator, NullFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib import cm
 
 from .models import Source, Model, get_source
 from .spectral import get_bandpass, get_magsystem
@@ -56,7 +56,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         Text to add to top of figure. If a list of strings, each item is
         placed in a separate "column". Use newline separators for multiple
         lines.
-    ncol: int, optional
+    ncol : int, optional
         Number of columns of axes. Default is 2.
     xfigsize, yfigsize : float, optional
         figure size in inches in x or y. Specify one or the other, not both.
@@ -248,7 +248,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     tmin = min(tmin)
     tmax = max(tmax)
     tgrid = np.linspace(tmin, tmax, int(tmax - tmin) + 1)
-            
+
+    # Add 
+
     # Loop over bands
     bands = list(bands)
     waves = [get_bandpass(b).wave_eff for b in bands]
@@ -280,19 +282,29 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                         color=color, marker='.', markersize=3.)
 
         # Plot model(s) if there are any.
+        lines = []
+        labels = []
         mflux_ranges = []
         for i, model in enumerate(models):
             if model.bandoverlap(band):
                 mflux = model.bandflux(band, tgrid, zp=zp, zpsys=zpsys)
                 mflux_ranges.append((mflux.min(), mflux.max()))
-                ax.plot(tgrid - toff, mflux,
-                        ls=_model_ls[i%len(_model_ls)],
-                        marker='None', color=color, label=model_labels[i])
+                l, = ax.plot(tgrid - toff, mflux,
+                             ls=_model_ls[i%len(_model_ls)],
+                             marker='None', color=color)
+                lines.append(l)
+            else:
+                # Add a dummy line so the legend displays all models in the
+                # first panel.
+                lines.append(plt.Line2D([0, 1], [0, 1],
+                                        ls=_model_ls[i%len(_model_ls)],
+                                        marker='None', color=color))
+            labels.append(model_labels[i])
 
         # Add a legend, if this is the first axes and there are two
         # or more models to distinguish between.
         if row == 0 and col == 0 and model_label is not None:
-            leg = ax.legend(loc='upper right',
+            leg = ax.legend(lines, labels, loc='upper right',
                             fontsize='small', frameon=True)
             bandname_coords = (0.08, 0.92)  # Move bandname to upper left
             bandname_ha = 'left'
