@@ -200,12 +200,20 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
     #set_bandfluxerror_sn1a(model)
     return model
 
-baseurl = 'http://supernovae.in2p3.fr/~guy/salt/download/'
-website = 'http://supernovae.in2p3.fr/~guy/salt/download_templates.html'
+baseurl = 'http://supernovae.in2p3.fr/salt/lib/exe/fetch.php?media='
+website = 'http://supernovae.in2p3.fr/salt/doku.php?id=salt_templates'
 g07ref = ('G07', 'Guy et al. 2007 '
           '<http://adsabs.harvard.edu/abs/2007A%26A...466...11G>')
 g10ref = ('G10', 'Guy et al. 2010 '
           '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
+b14ref = ('B14', 'Betoule et al. 2014 '
+          '<http://arxiv.org/abs/1401.4064>')
+registry.register_loader(
+    Source, 'salt2', load_salt2model,
+    args=[baseurl + 'salt2_model_data-1-0.tar.gz', 'salt2'],
+    version='1.0',
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
+          'url': website, 'reference': g07ref})
 registry.register_loader(
     Source, 'salt2', load_salt2model,
     args=[baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
@@ -218,6 +226,12 @@ registry.register_loader(
     version='2.0',
     meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
           'url': website, 'reference': g10ref})
+registry.register_loader(
+    Source, 'salt2', load_salt2model,
+    args=[baseurl + 'salt2_model_data-2-4.tar.gz', 'salt2-4'],
+    version='2.4',
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
+          'url': website, 'reference': b14ref})
 
 # --------------------------------------------------------------------------
 # SALT2 extended
