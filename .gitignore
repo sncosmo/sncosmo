@@ -35,7 +35,8 @@ pip-log.txt
 docs/_build
 docs/api
 
-# Auto-generated version module
+# Other generated files
+MANIFEST
 sncosmo/version.py
 sncosmo/cython_version.py
 sncosmo/sncosmo.cfg
