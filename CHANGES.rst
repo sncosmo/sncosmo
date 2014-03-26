@@ -1,6 +1,47 @@
-0.4.0
------
+0.4.0 (2014-03-26)
+------------------
 
+This is a non-backwards-compatible release, due to changes in the way
+models are defined. These changes were made after feedback on the initial
+design.
+
+The most major change is a new central class ``Model`` used throughout
+the pacakge. A ``Model`` instance encompasses a ``Source`` and zero or
+more ``PropagationEffect`` instances. This is so that different
+source models (e.g., SALT2 or spectral time series models) can be
+combined with arbitrary dust models. The best way to think about this
+is ``Source`` and ``PropagationEffect`` define the rest-frame behavior
+of a SN and dust, and a ``Model`` puts these together to determine the
+observer-frame behavior.
+
+- New classes
+
+  - ``sncosmo.Model``: new main container class
+  - ``sncosmo.Source``: replaces existing ``Model``
+  - ``sncosmo.TimeSeriesSource``: replaces existing ``TimeSeriesModel``
+  - ``sncosmo.StretchSource``: replaces existing ``StretchModel``
+  - ``sncosmo.SALT2Source``: replaces existing ``SALT2Model``
+  - ``sncosmo.PropagationEffect``
+  - ``sncosmo.CCM89Dust``
+  - ``sncosmo.OD94Dust``
+  - ``sncosmo.F99Dust``
+
+- New public functions
+
+  - ``sncosmo.read_griddata_ascii``: Read file with ``phase wave flux`` rows
+  - ``sncosmo.read_griddata_fits``
+  - ``sncosmo.write_griddata_fits``
+  - ``sncosmo.nest_lc``: Nested sampling parameter estimation of SN model
+  - ``sncosmo.simulate_vol`` (EXPERIMENTAL): simulation convenience function.
+
+- Built-ins
+
+  - updated SALT2 model URLs
+  - added SALT2 version 2.4 (Betoule et al 2014)
+
+- Improvements to ``sncosmo.plot_lc``: flexibility and layout
+
+- Many bugfixes
 
 0.3.0 (2013-11-07)
 ------------------

@@ -15,15 +15,7 @@ SNCosmo
     :width: 409px
     :height: 96px
 
-Welcome to the SNCosmo documentation!
 
-.. warning::
-
-   This is the documentation for the *development* version of sncosmo.
-   If you're not using the development version, take a look
-   at the latest stable version of the documentation (v0.3.0).
-   Note that there are API changes moving from v0.3.0 to v0.4.dev and
-   some corners of the development version have a rapidly evolving API.
 
 SNCosmo at a glance
 ===================

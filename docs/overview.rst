@@ -76,8 +76,8 @@ supernova cosmology. These include (but are not limited to) `snfit`_
 .. _`SNooPy`: http://csp.obs.carnegiescience.edu/data/snpy
 
 
-The name "sncosmo"
-==================
+The name SNCosmo
+================
 
 A natural choice, "snpy", was already taken (`SNooPy`_) so I tried to
 be a little more descriptive. The package is really specific to
@@ -124,11 +124,6 @@ Version History
    whatsnew/0.3
    whatsnew/0.2
 
-.. note::
-   For the time being, I am proceeding with minor version releases,
-   which both add functionality and fix bugs. That is, there will not
-   be independent bug-fix releases (e.g., v0.2.1) for these versions.
-
-   This package uses `Semantic Versioning`_.
+This package uses `Semantic Versioning`_.
 
 .. _`Semantic Versioning`: http:\\semver.org

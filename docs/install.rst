@@ -33,9 +33,7 @@ Install AstroPy
 
 Assuming you already have NumPy and SciPy, install AstroPy by
 following the `AstroPy installation instructions
-<http://astropy.readthedocs.org/en/latest/install.html>`_. In short::
-
-    pip install astropy --no-deps --user  # ... or see other pip options below
+<http://astropy.readthedocs.org/en/latest/install.html>`_.
 
 Installation instructions
 =========================
