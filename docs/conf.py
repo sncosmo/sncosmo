@@ -62,21 +62,6 @@ version = sncosmo.__version__.split('-', 1)[0]
 # The full version, including alpha/beta/rc tags.
 release = sncosmo.__version__
 
-# -- Settings for extensions and extension options -----------------------------
-
-# replace viewcode extension with patched version.
-# This can be removed once the following issue is fixed in sphinx:
-#
-# https://bitbucket.org/birkenfeld/sphinx/issue/623/
-# extension-viewcode-fails-with-function
-#
-# (See above comments for being careful with sys.path)
-import sys
-import os
-sys.path.append(os.path.abspath('ext'))
-extensions.remove('sphinx.ext.viewcode')
-extensions.append('viewcode')
-
 # -- Options for HTML output ---------------------------------------------------
 
 # A NOTE ON HTML THEMES

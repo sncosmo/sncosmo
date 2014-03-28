@@ -2,4 +2,4 @@ numpy
 matplotlib
 scipy
 Cython
-astropy==0.3.0
+-e git+http://github.com/astropy/astropy.git#egg=astropy
