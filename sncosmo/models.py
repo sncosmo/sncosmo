@@ -534,30 +534,26 @@ class SALT2Source(Source):
         Directory path containing model component files. Default is `None`,
         which means that no directory is prepended to filenames when
         determining their path.
-    m0file, m1file, clfile , cdfile, errscalefile , lcrv00file , lcrv11file , v00file, v11file, v01file : str or fileobj, optional
+    m0file, m1file, clfile, cdfile, errscalefile,
+    lcrv00file, lcrv11file, lcrv01file : str or fileobj, optional
         Filenames of various model components. Defaults are:
 
-	* 	The first three determine the model 
-        * m0file = 'salt2_template_0.dat'                    : 2dgrid
-        * m1file = 'salt2_template_1.dat'                    : 2dgrid
-
+        * m0file = 'salt2_template_0.dat' (2-d grid)
+        * m1file = 'salt2_template_1.dat' (2-d grid)
         * clfile = 'salt2_color_correction.dat'
-	* 	the next three determine the "errorsnake"
-	* errscalefile = 'salt2_lc_dispersion_scaling.dat'   :2dgrid
-        * lcrv00file = 'salt2_lc_relative_variance_0.dat'    :2dgrid
-        * lcrv11file = 'salt2_lc_relative_variance_1.dat'    :2dgrid
-        * lcrv01file = 'salt2_lc_relative_covariance_01.dat' :2dgrid
-	* 	cdfile and the model determine the "kcorr errors"	
-	* cdfile = 'salt2_color_dispersion.dat'
-	*	These are only used for spectroscopic fitting
-        * v00file = 'salt2_spec_variance_0.dat'              : 2dgrid
-        * v11file = 'salt2_spec_variance_1.dat'              : 2dgrid
-        * v01file = 'salt2_spec_covariance_01.dat'           : 2dgrid
+	* errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
+        * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
+        * lcrv11file = 'salt2_lc_relative_variance_1.dat' (2-d grid)
+        * lcrv01file = 'salt2_lc_relative_covariance_01.dat' (2-d grid)
+	* cdfile = 'salt2_color_dispersion.dat' 
 
+        The "2-d grid" files have the format ``<phase> <wavelength>
+        <value>`` on each line. ``m0file``, ``m1file`` and ``clfile``
+        together determine the model values. The ``cdfile`` and the
+        model determine the "k-correction errors". ``errscalefile``,
+        ``lcrv00file``, ``lcrv11file``, and ``lcrv01file`` determine the
+        "error snake".
 
-        The first five files should have the format
-        ``<phase> <wavelength> <value>`` on each line. The colorlaw file
-        (clfile) has a different format.
     errscalefile : str, optional
         Name of error scale file, same format as model component files.
         The default is ``None``, which means that the error scale will
@@ -574,7 +570,12 @@ class SALT2Source(Source):
     interpolation of the other model components.
     """
 
-	#required for Source Model
+    # These files are distributed with SALT2 model data but not currently
+    # used:
+    # v00file = 'salt2_spec_variance_0.dat'              : 2dgrid
+    # v11file = 'salt2_spec_variance_1.dat'              : 2dgrid
+    # v01file = 'salt2_spec_covariance_01.dat'           : 2dgrid
+
     _param_names = ['x0', 'x1', 'c']
     param_names_latex = ['x_0', 'x_1', 'c']
     _SCALE_FACTOR = 1e-12
@@ -584,24 +585,21 @@ class SALT2Source(Source):
                  m0file='salt2_template_0.dat',
                  m1file='salt2_template_1.dat',
                  clfile='salt2_color_correction.dat',
-	         cdfile = 'salt2_color_dispersion.dat', 
-	         errscalefile = 'salt2_lc_dispersion_scaling.dat',
-                 lcrv00file = 'salt2_lc_relative_variance_0.dat',
-                 lcrv11file = 'salt2_lc_relative_variance_1.dat',
-                 lcrv01file = 'salt2_lc_relative_covariance_01.dat',
-                 v00file= None ,
-                 v11file= None , 
-                 v01file= None ,
+	         cdfile='salt2_color_dispersion.dat', 
+	         errscalefile='salt2_lc_dispersion_scaling.dat',
+                 lcrv00file='salt2_lc_relative_variance_0.dat',
+                 lcrv11file='salt2_lc_relative_variance_1.dat',
+                 lcrv01file='salt2_lc_relative_covariance_01.dat',
                  name=None, version=None):
         self.name = name
         self.version = version
         self._model = {}
-		#required for SourceModel
+
         self._parameters = np.array([1., 0., 0.])
-        components = ['M0', 'M1', 'LCRV00', 'LCRV11','LCRV01', 'V00', 'V11', 'V01', 'errscale', 'cdfile', 'clfile']
+        components = ['M0', 'M1', 'LCRV00', 'LCRV11','LCRV01', 
+                      'errscale', 'cdfile', 'clfile']
         names_or_objs = [m0file, m1file, lcrv00file, lcrv11file, 
-                         lcrv01file, v00file, v11file, v01file,
-                         errscalefile, cdfile , clfile]
+                         lcrv01file, errscalefile, cdfile, clfile]
 
         # Make filenames into full paths.
         if modeldir is not None:
@@ -609,8 +607,8 @@ class SALT2Source(Source):
                 if (names_or_objs[i] is not None and
                     isinstance(names_or_objs[i], basestring)):
                     names_or_objs[i] = os.path.join(modeldir, names_or_objs[i])
-                    #print names_or_objs[i]
-        # Read components gridded in (phase, wavelength)
+
+        # Read just the components gridded in (phase, wavelength)
         for component, name_or_obj in zip(components[:-2], names_or_objs[:-2]):
 
             # If the filename is None, that component is left out of the model
@@ -626,21 +624,12 @@ class SALT2Source(Source):
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
             if component == 'M0':
-			#Required for SourceModel
                 self._phase = phase
                 self._wave = wave
             
 	# Set the color dispersion from "color_dispersion" file 
-        if cdfile != None :
-            #print "cdfile" , names_or_objs[-2]
-            cdarray = np.loadtxt(names_or_objs[-2])
-            wave = cdarray[:,0]
-            values = cdarray[:,1]
-		#choosing linear interpolation for now
-                #RB Q.  
-		#How about bounding boxes?
-
-            self._colordisp = Spline1d(wave, values,  k = 1 )  
+        w, val = np.loadtxt(names_or_objs[-2], unpack=True)
+        self._colordisp = Spline1d(w, val,  k=1)  # linear interp. 
         
         # Set the colorlaw based on the "color correction" file.
         self._set_colorlaw_from_file(names_or_objs[-1])
@@ -650,7 +639,6 @@ class SALT2Source(Source):
         clbase = 10. ** (-0.4 * cl)
         self._model['clbase'] = Spline1d(self._wave, clbase, k=1)
 
-	#Required for SourceModel
     def _flux(self, phase, wave):
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)
@@ -658,35 +646,30 @@ class SALT2Source(Source):
                 self._model['clbase'](wave)**self._parameters[2])
 
     def _errorsnake(self, phase, wave):
-
         lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
         lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
         lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
-	S = np.diagonal(self._model['errscale'](phase, wave ))
-	_x0 = self._parameters[0]
-	_x1 = self._parameters[1]
-	
-	
-        errsnakesq  = (lcrv00 + _x1*_x1 * lcrv11 + 2.*_x1 * lcrv01) 
+	S = np.diagonal(self._model['errscale'](phase, wave))
+	x0 = self._parameters[0]
+	x1 = self._parameters[1]
+        errsnakesq  = (lcrv00 + x1*x1 * lcrv11 + 2.*x1 * lcrv01) 
 	mask = errsnakesq < 0.0
-	errsnakesq [mask] = 0.01*0.01
-	return S* errsnakesq
+	errsnakesq[mask] = 0.01*0.01
+	return S * errsnakesq
 	#return np.diagflat(S* errsnakesq)
 
-    def _kcor (self, wave) :
+    def _kcor(self, wave):
 
 	mask = wave == wave[:,np.newaxis]
-        kcor = mask *self._colordisp(wave)
+        kcor = mask * self._colordisp(wave)
 
 	return kcor 
 
-    def lcrelcovariance(self, phase, wave) :
-	"""
-	returns the model relative covariance  
-
+    def lcrelcovariance(self, phase, wave):
+	"""Return the model relative covariance
 	"""
 
-	return self._errsnake(phase, wave) + self._kcor(wave) 
+	return self._errorsnake(phase, wave) + self._kcor(wave) 
 
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
