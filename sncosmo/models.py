@@ -929,11 +929,27 @@ class Model(_ModelBase):
 
     def minwave(self):
         """Minimum observer-frame wavelength of the model."""
-        return self._source.minwave() * (1. + self._parameters[0])
+        shift = (1. + self._parameters[0])
+        max_minwave = self._source.minwave() * shift 
+        for effect, frame in zip(self._effects, self._effect_frames):
+            effect_minwave = effect.minwave()
+            if frame == 'rest':
+                effect_minwave *= shift
+            if effect_minwave > max_minwave :
+                max_minwave = effect_minwave
+        return max_minwave
 
     def maxwave(self):
         """Maximum observer-frame wavelength of the model."""
-        return self._source.maxwave() * (1. + self._parameters[0])
+        shift = (1. + self._parameters[0])
+        min_maxwave = self._source.maxwave() * shift 
+        for effect, frame in zip(self._effects, self._effect_frames):
+            effect_maxwave = effect.maxwave()
+            if frame == 'rest':
+                effect_maxwave *= shift
+            if effect_maxwave < min_maxwave :
+                min_maxwave = effect_maxwave
+        return min_maxwave
 
     # ----------------------------------------------------------------
     # Flux
