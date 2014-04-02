@@ -1,3 +1,14 @@
+0.4.1 (2014-04-03)
+------------------
+
+This is a minor bugfix release.
+
+* Fix bug that caused ``fit_lc()`` and ``plot_lc()`` to fail on numpy 1.8.
+* Correct behavior of ``Model.minwave()`` and ``Model.maxwave()`` to
+  include propagation effects.
+* Fix setup issue that caused cython to run even when C files already
+  present.
+
 0.4.0 (2014-03-26)
 ------------------
 
