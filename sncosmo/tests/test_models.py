@@ -1,18 +1,22 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_almost_equal
 
 import sncosmo
 from sncosmo import registry
 
+def flatsource():
+    """Create and return a TimeSeriesSource with a flat spectrum at
+    all times."""
+    phase = np.linspace(0., 100., 10)
+    wave = np.linspace(800., 20000., 100)
+    flux = np.ones((len(phase), len(wave)), dtype=np.float)
+    return sncosmo.TimeSeriesSource(phase, wave, flux)
+
 class TestTimeSeriesSource:
     def setup_class(self):
-        # Create a TimeSeriesSource with a flat spectrum at all times.
-        phase = np.linspace(0., 100., 10)
-        wave = np.linspace(1000., 10000., 100)
-        flux = np.ones((len(phase), len(wave)), dtype=np.float)
-        self.source = sncosmo.TimeSeriesSource(phase, wave, flux)
+        self.source = flatsource()
 
     def test_flux(self):
         for a in [1., 2.]:
@@ -35,7 +39,7 @@ class TestTimeSeriesSource:
         # Correct answer
         b = sncosmo.get_bandpass("bessellb")
         ans = np.sum(b.trans * b.wave * b.dwave) / sncosmo.models.HC_ERG_AA
-        assert ans == f
+        assert_almost_equal(ans, f)
 
     def test_bandflux_shapes(self):
         # Just check that these work.
@@ -43,3 +47,41 @@ class TestTimeSeriesSource:
         self.source.bandflux("bessellb", [0.1, 0.2], zp=25., zpsys="ab")
         self.source.bandflux(["bessellb", "bessellv"], [0.1, 0.2], zp=25.,
                              zpsys="ab")
+
+
+class TestModel:
+    def setup_class(self):
+        self.model = sncosmo.Model(source=flatsource(),
+                                   effects=[sncosmo.CCM89Dust()],
+                                   effect_frames=['obs'],
+                                   effect_names=['mw'])
+    
+    def test_minwave(self):
+        
+        # at redshift zero, should be determined by effect minwave (~909)
+        self.model.set(z=0.)
+        ans = max(self.model.source.minwave(),
+                  self.model.effects[0].minwave())
+        assert self.model.minwave() == ans
+
+        # at redshift 1, should be determined by effect minwave (800*2)
+        z = 1.
+        self.model.set(z=z)
+        ans = max(self.model.source.minwave() * (1.+z),
+                  self.model.effects[0].minwave())
+        assert self.model.minwave() == ans
+
+    def test_maxwave(self):
+        
+        # at redshift zero, should be determined by source maxwave (20000)
+        self.model.set(z=0.)
+        ans = min(self.model.source.maxwave(),
+                  self.model.effects[0].maxwave())
+        assert self.model.maxwave() == ans
+
+        # at redshift 1, should be determined by effect maxwave (33333)
+        z = 1.
+        self.model.set(z=z)
+        ans = min(self.model.source.maxwave() * (1.+z),
+                  self.model.effects[0].maxwave())
+        assert self.model.maxwave() == ans
