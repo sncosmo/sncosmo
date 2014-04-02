@@ -28,11 +28,11 @@ _photdata_descriptions = {
     }
 _photdata_types = {
     'time': 'float',
-    'band': 'str or `~sncosmo.Bandpass` instance',
+    'band': 'str',
     'flux': 'float',
     'fluxerr': 'float',
     'zp': 'float',
-    'zpsys': 'str or `~sncosmo.spectral.MagSystem` instance'
+    'zpsys': 'str'
     }
 
 def dict_to_array(d):
@@ -128,14 +128,14 @@ def normalize_data(data, zp=25., zpsys='ab'):
     data : `~numpy.ndarray`
         Structured array.
     zp : float
-    zpsys : `~sncosmo.MagSystem` or str
+    zpsys : str
 
     Returns
     -------
     normalized_data : `~numpy.ndarray`
     """
 
-    zpsys = get_magsystem(zpsys)
+    normmagsys = get_magsystem(zpsys)
     factor = np.empty(len(data), dtype=np.float)
     
     for b in set(data['band'].tolist()):
@@ -147,7 +147,7 @@ def normalize_data(data, zp=25., zpsys='ab'):
         for ms in set(bandzpsys):
             idx2 = bandzpsys == ms
             ms = get_magsystem(ms)
-            bandfactor[idx2] *= (ms.zpbandflux(b) / zpsys.zpbandflux(b))
+            bandfactor[idx2] *= (ms.zpbandflux(b) / normmagsys.zpbandflux(b))
         
         factor[idx] = bandfactor
 

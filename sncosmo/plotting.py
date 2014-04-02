@@ -47,8 +47,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         List of Bandpasses, or names thereof, to plot.
     zp : float, optional
         Zeropoint to normalize the flux. Default is 25.
-    zpsys : str or `~sncosmo.MagSystem`, optional
-        Zeropoint system for `zp`. Default is 'ab'.
+    zpsys : str, optional
+        Zeropoint system for ``zp``. Default is ``'ab'``.
     pulls : bool, optional
         If True (and if model and data are given), plot pulls. Default is
         ``True``.

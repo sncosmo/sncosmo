@@ -8,7 +8,6 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.utils import OrderedDict as odict
 
-from .spectral import get_magsystem, get_bandpass
 from .photdata import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
