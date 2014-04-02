@@ -128,3 +128,9 @@ Version History
 This package uses `Semantic Versioning`_.
 
 .. _`Semantic Versioning`: http:\\semver.org
+
+Contributors
+============
+
+* Kyle Barbary
+* Rollin C. Thomas
