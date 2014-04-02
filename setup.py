@@ -79,6 +79,9 @@ data_files = recursive_glob(os.path.join(PACKAGENAME, 'data'), '*')
 data_files = [f[len(PACKAGENAME)+1:] for f in data_files]
 package_info['package_data'][PACKAGENAME] = data_files
 
+install_requires = ['numpy', 'scipy', 'astropy >= 0.3']
+setup_requires = []
+
 # Avoid installing setup_requires dependencies if the user just
 # queries for information
 if is_distutils_display_option():
@@ -89,7 +92,8 @@ setup(name=PACKAGENAME,
       description=DESCRIPTION,
       scripts=scripts,
       requires=['numpy', 'scipy', 'astropy'],
-      install_requires=['numpy', 'scipy', 'astropy'],
+      install_requires=install_requires,
+      setup_requires=setup_requires,
       provides=[PACKAGENAME],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,

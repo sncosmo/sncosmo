@@ -20,7 +20,12 @@ from astropy import (cosmology,
 from .io import read_griddata_ascii
 from . import registry
 from .spectral import get_bandpass, get_magsystem, Bandpass
-from ._extinction import ccm89, od94, f99kknots, f99uv
+try:
+    # Not guaranteed available at setup time
+    from ._extinction import ccm89, od94, f99kknots, f99uv
+except ImportError:
+    if not _ASTROPY_SETUP_:
+        raise
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'Model',
