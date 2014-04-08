@@ -1,6 +1,6 @@
-====================
-What's New in v0.4.0
-====================
+==================
+What's new in v0.4
+==================
 
 This is non-backwards-compatible release, due to changes in the way
 models are defined. These changes were made after feedback on the initial
