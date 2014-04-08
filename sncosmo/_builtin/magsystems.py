@@ -7,7 +7,7 @@
 import string
 
 from astropy.io import fits
-from astropy.utils.data import download_file
+from astropy.utils.data import download_file, REMOTE_TIMEOUT
 from astropy import units as u
 
 from .. import registry
@@ -27,7 +27,7 @@ registry.register_loader(
 # Spectral systems
 
 def load_spectral_magsys_fits(remote_url, name=None):
-    fn = download_file(remote_url, cache=True)
+    fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
     hdulist = fits.open(fn)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
@@ -36,17 +36,17 @@ def load_spectral_magsys_fits(remote_url, name=None):
                            unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return SpectralMagSystem(refspectrum, name=name)
 
-calspec_url = 'ftp://ftp.stsci.edu/cdbs/current_calspec/'
+calspec_url = 'ftp://ftp.stsci.edu/cdbs/calspec/'
 
 registry.register_loader(
     MagSystem, 'vega', load_spectral_magsys_fits,
-    args=[calspec_url + 'alpha_lyr_stis_005.fits'],
+    args=[calspec_url + 'alpha_lyr_stis_007.fits'],
     meta={'subclass': '`~sncosmo.SpectralMagSystem`', 'url': calspec_url,
           'description': 'Vega (alpha lyrae) has magnitude 0 in all bands'})
 
 registry.register_loader(
     MagSystem, 'bd17', load_spectral_magsys_fits,
-    args=[calspec_url + 'bd_17d4708_stisnic_003.fits'],
+    args=[calspec_url + 'bd_17d4708_stisnic_005.fits'],
     meta={'subclass': '`~sncosmo.SpectralMagSystem`', 'url': calspec_url,
           'description': 'BD+17d4708 has magnitude 0 in all bands.'})
 

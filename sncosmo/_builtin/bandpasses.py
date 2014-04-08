@@ -9,8 +9,7 @@ from os.path import join
 
 from astropy.io import ascii
 from astropy import units as u
-from astropy.utils.data import (download_file, get_pkg_data_filename,
-                                get_readable_fileobj)
+from astropy.utils.data import get_pkg_data_filename
 from astropy.utils import OrderedDict
 from astropy.config import ConfigurationItem
 
