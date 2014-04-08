@@ -1,3 +1,16 @@
+0.4.2 (2014-04-08)
+------------------
+
+This is a minor bugfix release.
+
+* Update CALSPEC FTP base URL to the "permanent" one rather than "current".
+  This should provide a stable URL, so that spectra downloads do not fail
+  (even if they will not necessarily be the most current).
+* Bump Vega and BD+17 spectra versions to latest CALSPEC.
+* Fix an issue with astropy.utils.data.download_file() that was preventing
+  the astropy.utils.data.REMOTE_DATA configuration item from having an
+  effect.
+
 0.4.1 (2014-04-03)
 ------------------
 
