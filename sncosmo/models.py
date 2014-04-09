@@ -554,12 +554,6 @@ class SALT2Source(Source):
         ``lcrv00file``, ``lcrv11file``, and ``lcrv01file`` determine the
         "error snake".
 
-    errscalefile : str, optional
-        Name of error scale file, same format as model component files.
-        The default is ``None``, which means that the error scale will
-        not be applied in the ``fluxerr()`` method. This is only used for
-        template versions 1.1 and 1.0, not 2.0+.
-
     Notes
     -----
     The phase and wavelength values of the various components don't
@@ -615,7 +609,7 @@ class SALT2Source(Source):
             if name_or_obj is None: continue
 
             # Get the model component from the file
-            phase, wave, values = read_griddata(name_or_obj)
+            phase, wave, values = read_griddata_ascii(name_or_obj)
 
             if component in ["M0", "M1"]:
                 values *= self._SCALE_FACTOR
@@ -645,31 +639,68 @@ class SALT2Source(Source):
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
                 self._model['clbase'](wave)**self._parameters[2])
 
-    def _errorsnake(self, phase, wave):
-        lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
-        lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
-        lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
-	S = np.diagonal(self._model['errscale'](phase, wave))
-	x0 = self._parameters[0]
-	x1 = self._parameters[1]
-        errsnakesq  = (lcrv00 + x1*x1 * lcrv11 + 2.*x1 * lcrv01) 
-	mask = errsnakesq < 0.0
-	errsnakesq[mask] = 0.01*0.01
-	return S * errsnakesq
-	#return np.diagflat(S* errsnakesq)
+    def bandflux_rcov(self, band, phase):
+        """Return the model relative covariance of integrated flux through
+        the given restframe bands at the given phases
 
-    def _kcor(self, wave):
+        band : `~numpy.ndarray` of `~sncosmo.Bandpass`
+            Bandpasses of observations.
+        phase : `~numpy.ndarray` (float)
+            Phases of observations.
+        """
 
-	mask = wave == wave[:,np.newaxis]
-        kcor = mask * self._colordisp(wave)
+        x0 = self._parameters[0]
+        x1 = self._parameters[1]
 
-	return kcor 
+        # initialize integral arrays
+        f0 = np.zeros(phase.shape, dtype=np.float)
+        f1 = np.zeros(phase.shape, dtype=np.float)
+        cwave = np.zeros(phase.shape, dtype=np.float)  # central wavelengths
 
-    def lcrelcovariance(self, phase, wave):
-	"""Return the model relative covariance
-	"""
+        # Loop over unique bands
+        for b in set(band):
+            mask = band == b
+            cwave[mask] = b.wave_eff
 
-	return self._errorsnake(phase, wave) + self._kcor(wave) 
+            # Raise an exception if bandpass is out of model range.
+            if (b.wave[0] < self._wave[0] or b.wave[-1] > self._wave[-1]):
+                raise ValueError(
+                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                    .format(b.name, b.wave[0], b.wave[-1], 
+                            self._wave[0], self._wave[-1]))
+
+            m0 = self._model['M0'](phase[mask], b.wave)
+            m1 = self._model['M1'](phase[mask], b.wave)
+
+            tmp = b.trans * b.wave * b.dwave
+            f0[mask] = np.sum(m0 * tmp, axis=1) / HC_ERG_AA
+            f1[mask] = np.sum(m1 * tmp, axis=1) / HC_ERG_AA
+
+        f0 = x0 * f0
+        f1 = f0 + x0*x1*f1
+
+        # 2-d bool array of shape (len(band), len(band)):
+        # true only where bands are same
+        mask = cwave == cwave[:,np.newaxis]
+        colorcov = mask * self._colordisp(cwave)  # 2-d * 1-d = 2-d
+
+        # For the following components, we actually just want the values at 
+        # pair values of (x, y), not the cross-product between the two.
+        # (wave will be central value of rest-frame bandpass)
+        # That is, we want a 1-d array, for points (phase[0], wave[0]),
+        # (phase[1], wave[1]), ...
+        lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
+        lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
+        lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
+	scale = np.diagonal(self._model['errscale'](phase, cwave))
+        errsnakesq = scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+
+        # Correct negative values to some small number
+	errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
+
+        return colorcov + np.diagflat(np.sqrt(f0 / f1 * errsnakesq))
+
 
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
