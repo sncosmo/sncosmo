@@ -574,7 +574,7 @@ class SALT2Source(Source):
     param_names_latex = ['x_0', 'x_1', 'c']
     _SCALE_FACTOR = 1e-12
 
-	#required for Source Model
+    #required for Source Model
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
                  m1file='salt2_template_1.dat',
@@ -590,7 +590,7 @@ class SALT2Source(Source):
         self._model = {}
 
         self._parameters = np.array([1., 0., 0.])
-        components = ['M0', 'M1', 'LCRV00', 'LCRV11','LCRV01', 
+        components = ['M0', 'M1', 'LCRV00', 'LCRV11', 'LCRV01', 
                       'errscale', 'cdfile', 'clfile']
         names_or_objs = [m0file, m1file, lcrv00file, lcrv11file, 
                          lcrv01file, errscalefile, cdfile, clfile]
@@ -1310,6 +1310,39 @@ class Model(_ModelBase):
         except ValueError as e:
             _check_for_fitpack_error(e, time, 'time')
             raise e
+
+    def bandflux_rcov(self, band, time):
+        """Relative covariance in given bandpass and times.
+
+        Parameters
+        ----------
+        band : str or list_like
+            Name(s) of Bandpass(es) in registry.
+        time : float or list_like
+            Time(s) in days.
+        """
+
+        a = 1. / (1. + self._parameters[0])
+
+        # convert to 1-d arrays
+        time, band = np.broadcast_arrays(time, band)
+        ndim = time.ndim # save input ndim for return val
+        time = np.atleast_1d(time)
+        band = np.atleast_1d(band)
+        
+        # Convert `band` to an array of rest-frame bands
+        restband = np.empty(len(time), dtype='object')
+        unique_bands = set(band)
+        for b in set(band):
+	    mask = band == b
+            b = get_bandpass(b)
+            restband[mask] = sncosmo.Bandpass(a*b.wave, b.trans)
+        
+        phase = (time - self._parameters[1]) * a
+
+        # Note that not all sources have this method.
+        rcov = self._source.bandflux_rcov(restband, phase)
+
 
     def bandmag(self, band, magsys, time):
         """Magnitude at the given time(s) through the given 
