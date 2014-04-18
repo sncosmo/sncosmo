@@ -1336,13 +1336,13 @@ class Model(_ModelBase):
         for b in set(band):
 	    mask = band == b
             b = get_bandpass(b)
-            restband[mask] = sncosmo.Bandpass(a*b.wave, b.trans)
+            restband[mask] = Bandpass(a*b.wave, b.trans)
         
         phase = (time - self._parameters[1]) * a
 
         # Note that not all sources have this method.
         rcov = self._source.bandflux_rcov(restband, phase)
-
+        return rcov
 
     def bandmag(self, band, magsys, time):
         """Magnitude at the given time(s) through the given 
