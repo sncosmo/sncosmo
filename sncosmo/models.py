@@ -649,7 +649,6 @@ class SALT2Source(Source):
             Phases of observations.
         """
 
-        x0 = self._parameters[0]
         x1 = self._parameters[1]
 
         # initialize integral arrays
@@ -677,8 +676,8 @@ class SALT2Source(Source):
             f0[mask] = np.sum(m0 * tmp, axis=1) / HC_ERG_AA
             f1[mask] = np.sum(m1 * tmp, axis=1) / HC_ERG_AA
 
-        f0 = x0 * f0
-        f1 = f0 + x0*x1*f1
+        # Make F1 what it really should be.
+        f1 = f0 + x1*f1
 
         # 2-d bool array of shape (len(band), len(band)):
         # true only where bands are same
@@ -699,7 +698,7 @@ class SALT2Source(Source):
         # Correct negative values to some small number
 	errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
 
-        return colorcov + np.diagflat(np.sqrt(f0 / f1 * errsnakesq))
+        return colorcov + np.diagflat(f0 / f1 * errsnakesq)
 
 
     def _set_colorlaw_from_file(self, name_or_obj):
