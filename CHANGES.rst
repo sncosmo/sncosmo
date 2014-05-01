@@ -1,6 +1,8 @@
 0.5.0 (unreleased)
 ------------------
 
+* Add ``tighten_ylim`` keyword argument to ``plot_lc()``.
+
 0.4.2 (2014-04-08)
 ------------------
 

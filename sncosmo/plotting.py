@@ -25,7 +25,7 @@ _cmap_wavelims = (3000., 10000.)
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             xfigsize=None, yfigsize=None, figtext=None, model_label=None,
             errors=None, ncol=2, figtextsize=1., show_model_params=True,
-            fname=None, **kwargs):
+            tighten_ylim=False, fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
     Parameters
@@ -69,6 +69,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         are added to ``figtext`` by default (as two additional columns) so
         that they are printed at the top of the figure. Set this to False to
         disable this behavior.
+    tighten_ylim : bool, optional
+        If true, tighten the y limits so that the model is visible (if any
+        models are plotted).
     fname : str, optional
         Filename to pass to savefig. If `None` (default), figure is returned.
     kwargs : optional
@@ -318,7 +321,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
         # If we plotted any models, narrow axes limits so that the model
         # is visible.
-        if len(mflux_ranges) > 0:
+        if tighten_ylim and len(mflux_ranges) > 0:
             mfluxmin = min([r[0] for r in mflux_ranges])
             mfluxmax = max([r[1] for r in mflux_ranges])
             ymin, ymax = ax.get_ylim()
