@@ -613,7 +613,7 @@ class SALT2Source(Source):
 
             if component in ["M0", "M1"]:
                 values *= self._SCALE_FACTOR
-	    self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+	    self._model[component] = Spline2d(phase, wave, values, kx=1, ky=1)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
@@ -639,7 +639,63 @@ class SALT2Source(Source):
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
                 self._model['clbase'](wave)**self._parameters[2])
 
-    def bandflux_rcov(self, band, phase):
+    def _restframe_errsnakesq( self, wave , phase ) :
+
+	"""return the errorsnake squared in terms of the rest frame 
+	phase and wavelength. 
+
+
+	"""
+
+	x1 = self._parameters[1]
+	# For the following components, we actually just want the values at 
+        # pair values of (x, y), not the cross-product between the two.
+        # (wave will be central value of rest-frame bandpass)
+        # That is, we want a 1-d array, for points (phase[0], wave[0]),
+        # (phase[1], wave[1]), ...
+        lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
+        lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
+        lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
+	scale = np.diagonal(self._model['errscale'](phase, wave))
+        errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+
+
+	return errsnakesq
+    def _restbandflux_errsnakesq (self , band , phase ,usebasic = True):
+	"""return the errorsnake squared for a restframe  bandpass by
+	calculating the effective wavelength of the restframe and calling 
+	_restframe_errsnake 
+	"""
+
+
+        x1 = self._parameters[1]
+
+	w = band.wave_eff
+	#cwave = w*np.ones(phase.shape, dtype=np.float)  # central wavelengths
+
+	if usebasic :
+	    errsnakesq = self._restframe_errsnakesq( wave = w, phase = phase) 
+	    return errsnakesq	    
+
+	# For the following components, we actually just want the values at 
+        # pair values of (x, y), not the cross-product between the two.
+        # (wave will be central value of rest-frame bandpass)
+        # That is, we want a 1-d array, for points (phase[0], wave[0]),
+        # (phase[1], wave[1]), ...
+        lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
+        lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
+        lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
+	scale = np.diagonal(self._model['errscale'](phase, cwave))
+        errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+
+
+        # Correct negative values to some small number
+	#errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
+
+	return errsnakesq
+
+    #Can we change the name to restbandflux_rcov 
+    def restbandflux_rcov(self, band, phase):
         """Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
 
@@ -682,8 +738,11 @@ class SALT2Source(Source):
         # 2-d bool array of shape (len(band), len(band)):
         # true only where bands are same
         mask = cwave == cwave[:,np.newaxis]
-        colorcov = mask * self._colordisp(cwave)  # 2-d * 1-d = 2-d
+	cvar = self._colordisp(cwave)*self._colordisp(cwave)
+        #colorcov = mask * self._colordisp(cwave) # 2-d * 1-d = 2-d
+        colorcov = mask * cvar 
 
+	#Note done ###Changing to helper functions 
         # For the following components, we actually just want the values at 
         # pair values of (x, y), not the cross-product between the two.
         # (wave will be central value of rest-frame bandpass)
@@ -693,12 +752,18 @@ class SALT2Source(Source):
         lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
         lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
 	scale = np.diagonal(self._model['errscale'](phase, cwave))
-        errsnakesq = scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+        errsnakesq = scale *scale* (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+	#errsnakesq = self._restbandflux_errsnakesq(b , phase)
 
         # Correct negative values to some small number
 	errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
 
-        return colorcov + np.diagflat(f0 / f1 * errsnakesq)
+
+	#errsnakesqtmp = self._restbandflux_errsnakesq ( band , phase )	
+        return colorcov + np.diagflat(f0 *f0 / f1/ f1 * errsnakesq)
+
+        #return  np.diagflat(errsnakesq)
+        #return colorcov + np.diagflat( errsnakesq)
 
 
     def _set_colorlaw_from_file(self, name_or_obj):
@@ -1310,6 +1375,74 @@ class Model(_ModelBase):
             _check_for_fitpack_error(e, time, 'time')
             raise e
 
+    def _bandflux_errsnakesq ( self, band, time) :
+	"""Temporary functions to help in tests of the SALT2 model 
+	error, but not to be used in general. Clearly Model should 
+	not have an "errsnake" function in general.
+	Parameters
+        ----------
+        band : str or list_like
+            Name(s) of Bandpass(es) in registry.
+        time : float or list_like
+            Time(s) in days.
+	"""
+
+        a = 1. / (1. + self._parameters[0])
+
+        # convert to 1-d arrays
+        time, band = np.broadcast_arrays(time, band)
+        ndim = time.ndim # save input ndim for return val
+        time = np.atleast_1d(time)
+        band = np.atleast_1d(band)
+        
+        # Convert `band` to an array of rest-frame bands
+        restband = np.empty(len(time), dtype='object')
+        unique_bands = set(band)
+        for b in set(band):
+	    mask = band == b
+            b = get_bandpass(b)
+            restband[mask] = Bandpass(a*b.wave, b.trans)
+        
+        phase = (time - self._parameters[1]) * a
+
+        errsnakesq = self._source._restbandflux_errsnakesq(restband, phase)
+
+	return errsnakesq
+
+
+###    def bandflux_rcov(self, band, time):
+###        """Relative covariance in given bandpass and times.
+###
+###        Parameters
+###        ----------
+###        band : str or list_like
+###            Name(s) of Bandpass(es) in registry.
+###        time : float or list_like
+###            Time(s) in days.
+###        """
+###
+###        a = 1. / (1. + self._parameters[0])
+###
+###        # convert to 1-d arrays
+###        time, band = np.broadcast_arrays(time, band)
+###        ndim = time.ndim # save input ndim for return val
+###        time = np.atleast_1d(time)
+###        band = np.atleast_1d(band)
+###        
+###        # Convert `band` to an array of rest-frame bands
+###        restband = np.empty(len(time), dtype='object')
+###        unique_bands = set(band)
+###        for b in set(band):
+###	    mask = band == b
+###            b = get_bandpass(b)
+###            restband[mask] = Bandpass(a*b.wave, b.trans)
+###        
+###        phase = (time - self._parameters[1]) * a
+###
+###        # Note that not all sources have this method.
+###        rcov = self._source.restbandflux_rcov(restband, phase)
+###        return rcov
+
     def bandflux_rcov(self, band, time):
         """Relative covariance in given bandpass and times.
 
@@ -1340,7 +1473,7 @@ class Model(_ModelBase):
         phase = (time - self._parameters[1]) * a
 
         # Note that not all sources have this method.
-        rcov = self._source.bandflux_rcov(restband, phase)
+        rcov = self._source.restbandflux_rcov(restband, phase)
         return rcov
 
     def bandmag(self, band, magsys, time):
