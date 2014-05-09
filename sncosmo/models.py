@@ -1231,40 +1231,39 @@ class Model(_ModelBase):
 
 #	return chisq 
 
-
-    def bandfluxerrorcov(self, band, time, zp = None, zpsys = None ):
-        """Model Flux error through the given bandpass(es) at the given 
+    def bandfluxmodelcov(self, band, time, zp = None, zpsys = None ):
+        """model flux error through the given bandpass(es) at the given 
 	time(s).
 
 
-        Parameters
+        parameters
         ----------
-        band : `~sncosmo.Bandpass` or str or list_like
-            Bandpass(es) or name(s) of bandpass(es) in registry.
+        band : `~sncosmo.bandpass` or str or list_like
+            bandpass(es) or name(s) of bandpass(es) in registry.
         time : float or list_like
-            Time(s) in days.
+            time(s) in days.
 	zp : float or list_like, optional
-	    If given, zeropoint to scale flux to. If `None` (default) flux
+	    if given, zeropoint to scale flux to. if `none` (default) flux
 	    is not scaled.
-        zpsys : `~sncosmo.MagSystem` or str (or list_like), optional
-            Determines the magnitude system of the requested zeropoint.
-            Cannot be `None` if `zp` is not `None`.
+        zpsys : `~sncosmo.magsystem` or str (or list_like), optional
+            determines the magnitude system of the requested zeropoint.
+            cannot be `none` if `zp` is not `none`.
 
 
-        Returns
+        returns
         -------
         bandfluxerrorcov : float or `~numpy.ndarray`
-            Flux covariance
-            to the requested zeropoint. Return value is `float` if all
+            flux covariance
+            to the requested zeropoint. return value is `float` if all
             input parameters are scalars, `~numpy.ndarray` otherwise.
         """
 
-	if zp is not None and zpsys is None:
-    	    raise ValueError('zpsys must be given if zp is not None')
+	if zp is not none and zpsys is none:
+    	    raise valueerror('zpsys must be given if zp is not none')
 
 	# broadcast arrays
        	time_or_phase = time
-	if zp is None:
+	if zp is none:
     	    time_or_phase, band = np.broadcast_arrays(time_or_phase, band)
 	else:
 	    time_or_phase, band, zp, zpsys = \
@@ -1280,66 +1279,126 @@ class Model(_ModelBase):
      	    zpsys = np.atleast_1d(zpsys)
 	# initialize output arrays
 	bandflux = np.zeros(time_or_phase.shape, dtype=np.float)
-	effwave = np.zeros(len(bandflux), dtype= np.float) 
-        # Loop over unique bands.
-    	for b in set(band):
-	    mask = band == b
-            b = get_bandpass(b)
+	#do we need effwave ?
+	#effwave = np.zeros(len(bandflux), dtype= np.float) 
+ 
+	bandflux = self.bandflux(band, time , zp = zp, zpsys = zpsys)
+	bandflux_rcov = self.bandflux_rcov(band = band, time = time)
+	errorcov = bandflux * bandflux_rcov * bandflux[:, np.newaxis]
+	return errorcov 
 
-            # Raise an exception if bandpass is out of model range.
-   	    if (b.wave[0] < self.minwave() or b.wave[-1] > self.maxwave()):
-                raise ValueError(
-                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                    .format(b.name, b.wave[0], b.wave[-1], 
-                            self.minwave(), self.maxwave()))
-	    effwave[mask] = b.wave_eff
-	    f = self._baseflux(time_or_phase[mask], b.wave)
-	    fsum = np.sum(f * b.trans * b.wave * b.dwave, axis=1) / HC_ERG_AA
-
-	    #rescale to zp  
-            if zp is not None:
-                zpnorm = 10.**(0.4 * zp[mask])
-                bandzpsys = zpsys[mask]
-                for ms in set(bandzpsys):
-                    mask2 = bandzpsys == ms
-                    ms = get_magsystem(ms)
-                    zpnorm[mask2] = zpnorm[mask2] / ms.zpbandflux(b)
-                fsum *= zpnorm
-    
-            bandflux[mask] = fsum
-
-	#Get the relative covariance from source 
-	a  = 1.0/(1+ self._parameters[0]) 
-        phase = (time - self._parameters[1]) * a
-        restwave = effwave * a
-
-	#if source == SALT2source (how to do this?)
-		#Get ratio of bandfluxes
-	savex1 = self._parameters[3] 
-	savec  = self._parameters[4]
-	self.set(c = 0.)
-	ftot = self.bandflux(band, time , zp = zp, zpsys = zpsys)
-	#print "x1 is still non-zero", self 
-	self.set(x1 = 0.)
-	f0 = self.bandflux(band, time , zp = zp, zpsys = zpsys)
-	fratio = f0/ftot
-	#print "x1 is 0"
-
-	#print self 
-	self.set(x1 = savex1, c = savec)
-	#print self 
-
-	errorsnake  = self.source._errorsnake (phase, restwave) 
-	sourcerelcov  = np.diagflat(fratio*errorsnake)
-	sourcerelcov += self.source._kcor ( restwave)  
-	#else
-	#sourcerelcov = self.source.lcrelcovariance( phase, restwave) 
-
-	#Multilpy by fluxes to get covariance
-	errorcov = bandflux*sourcerelcov*bandflux[:, np.newaxis]
-
-	return errorcov
+#    def bandfluxerrorcov(self, band, time, zp = none, zpsys = none ):
+#        """model flux error through the given bandpass(es) at the given 
+#	time(s).
+#
+#
+#        parameters
+#        ----------
+#        band : `~sncosmo.bandpass` or str or list_like
+#            bandpass(es) or name(s) of bandpass(es) in registry.
+#        time : float or list_like
+#            time(s) in days.
+#	zp : float or list_like, optional
+#	    if given, zeropoint to scale flux to. if `none` (default) flux
+#	    is not scaled.
+#        zpsys : `~sncosmo.magsystem` or str (or list_like), optional
+#            determines the magnitude system of the requested zeropoint.
+#            cannot be `none` if `zp` is not `none`.
+#
+#
+#        returns
+#        -------
+#        bandfluxerrorcov : float or `~numpy.ndarray`
+#            flux covariance
+#            to the requested zeropoint. return value is `float` if all
+#            input parameters are scalars, `~numpy.ndarray` otherwise.
+#        """
+#
+#	if zp is not none and zpsys is none:
+#    	    raise valueerror('zpsys must be given if zp is not none')
+#
+#	# broadcast arrays
+#       	time_or_phase = time
+#	if zp is none:
+#    	    time_or_phase, band = np.broadcast_arrays(time_or_phase, band)
+#	else:
+#	    time_or_phase, band, zp, zpsys = \
+#	    np.broadcast_arrays(time_or_phase, band, zp, zpsys)
+#
+#	# convert all to 1d arrays
+#	ndim = time_or_phase.ndim # save input ndim for return val
+#	time_or_phase = np.atleast_1d(time_or_phase)
+#	band = np.atleast_1d(band)
+#
+#	if zp is not None:
+#	    zp = np.atleast_1d(zp)
+#     	    zpsys = np.atleast_1d(zpsys)
+#	# initialize output arrays
+#	bandflux = np.zeros(time_or_phase.shape, dtype=np.float)
+#	#do we need effwave ?
+#	effwave = np.zeros(len(bandflux), dtype= np.float) 
+#        # Loop over unique bands.
+#    	for b in set(band):
+#	    mask = band == b
+#            b = get_bandpass(b)
+#
+#            # Raise an exception if bandpass is out of model range.
+#   	    if (b.wave[0] < self.minwave() or b.wave[-1] > self.maxwave()):
+#                raise ValueError(
+#                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+#                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
+#                    .format(b.name, b.wave[0], b.wave[-1], 
+#                            self.minwave(), self.maxwave()))
+#	    effwave[mask] = b.wave_eff
+#	    f = self._baseflux(time_or_phase[mask], b.wave)
+#	    fsum = np.sum(f * b.trans * b.wave * b.dwave, axis=1) / HC_ERG_AA
+#
+#	    #rescale to zp  
+#            if zp is not None:
+#                zpnorm = 10.**(0.4 * zp[mask])
+#                bandzpsys = zpsys[mask]
+#                for ms in set(bandzpsys):
+#                    mask2 = bandzpsys == ms
+#                    ms = get_magsystem(ms)
+#                    zpnorm[mask2] = zpnorm[mask2] / ms.zpbandflux(b)
+#                fsum *= zpnorm
+#    
+#            bandflux[mask] = fsum
+#
+#	#Get the relative covariance from source 
+#	a  = 1.0/(1+ self._parameters[0]) 
+#        phase = (time - self._parameters[1]) * a
+#        restwave = effwave * a
+#
+#	#if source == SALT2source (how to do this?)
+#		#Get ratio of bandfluxes
+#	savex1 = self._parameters[3] 
+#	savec  = self._parameters[4]
+#	self.set(c = 0.)
+#	ftot = self.bandflux(band, time , zp = zp, zpsys = zpsys)
+#	#print "x1 is still non-zero", self 
+#	self.set(x1 = 0.)
+#	f0 = self.bandflux(band, time , zp = zp, zpsys = zpsys)
+#	fratio = f0/ftot
+#	#print "x1 is 0"
+#
+#	#print self 
+#	self.set(x1 = savex1, c = savec)
+#	#print self 
+#
+#	errorsnake  = self.source._errorsnake (phase, restwave) 
+#	sourcerelcov  = np.diagflat(fratio*errorsnake)
+#	sourcerelcov += self.source._kcor ( restwave)  
+#	#else
+#	#sourcerelcov = self.source.lcrelcovariance( phase, restwave) 
+#
+#	#Multilpy by fluxes to get covariance
+#	
+#	bandflux = self.bandflux(band, time , zp = zp, zpsys = zpsys)
+#	bandflux_rcov = self.bandflux_rcov(band = , time = )
+#	errorcov = bandflux * bandflux_rcov * bandflux[:, np.newaxis]
+#
+#	return errorcov
 
     def bandflux(self, band, time, zp=None, zpsys=None):
         """Flux through the given bandpass(es) at the given time(s).
@@ -1409,39 +1468,6 @@ class Model(_ModelBase):
 
 	return errsnakesq
 
-
-###    def bandflux_rcov(self, band, time):
-###        """Relative covariance in given bandpass and times.
-###
-###        Parameters
-###        ----------
-###        band : str or list_like
-###            Name(s) of Bandpass(es) in registry.
-###        time : float or list_like
-###            Time(s) in days.
-###        """
-###
-###        a = 1. / (1. + self._parameters[0])
-###
-###        # convert to 1-d arrays
-###        time, band = np.broadcast_arrays(time, band)
-###        ndim = time.ndim # save input ndim for return val
-###        time = np.atleast_1d(time)
-###        band = np.atleast_1d(band)
-###        
-###        # Convert `band` to an array of rest-frame bands
-###        restband = np.empty(len(time), dtype='object')
-###        unique_bands = set(band)
-###        for b in set(band):
-###	    mask = band == b
-###            b = get_bandpass(b)
-###            restband[mask] = Bandpass(a*b.wave, b.trans)
-###        
-###        phase = (time - self._parameters[1]) * a
-###
-###        # Note that not all sources have this method.
-###        rcov = self._source.restbandflux_rcov(restband, phase)
-###        return rcov
 
     def bandflux_rcov(self, band, time):
         """Relative covariance in given bandpass and times.
