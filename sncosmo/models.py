@@ -675,7 +675,7 @@ class SALT2Source(Source):
         errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
 
 	return errsnakesq
-    def _restbandflux_errsnakesq (self , band , phase ,usebasic = True):
+    def _restbandflux_errsnakesq (self , band , phase ):
 	"""return the errorsnake squared for a restframe  bandpass by
 	calculating the effective wavelength of the restframe and calling 
 	_restframe_errsnake 
@@ -687,26 +687,25 @@ class SALT2Source(Source):
 	w = band.wave_eff
 	#cwave = w*np.ones(phase.shape, dtype=np.float)  # central wavelengths
 
-	if usebasic :
-	    errsnakesq = self._restframe_errsnakesq( wave = w, phase = phase) 
-	    return errsnakesq	    
+        errsnakesq = self._restframe_errsnakesq( wave = w, phase = phase) 
+        return errsnakesq	    
 
 	# For the following components, we actually just want the values at 
         # pair values of (x, y), not the cross-product between the two.
         # (wave will be central value of rest-frame bandpass)
         # That is, we want a 1-d array, for points (phase[0], wave[0]),
         # (phase[1], wave[1]), ...
-        lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
-        lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
-        lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
-	scale = np.diagonal(self._model['errscale'](phase, cwave))
-        errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+        ##lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
+        ##lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
+        ##lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
+	##scale = np.diagonal(self._model['errscale'](phase, cwave))
+        ##errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
 
 
         # Correct negative values to some small number
 	#errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
 
-	return errsnakesq
+	##return errsnakesq
 
     def restbandflux_rcov(self, band, phase):
         """Return the model relative covariance of integrated flux through
@@ -761,22 +760,20 @@ class SALT2Source(Source):
         # (wave will be central value of rest-frame bandpass)
         # That is, we want a 1-d array, for points (phase[0], wave[0]),
         # (phase[1], wave[1]), ...
-        lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
-        lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
-        lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
-	scale = np.diagonal(self._model['errscale'](phase, cwave))
-        errsnakesq = scale *scale* (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
-	#errsnakesq = self._restbandflux_errsnakesq(b , phase)
+
+        #lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
+        #lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
+        #lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
+	#scale = np.diagonal(self._model['errscale'](phase, cwave))
+        #errsnakesq = scale *scale* (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+	errsnakesq = self._restbandflux_errsnakesq(b , phase)
 
         # Correct negative values to some small number
 	errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
 
 
-	#errsnakesqtmp = self._restbandflux_errsnakesq ( band , phase )	
         return colorcov + np.diagflat(f0 *f0 / f1/ f1 * errsnakesq)
 
-        #return  np.diagflat(errsnakesq)
-        #return colorcov + np.diagflat( errsnakesq)
 
 
     def _set_colorlaw_from_file(self, name_or_obj):
