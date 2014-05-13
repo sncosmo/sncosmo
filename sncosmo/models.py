@@ -685,14 +685,14 @@ class SALT2Source(Source):
         errsnakesq = self._restframe_errsnakesq( wave = w, phase = phase) 
         return errsnakesq	    
 
-    def bandflux_rcov(self, band, phase):
+    def _bandflux_rcov(self, band, phase):
 	"""Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
 
         band : `~numpy.ndarray` of `~sncosmo.Bandpass`
             Bandpasses of observations.
         phase : `~numpy.ndarray` (float)
-            Phases of observations.
+            Phases of observations. Must be in ascending order.
         """
 
         x1 = self._parameters[1]
@@ -743,6 +743,23 @@ class SALT2Source(Source):
         return colorcov + np.diagflat(f0 *f0 / f1/ f1 * errsnakesq)
 
 
+
+    def bandflux_rcov(self, band, phase):
+	"""Return the model relative covariance of integrated flux through
+        the given restframe bands at the given phases
+
+        band : `~numpy.ndarray` of `~sncosmo.Bandpass`
+            Bandpasses of observations.
+        phase : `~numpy.ndarray` (float)
+            Phases of observations.
+        """
+
+
+	try:
+            return _bandflux_rcov(self, band, phase)
+        except ValueError as e:
+            _check_for_fitpack_error(e, phase, 'phase')
+            raise e
 
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
@@ -1321,7 +1338,7 @@ class Model(_ModelBase):
         band : str or list_like
             Name(s) of Bandpass(es) in registry.
         time : float or list_like
-            Time(s) in days.
+            Time(s) in days. Must be in ascending order.
         """
 
         a = 1. / (1. + self._parameters[0])
