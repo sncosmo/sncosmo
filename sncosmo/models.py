@@ -675,7 +675,7 @@ class SALT2Source(Source):
         errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
 
 	return errsnakesq
-    def _restbandflux_errsnakesq (self , band , phase ):
+    def _bandflux_errsnakesq (self , band , phase ):
 	"""return the errorsnake squared for a restframe  bandpass by
 	calculating the effective wavelength of the restframe and calling 
 	_restframe_errsnake 
@@ -707,7 +707,7 @@ class SALT2Source(Source):
 
 	##return errsnakesq
 
-    def restbandflux_rcov(self, band, phase):
+    def bandflux_rcov(self, band, phase):
         """Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
 
@@ -766,7 +766,7 @@ class SALT2Source(Source):
         #lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
 	#scale = np.diagonal(self._model['errscale'](phase, cwave))
         #errsnakesq = scale *scale* (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
-	errsnakesq = self._restbandflux_errsnakesq(b , phase)
+	errsnakesq = self._bandflux_errsnakesq(b , phase)
 
         # Correct negative values to some small number
 	errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
@@ -1509,7 +1509,7 @@ class Model(_ModelBase):
         phase = (time - self._parameters[1]) * a
 
         # Note that not all sources have this method.
-        rcov = self._source.restbandflux_rcov(restband, phase)
+        rcov = self._source.bandflux_rcov(restband, phase)
         return rcov
 
     def bandmag(self, band, magsys, time):
