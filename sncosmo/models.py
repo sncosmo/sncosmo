@@ -611,9 +611,17 @@ class SALT2Source(Source):
             # Get the model component from the file
             phase, wave, values = read_griddata_ascii(name_or_obj)
 
+		
             if component in ["M0", "M1"]:
                 values *= self._SCALE_FACTOR
-	    self._model[component] = Spline2d(phase, wave, values, kx=1, ky=1)
+		#Interpolate model seds to 2nd order
+	    	self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+		#Interpolate color law to 2nd order 
+	    if component =="clfile" : 
+	    	self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+	    else:
+		#But interpolate error components to linear order
+	    	self._model[component] = Spline2d(phase, wave, values, kx=1, ky=1)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
@@ -641,11 +649,18 @@ class SALT2Source(Source):
 
     def _restframe_errsnakesq( self, wave , phase ) :
 
-	"""return the errorsnake squared in terms of the rest frame 
-	phase and wavelength. 
+        """return the errorsnake squared in terms of the rest frame 
+        phase and wavelength. 
+        Parameters
+        ----------
+        wave : restframe wavelength
+        phase: restframe time 
 
-
-	"""
+        Notes
+        ----------   	
+	Should exactly correspond to interpolated quantities in the file and
+        so useful to check interpolated results
+        """
 
 	x1 = self._parameters[1]
 	# For the following components, we actually just want the values at 
@@ -658,7 +673,6 @@ class SALT2Source(Source):
         lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
 	scale = np.diagonal(self._model['errscale'](phase, wave))
         errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
-
 
 	return errsnakesq
     def _restbandflux_errsnakesq (self , band , phase ,usebasic = True):
@@ -694,7 +708,6 @@ class SALT2Source(Source):
 
 	return errsnakesq
 
-    #Can we change the name to restbandflux_rcov 
     def restbandflux_rcov(self, band, phase):
         """Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
