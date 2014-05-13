@@ -615,13 +615,13 @@ class SALT2Source(Source):
             if component in ["M0", "M1"]:
                 values *= self._SCALE_FACTOR
 		#Interpolate model seds to 2nd order
-	    	self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
-		#Interpolate color law to 2nd order 
+		self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+	    #Interpolate color law to 2nd order 
 	    if component =="clfile" : 
-	    	self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+		self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 	    else:
 		#But interpolate error components to linear order
-	    	self._model[component] = Spline2d(phase, wave, values, kx=1, ky=1)
+	    	self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
@@ -647,8 +647,7 @@ class SALT2Source(Source):
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
                 self._model['clbase'](wave)**self._parameters[2])
 
-    def _restframe_errsnakesq( self, wave , phase ) :
-
+    def _restframe_errsnakesq(self, wave, phase ) :
         """return the errorsnake squared in terms of the rest frame 
         phase and wavelength. 
         Parameters
@@ -675,40 +674,19 @@ class SALT2Source(Source):
         errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
 
 	return errsnakesq
-    def _bandflux_errsnakesq (self , band , phase ):
+    def _bandflux_errsnakesq (self, band, phase):
 	"""return the errorsnake squared for a restframe  bandpass by
 	calculating the effective wavelength of the restframe and calling 
 	_restframe_errsnake 
 	"""
-
-
         x1 = self._parameters[1]
-
 	w = band.wave_eff
-	#cwave = w*np.ones(phase.shape, dtype=np.float)  # central wavelengths
 
         errsnakesq = self._restframe_errsnakesq( wave = w, phase = phase) 
         return errsnakesq	    
 
-	# For the following components, we actually just want the values at 
-        # pair values of (x, y), not the cross-product between the two.
-        # (wave will be central value of rest-frame bandpass)
-        # That is, we want a 1-d array, for points (phase[0], wave[0]),
-        # (phase[1], wave[1]), ...
-        ##lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
-        ##lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
-        ##lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
-	##scale = np.diagonal(self._model['errscale'](phase, cwave))
-        ##errsnakesq = scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
-
-
-        # Correct negative values to some small number
-	#errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
-
-	##return errsnakesq
-
     def bandflux_rcov(self, band, phase):
-        """Return the model relative covariance of integrated flux through
+	"""Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
 
         band : `~numpy.ndarray` of `~sncosmo.Bandpass`
@@ -753,24 +731,14 @@ class SALT2Source(Source):
 	cvar = self._colordisp(cwave)*self._colordisp(cwave)
         #colorcov = mask * self._colordisp(cwave) # 2-d * 1-d = 2-d
         colorcov = mask * cvar 
-
-	#Note done ###Changing to helper functions 
-        # For the following components, we actually just want the values at 
-        # pair values of (x, y), not the cross-product between the two.
-        # (wave will be central value of rest-frame bandpass)
-        # That is, we want a 1-d array, for points (phase[0], wave[0]),
-        # (phase[1], wave[1]), ...
-
-        #lcrv00 = np.diagonal(self._model['LCRV00'](phase, cwave))
-        #lcrv11 = np.diagonal(self._model['LCRV11'](phase, cwave))
-        #lcrv01 = np.diagonal(self._model['LCRV01'](phase, cwave))
-	#scale = np.diagonal(self._model['errscale'](phase, cwave))
-        #errsnakesq = scale *scale* (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+	
 	errsnakesq = self._bandflux_errsnakesq(b , phase)
 
-        # Correct negative values to some small number
+	# errorsnakesq which is supposed to be variance can go negative
+	# due to interpolation
+        # Correct negative values to some small number 
+	# At present, use prescription of snfit : set negatives to 0.0001
 	errsnakesq[errsnakesq < 0.] = 0.01*0.01  # Can this just be zero?
-
 
         return colorcov + np.diagflat(f0 *f0 / f1/ f1 * errsnakesq)
 
@@ -1220,33 +1188,12 @@ class Model(_ModelBase):
             return overlap[:, 0]
         return overlap
 
-#    def chisq ( self, band, time, dataflux , datafluxerrors, zp = None , zpsys = None ) :
-#	Need to give it data flux errors too !
-#	"""returns chisq of the data for the model. 
-#
-#	"""
-#	try:
-#            bandflux =  _bandflux(self, band, time, zp, zpsys)
-#        except ValueError as e:
-#            _check_for_fitpack_error(e, time, 'time')
-#            raise e
-#	try:
-#	    modelcovmat = bandfluxerrorcov (self, band, time, zp , zpsys) 
-#
-#	datacovmat = np.diagflat(datafluxerrors) 
-#	covmat = modelcovmat + datacovmat 
-#	invcovmat = np.inverse(covmat) 
-#	deltaflux = bandflux - dataflux 
-#	chisq = np.dot(bandflux, np.dot(bandflux,invcovmat) )
-
-#	return chisq 
-
-    def bandfluxmodelcov(self, band, time, zp = None, zpsys = None ):
-        """model flux error through the given bandpass(es) at the given 
+    def bandfluxcov(self, band, time, zp=None, zpsys=None ):
+	"""model flux error through the given bandpass(es) at the given 
 	time(s).
 
 
-        parameters
+	Parameters
         ----------
         band : `~sncosmo.bandpass` or str or list_like
             bandpass(es) or name(s) of bandpass(es) in registry.
@@ -1262,18 +1209,18 @@ class Model(_ModelBase):
 
         returns
         -------
-        bandfluxerrorcov : float or `~numpy.ndarray`
-            flux covariance
-            to the requested zeropoint. return value is `float` if all
+        bandflux, bandfluxcov : tuple of float or `numpy.array` bandflux
+	    `~numpy.ndarray` bandflux flux covariance scaled to the requested 
+	    zeropoint. return value is `float` if all
             input parameters are scalars, `~numpy.ndarray` otherwise.
         """
 
-	if zp is not none and zpsys is none:
-    	    raise valueerror('zpsys must be given if zp is not none')
+	if zp is not None and zpsys is None:
+    	    raise valueerror('zpsys must be given if zp is not None')
 
 	# broadcast arrays
        	time_or_phase = time
-	if zp is none:
+	if zp is None:
     	    time_or_phase, band = np.broadcast_arrays(time_or_phase, band)
 	else:
 	    time_or_phase, band, zp, zpsys = \
@@ -1295,120 +1242,7 @@ class Model(_ModelBase):
 	bandflux = self.bandflux(band, time , zp = zp, zpsys = zpsys)
 	bandflux_rcov = self.bandflux_rcov(band = band, time = time)
 	errorcov = bandflux * bandflux_rcov * bandflux[:, np.newaxis]
-	return errorcov 
-
-#    def bandfluxerrorcov(self, band, time, zp = none, zpsys = none ):
-#        """model flux error through the given bandpass(es) at the given 
-#	time(s).
-#
-#
-#        parameters
-#        ----------
-#        band : `~sncosmo.bandpass` or str or list_like
-#            bandpass(es) or name(s) of bandpass(es) in registry.
-#        time : float or list_like
-#            time(s) in days.
-#	zp : float or list_like, optional
-#	    if given, zeropoint to scale flux to. if `none` (default) flux
-#	    is not scaled.
-#        zpsys : `~sncosmo.magsystem` or str (or list_like), optional
-#            determines the magnitude system of the requested zeropoint.
-#            cannot be `none` if `zp` is not `none`.
-#
-#
-#        returns
-#        -------
-#        bandfluxerrorcov : float or `~numpy.ndarray`
-#            flux covariance
-#            to the requested zeropoint. return value is `float` if all
-#            input parameters are scalars, `~numpy.ndarray` otherwise.
-#        """
-#
-#	if zp is not none and zpsys is none:
-#    	    raise valueerror('zpsys must be given if zp is not none')
-#
-#	# broadcast arrays
-#       	time_or_phase = time
-#	if zp is none:
-#    	    time_or_phase, band = np.broadcast_arrays(time_or_phase, band)
-#	else:
-#	    time_or_phase, band, zp, zpsys = \
-#	    np.broadcast_arrays(time_or_phase, band, zp, zpsys)
-#
-#	# convert all to 1d arrays
-#	ndim = time_or_phase.ndim # save input ndim for return val
-#	time_or_phase = np.atleast_1d(time_or_phase)
-#	band = np.atleast_1d(band)
-#
-#	if zp is not None:
-#	    zp = np.atleast_1d(zp)
-#     	    zpsys = np.atleast_1d(zpsys)
-#	# initialize output arrays
-#	bandflux = np.zeros(time_or_phase.shape, dtype=np.float)
-#	#do we need effwave ?
-#	effwave = np.zeros(len(bandflux), dtype= np.float) 
-#        # Loop over unique bands.
-#    	for b in set(band):
-#	    mask = band == b
-#            b = get_bandpass(b)
-#
-#            # Raise an exception if bandpass is out of model range.
-#   	    if (b.wave[0] < self.minwave() or b.wave[-1] > self.maxwave()):
-#                raise ValueError(
-#                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-#                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
-#                    .format(b.name, b.wave[0], b.wave[-1], 
-#                            self.minwave(), self.maxwave()))
-#	    effwave[mask] = b.wave_eff
-#	    f = self._baseflux(time_or_phase[mask], b.wave)
-#	    fsum = np.sum(f * b.trans * b.wave * b.dwave, axis=1) / HC_ERG_AA
-#
-#	    #rescale to zp  
-#            if zp is not None:
-#                zpnorm = 10.**(0.4 * zp[mask])
-#                bandzpsys = zpsys[mask]
-#                for ms in set(bandzpsys):
-#                    mask2 = bandzpsys == ms
-#                    ms = get_magsystem(ms)
-#                    zpnorm[mask2] = zpnorm[mask2] / ms.zpbandflux(b)
-#                fsum *= zpnorm
-#    
-#            bandflux[mask] = fsum
-#
-#	#Get the relative covariance from source 
-#	a  = 1.0/(1+ self._parameters[0]) 
-#        phase = (time - self._parameters[1]) * a
-#        restwave = effwave * a
-#
-#	#if source == SALT2source (how to do this?)
-#		#Get ratio of bandfluxes
-#	savex1 = self._parameters[3] 
-#	savec  = self._parameters[4]
-#	self.set(c = 0.)
-#	ftot = self.bandflux(band, time , zp = zp, zpsys = zpsys)
-#	#print "x1 is still non-zero", self 
-#	self.set(x1 = 0.)
-#	f0 = self.bandflux(band, time , zp = zp, zpsys = zpsys)
-#	fratio = f0/ftot
-#	#print "x1 is 0"
-#
-#	#print self 
-#	self.set(x1 = savex1, c = savec)
-#	#print self 
-#
-#	errorsnake  = self.source._errorsnake (phase, restwave) 
-#	sourcerelcov  = np.diagflat(fratio*errorsnake)
-#	sourcerelcov += self.source._kcor ( restwave)  
-#	#else
-#	#sourcerelcov = self.source.lcrelcovariance( phase, restwave) 
-#
-#	#Multilpy by fluxes to get covariance
-#	
-#	bandflux = self.bandflux(band, time , zp = zp, zpsys = zpsys)
-#	bandflux_rcov = self.bandflux_rcov(band = , time = )
-#	errorcov = bandflux * bandflux_rcov * bandflux[:, np.newaxis]
-#
-#	return errorcov
+	return bandflux , errorcov 
 
     def bandflux(self, band, time, zp=None, zpsys=None):
         """Flux through the given bandpass(es) at the given time(s).
@@ -1444,7 +1278,7 @@ class Model(_ModelBase):
             _check_for_fitpack_error(e, time, 'time')
             raise e
 
-    def _bandflux_errsnakesq ( self, band, time) :
+    def _bandflux_errsnakesq (self, band, time) :
 	"""Temporary functions to help in tests of the SALT2 model 
 	error, but not to be used in general. Clearly Model should 
 	not have an "errsnake" function in general.
