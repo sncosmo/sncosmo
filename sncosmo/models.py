@@ -576,15 +576,15 @@ class SALT2Source(Source):
 
     #required for Source Model
     def __init__(self, modeldir=None,
-                 m0file='salt2_template_0.dat',
-                 m1file='salt2_template_1.dat',
-                 clfile='salt2_color_correction.dat',
-	         cdfile='salt2_color_dispersion.dat', 
-	         errscalefile='salt2_lc_dispersion_scaling.dat',
-                 lcrv00file='salt2_lc_relative_variance_0.dat',
-                 lcrv11file='salt2_lc_relative_variance_1.dat',
-                 lcrv01file='salt2_lc_relative_covariance_01.dat',
-                 name=None, version=None):
+                m0file='salt2_template_0.dat',
+                m1file='salt2_template_1.dat',
+                clfile='salt2_color_correction.dat',
+	        cdfile='salt2_color_dispersion.dat', 
+		errscalefile='salt2_lc_dispersion_scaling.dat',
+                lcrv00file='salt2_lc_relative_variance_0.dat',
+                lcrv11file='salt2_lc_relative_variance_1.dat',
+		lcrv01file='salt2_lc_relative_covariance_01.dat',
+                name=None, version=None):
         self.name = name
         self.version = version
         self._model = {}
@@ -598,7 +598,7 @@ class SALT2Source(Source):
         # Make filenames into full paths.
         if modeldir is not None:
             for i in range(len(names_or_objs)):
-                if (names_or_objs[i] is not None and
+		if (names_or_objs[i] is not None and
                     isinstance(names_or_objs[i], basestring)):
                     names_or_objs[i] = os.path.join(modeldir, names_or_objs[i])
 
