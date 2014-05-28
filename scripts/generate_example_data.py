@@ -5,7 +5,7 @@ from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 
 
-model = sncosmo.ObsModel(source='salt2')
+model = sncosmo.Model(source='salt2')
 model.set(z=0.5, c=0.2, t0=55100., x1=0.5)
 model.set_source_peakabsmag(-19.5, 'bessellb', 'ab')
 
