@@ -534,24 +534,25 @@ class SALT2Source(Source):
         Directory path containing model component files. Default is `None`,
         which means that no directory is prepended to filenames when
         determining their path.
-    m0file, m1file, v00file, v11file, v01file, clfile : str or fileobj, optional
+    m0file, m1file, clfile, cdfile, errscalefile,
+    lcrv00file, lcrv11file, lcrv01file : str or fileobj, optional
         Filenames of various model components. Defaults are:
 
-        * m0file = 'salt2_template_0.dat'
-        * m1file = 'salt2_template_1.dat'
-        * v00file = 'salt2_spec_variance_0.dat'
-        * v11file = 'salt2_spec_variance_1.dat'
-        * v01file = 'salt2_spec_covariance_01.dat'
+        * m0file = 'salt2_template_0.dat' (2-d grid)
+        * m1file = 'salt2_template_1.dat' (2-d grid)
         * clfile = 'salt2_color_correction.dat'
+	* errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
+        * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
+        * lcrv11file = 'salt2_lc_relative_variance_1.dat' (2-d grid)
+        * lcrv01file = 'salt2_lc_relative_covariance_01.dat' (2-d grid)
+	* cdfile = 'salt2_color_dispersion.dat'
 
-        The first five files should have the format
-        ``<phase> <wavelength> <value>`` on each line. The colorlaw file
-        (clfile) has a different format.
-    errscalefile : str, optional
-        Name of error scale file, same format as model component files.
-        The default is ``None``, which means that the error scale will
-        not be applied in the ``fluxerr()`` method. This is only used for
-        template versions 1.1 and 1.0, not 2.0+.
+        The "2-d grid" files have the format ``<phase> <wavelength>
+        <value>`` on each line. ``m0file``, ``m1file`` and ``clfile``
+        together determine the model values. The ``cdfile`` and the
+        model determine the "k-correction errors". ``errscalefile``,
+        ``lcrv00file``, ``lcrv11file``, and ``lcrv01file`` determine the
+        "error snake".
 
     Notes
     -----
@@ -563,6 +564,12 @@ class SALT2Source(Source):
     interpolation of the other model components.
     """
 
+    # These files are distributed with SALT2 model data but not currently
+    # used:
+    # v00file = 'salt2_spec_variance_0.dat'              : 2dgrid
+    # v11file = 'salt2_spec_variance_1.dat'              : 2dgrid
+    # v01file = 'salt2_spec_covariance_01.dat'           : 2dgrid
+
     _param_names = ['x0', 'x1', 'c']
     param_names_latex = ['x_0', 'x_1', 'c']
     _SCALE_FACTOR = 1e-12
@@ -570,48 +577,55 @@ class SALT2Source(Source):
     def __init__(self, modeldir=None,
                  m0file='salt2_template_0.dat',
                  m1file='salt2_template_1.dat',
-                 v00file='salt2_spec_variance_0.dat',
-                 v11file='salt2_spec_variance_1.dat',
-                 v01file='salt2_spec_covariance_01.dat',
                  clfile='salt2_color_correction.dat',
-                 errscalefile=None, name=None, version=None):
+                 cdfile='salt2_color_dispersion.dat',
+                 errscalefile='salt2_lc_dispersion_scaling.dat',
+                 lcrv00file='salt2_lc_relative_variance_0.dat',
+                 lcrv11file='salt2_lc_relative_variance_1.dat',
+                 lcrv01file='salt2_lc_relative_covariance_01.dat',
+                 name=None, version=None):
         self.name = name
         self.version = version
         self._model = {}
         self._parameters = np.array([1., 0., 0.])
-        components = ['M0', 'M1', 'V00', 'V11', 'V01', 'errscale', 'clfile']
-        names_or_objs = [m0file, m1file, v00file, v11file, v01file,
-                         errscalefile, clfile]
+
+        names_or_objs = {'M0': m0file, 'M1': m1file,
+                         'LCRV00': lcrv00file, 'LCRV11': lcrv11file,
+                         'LCRV01': lcrv01file, 'errscale': errscalefile,
+                         'cdfile': cdfile, 'clfile': clfile}
 
         # Make filenames into full paths.
         if modeldir is not None:
-            for i in range(len(names_or_objs)):
-                if (names_or_objs[i] is not None and
-                    isinstance(names_or_objs[i], basestring)):
-                    names_or_objs[i] = os.path.join(modeldir, names_or_objs[i])
+            for k in names_or_objs:
+                v = names_or_objs[k]
+                if (v is not None and isinstance(v, basestring)):
+                    names_or_objs[k] = os.path.join(modeldir, v)
 
-        # Read components gridded in (phase, wavelength)
-        for component, name_or_obj in zip(components[:-1], names_or_objs[:-1]):
-
-            # If the filename is None, that component is left out of the model
-            if name_or_obj is None: continue
-
-            # Get the model component from the file
-            phase, wave, values = read_griddata_ascii(name_or_obj)
-            values *= self._SCALE_FACTOR  # TODO: should this really be
-                                          # done for ALL components?
-            self._model[component] = Spline2d(phase, wave, values, kx=2, ky=2)
+        # model components are interpolated to 2nd order
+        for key in ['M0', 'M1']:
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            values *= self._SCALE_FACTOR
+            self._model[key] = Spline2d(phase, wave, values, kx=2, ky=2)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
-            if component == 'M0':
+            if key == 'M0':
                 self._phase = phase
                 self._wave = wave
-            
-        # Set the colorlaw function based on the "color correction" file.
-        self._set_colorlaw_from_file(names_or_objs[-1])
 
-        # add extinction component
+        # model covariance is interpolated to 1st order
+        for key in ['LCRV00', 'LCRV11', 'LCRV01', 'errscale']:
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            self._model[key] = Spline2d(phase, wave, values, kx=1, ky=1)
+
+        # Set the color dispersion from "color_dispersion" file
+        w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
+        self._colordisp = Spline1d(w, val,  k=1)  # linear interp. 
+        
+        # Set the colorlaw based on the "color correction" file.
+        # Then interpolate it to the "native" wavelength grid,
+        # for performance reasons.
+        self._set_colorlaw_from_file(names_or_objs['clfile'])
         cl = self._colorlaw(self._wave)
         clbase = 10. ** (-0.4 * cl)
         self._model['clbase'] = Spline1d(self._wave, clbase, k=1)
@@ -621,6 +635,109 @@ class SALT2Source(Source):
         m1 = self._model['M1'](phase, wave)
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
                 self._model['clbase'](wave)**self._parameters[2])
+
+    def _errsnakesq(self, wave, phase):
+        """Return the errorsnake squared in terms of the rest frame
+        phase and wavelength.
+
+        This is available as a separate method mainly for testing purposes.
+
+        Parameters
+        ----------
+        wave : 1-d `~numpy.ndarray`
+            Restframe wavelengths (central wavelength of bandpasses)
+        phase : 1-d `~numpy.ndarray`
+            Restframe phases.
+        """
+
+	x1 = self._parameters[1]
+
+	# For the following components, we actually just want the values at 
+        # pair values of (x, y), not the cross-product between the two.
+        # (wave will be central value of rest-frame bandpass)
+        # That is, we want a 1-d array, for points (phase[0], wave[0]),
+        # (phase[1], wave[1]), ...
+        lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
+        lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
+        lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
+	scale = np.diagonal(self._model['errscale'](phase, wave))
+
+        return scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+
+    def _bandflux_rcov(self, band, phase):
+	"""Return the model relative covariance of integrated flux through
+        the given restframe bands at the given phases
+
+        band : 1-d `~numpy.ndarray` of `~sncosmo.Bandpass`
+            Bandpasses of observations.
+        phase : 1-d `~numpy.ndarray` (float)
+            Phases of observations. Must be in ascending order.
+        """
+
+        x1 = self._parameters[1]
+
+        # initialize integral arrays
+        f0 = np.zeros(phase.shape, dtype=np.float)
+        f1 = np.zeros(phase.shape, dtype=np.float)
+        cwave = np.zeros(phase.shape, dtype=np.float)  # central wavelengths
+
+        # Loop over unique bands
+        for b in set(band):
+            mask = band == b
+            cwave[mask] = b.wave_eff
+
+            # Raise an exception if bandpass is out of model range.
+            if (b.wave[0] < self._wave[0] or b.wave[-1] > self._wave[-1]):
+                raise ValueError(
+                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                    .format(b.name, b.wave[0], b.wave[-1], 
+                            self._wave[0], self._wave[-1]))
+
+            m0 = self._model['M0'](phase[mask], b.wave)
+            m1 = self._model['M1'](phase[mask], b.wave)
+
+            tmp = b.trans * b.wave * b.dwave
+            f0[mask] = np.sum(m0 * tmp, axis=1) / HC_ERG_AA
+            f1[mask] = np.sum(m1 * tmp, axis=1) / HC_ERG_AA
+
+        # Make F1 what it really should be.
+        f1 = f0 + x1*f1
+
+        # 2-d bool array of shape (len(band), len(band)):
+        # true only where bands are same
+        mask = cwave == cwave[:,np.newaxis]
+
+	colorvar = self._colordisp(cwave)**2  # 1-d array
+        colorcov = mask * colorvar  # 2-d * 1-d = 2-d
+	
+	errsnakesq = self._errsnakesq(cwave, phase)
+
+	# errorsnakesq is supposed to be variance but can go negative
+	# due to interpolation.  Correct negative values to some small
+	# number. (at present, use prescription of snfit : set
+	# negatives to 0.0001)
+	errsnakesq[errsnakesq < 0.] = 0.01*0.01
+
+        return colorcov + np.diagflat((f0 / f1)**2 * errsnakesq)
+
+
+
+    def bandflux_rcov(self, band, phase):
+	"""Return the model relative covariance of integrated flux through
+        the given restframe bands at the given phases
+
+        band : `~numpy.ndarray` of `~sncosmo.Bandpass`
+            Bandpasses of observations.
+        phase : `~numpy.ndarray` (float)
+            Phases of observations.
+        """
+
+	try:
+            return _bandflux_rcov(self, band, phase)
+        except ValueError as e:
+            _check_for_fitpack_error(e, phase, 'phase')
+            raise e
 
     def _set_colorlaw_from_file(self, name_or_obj):
         """Read color law file and set the internal colorlaw function,
@@ -959,8 +1076,21 @@ class Model(_ModelBase):
     # ----------------------------------------------------------------
     # Flux
     
+    def _baseflux(self, time, wave):
+        """Array flux function."""
+        a = 1. / (1. + self._parameters[0])
+        phase = (time - self._parameters[1]) * a
+        restwave = wave * a
+
+        # Note that below we multiply by the scale factor to conserve
+        # bolometric luminosity.
+        f = a * self._source._flux(phase, restwave)
+
+        return f
+
     def _flux(self, time, wave):
         """Array flux function."""
+
         a = 1. / (1. + self._parameters[0])
         phase = (time - self._parameters[1]) * a
         restwave = wave * a
@@ -995,7 +1125,7 @@ class Model(_ModelBase):
         flux : float or `~numpy.ndarray`
             Spectral flux density values in ergs / s / cm^2 / Angstrom.
         """
-        
+
         time = np.asarray(time)
         wave = np.asarray(wave)
 
@@ -1036,9 +1166,9 @@ class Model(_ModelBase):
         Returns
         -------
         overlap : bool or `~numpy.ndarray`
-            
+
         """
-        
+
         band = np.asarray(band)
         if z is None:
             z = self._parameters[0]
@@ -1090,6 +1220,76 @@ class Model(_ModelBase):
         except ValueError as e:
             _check_for_fitpack_error(e, time, 'time')
             raise e
+
+    def _bandflux_rcov(self, band, time):
+        """Relative covariance in given bandpass and times.
+
+        Parameters
+        ----------
+        band : str or list_like
+            Name(s) of Bandpass(es) in registry.
+        time : float or list_like
+            Time(s) in days. Must be in ascending order.
+        """
+
+        a = 1. / (1. + self._parameters[0])
+
+        # convert to 1-d arrays
+        time, band = np.broadcast_arrays(time, band)
+        ndim = time.ndim # save input ndim for return val
+        time = np.atleast_1d(time)
+        band = np.atleast_1d(band)
+        
+        # Convert `band` to an array of rest-frame bands
+        restband = np.empty(len(time), dtype='object')
+        for b in set(band):
+	    mask = band == b
+            b = get_bandpass(b)
+            restband[mask] = Bandpass(a*b.wave, b.trans)
+        
+        phase = (time - self._parameters[1]) * a
+
+        # Note that not all sources have this method.
+        rcov = self._source._bandflux_rcov(restband, phase)
+
+        if ndim == 0:
+            return rcov[0, 0]
+        return rcov
+
+    def bandfluxcov(self, band, time, zp=None, zpsys=None):
+	"""Like bandflux, but also returns model covariance on values.
+
+	Parameters
+        ----------
+        band : `~sncosmo.bandpass` or str or list_like
+            Bandpass(es) or name(s) of bandpass(es) in registry.
+        time : float or list_like
+            time(s) in days.
+	zp : float or list_like, optional
+	    If given, zeropoint to scale flux to. if `none` (default) flux
+	    is not scaled.
+        zpsys : `~sncosmo.magsystem` or str (or list_like), optional
+            Determines the magnitude system of the requested zeropoint.
+            cannot be `none` if `zp` is not `none`.
+
+        Returns
+        -------
+        bandflux : float or `~numpy.ndarray`
+            Model bandfluxes.
+        bandfluxcov : float or `~numpy.array`
+            Covariance on ``bandflux``. If ``bandflux`` is an array, this
+            will be a 2-d array.
+        """
+
+	f = self.bandflux(band, time, zp=zp, zpsys=zpsys)
+	rcov = self._bandflux_rcov(band, time)
+        
+        if isinstance(f, np.ndarray):
+            cov = f * rcov * f[:, np.newaxis]
+        else:
+            cov = f * rcov * f
+
+	return f, cov
 
     def bandmag(self, band, magsys, time):
         """Magnitude at the given time(s) through the given 

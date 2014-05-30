@@ -197,11 +197,18 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
     model = SALT2Source(
         m0file=t.extractfile(join(topdir,'salt2_template_0.dat')),
         m1file=t.extractfile(join(topdir,'salt2_template_1.dat')),
-        v00file=t.extractfile(join(topdir,'salt2_spec_variance_0.dat')),
-        v11file=t.extractfile(join(topdir,'salt2_spec_variance_1.dat')),
-        v01file=t.extractfile(join(topdir,'salt2_spec_covariance_01.dat')),
         clfile=t.extractfile(join(topdir,'salt2_color_correction.dat')),
-        errscalefile=errscalefile, name=name, version=version)
+        cdfile=t.extractfile(join(topdir,'salt2_color_dispersion.dat')),
+        errscalefile=t.extractfile(
+            join(topdir,'salt2_lc_dispersion_scaling.dat')),
+        lcrv00file=t.extractfile(
+            join(topdir,'salt2_lc_relative_variance_0.dat')),
+        lcrv11file=t.extractfile(
+            join(topdir,'salt2_lc_relative_variance_1.dat')),
+        lcrv01file=t.extractfile(
+            join(topdir,'salt2_lc_relative_covariance_01.dat')),
+        name=name,
+        version=version)
     t.close()
     #set_bandfluxerror_sn1a(model)
     return model
