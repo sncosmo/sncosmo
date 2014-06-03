@@ -541,11 +541,11 @@ class SALT2Source(Source):
         * m0file = 'salt2_template_0.dat' (2-d grid)
         * m1file = 'salt2_template_1.dat' (2-d grid)
         * clfile = 'salt2_color_correction.dat'
-	* errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
+        * errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
         * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
         * lcrv11file = 'salt2_lc_relative_variance_1.dat' (2-d grid)
         * lcrv01file = 'salt2_lc_relative_covariance_01.dat' (2-d grid)
-	* cdfile = 'salt2_color_dispersion.dat'
+        * cdfile = 'salt2_color_dispersion.dat'
 
         The "2-d grid" files have the format ``<phase> <wavelength>
         <value>`` on each line. ``m0file``, ``m1file`` and ``clfile``
@@ -650,9 +650,9 @@ class SALT2Source(Source):
             Restframe phases.
         """
 
-	x1 = self._parameters[1]
+        x1 = self._parameters[1]
 
-	# For the following components, we actually just want the values at 
+        # For the following components, we actually just want the values at 
         # pair values of (x, y), not the cross-product between the two.
         # (wave will be central value of rest-frame bandpass)
         # That is, we want a 1-d array, for points (phase[0], wave[0]),
@@ -660,12 +660,12 @@ class SALT2Source(Source):
         lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
         lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
         lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
-	scale = np.diagonal(self._model['errscale'](phase, wave))
+        scale = np.diagonal(self._model['errscale'](phase, wave))
 
         return scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
 
     def _bandflux_rcov(self, band, phase):
-	"""Return the model relative covariance of integrated flux through
+        """Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
 
         band : 1-d `~numpy.ndarray` of `~sncosmo.Bandpass`
@@ -708,23 +708,23 @@ class SALT2Source(Source):
         # true only where bands are same
         mask = cwave == cwave[:,np.newaxis]
 
-	colorvar = self._colordisp(cwave)**2  # 1-d array
+        colorvar = self._colordisp(cwave)**2  # 1-d array
         colorcov = mask * colorvar  # 2-d * 1-d = 2-d
-	
-	errsnakesq = self._errsnakesq(cwave, phase)
 
-	# errorsnakesq is supposed to be variance but can go negative
-	# due to interpolation.  Correct negative values to some small
-	# number. (at present, use prescription of snfit : set
-	# negatives to 0.0001)
-	errsnakesq[errsnakesq < 0.] = 0.01*0.01
+        errsnakesq = self._errsnakesq(cwave, phase)
+
+        # errorsnakesq is supposed to be variance but can go negative
+        # due to interpolation.  Correct negative values to some small
+        # number. (at present, use prescription of snfit : set
+        # negatives to 0.0001)
+        errsnakesq[errsnakesq < 0.] = 0.01*0.01
 
         return colorcov + np.diagflat((f0 / f1)**2 * errsnakesq)
 
 
 
     def bandflux_rcov(self, band, phase):
-	"""Return the model relative covariance of integrated flux through
+        """Return the model relative covariance of integrated flux through
         the given restframe bands at the given phases
 
         band : `~numpy.ndarray` of `~sncosmo.Bandpass`
@@ -733,7 +733,7 @@ class SALT2Source(Source):
             Phases of observations.
         """
 
-	try:
+        try:
             return _bandflux_rcov(self, band, phase)
         except ValueError as e:
             _check_for_fitpack_error(e, phase, 'phase')
@@ -1243,7 +1243,7 @@ class Model(_ModelBase):
         # Convert `band` to an array of rest-frame bands
         restband = np.empty(len(time), dtype='object')
         for b in set(band):
-	    mask = band == b
+            mask = band == b
             b = get_bandpass(b)
             restband[mask] = Bandpass(a*b.wave, b.trans)
         
@@ -1257,17 +1257,17 @@ class Model(_ModelBase):
         return rcov
 
     def bandfluxcov(self, band, time, zp=None, zpsys=None):
-	"""Like bandflux, but also returns model covariance on values.
+        """Like bandflux, but also returns model covariance on values.
 
-	Parameters
+        Parameters
         ----------
         band : `~sncosmo.bandpass` or str or list_like
             Bandpass(es) or name(s) of bandpass(es) in registry.
         time : float or list_like
             time(s) in days.
-	zp : float or list_like, optional
-	    If given, zeropoint to scale flux to. if `none` (default) flux
-	    is not scaled.
+        zp : float or list_like, optional
+            If given, zeropoint to scale flux to. if `none` (default) flux
+            is not scaled.
         zpsys : `~sncosmo.magsystem` or str (or list_like), optional
             Determines the magnitude system of the requested zeropoint.
             cannot be `none` if `zp` is not `none`.
@@ -1281,15 +1281,15 @@ class Model(_ModelBase):
             will be a 2-d array.
         """
 
-	f = self.bandflux(band, time, zp=zp, zpsys=zpsys)
-	rcov = self._bandflux_rcov(band, time)
-        
+        f = self.bandflux(band, time, zp=zp, zpsys=zpsys)
+        rcov = self._bandflux_rcov(band, time)
+
         if isinstance(f, np.ndarray):
             cov = f * rcov * f[:, np.newaxis]
         else:
             cov = f * rcov * f
 
-	return f, cov
+        return f, cov
 
     def bandmag(self, band, magsys, time):
         """Magnitude at the given time(s) through the given 
