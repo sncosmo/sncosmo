@@ -584,7 +584,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
 
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
-		    	
+
     # Weighted average of samples
     parameters = np.average(res['samples'], weights=res['weights'], axis=0)
     model.set(**dict(zip(param_names, parameters)))
