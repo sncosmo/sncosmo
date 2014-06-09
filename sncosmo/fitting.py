@@ -12,7 +12,7 @@ from .photdata import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
 
-__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc','flatten_result']
+__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result']
 
 class DataQualityError(Exception):
     pass
@@ -563,6 +563,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
           any automatically determined bounds).
         * ``ndof``: Number of degrees of freedom.
     est_model : `~sncosmo.Model`
+	* ``cov``: covariance of the varied parameters. 
         Copy of model with parameters set to the values in ``res.param_dict``.
     """
 
@@ -597,20 +598,18 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     
     # Weighted st. dev. of samples
     biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
-	    (res['samples']-parameters)**2, axis=0)
-    unbiasedvarestimate = biasedvarestimate /(1.0 - sqweightsum)  
-    #std = np.sqrt(np.sum(res['weights'][:, np.newaxis] *
-    #                     (res['samples']-parameters)**2, axis=0))
-    std = np.sqrt(unbiasedvarestimate )
+			      (res['samples']-parameters)**2, axis=0)
+    unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum)  
+    std = np.sqrt(unbiasedvarestimate)
 
     # Covariance 
-    covests = map(np.outer, res['samples'] , res['samples'])
-    cov = np.average ( covests , weights = res['weights'] , axis = 0)
-    cov = (cov - np.outer( parameters, parameters ))/ (1.0 - sqweightsum )
+    covests = map(np.outer, res['samples'], res['samples'])
+    cov = np.average(covests , weights=res['weights'] , axis=0)
+    cov = (cov - np.outer(parameters, parameters)) / (1.0 - sqweightsum)
 
     res.errors = odict(zip(res.param_names, std))
     res.bounds = bounds
-    res.cov    = cov 
+    res.cov = cov 
 
     return res, model
 
