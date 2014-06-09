@@ -12,7 +12,7 @@ from .photdata import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
 
-__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc']
+__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc','flatten_result']
 
 class DataQualityError(Exception):
     pass
@@ -584,17 +584,33 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
 
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
-    
+		    	
     # Weighted average of samples
     parameters = np.average(res['samples'], weights=res['weights'], axis=0)
     model.set(**dict(zip(param_names, parameters)))
     res.param_dict = dict(zip(model.param_names, model.parameters))
 
+    # square of weights 
+    sqweights = res['weights']*res['weights']
+    # sum of square of weights 
+    sqweightsum = np.sum(sqweights)
+    
     # Weighted st. dev. of samples
-    std = np.sqrt(np.sum(res['weights'][:, np.newaxis] *
-                         (res['samples']-parameters)**2, axis=0))
+    biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
+	    (res['samples']-parameters)**2, axis=0)
+    unbiasedvarestimate = biasedvarestimate /(1.0 - sqweightsum)  
+    #std = np.sqrt(np.sum(res['weights'][:, np.newaxis] *
+    #                     (res['samples']-parameters)**2, axis=0))
+    std = np.sqrt(unbiasedvarestimate )
+
+    # Covariance 
+    covests = map(np.outer, res['samples'] , res['samples'])
+    cov = np.average ( covests , weights = res['weights'] , axis = 0)
+    cov = (cov - np.outer( parameters, parameters ))/ (1.0 - sqweightsum )
+
     res.errors = odict(zip(res.param_names, std))
     res.bounds = bounds
+    res.cov    = cov 
 
     return res, model
 
