@@ -562,7 +562,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         * ``bounds``: Dictionary of bounds on varied parameters (including
           any automatically determined bounds).
         * ``ndof``: Number of degrees of freedom.
-	* ``cov``: covariance of the varied parameters. 
+        * ``cov``: covariance of the varied parameters. 
     est_model : `~sncosmo.Model`
         Copy of model with parameters set to the values in ``res.param_dict``.
     """
