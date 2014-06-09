@@ -596,16 +596,21 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     # sum of square of weights 
     sqweightsum = np.sum(sqweights)
     
-    # Weighted st. dev. of samples
-    biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
-			      (res['samples']-parameters)**2, axis=0)
-    unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum)  
-    std = np.sqrt(unbiasedvarestimate)
 
     # Covariance 
     covests = map(np.outer, res['samples'], res['samples'])
     cov = np.average(covests , weights=res['weights'] , axis=0)
     cov = (cov - np.outer(parameters, parameters)) / (1.0 - sqweightsum)
+
+    # Weighted st. dev. of samples
+    try:
+	std = np.sqrt(np.diagonal(cov))
+    except:
+	biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
+                                  (res['samples']-parameters)**2, axis=0)
+
+	unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum) 
+	std = np.sqrt(unbiasedvarestimate)
 
     res.errors = odict(zip(res.param_names, std))
     res.bounds = bounds
