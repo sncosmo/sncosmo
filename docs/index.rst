@@ -48,5 +48,6 @@ Usage
    photdata
    cuts
    fitting
+   simulation
    registry
    reference

@@ -110,7 +110,8 @@ Simulation
 .. autosummary::
    :toctree: api
 
-   simulate_vol
+   zdist
+   realize_lcs
 
 Registry
 ========

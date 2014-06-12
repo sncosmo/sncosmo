@@ -5,18 +5,177 @@ import math
 from copy import deepcopy
 
 import numpy as np
+from numpy import random
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.table import Table
-from astropy import cosmology
+from astropy.cosmology import FlatLambdaCDM
 from astropy.utils import OrderedDict as odict
 
 import sncosmo
 
-__all__ = ['simulate_vol']
+__all__ = ['zdist', 'realize_lcs', 'simulate_vol']
 wholesky_sqdeg = 4. * np.pi * (180. / np.pi) ** 2
 
+def zdist(zmin, zmax, time=365.25, area=1.,
+          ratefunc=lambda z: 1.e-4,
+          cosmo=FlatLambdaCDM(H0=70.0, Om0=0.3)):
+    """Generate a distribution of redshifts.
+
+    Generates the correct redshift distribution and number of SNe, given
+    the input volumetric SN rate, the cosmology, and the observed area and
+    time.
+
+    Parameters
+    ----------
+    zmin, zmax : float
+        Minimum and maximum redshift.
+    time : float, optional
+        Time in days (default is 1 year).
+    area : float, optional
+        Area in square degrees (default is 1 square degree). ``time`` and
+        ``area`` are only used to determine the total number of SNe to
+        generate.
+    ratefunc : callable
+        A callable that accepts a single float (redshift) and returns the
+        comoving volumetric rate at each redshift in units of yr^-1 Mpc^-3.
+        The default is a function that returns ``1.e-4``.
+    cosmo : `~astropy.cosmology.Cosmology`, optional
+        Cosmology used to determine volume. The default is a FlatLambdaCDM
+        cosmology with ``Om0=0.3``, ``H0=70.0``.
+
+    Examples
+    --------
+
+    Loop over the generator:
+
+    >>> for z in zdist(0.0, 0.25):  # doctest: +SKIP
+    ...     print z                 # doctest: +SKIP
+    ...
+    0.151285827576
+    0.204078030595
+    0.201009196731
+    0.181635472172
+    0.17896188781
+    0.226561237264
+    0.192747368762
+
+    This tells us that in one observer-frame year, over 1 square
+    degree, 7 SNe occured at redshifts below 0.35 (given the default
+    volumetric SN rate of 10^-4 SNe yr^-1 Mpc^-3). The exact number is
+    drawn from a Poisson distribution.
+
+    Generate the full list of redshifts immediately:
+
+    >>> zlist = list(zdist(0., 0.25))
+
+    Define a custom volumetric rate:
+
+    >>> def snrate(z):
+    ...     return 0.5e-4 * (1. + z)
+    ...
+    >>> zlist = list(zdist(0., 0.25, ratefunc=snrate))
+
+    """
+
+    # Get comoving volume in each redshift shell.
+    z_bins = 100  # Good enough for now.
+    z_binedges = np.linspace(zmin, zmax, z_bins + 1) 
+    z_binctrs = 0.5 * (z_binedges[1:] + z_binedges[:-1]) 
+    sphere_vols = cosmo.comoving_volume(z_binedges).value
+    shell_vols = sphere_vols[1:] - sphere_vols[:-1]
+
+    # SN / (observer year) in shell
+    shell_snrate = np.array([shell_vols[i] *
+                             ratefunc(z_binctrs[i]) / (1.+z_binctrs[i])
+                             for i in xrange(z_bins)])
+
+    # SN / (observer year) within z_binedges
+    vol_snrate = np.zeros_like(z_binedges)
+    vol_snrate[1:] = np.add.accumulate(shell_snrate)
+
+    # Create a ppf (inverse cdf). We'll use this later to get
+    # a random SN redshift from the distribution.
+    snrate_cdf = vol_snrate / vol_snrate[-1]
+    snrate_ppf = Spline1d(snrate_cdf, z_binedges, k=1)
+
+    # Total numbe of SNe to simulate.
+    nsim = vol_snrate[-1] * (time/365.25) * (area/wholesky_sqdeg)
+
+    for i in xrange(random.poisson(nsim)):
+        yield float(snrate_ppf(random.random()))
+
+def realize_lcs(observations, model, params, thresh=None):
+    """Realize data for a set of SNe given a set of observations.
+
+    Parameters
+    ----------
+    observations : `~astropy.table.Table` or `~numpy.ndarray`
+        Table of observations. Must contain the following column names:
+        ``band``, ``time``, ``zp``, ``zpsys``, ``gain``, ``skynoise``.
+    model : `sncosmo.Model`
+        The model to use in the simulation.
+    params : list (or generator) of dict
+        List of parameters to feed to the model for realizing each light curve.
+    thresh : float, optional
+        If given, light curves are skipped (not returned) if none of the data
+        points have signal-to-noise greater than ``thresh``.
+
+    Returns
+    -------
+    sne : list of `~astropy.table.Table`
+        Table of realized data for each item in ``params``.
+
+    Notes
+    -----
+    ``skynoise`` is the image background contribution to the flux measurement
+    error (in units corresponding to the specified zeropoint and zeropoint
+    system). To get the error on a given measurement, ``skynoise`` is added
+    in quadrature to the photon noise from the source.
+
+    It is left up to the user to calculate ``skynoise`` as they see fit as the
+    details depend on how photometry is done and possibly how the PSF is
+    is modeled. As a simple example, assuming a Gaussian PSF, and perfect
+    PSF photometry, ``skynoise`` would be ``4 * pi * sigma_PSF * sigma_pixel``
+    where ``sigma_PSF`` is the standard deviation of the PSF in pixels and
+    ``sigma_pixel`` is the background noise in a single pixel in counts.
+    """
+
+    observations = np.asarray(observations)
+    lcs = []
+
+    # TODO: copy model so we don't mess up the user's model?
+
+    for p in params:
+        model.set(**p)
+
+        flux = model.bandflux(observations['band'],
+                              observations['time'],
+                              zp=observations['zp'],
+                              zpsys=observations['zpsys'])
+
+        fluxerr = np.sqrt(observations['skynoise']**2 +
+                          np.abs(flux) / observations['gain'])
+
+        # Scatter fluxes by the fluxerr
+        flux = np.random.normal(flux, fluxerr)
+
+        # Check if any of the fluxes are significant
+        if thresh is not None and not np.any(flux/fluxerr > thresh):
+            continue
+
+        data = odict([('time', observations['time']),
+                      ('band', observations['band']),
+                      ('flux', flux),
+                      ('fluxerr', fluxerr),
+                      ('zp', observations['zp']),
+                      ('zpsys', observations['zpsys'])])
+        lcs.append(Table(data, meta=p))
+
+    return lcs
+
+
 def simulate_vol(obs_sets, model, gen_params, vrate,
-                 cosmo=cosmology.FlatLambdaCDM(H0=70., Om0=0.3),
+                 cosmo=FlatLambdaCDM(H0=70., Om0=0.3),
                  z_range=(0., 1.), default_area=1., nsim=None,
                  nret=10, thresh=5.):
     """Simulate transient photometric data according to observations
@@ -112,7 +271,7 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
     Get x0 corresponding to apparent mag = -19.1:
 
     >>> model.source.set_peakmag(-19.1, 'bessellb', 'vega')  # doctest: +SKIP
-    x0_0 = model.get('x0')                                   # doctest: +SKIP
+    >>> x0_0 = model.get('x0')                               # doctest: +SKIP
 
     Define a function that generates parameters of the model given a redshift:
 
