@@ -20,8 +20,20 @@ class DataQualityError(Exception):
 def flatten_result(res):
     """Turn a result from fit_lc into a simple dictionary of key, value pairs.
     
-    keys are only strings, values are (float, int, string), suitable for saving
-    to a text file. 
+    Useful when saving results to a text file table, where structures
+    like a covariance matrix cannot be easily written to a single
+    table row.
+
+    Parameters
+    ----------
+    res : Result
+        Result object from `~sncosmo.fit_lc`.
+
+    Returns
+    -------
+    flat : Result
+        Flattened result. Keys are all strings, values are one of: float, int,
+        string), suitable for saving to a text file.
     """
 
     flat = Result(success=(1 if res.success else 0),
@@ -130,7 +142,7 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5., verbose=False, maxcall=10000, flatten=False):
+           minsnr=5., verbose=False, maxcall=10000, **kwargs):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -169,10 +181,6 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         Minimization method to use. Currently there is only one choice.
     verbose : bool, optional
         Print messages during fitting.
-    flatten : bool, optional
-        If True, "flatten" the result before returning it. This converts the
-        result into a simple dictionary where the values consist only of
-        (int, float, str), making it suitable for saving to a text file.
 
     Returns
     -------
@@ -226,17 +234,17 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
     Examples
     --------
-    The ``flatten`` keyword can be used to make the result a dictionary
-    suitable for appending as rows of a table:
 
-    >>> from astropy.table import Table   # doctest: +SKIP
-    >>> table_rows = []  # doctest: +SKIP
-    >>> for sn in sne:  # doctest: +SKIP
-    ...     res, fitmodel = sncosmo.fit_lc(  # doctest: +SKIP
-    ...          sn, model, ['t0', 'x0', 'x1', 'c'],  # doctest: +SKIP
-    ...          flatten=True)  # doctest: +SKIP
-    ...     table_rows.append(res)  # doctest: +SKIP
-    >>> t = Table(table_rows)  # doctest: +SKIP
+    The `~sncosmo.flatten_result` function can be used to make the result
+    a dictionary suitable for appending as rows of a table:
+
+    >>> from astropy.table import Table               # doctest: +SKIP
+    >>> table_rows = []                               # doctest: +SKIP
+    >>> for sn in sne:                                # doctest: +SKIP
+    ...     res, fitmodel = sncosmo.fit_lc(           # doctest: +SKIP
+    ...          sn, model, ['t0', 'x0', 'x1', 'c'])  # doctest: +SKIP
+    ...     table_rows.append(flatten_result(res))    # doctest: +SKIP
+    >>> t = Table(table_rows)                         # doctest: +SKIP
 
     """
 
@@ -391,8 +399,12 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     else:
         raise ValueError("unknown method {0:r}".format(method))
     
-    if flatten:
-        res = flatten_result(res)
+    # TODO remove this in v0.6
+    if "flatten" in kwargs:
+        warnings.warn("flatten keyword is deprecated. Use flatten_result()"
+                      "function instead.")
+        if kwargs["flatten"]:
+            res = flatten_result(res)
     return res, model
 
 
