@@ -2,6 +2,9 @@
 ------------------
 
 * Add ``tighten_ylim`` keyword argument to ``plot_lc()``.
+* Deprecate ``flatten`` keyword argument in ``fit_lc()`` in favor of explicit
+  use of ``flatten_result()`` function.
+
 
 0.4.2 (2014-04-08)
 ------------------
