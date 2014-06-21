@@ -31,7 +31,7 @@ def flatten_result(res):
 
     Returns
     -------
-    flat : Result
+    flatres : Result
         Flattened result. Keys are all strings, values are one of: float, int,
         string), suitable for saving to a text file.
     """
@@ -560,22 +560,27 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         * ``samples``: 2-d `~numpy.ndarray`, shape is (nsamples, nparameters).
           Each row is the parameter values for a single sample. For example,
           ``samples[0, :]`` is the parameter values for the first sample.
-        * ``weights``: 1-d `~numpy.ndarray`, length=nsamples;
-          Weight corresponding to each sample. The weight is proportional to
-          the prior * likelihood for the sample.
         * ``logprior``: 1-d `~numpy.ndarray`, length=nsamples;
           log(prior volume) for each sample.
         * ``logl``: 1-d `~numpy.ndarray`, length=nsamples; log(likelihood)
           for each sample.
-        * ``param_dict``: Dictionary of weighted average of sample parameter
-          values (includes fixed parameters).
-        * ``errors``: Dictionary of weighted standard deviation of sample
-          parameter values (does not include fixed parameters). 
+        * ``weights``: 1-d `~numpy.ndarray`, length=nsamples;
+          Weight corresponding to each sample. The weight is proportional to
+          the prior * likelihood for the sample.
+        * ``ndof``: Number of degrees of freedom.
         * ``bounds``: Dictionary of bounds on varied parameters (including
           any automatically determined bounds).
-        * ``ndof``: Number of degrees of freedom.
-        * ``cov``: covariance of the varied parameters. 
-    est_model : `~sncosmo.Model`
+
+        The following additional attributes are determined directly from the
+        ``samples`` and ``weights`` arrays:
+    
+        * ``param_dict``: Dictionary of weighted average of sample parameter
+          values (includes fixed parameters).
+        * ``covariance``: covariance matrix from sample parameter values
+          (does not include fixed parameters).
+        * ``errors``: Dictionary of weighted standard deviation of sample
+          parameter values (does not include fixed parameters). 
+    estimated_model : `~sncosmo.Model`
         Copy of model with parameters set to the values in ``res.param_dict``.
     """
 
@@ -598,35 +603,28 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
 
+    res.bounds = bounds
+
     # Weighted average of samples
     parameters = np.average(res['samples'], weights=res['weights'], axis=0)
     model.set(**dict(zip(param_names, parameters)))
     res.param_dict = dict(zip(model.param_names, model.parameters))
 
-    # square of weights 
-    sqweights = res['weights']*res['weights']
-    # sum of square of weights 
-    sqweightsum = np.sum(sqweights)
-    
-
-    # Covariance 
+    # Covariance and "errors" (diagonal of covariance)
+    sqweightsum = np.sum(res['weights']**2)
     covests = map(np.outer, res['samples'], res['samples'])
-    cov = np.average(covests , weights=res['weights'] , axis=0)
-    cov = (cov - np.outer(parameters, parameters)) / (1.0 - sqweightsum)
+    res.covariance = (np.average(covests, weights=res['weights'], axis=0) -
+                      np.outer(parameters, parameters)) / (1.0 - sqweightsum)
+    res.errors = np.sqrt(np.diagonal(cov))
 
-    # Weighted st. dev. of samples
-    try:
-	std = np.sqrt(np.diagonal(cov))
-    except:
-	biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
-                                  (res['samples']-parameters)**2, axis=0)
+    # the following is a cross-check that we've done the "error" calculation
+    # correctly (TODO: move this to tests)
 
-	unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum) 
-	std = np.sqrt(unbiasedvarestimate)
-
-    res.errors = odict(zip(res.param_names, std))
-    res.bounds = bounds
-    res.cov = cov 
+    #sqweightsum = np.sum(res['weights']**2)
+    #biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
+    #                          (res['samples']-parameters)**2, axis=0)
+    #unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum) 
+    #std = np.sqrt(unbiasedvarestimate)
 
     return res, model
 
