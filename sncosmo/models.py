@@ -637,30 +637,32 @@ class SALT2Source(Source):
                 self._model['clbase'](wave)**self._parameters[2])
 
     def _errsnakesq(self, wave, phase):
-        """Return the errorsnake squared in terms of the rest frame
-        phase and wavelength.
+        """Return the errorsnake squared (model variance) for the given
+        rest-frame phases and rest-frame bandpass central wavelength.
 
-        This is available as a separate method mainly for testing purposes.
+        Note that this is "vectorized" on phase only. Wavelength
+        must be a scalar.
 
         Parameters
         ----------
-        wave : 1-d `~numpy.ndarray`
-            Restframe wavelengths (central wavelength of bandpasses)
+        wave : float
+            Central wavelength of rest-frame bandpass.
         phase : 1-d `~numpy.ndarray`
             Restframe phases.
+
+        Returns
+        -------
+        variance : 1-d `~numpy.ndarray`
         """
 
         x1 = self._parameters[1]
 
-        # For the following components, we actually just want the values at 
-        # pair values of (x, y), not the cross-product between the two.
-        # (wave will be central value of rest-frame bandpass)
-        # That is, we want a 1-d array, for points (phase[0], wave[0]),
-        # (phase[1], wave[1]), ...
-        lcrv00 = np.diagonal(self._model['LCRV00'](phase, wave))
-        lcrv11 = np.diagonal(self._model['LCRV11'](phase, wave))
-        lcrv01 = np.diagonal(self._model['LCRV01'](phase, wave))
-        scale = np.diagonal(self._model['errscale'](phase, wave))
+        # In the following, the "[:,0]" reduces from a 2-d array of shape
+        # (nphase, 1) to a 1-d array.
+        lcrv00 = self._model['LCRV00'](phase, wave)[:, 0]
+        lcrv11 = self._model['LCRV11'](phase, wave)[:, 0]
+        lcrv01 = self._model['LCRV01'](phase, wave)[:, 0]
+        scale = self._model['errscale'](phase, wave)[:, 0]
 
         return scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
 
@@ -678,8 +680,9 @@ class SALT2Source(Source):
 
         # initialize integral arrays
         f0 = np.zeros(phase.shape, dtype=np.float)
-        f1 = np.zeros(phase.shape, dtype=np.float)
+        m1int = np.zeros(phase.shape, dtype=np.float)
         cwave = np.zeros(phase.shape, dtype=np.float)  # central wavelengths
+        errsnakesq = np.empty(phase.shape, dtype=np.float)
 
         # Loop over unique bands
         for b in set(band):
@@ -699,10 +702,9 @@ class SALT2Source(Source):
 
             tmp = b.trans * b.wave * b.dwave
             f0[mask] = np.sum(m0 * tmp, axis=1) / HC_ERG_AA
-            f1[mask] = np.sum(m1 * tmp, axis=1) / HC_ERG_AA
+            m1int[mask] = np.sum(m1 * tmp, axis=1) / HC_ERG_AA
 
-        # Make F1 what it really should be.
-        f1 = f0 + x1*f1
+            errsnakesq[mask] = self._errsnakesq(b.wave_eff, phase[mask])
 
         # 2-d bool array of shape (len(band), len(band)):
         # true only where bands are same
@@ -711,14 +713,13 @@ class SALT2Source(Source):
         colorvar = self._colordisp(cwave)**2  # 1-d array
         colorcov = mask * colorvar  # 2-d * 1-d = 2-d
 
-        errsnakesq = self._errsnakesq(cwave, phase)
-
         # errorsnakesq is supposed to be variance but can go negative
         # due to interpolation.  Correct negative values to some small
         # number. (at present, use prescription of snfit : set
         # negatives to 0.0001)
         errsnakesq[errsnakesq < 0.] = 0.01*0.01
 
+        f1 = f0 + x1*m1int
         return colorcov + np.diagflat((f0 / f1)**2 * errsnakesq)
 
 
@@ -1249,7 +1250,9 @@ class Model(_ModelBase):
         
         phase = (time - self._parameters[1]) * a
 
-        # Note that not all sources have this method.
+        # Note that not all sources have this method. The idea
+        # is that this will automatically fail if the method doesn't exist
+        # for self._source.
         rcov = self._source._bandflux_rcov(restband, phase)
 
         if ndim == 0:
@@ -1276,7 +1279,7 @@ class Model(_ModelBase):
         -------
         bandflux : float or `~numpy.ndarray`
             Model bandfluxes.
-        bandfluxcov : float or `~numpy.array`
+        cov : float or `~numpy.array`
             Covariance on ``bandflux``. If ``bandflux`` is an array, this
             will be a 2-d array.
         """
