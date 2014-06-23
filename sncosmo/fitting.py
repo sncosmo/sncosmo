@@ -652,7 +652,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     covests = map(np.outer, res['samples'], res['samples'])
     res.covariance = (np.average(covests, weights=res['weights'], axis=0) -
                       np.outer(parameters, parameters)) / (1.0 - sqweightsum)
-    res.errors = np.sqrt(np.diagonal(cov))
+    res.errors = np.sqrt(np.diagonal(res.covariance))
 
     # the following is a cross-check that we've done the "error" calculation
     # correctly (TODO: move this to tests)
