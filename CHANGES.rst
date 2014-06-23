@@ -4,6 +4,8 @@
 * Add ``tighten_ylim`` keyword argument to ``plot_lc()``.
 * Deprecate ``flatten`` keyword argument in ``fit_lc()`` in favor of explicit
   use of ``flatten_result()`` function.
+* Add ``Model.bandfluxcov()`` function.
+* Add ``chisq()`` function and use internally in ``fit_lc()``.
 
 
 0.4.2 (2014-04-08)

@@ -92,6 +92,7 @@ Fitting Photometric Data
    fit_lc
    nest_lc
    mcmc_lc
+   chisq
    flatten_result
 
 Plotting

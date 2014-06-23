@@ -12,10 +12,46 @@ from .photdata import standardize_data, normalize_data
 from . import nest
 from .utils import Result, Interp1d, pdf_to_ppf
 
-__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result']
+__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
 class DataQualityError(Exception):
     pass
+
+def _chisq(data, model, modelcov=False):
+    """Like chisq but assumes data is already standardized."""
+
+    if modelcov:
+        mflux, mcov = model.bandfluxcov(data['band'], data['time'],
+                                        zp=data['zp'], zpsys=data['zpsys'])
+        diff = (data['flux'] - mflux)
+        totcov = mcov + np.diag(data['fluxerr']**2)
+        invtotcov = np.linalg.inv(totcov)
+        return np.dot(np.dot(diff[np.newaxis, :], invtotcov),
+                      diff[:, np.newaxis])[0,0]
+    else:
+        mflux = model.bandflux(data['band'], data['time'],
+                               zp=data['zp'], zpsys=data['zpsys'])
+        return np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
+
+def chisq(data, model, modelcov=False):
+    """Calculate chisq statistic for the model, given the data.
+
+    Parameters
+    ----------
+    model : `~sncosmo.Model`
+    data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
+        Table of photometric data. Must include certain column names.
+    modelcov : bool
+        Include model covariance? Calls ``model.bandfluxcov`` method
+        instead of ``model.bandflux``. The source in the model must therefore
+        implement covariance.
+
+    Returns
+    -------
+    chisq : float
+    """
+    data = standardize_data(data)
+    return _chisq(data, model, modelcov=modelcov)
 
 def flatten_result(res):
     """Turn a result from fit_lc into a simple dictionary of key, value pairs.
@@ -141,8 +177,9 @@ def guess_t0_and_amplitude(data, model, minsnr):
     return t0, amplitude
 
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
-           guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5., verbose=False, maxcall=10000, **kwargs):
+           guess_amplitude=True, guess_t0=True, guess_z=True, 
+           minsnr=5., modelcov=False, verbose=False, maxcall=10000,
+           **kwargs):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -179,6 +216,8 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         ratio (flux / fluxerr) greater than this value. Default is 5.
     method : {'minuit'}, optional
         Minimization method to use. Currently there is only one choice.
+    modelcov : bool, optional
+        Include model covariance when calculating chisq. Default is False.
     verbose : bool, optional
         Print messages during fitting.
 
@@ -303,11 +342,9 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
         # The iminuit minimizer expects the function signature to have an
         # argument for each parameter.
-        def chi2(*parameters):
+        def fitchisq(*parameters):
             model.parameters = parameters
-            modelflux = model.bandflux(data['band'], data['time'],
-                                       zp=data['zp'], zpsys=data['zpsys'])
-            return np.sum(((data['flux'] - modelflux) / data['fluxerr'])**2)
+            return _chisq(data, model, modelcov=modelcov)
 
         # Set up keyword arguments to pass to Minuit initializer.
         kwargs = {}
@@ -344,7 +381,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
                     print 'bounds=', kwargs['limit_' + name],
                 print ''
 
-        m = iminuit.Minuit(chi2, errordef=1.,
+        m = iminuit.Minuit(fitchisq, errordef=1.,
                            forced_parameters=model.param_names,
                            print_level=(1 if verbose else 0),
                            throw_nan=True, **kwargs)
