@@ -85,3 +85,10 @@ class TestModel:
         ans = min(self.model.source.maxwave() * (1.+z),
                   self.model.effects[0].maxwave())
         assert self.model.maxwave() == ans
+
+    def test_set_source_peakabsmag(self):
+        
+        # Both Bandpass and str should work
+        band = sncosmo.get_bandpass('desg')
+        self.model.set_source_peakabsmag(-19.3, 'desg', 'ab')
+        self.model.set_source_peakabsmag(-19.3, band, 'ab')

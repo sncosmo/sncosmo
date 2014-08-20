@@ -378,7 +378,8 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if isinstance(band_or_wave, basestring):
+        if (isinstance(band_or_wave, basestring) or
+            isinstance(band_or_wave, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
