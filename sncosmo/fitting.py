@@ -532,7 +532,9 @@ def _nest_lc(data, model, param_names,
                          .format(name))
 
     def prior(u):
-        d = {iparam_names[i]: ppflist[i](u[i]) for i in range(nipar)}
+        d = {}
+        for i in range(nipar):
+            d[iparam_names[i]] = ppflist[i](u[i])
         v = np.empty(npar, dtype=np.float)
         for i in range(npar):
             key = param_names[i]
