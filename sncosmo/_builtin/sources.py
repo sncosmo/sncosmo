@@ -280,7 +280,7 @@ def load_2011fe(name=None, version=None):
     warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
                             append=True)
 
-    tarfname = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT)
+    tarfname = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
     t = tarfile.open(tarfname, 'r:gz')
     phasestrs = []
     spectra = []
