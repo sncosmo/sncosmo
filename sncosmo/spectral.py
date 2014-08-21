@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import abc
+import math
 from copy import deepcopy
 
 import numpy as np
