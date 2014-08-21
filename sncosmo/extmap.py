@@ -18,26 +18,30 @@ SFD_MAP_DIR = ConfigurationItem('sfd_map_dir', '.',
 
 __all__ = ['get_ebv_from_map']
 
+
 def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
-    """Get E(B-V) value(s) from Schlegel, Finkbeiner, and Davis 1998 extinction
-    maps at the given coordinates.
+
+    """Get E(B-V) value(s) from Schlegel, Finkbeiner, and Davis (1998)
+    extinction maps at the given coordinates.
 
     Parameters
     ----------
-    coordinates : astropy `~astropy.coordinates.coordsystems.SphericalCoordinatesBase` or tuple/list.
-        If tuple/list, treated as (RA, Dec) in degrees the ICRS (e.g., "J2000")
-        system. RA and Dec can each be float or list or numpy array.
+    coordinates : astropy Coordinates object or tuple/list.
+        If tuple/list, treated as (RA, Dec) in degrees the ICRS (e.g.,
+        "J2000") system. RA and Dec can each be float or list or numpy
+        array.
     mapdir : str, optional
-        Directory in which to find dust map FITS images, which must be named
-        ``SFD_dust_4096_[ngp,sgp].fits``. If `None` (default), the value of
-        the SFD_MAP_DIR configuration item is used. By default, this is ``'.'``.
-        The value of SFD_MAP_DIR can be set in the configuration file,
-        typically located in ``$HOME/.astropy/config/sncosmo.cfg``.
+        Directory in which to find dust map FITS images, which must be
+        named ``SFD_dust_4096_[ngp,sgp].fits``. If `None` (default),
+        the value of the SFD_MAP_DIR configuration item is used. By
+        default, this is ``'.'``.  The value of ``SFD_MAP_DIR`` can be set
+        in the configuration file, typically located in
+        ``$HOME/.astropy/config/sncosmo.cfg``.
     interpolate : bool
         Interpolate between the map values using
-        `scipy.ndimage.map_coordinates`.
+        `scipy.ndimage.map_coordinates`. Default is ``True``.
     order : int
-        Interpolation order, if interpolate=True. Default is 1.
+        Interpolation order, if interpolate=True. Default is ``1``.
 
     Returns
     -------
@@ -45,7 +49,7 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
         Specific extinction E(B-V) at the given locations.
 
     """
-    
+
     # Get mapdir
     if mapdir is None:
         mapdir = SFD_MAP_DIR()
@@ -53,7 +57,7 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
     mapdir = os.path.expandvars(mapdir)
     fname = os.path.join(mapdir, 'SFD_dust_4096_{0}.fits')
 
-    # Parse input 
+    # Parse input
     if not isinstance(coordinates, coord.SphericalCoordinatesBase):
         ra, dec = coordinates
         coordinates = coord.ICRS(ra=ra, dec=dec, unit=(u.degree, u.degree))
@@ -75,28 +79,29 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
     # Treat north (b>0) separately from south (b<0).
     for n, idx, ext in [(1, b >= 0, 'ngp'), (-1, b < 0, 'sgp')]:
 
-        if not np.any(idx): continue
+        if not np.any(idx):
+            continue
         hdulist = fits.open(fname.format(ext))
         mapd = hdulist[0].data
 
         # Project from galactic longitude/latitude to lambert pixels.
         # (See SFD98).
-        npix = mapd.shape[0]        
+        npix = mapd.shape[0]
         x = (npix / 2 * np.cos(l[idx]) * np.sqrt(1. - n*np.sin(b[idx])) +
              npix / 2 - 0.5)
         y = (-npix / 2 * n * np.sin(l[idx]) * np.sqrt(1. - n*np.sin(b[idx])) +
              npix / 2 - 0.5)
-        
+
         # Get map values at these pixel coordinates.
         if interpolate:
             ebv[idx] = map_coordinates(mapd, [y, x], order=order)
         else:
-            x=np.round(x).astype(np.int)
-            y=np.round(y).astype(np.int)
+            x = np.round(x).astype(np.int)
+            y = np.round(y).astype(np.int)
             ebv[idx] = mapd[y, x]
-            
+
         hdulist.close()
-    
+
     if return_scalar:
         return ebv[0]
     return ebv

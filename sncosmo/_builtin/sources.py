@@ -22,21 +22,25 @@ from .. import registry
 from .. import Source, TimeSeriesSource, SALT2Source
 from .. import io
 
+
 def load_timeseries_ascii(remote_url, name=None, version=None):
     with get_readable_fileobj(remote_url, cache=True) as f:
         phases, wavelengths, flux = io.read_griddata_ascii(f)
     return TimeSeriesSource(phases, wavelengths, flux,
                             name=name, version=version)
 
+
 def load_timeseries_fits(remote_url, name=None, version=None):
     fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
     phase, wave, flux = io.read_griddata_fits(fn)
     return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
+
 def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
     fname = get_pkg_data_filename(pkg_data_name)
     phase, wave, flux = io.read_griddata_fits(fname)
     return TimeSeriesSource(phase, wave, flux, name=name, version=version)
+
 
 # ------------------------------------------------------------------------
 # Nugent models
@@ -53,12 +57,12 @@ l05ref = ('L05', 'Levan et al. 2005 '
 g99ref = ('G99', 'Gilliland, Nugent & Phillips 1999 '
           '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>')
 
-registry.register_loader(Source, 'nugent-sn1a', load_timeseries_ascii, 
+registry.register_loader(Source, 'nugent-sn1a', load_timeseries_ascii,
                          args=[baseurl + 'sn1a_flux.v1.2.dat.gz'],
                          version='1.2',
                          meta={'url': website, 'type': 'SN Ia',
                                'subclass': subclass, 'reference': n02ref})
-registry.register_loader(Source, 'nugent-sn91t', load_timeseries_ascii, 
+registry.register_loader(Source, 'nugent-sn91t', load_timeseries_ascii,
                          args=[baseurl + 'sn91t_flux.v1.1.dat.gz'],
                          version='1.1',
                          meta={'url': website, 'type': 'SN Ia',
@@ -68,7 +72,7 @@ registry.register_loader(Source, 'nugent-sn91bg', load_timeseries_ascii,
                          version='1.1',
                          meta={'url': website, 'type': 'SN Ia',
                                'subclass': subclass, 'reference': n02ref})
-registry.register_loader(Source, 'nugent-sn1bc', load_timeseries_ascii, 
+registry.register_loader(Source, 'nugent-sn1bc', load_timeseries_ascii,
                          args=[baseurl + 'sn1bc_flux.v1.1.dat.gz'],
                          version='1.1',
                          meta={'url': website, 'type': 'SN Ib/c',
@@ -78,21 +82,22 @@ registry.register_loader(Source, 'nugent-hyper', load_timeseries_ascii,
                          version='1.2',
                          meta={'url': website, 'type': 'SN Ib/c',
                                'subclass': subclass, 'reference': l05ref})
-registry.register_loader(Source, 'nugent-sn2p', load_timeseries_ascii, 
+registry.register_loader(Source, 'nugent-sn2p', load_timeseries_ascii,
                          args=[baseurl + 'sn2p_flux.v1.2.dat.gz'],
                          version='1.2',
                          meta={'url': website, 'type': 'SN IIP',
                                'subclass': subclass, 'reference': g99ref})
-registry.register_loader(Source, 'nugent-sn2l', load_timeseries_ascii, 
+registry.register_loader(Source, 'nugent-sn2l', load_timeseries_ascii,
                          args=[baseurl + 'sn2l_flux.v1.2.dat.gz'],
                          version='1.2',
                          meta={'url': website, 'type': 'SN IIL',
                                'subclass': subclass, 'reference': g99ref})
-registry.register_loader(Source, 'nugent-sn2n', load_timeseries_ascii, 
+registry.register_loader(Source, 'nugent-sn2n', load_timeseries_ascii,
                          args=[baseurl + 'sn2n_flux.v2.1.dat.gz'],
                          version='2.1',
                          meta={'url': website, 'type': 'SN IIn',
                                'subclass': subclass, 'reference': g99ref})
+
 
 # -----------------------------------------------------------------------
 # Sako et al 2011 models
@@ -132,7 +137,7 @@ registry.register_loader(Source, 's11-2005gi', load_timeseries_ascii,
 registry.register_loader(Source, 's11-2006fo', load_timeseries_ascii,
                          args=[baseurl + 'S11_SDSS-013195.SED'], version='1.0',
                          meta={'url': website, 'type': 'SN Ic',
-                               'subclass': subclass,'reference': ref,
+                               'subclass': subclass, 'reference': ref,
                                'note': note})
 registry.register_loader(Source, 's11-2006jo', load_timeseries_ascii,
                          args=[baseurl + 'S11_SDSS-014492.SED'], version='1.0',
@@ -166,6 +171,7 @@ registry.register_loader(Source, 'hsiao', load_timeseries_fits,
                          args=[baseurl + 'Hsiao_SED_V3.fits'], version='3.0',
                          meta=hsiao_meta)
 
+
 # -------------------------------------------------------------------------
 # Hsiao subsampled
 
@@ -181,6 +187,7 @@ registry.register_loader(Source, 'hsiao-subsampled',
                          args=['../data/models/Hsiao_SED_V3_subsampled.fits'],
                          version='3.0', meta=meta)
 
+
 # -----------------------------------------------------------------------
 # SALT2 models
 
@@ -195,22 +202,23 @@ def load_salt2model(remote_url, topdir, name=None, version=None):
         errscalefile = None
 
     model = SALT2Source(
-        m0file=t.extractfile(join(topdir,'salt2_template_0.dat')),
-        m1file=t.extractfile(join(topdir,'salt2_template_1.dat')),
-        clfile=t.extractfile(join(topdir,'salt2_color_correction.dat')),
-        cdfile=t.extractfile(join(topdir,'salt2_color_dispersion.dat')),
+        m0file=t.extractfile(join(topdir, 'salt2_template_0.dat')),
+        m1file=t.extractfile(join(topdir, 'salt2_template_1.dat')),
+        clfile=t.extractfile(join(topdir, 'salt2_color_correction.dat')),
+        cdfile=t.extractfile(join(topdir, 'salt2_color_dispersion.dat')),
         errscalefile=t.extractfile(
-            join(topdir,'salt2_lc_dispersion_scaling.dat')),
+            join(topdir, 'salt2_lc_dispersion_scaling.dat')),
         lcrv00file=t.extractfile(
-            join(topdir,'salt2_lc_relative_variance_0.dat')),
+            join(topdir, 'salt2_lc_relative_variance_0.dat')),
         lcrv11file=t.extractfile(
-            join(topdir,'salt2_lc_relative_variance_1.dat')),
+            join(topdir, 'salt2_lc_relative_variance_1.dat')),
         lcrv01file=t.extractfile(
-            join(topdir,'salt2_lc_relative_covariance_01.dat')),
+            join(topdir, 'salt2_lc_relative_covariance_01.dat')),
         name=name,
         version=version)
+
     t.close()
-    #set_bandfluxerror_sn1a(model)
+
     return model
 
 baseurl = 'http://supernovae.in2p3.fr/salt/lib/exe/fetch.php?media='
@@ -225,38 +233,41 @@ registry.register_loader(
     Source, 'salt2', load_salt2model,
     args=[baseurl + 'salt2_model_data-1-0.tar.gz', 'salt2'],
     version='1.0',
-    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
           'url': website, 'reference': g07ref})
 registry.register_loader(
     Source, 'salt2', load_salt2model,
     args=[baseurl + 'salt2_model_data-1-1.tar.gz', 'salt2-1-1'],
     version='1.1',
-    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
           'url': website, 'reference': g07ref})
 registry.register_loader(
     Source, 'salt2', load_salt2model,
     args=[baseurl + 'salt2_model_data-2-0.tar.gz', 'salt2-2-0'],
     version='2.0',
-    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
           'url': website, 'reference': g10ref})
 registry.register_loader(
     Source, 'salt2', load_salt2model,
     args=[baseurl + 'salt2_model_data-2-4.tar.gz', 'salt2-4'],
     version='2.4',
-    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`', 
+    meta={'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
           'url': website, 'reference': b14ref})
+
 
 # --------------------------------------------------------------------------
 # SALT2 extended
+
 registry.register_loader(
     Source, 'salt2-extended', load_salt2model,
     args=['http://sncosmo.github.io/data/models/salt2_extended.tar.gz',
           'salt2_extended'],
     version='1.0',
     meta={'type': 'SN Ia',
-          'subclass': '`~sncosmo.SALT2Source`', 
+          'subclass': '`~sncosmo.SALT2Source`',
           'url': 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/',
           'note': "extracted from SNANA's SNDATA_ROOT on 15 August 2013."})
+
 
 # --------------------------------------------------------------------------
 # 2011fe
@@ -278,7 +289,7 @@ def load_2011fe(name=None, version=None):
         if fname[-4:] == '.fit':
             hdulist = fits.open(t.extractfile(fname))
             flux_density = hdulist[0].data
-            phasestrs.append(fname[-8:-4]) # like 'P167' or 'M167'
+            phasestrs.append(fname[-8:-4])  # like 'P167' or 'M167'
             spectra.append(flux_density)
 
             # Get dispersion values if we haven't yet
@@ -286,12 +297,12 @@ def load_2011fe(name=None, version=None):
             if disp is None:
                 w = wcs.WCS(hdulist[0].header)
                 nflux = len(flux_density)
-                idx = np.arange(nflux) # pixel coords
-                idx.shape = (nflux, 1) # make it 2-d
-                disp = w.wcs_pix2world(idx, 0)[:,0]
+                idx = np.arange(nflux)  # pixel coords
+                idx.shape = (nflux, 1)  # make it 2-d
+                disp = w.wcs_pix2world(idx, 0)[:, 0]
 
             hdulist.close()
-            
+
     # get phases in floats
     phases = []
     for phasestr in phasestrs:
@@ -299,7 +310,7 @@ def load_2011fe(name=None, version=None):
         if phasestr[0] == 'M':
             phase = -phase
         phases.append(phase)
-    
+
     # Add a point at explosion.
     # The phase of explosion is given in the paper as
     # t_expl - t_bmax = 55796.696 - 55814.51 = -17.814
@@ -322,7 +333,7 @@ p13ref = ('P13', 'Pereira et al. 2013 '
           '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')
 registry.register_loader(Source, '2011fe', load_2011fe, version='1.0',
                          meta={'type': 'SN Ia',
-                               'subclass': '`~sncosmo.TimeSeriesSource`', 
+                               'subclass': '`~sncosmo.TimeSeriesSource`',
                                'url': 'http://snfactory.lbl.gov/snf/data',
                                'reference': p13ref})
 
@@ -347,7 +358,8 @@ for m in registry.get_loaders_metadata(Source):
     notelink = ''
 
     if 'note' in m:
-        if m['note'] not in allnotes: allnotes.append(m['note'])
+        if m['note'] not in allnotes:
+            allnotes.append(m['note'])
         notenum = allnotes.index(m['note'])
         notelink = '[{0}]_'.format(notenum + 1)
 
@@ -359,8 +371,10 @@ for m in registry.get_loaders_metadata(Source):
     if 'url' in m:
         url = m['url']
         if url not in urlnums:
-            if len(urlnums) == 0: urlnums[url] = 0
-            else: urlnums[url] = max(urlnums.values()) + 1
+            if len(urlnums) == 0:
+                urlnums[url] = 0
+            else:
+                urlnums[url] = max(urlnums.values()) + 1
         urllink = '`{0}`_'.format(string.letters[urlnums[url]])
 
     lines.append("{0!r:20}  {1!r:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}"

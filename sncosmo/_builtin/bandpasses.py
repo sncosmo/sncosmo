@@ -16,6 +16,7 @@ from astropy.config import ConfigurationItem
 from .. import registry
 from ..spectral import Bandpass, read_bandpass
 
+
 def load_bandpass(pkg_data_name, name=None):
     fname = get_pkg_data_filename(pkg_data_name)
     return read_bandpass(fname, wave_unit=u.AA, name=name)
@@ -68,8 +69,8 @@ del bessell_meta
 # SDSS
 sdss_meta = {
     'filterset': 'sdss',
-    'reference':('D10', '`Doi et al. 2010 <http://adsabs.harvard.edu/'
-                 'abs/2010AJ....139.1628D>`__, Table 4'),
+    'reference': ('D10', '`Doi et al. 2010 <http://adsabs.harvard.edu/'
+                  'abs/2010AJ....139.1628D>`__, Table 4'),
     'description':
         'SDSS 2.5m imager at airmass 1.3 (including atmosphere), normalized'}
 
@@ -117,15 +118,17 @@ for m in registry.get_loaders_metadata(Bandpass):
     if 'dataurl' in m:
         dataurl = m['dataurl']
         if dataurl not in urlnums:
-            if len(urlnums) == 0: urlnums[dataurl] = 0
-            else: urlnums[dataurl] = max(urlnums.values()) + 1
+            if len(urlnums) == 0:
+                urlnums[dataurl] = 0
+            else:
+                urlnums[dataurl] = max(urlnums.values()) + 1
         urllink = '`{0}`_'.format(string.letters[urlnums[dataurl]])
 
     if 'retrieved' in m:
         retrieved = m['retrieved']
 
     lines.append("{0!r:11}  {1:80}  {2:14}  {3:8}  {4:12}".format(
-            m['name'], m['description'], reflink, urllink, retrieved))
+        m['name'], m['description'], reflink, urllink, retrieved))
 
 lines.extend([lines[1], ''])
 for refkey, ref in allrefs:

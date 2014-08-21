@@ -18,10 +18,14 @@ from .photdata import dict_to_array
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
            'read_griddata_fits', 'write_griddata_fits']
 
+
 def _stripcomment(line, char='#'):
     pos = line.find(char)
-    if pos == -1: return line
-    else: return line[:pos]
+    if pos == -1:
+        return line
+    else:
+        return line[:pos]
+
 
 def _cast_str(s):
     try:
@@ -31,6 +35,7 @@ def _cast_str(s):
             return float(s)
         except:
             return s.strip()
+
 
 def read_griddata_ascii(name_or_obj):
     """Read 2-d grid data from a text file.
@@ -67,14 +72,17 @@ def read_griddata_ascii(name_or_obj):
     y1_current = []
     for line in f:
         stripped_line = _stripcomment(line)
-        if len(stripped_line) == 0: continue
+        if len(stripped_line) == 0:
+            continue
         x0_tmp, x1_tmp, y_tmp = map(float, stripped_line.split())
-        if x0_current is None: x0_current = x0_tmp  #Initialize first time
+        if x0_current is None:
+            x0_current = x0_tmp  # Initialize first time
 
         # If there is a new x0 value, ingest the old one and reset values
         if x0_tmp != x0_current:
             x0.append(x0_current)
-            if x1 is None: x1 = x1_current
+            if x1 is None:
+                x1 = x1_current
             y.append(y1_current)
 
             x0_current = x0_tmp
@@ -90,6 +98,7 @@ def read_griddata_ascii(name_or_obj):
 
     f.close()
     return np.array(x0), np.array(x1), np.array(y)
+
 
 def read_griddata_fits(name_or_obj, ext=0):
     """Read a 2-d grid of data from a FITS file, where the grid coordinates
@@ -108,7 +117,7 @@ def read_griddata_fits(name_or_obj, ext=0):
     y : numpy.ndarray
         2-d array of shape (len(x0), len(x1)).
     """
-    
+
     hdulist = fits.open(name_or_obj)
     w = wcs.WCS(hdulist[ext].header)
     y = hdulist[ext].data
@@ -129,6 +138,7 @@ def read_griddata_fits(name_or_obj, ext=0):
     hdulist.close()
 
     return x0, x1, y
+
 
 def write_griddata_fits(x0, x1, y, name_or_obj):
     """Write a 2-d grid of data to a FITS file
@@ -160,7 +170,9 @@ def write_griddata_fits(x0, x1, y, name_or_obj):
     hdu = fits.PrimaryHDU(y, header=w.to_header())
     hdu.writeto(name_or_obj)
 
-# Reader: ascii =============================================================== #
+
+# -----------------------------------------------------------------------------
+# Reader: ascii
 def _read_ascii(f, **kwargs):
 
     delim = kwargs.get('delim', None)
@@ -172,20 +184,21 @@ def _read_ascii(f, **kwargs):
     cols = []
     readingdata = False
     for line in f:
-        
+
         # strip leading & trailing whitespace, newline, and comments
         line = line.strip()
         pos = line.find(commentchar)
         if pos > -1:
             line = line[:pos]
-        if len(line) == 0: continue
+        if len(line) == 0:
+            continue
 
         if not readingdata:
             # Read metadata
             if line[0] == metachar:
                 pos = line.find(' ')  # Find first space.
                 if pos in [-1, 1]:  # Space must exist and key must exist.
-                    raise ValueError('Incorrectly formatted metadata line: '+
+                    raise ValueError('Incorrectly formatted metadata line: ' +
                                      line)
                 meta[line[1:pos]] = _cast_str(line[pos:])
                 continue
@@ -205,7 +218,9 @@ def _read_ascii(f, **kwargs):
     data = odict(zip(colnames, cols))
     return meta, data
 
-# Reader: salt2 ============================================================= #
+
+# -----------------------------------------------------------------------------
+# Reader: salt2
 
 # TODO: remove _salt2_rename_keys()
 # conversion upon reading has been removed.
@@ -215,6 +230,8 @@ def _read_ascii(f, **kwargs):
 SALT2KEY_TO_KEY = {'redshift': 'z',
                    'z_heliocentric': 'z_helio',
                    'filter': 'band'}
+
+
 def _salt2_rename_keys(d):
     newd = odict()
     for key, val in d.iteritems():
@@ -224,9 +241,10 @@ def _salt2_rename_keys(d):
         newd[key] = val
     return newd
 
+
 def _read_salt2(f, **kwargs):
     """Read a new-style SALT2 file.
-    
+
     Such a file has metadata on lines starting with '@' and column names
     on lines starting with '#' and containing a ':' after the column name.
     There is optionally a line containing '#end' before the start of data.
@@ -237,17 +255,18 @@ def _read_salt2(f, **kwargs):
     cols = []
     readingdata = False
     for line in f:
-        
+
         # strip leading & trailing whitespace & newline
         line = line.strip()
-        if len(line) == 0: continue
+        if len(line) == 0:
+            continue
 
         if not readingdata:
             # Read metadata
             if line[0] == '@':
                 pos = line.find(' ')  # Find first space.
                 if pos in [-1, 1]:  # Space must exist and key must exist.
-                    raise ValueError('Incorrectly formatted metadata line: '+
+                    raise ValueError('Incorrectly formatted metadata line: ' +
                                      line)
                 meta[line[1:pos]] = _cast_str(line[pos:])
                 continue
@@ -255,9 +274,11 @@ def _read_salt2(f, **kwargs):
             # Read header line
             if line[0] == '#':
                 pos = line.find(':')
-                if pos in [-1, 1]: continue  # comment line
+                if pos in [-1, 1]:
+                    continue  # comment line
                 colname = line[1:pos].strip()
-                if colname == 'end': continue 
+                if colname == 'end':
+                    continue
                 colnames.append(colname)
                 cols.append([])
                 continue
@@ -270,7 +291,8 @@ def _read_salt2(f, **kwargs):
         pos = line.find('#')
         if pos > -1:
             line = line[:pos]
-        if len(line) == 0: continue
+        if len(line) == 0:
+            continue
 
         # Now we're reading data
         items = line.split()
@@ -281,11 +303,13 @@ def _read_salt2(f, **kwargs):
 
     return meta, data
 
-# Reader: salt2-old ========================================================= #
+
+# -----------------------------------------------------------------------------
+# Reader: salt2-old
 
 def _read_salt2_old(dirname, **kwargs):
     """Read old-style SALT2 files from a directory.
-    
+
     A file named 'lightfile' must exist in the directory.
     """
 
@@ -303,7 +327,8 @@ def _read_salt2_old(dirname, **kwargs):
         meta = odict()
         for line in lightfile.readlines():
             line = line.strip()
-            if len(line) == 0: continue
+            if len(line) == 0:
+                continue
             try:
                 key, val = line.split()
             except ValueError:
@@ -318,7 +343,7 @@ def _read_salt2_old(dirname, **kwargs):
     if 'lightfile' in filenames:
         filenames.remove('lightfile')  # We already read the lightfile.
     fullfilenames = [os.path.join(dirname, f) for f in filenames]
-    
+
     # Read data from files.
     data = None
     for fname in fullfilenames:
@@ -346,7 +371,8 @@ def _read_salt2_old(dirname, **kwargs):
         if data is None:
             data = filedata
         elif set(filedata.keys()) == set(data.keys()):
-            for key in data: data[key].extend(filedata[key])
+            for key in data:
+                data[key].extend(filedata[key])
         else:
             raise ValueError('column names do not match between files')
 
@@ -357,7 +383,8 @@ def _read_salt2_old(dirname, **kwargs):
     return meta, data
 
 
-# Reader: json ============================================================== #
+# -----------------------------------------------------------------------------
+# Reader: json
 def _read_json(f, **kwargs):
     t = json.load(f, encoding=sys.getdefaultencoding())
 
@@ -368,11 +395,15 @@ def _read_json(f, **kwargs):
         d[key.encode('ascii')] = value
     return t['meta'], d
 
-# All readers =============================================================== #
+
+# -----------------------------------------------------------------------------
+# All readers
 READERS = {'ascii': _read_ascii,
            'json': _read_json,
            'salt2': _read_salt2,
            'salt2-old': _read_salt2_old}
+
+
 def read_lc(file_or_dir, format='ascii', **kwargs):
     """Read light curve data for a single supernova.
 
@@ -448,30 +479,33 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
 
     return Table(data, meta=meta)
 
+
 # =========================================================================== #
 # Writers                                                                     #
 # =========================================================================== #
 
-# Writer: ascii ============================================================= #
+# -----------------------------------------------------------------------------
+# Writer: ascii
 def _write_ascii(f, data, meta, **kwargs):
-    
+
     delim = kwargs.get('delim', ' ')
     metachar = kwargs.get('metachar', '@')
-    
+
     if meta is not None:
         for key, val in meta.iteritems():
             f.write('{0}{1}{2}{3}\n'.format(metachar, key, delim, str(val)))
 
     keys = data.dtype.names
     length = len(data)
-    
+
     f.write(delim.join(keys))
     f.write('\n')
     for i in range(length):
         f.write(delim.join([str(data[key][i]) for key in keys]))
         f.write('\n')
 
-# Writer: salt2 ============================================================= #
+# -----------------------------------------------------------------------------
+# Writer: salt2
 KEY_TO_SALT2KEY_META = {
     'Z': 'REDSHIFT',              # Not sure if this is used.
     'Z_HELIOCENTRIC': 'Z_HELIO',
@@ -490,11 +524,11 @@ KEY_TO_SALT2KEY_COLUMN = {
     'Magsys': 'MagSys',
     'Band': 'Filter'}
 
-def _write_salt2(f, data, meta, **kwargs):
 
+def _write_salt2(f, data, meta, **kwargs):
     raw = kwargs.get('raw', False)
     pedantic = kwargs.get('pedantic', True)
-    
+
     if meta is not None:
         for key, val in meta.iteritems():
             if not raw:
@@ -526,7 +560,10 @@ def _write_salt2(f, data, meta, **kwargs):
         f.write(' '.join([str(data[key][i]) for key in keys]))
         f.write('\n')
 
-# Writer: snana ============================================================= #
+
+# -----------------------------------------------------------------------------
+# Writer: snana
+
 KEY_TO_SNANAKEY_COLUMN = {
     'TIME': 'MJD',
     'DATE': 'MJD',
@@ -535,13 +572,13 @@ KEY_TO_SNANAKEY_COLUMN = {
     'FLUX': 'FLUXCAL',
     'FLUXERR': 'FLUXCALERR',
     'ZP': 'ZPT',
-    'ZEROPOINT': 'ZPT'
-    }
+    'ZEROPOINT': 'ZPT'}
 KEY_TO_SNANAKEY_META = {
-    'DEC': 'DECL'
-    }
+    'DEC': 'DECL'}
 SNANA_REQUIRED_META = ['RA', 'DECL', 'SURVEY', 'FILTERS', 'MWEBV']
 SNANA_REQUIRED_COLUMN = ['MJD', 'FLT', 'FLUXCAL', 'FLUXCALERR', 'ZPT']
+
+
 def _write_snana(f, data, meta, **kwargs):
 
     raw = kwargs.get('raw', False)
@@ -562,11 +599,11 @@ def _write_snana(f, data, meta, **kwargs):
         for key in SNANA_REQUIRED_META:
             if key not in keys_as_written:
                 raise ValueError('Missing required metadata kw: ' + key)
-    
+
     # Get column names and data length
     keys = data.dtype.names
     length = len(data)
-    
+
     # Convert column names
     keys_to_write = []
     for key in keys:
@@ -597,7 +634,9 @@ def _write_snana(f, data, meta, **kwargs):
         f.write(' '.join([str(data[key][i]) for key in keys]))
         f.write('\n')
 
-# Writer: json ============================================================== #
+
+# -----------------------------------------------------------------------------
+# Writer: json
 def _write_json(f, data, meta, **kwargs):
 
     # Build a dictionary of pure-python objects
@@ -608,11 +647,14 @@ def _write_json(f, data, meta, **kwargs):
     json.dump(output, f, encoding=sys.getdefaultencoding())
     del output
 
-# All writers =============================================================== #
+
+# -----------------------------------------------------------------------------
+# All writers
 WRITERS = {'ascii': _write_ascii,
            'salt2': _write_salt2,
            'snana': _write_snana,
            'json': _write_json}
+
 
 def write_lc(data, fname, format='ascii', **kwargs):
     """Write light curve data.
@@ -640,7 +682,7 @@ def write_lc(data, fname, format='ascii', **kwargs):
         **[salt2, snana]** If True, check that output column names and header
         keys comply with expected formatting, and raise a ValueError if not.
         It is probably a good idea to set to False when raw is True.
-        Default is True. 
+        Default is True.
     """
 
     if format not in WRITERS:
@@ -655,6 +697,7 @@ def write_lc(data, fname, format='ascii', **kwargs):
             data = dict_to_array(data)
     with open(fname, 'wb') as f:
         WRITERS[format](f, data, meta, **kwargs)
+
 
 def load_example_data():
     """

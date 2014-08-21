@@ -11,10 +11,10 @@ from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
 from astropy.utils import OrderedDict as odict
 
-import sncosmo
-
 __all__ = ['zdist', 'realize_lcs', 'simulate_vol']
-wholesky_sqdeg = 4. * np.pi * (180. / np.pi) ** 2
+
+WHOLESKY_SQDEG = 4. * np.pi * (180. / np.pi) ** 2
+
 
 def zdist(zmin, zmax, time=365.25, area=1.,
           ratefunc=lambda z: 1.e-4,
@@ -79,8 +79,8 @@ def zdist(zmin, zmax, time=365.25, area=1.,
 
     # Get comoving volume in each redshift shell.
     z_bins = 100  # Good enough for now.
-    z_binedges = np.linspace(zmin, zmax, z_bins + 1) 
-    z_binctrs = 0.5 * (z_binedges[1:] + z_binedges[:-1]) 
+    z_binedges = np.linspace(zmin, zmax, z_bins + 1)
+    z_binctrs = 0.5 * (z_binedges[1:] + z_binedges[:-1])
     sphere_vols = cosmo.comoving_volume(z_binedges).value
     shell_vols = sphere_vols[1:] - sphere_vols[:-1]
 
@@ -99,10 +99,11 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     snrate_ppf = Spline1d(snrate_cdf, z_binedges, k=1)
 
     # Total numbe of SNe to simulate.
-    nsim = vol_snrate[-1] * (time/365.25) * (area/wholesky_sqdeg)
+    nsim = vol_snrate[-1] * (time/365.25) * (area/WHOLESKY_SQDEG)
 
     for i in xrange(random.poisson(nsim)):
         yield float(snrate_ppf(random.random()))
+
 
 def realize_lcs(observations, model, params, thresh=None):
     """Realize data for a set of SNe given a set of observations.
@@ -219,7 +220,7 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
         observation set and the volumetric rate.
     thresh : float, optional
         Minimum flux significant threshold for a transient to be returned.
-    
+
     Returns
     -------
     sne : list of `~astropy.table.Table`
@@ -228,9 +229,9 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
 
     Notes
     -----
-    
+
     Each ``obs_set`` (values in ``obs_sets``) must have the following columns:
-    
+
     * ``MJD``
     * ``FLT``
     * ``CCD_GAIN``
@@ -315,9 +316,9 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
     # Get comoving volume in each redshift shell.
     z_bins = 100  # Good enough for now.
     z_min, z_max = z_range
-    z_binedges = np.linspace(z_min, z_max, z_bins + 1) 
-    z_binctrs = 0.5 * (z_binedges[1:] + z_binedges[:-1]) 
-    sphere_vols = cosmo.comoving_volume(z_binedges) 
+    z_binedges = np.linspace(z_min, z_max, z_bins + 1)
+    z_binctrs = 0.5 * (z_binedges[1:] + z_binedges[:-1])
+    sphere_vols = cosmo.comoving_volume(z_binedges)
     shell_vols = sphere_vols[1:] - sphere_vols[:-1]
 
     # SN / (observer year) in shell
@@ -333,7 +334,7 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
     snrate_ppf = Spline1d(snrate_cdf, z_binedges, k=1)
 
     # Get obs sets' data, time ranges, areas and weights.
-    # We do this now so we can weight the location of sne 
+    # We do this now so we can weight the location of sne
     # according to the area and time ranges of the observation sets.
     obs_sets = obs_sets.values()
     obs_sets_data = [np.asarray(obs_set) for obs_set in obs_sets]
@@ -347,14 +348,14 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
     total_area_time = sum(area_time_products)
     weights = [a_t / total_area_time for a_t in area_time_products]
     cumweights = np.add.accumulate(np.array(weights))
-    
+
     # How many to simulate?
     if nsim is not None:
         nret = 0
     elif nret is not None:
         nsim = 0
     else:
-        nsim = total_area_time / wholesky_sqdeg * vol_snrate[-1]
+        nsim = total_area_time / WHOLESKY_SQDEG * vol_snrate[-1]
 
     i = 0
     sne = []
@@ -379,7 +380,7 @@ def simulate_vol(obs_sets, model, gen_params, vrate,
         params.update(z=z, t0=t0)
         model.set(**params)
 
-        # Get model fluxes 
+        # Get model fluxes
         flux = model.bandflux(obsdata['FLT'], obsdata['MJD'],
                               zp=obsdata['ZPTAVG'], zpsys='ab')
 

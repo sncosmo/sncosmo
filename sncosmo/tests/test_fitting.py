@@ -7,11 +7,13 @@ from astropy.table import Table
 
 import sncosmo
 
+
 class TestFitting:
+
     def setup_class(self):
         model = sncosmo.Model(source='hsiao-subsampled')
         params = {'t0': 56000., 'amplitude': 1.e-7, 'z': 0.1}
-        
+
         # generate fake data with no errors
         points_per_band = 12
         bands = points_per_band * ['desg', 'desr', 'desi', 'desz']
@@ -38,7 +40,7 @@ class TestFitting:
     def test_fit_lc(self):
         res, fitmodel = sncosmo.fit_lc(self.data, self.model,
                                        ['z', 't0', 'amplitude'],
-                                       bounds={'z':(0., 1.0)})
+                                       bounds={'z': (0., 1.0)})
 
         # set model to true parameters
         self.model.set(**self.params)

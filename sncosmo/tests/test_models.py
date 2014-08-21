@@ -6,6 +6,7 @@ from numpy.testing import assert_allclose, assert_almost_equal
 import sncosmo
 from sncosmo import registry
 
+
 def flatsource():
     """Create and return a TimeSeriesSource with a flat spectrum at
     all times."""
@@ -14,7 +15,9 @@ def flatsource():
     flux = np.ones((len(phase), len(wave)), dtype=np.float)
     return sncosmo.TimeSeriesSource(phase, wave, flux)
 
+
 class TestTimeSeriesSource:
+
     def setup_class(self):
         self.source = flatsource()
 
@@ -50,14 +53,14 @@ class TestTimeSeriesSource:
 
 
 class TestModel:
+
     def setup_class(self):
         self.model = sncosmo.Model(source=flatsource(),
                                    effects=[sncosmo.CCM89Dust()],
                                    effect_frames=['obs'],
                                    effect_names=['mw'])
-    
+
     def test_minwave(self):
-        
         # at redshift zero, should be determined by effect minwave (~909)
         self.model.set(z=0.)
         ans = max(self.model.source.minwave(),
@@ -72,7 +75,6 @@ class TestModel:
         assert self.model.minwave() == ans
 
     def test_maxwave(self):
-        
         # at redshift zero, should be determined by source maxwave (20000)
         self.model.set(z=0.)
         ans = min(self.model.source.maxwave(),
@@ -87,7 +89,6 @@ class TestModel:
         assert self.model.maxwave() == ans
 
     def test_set_source_peakabsmag(self):
-        
         # Both Bandpass and str should work
         band = sncosmo.get_bandpass('desg')
         self.model.set_source_peakabsmag(-19.3, 'desg', 'ab')

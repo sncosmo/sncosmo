@@ -1,6 +1,8 @@
 import math
+
 import numpy as np
 from scipy import integrate, optimize
+
 
 def format_value(value, error=None, latex=False):
     """Return a string representing value and uncertainty.
@@ -26,7 +28,8 @@ def format_value(value, error=None, latex=False):
     # value > 1000 and error > 1000 or value < 0.01
     if (first > 2 and last > 2) or first < -2:
         value /= 10**first
-        if error is not None: error /= 10**first
+        if error is not None:
+            error /= 10**first
         p = max(0, first - last + 1)
         if latex:
             suffix = ' \\times 10^{{{0:d}}}'.format(first)
@@ -38,12 +41,13 @@ def format_value(value, error=None, latex=False):
     if error is None:
         prefix = '{0:g}'.format(value)
     else:
-        prefix = (('{0:.' + str(p) + 'f} {1:s} {2:.'+ str(p) + 'f}')
+        prefix = (('{0:.' + str(p) + 'f} {1:s} {2:.' + str(p) + 'f}')
                   .format(value, pm, error))
         if suffix != '':
             prefix = '({0})'.format(prefix)
 
     return prefix + suffix
+
 
 class Result(dict):
     """Represents an optimization result.
@@ -78,19 +82,23 @@ class Result(dict):
 def _cdf(pdf, x, a):
     return integrate.quad(pdf, a, x)[0]
 
+
 def _ppf_to_solve(x, pdf, q, a):
     return _cdf(pdf, x, a) - q
 
+
 def _ppf_single_call(pdf, q, a, b):
     left = right = None
-    if a > -np.inf: left = a
-    if b < np.inf: right = b
+    if a > -np.inf:
+        left = a
+    if b < np.inf:
+        right = b
 
     factor = 10.
 
     # if lower limit is -infinity, adjust to
     # ensure that cdf(left) < q
-    if  left is None:
+    if left is None:
         left = -1. * factor
         while _cdf(pdf, left, a) > q:
             right = left
@@ -98,7 +106,7 @@ def _ppf_single_call(pdf, q, a, b):
 
     # if upper limit is infinity, adjust to
     # ensure that cdf(right) > q
-    if  right is None:
+    if right is None:
         right = factor
         while _cdf(pdf, right, a) < q:
             left = right
@@ -106,7 +114,9 @@ def _ppf_single_call(pdf, q, a, b):
 
     return optimize.brentq(_ppf_to_solve, left, right, args=(pdf, q, a))
 
+
 class Interp1d(object):
+
     def __init__(self, xmin, xmax, y):
         self._xmin = xmin
         self._xmax = xmax

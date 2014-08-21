@@ -5,6 +5,7 @@ from astropy.table import Table, vstack
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
+
 def read_snana_fits(head_file, phot_file, snids=None, n=None):
     """Read the SNANA FITS format: two FITS files jointly representing
     metadata and photometry for a set of SNe.
@@ -64,11 +65,11 @@ def read_snana_fits(head_file, phot_file, snids=None, n=None):
             raise RuntimeError('Specific snids requested, but head file does'
                                ' not contain SNID column')
         idx = []
-        for snid in snids: 
+        for snid in snids:
             i = np.flatnonzero(head_data['SNID'] == snid)
             if len(i) != 1:
-                raise RuntimeError('Unique snid requested, but there are {0:d} '
-                                   'matching entries'.format(len(i)))
+                raise RuntimeError('Unique snid requested, but there are '
+                                   '{0:d} matching entries'.format(len(i)))
             idx.append(i[0])
     elif snids is None:
         idx = range(n)
@@ -80,12 +81,12 @@ def read_snana_fits(head_file, phot_file, snids=None, n=None):
     for i in idx:
         meta = odict(zip(head_data.dtype.names, head_data[i]))
 
-        j0 = head_data['PTROBS_MIN'][i] - 1 
+        j0 = head_data['PTROBS_MIN'][i] - 1
         j1 = head_data['PTROBS_MAX'][i]
-	data = phot_data[j0:j1]
+        data = phot_data[j0:j1]
         if 'FLT' in data.dtype.names:
             data['FLT'][:] = np.char.strip(data['FLT'])
-	sne.append(Table(data, meta=meta, copy=False))
+        sne.append(Table(data, meta=meta, copy=False))
 
     return sne
 
@@ -165,7 +166,7 @@ def read_snana_ascii(fname, default_tablename=None):
 
     >>> tables['SN']
     <Table rows=2 names=('A','B','C')>
-    array([(1, 2.0, 'x'), (4, 5.0, 'y')], 
+    array([(1, 2.0, 'x'), (4, 5.0, 'y')],
           dtype=[('A', '<i8'), ('B', '<f8'), ('C', 'S1')])
 
 
@@ -179,12 +180,13 @@ def read_snana_ascii(fname, default_tablename=None):
 
     it can be read by supplying a default table name:
 
-     >>> meta, tables = read_snana_ascii(f, default_tablename='SN')  # doctest: +SKIP
+    >>> meta, tables = read_snana_ascii(f, default_tablename='SN')
+    ...     # doctest: +SKIP
 
     """
 
-    meta = odict() # initialize structure to hold metadata.
-    tables = {} # initialize structure to hold data.
+    meta = odict()  # initialize structure to hold metadata.
+    tables = {}  # initialize structure to hold data.
 
     if isinstance(fname, basestring):
         fh = open(fname, 'U')
@@ -203,7 +205,7 @@ def read_snana_ascii(fname, default_tablename=None):
         if word.startswith('NVAR'):
             nvar = int(words[i + 1])
 
-            #Infer table name. The name will be used to designate a data row.
+            # Infer table name. The name will be used to designate a data row.
             if '_' in word:
                 pos = word.find('_') + 1
                 tablename = word[pos:].rstrip(':')
@@ -211,7 +213,7 @@ def read_snana_ascii(fname, default_tablename=None):
                 tablename = default_tablename
             else:
                 raise ValueError(
-                    'table name must be given as part of NVAR keyword so '
+                    'Table name must be given as part of NVAR keyword so '
                     'that rows belonging to this table can be identified. '
                     'Alternatively, supply the default_tablename keyword.')
             table = odict()
@@ -238,7 +240,7 @@ def read_snana_ascii(fname, default_tablename=None):
             for j, colname in enumerate(table.keys()):
                 table[colname].append(words[i + 1 + j])
             i += nvar + 1
-        
+
         # Otherwise, we are reading metadata or some comment
         # If the word ends with ":", it is metadata.
         elif word[-1] == ':':
@@ -252,7 +254,7 @@ def read_snana_ascii(fname, default_tablename=None):
                     except ValueError:
                         val = words[i + 1]
                 meta[name] = val
-            else: 
+            else:
                 meta[name] = None
             i += 2
         else:
@@ -296,7 +298,7 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
     --------
     >>> tables = read_snana_ascii_multi(['data1.txt', 'data1.txt'])
     ... # doctest: +SKIP
-   
+
     """
 
     alltables = {}
@@ -314,6 +316,7 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
         alltables[key] = vstack(alltables[key])
 
     return alltables
+
 
 def _parse_meta_from_line(line):
     """Return dictionary from key, value pairs on a line. Helper function for
@@ -382,7 +385,7 @@ def read_snana_simlib(fname):
       for that LIBID.
     * Any other keywords outside a 'LIBID:'/'END_LIBID:' pair are treated
       as global header keywords and are returned in the `meta` dictionary.
-    
+
     Examples
     --------
     >>> meta, obs_sets = read_snana_simlib('filename') # doctest: +SKIP
@@ -390,7 +393,7 @@ def read_snana_simlib(fname):
     The second object is a dictionary of astropy Tables indexed by LIBID:
 
     >>> obs_sets.keys()  # doctest: +SKIP
-    [0, 1, 2, 3, 4] 
+    [0, 1, 2, 3, 4]
 
     Each table (libid) has metadata:
 
@@ -409,12 +412,14 @@ def read_snana_simlib(fname):
     from astropy.table import Table
 
     COLNAMES = ['SEARCH', 'MJD', 'IDEXPT', 'FLT', 'CCD_GAIN', 'CCD_NOISE',
-                'SKYSIG', 'PSF1', 'PSF2', 'PSFRATIO', 'ZPTAVG', 'ZPTSIG', 'MAG']
-    SPECIAL = ['FIELD', 'TELESCOPE', 'PIXSIZE'] # not used yet... if present in 
-                                                # header, add to table.
+                'SKYSIG', 'PSF1', 'PSF2', 'PSFRATIO', 'ZPTAVG', 'ZPTSIG',
+                'MAG']
+
+    # Not used yet... if present in header, add to table.
+    SPECIAL = ['FIELD', 'TELESCOPE', 'PIXSIZE']
 
     meta = odict()  # global metadata
-    observation_sets = odict() # dictionary of tables indexed by LIBID
+    observation_sets = odict()  # dictionary of tables indexed by LIBID
 
     reading_obsset = False
     with open(fname, 'r') as infile:
@@ -427,7 +432,8 @@ def read_snana_simlib(fname):
 
             # split on spaces.
             words = line.split()
-            if len(words) == 0: continue
+            if len(words) == 0:
+                continue
 
             # are we currently reading an obsset?
             if not reading_obsset:
@@ -445,20 +451,19 @@ def read_snana_simlib(fname):
                         Table(current_data, meta=current_meta)
                 elif line[0:2] in ['S:', 'T:']:
                     words = line.split()
-                    for colname, val in [
-                        ('SEARCH', words[0] == 'S:'),
-                        ('MJD', float(words[1])),
-                        ('IDEXPT', int(words[2])),
-                        ('FLT', words[3]),
-                        ('CCD_GAIN', float(words[4])),
-                        ('CCD_NOISE', float(words[5])),
-                        ('SKYSIG', float(words[6])),
-                        ('PSF1', float(words[7])),
-                        ('PSF2', float(words[8])),
-                        ('PSFRATIO', float(words[9])),
-                        ('ZPTAVG', float(words[10])),
-                        ('ZPTSIG', float(words[11])),
-                        ('MAG', float(words[12]))]:
+                    for colname, val in [('SEARCH', words[0] == 'S:'),
+                                         ('MJD', float(words[1])),
+                                         ('IDEXPT', int(words[2])),
+                                         ('FLT', words[3]),
+                                         ('CCD_GAIN', float(words[4])),
+                                         ('CCD_NOISE', float(words[5])),
+                                         ('SKYSIG', float(words[6])),
+                                         ('PSF1', float(words[7])),
+                                         ('PSF2', float(words[8])),
+                                         ('PSFRATIO', float(words[9])),
+                                         ('ZPTAVG', float(words[10])),
+                                         ('ZPTSIG', float(words[11])),
+                                         ('MAG', float(words[12]))]:
                         current_data[colname].append(val)
                 else:
                     current_meta.update(_parse_meta_from_line(line))

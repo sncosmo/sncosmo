@@ -4,6 +4,7 @@
 import numpy as np
 import sncosmo
 
+
 def test_register():
     disp = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
     trans = np.array([0., 1., 1., 1., 1., 0.])
@@ -14,6 +15,7 @@ def test_register():
 
     # make sure we can get back the band we put it.
     assert band2 is band
+
 
 def test_retrieve_cases():
     for name in ['ab', 'Ab', 'AB']:  # Should work regardless of case.

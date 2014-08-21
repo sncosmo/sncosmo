@@ -17,13 +17,16 @@ from . import registry
 __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
            'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
 
+
 def get_bandpass(name):
     """Get a Bandpass from the registry by name."""
     return registry.retrieve(Bandpass, name)
 
+
 def get_magsystem(name):
     """Get a MagSystem from the registery by name."""
     return registry.retrieve(MagSystem, name)
+
 
 def read_bandpass(fname, fmt='ascii', wave_unit=u.AA, name=None):
     """Read two-column bandpass. First column is assumed to be wavelength
@@ -34,6 +37,7 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA, name=None):
                          .format(fmt))
     t = ascii.read(fname, names=['wave', 'trans'])
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit, name=name)
+
 
 class Bandpass(object):
     """Transmission as a function of spectral wavelength.
@@ -64,8 +68,7 @@ class Bandpass(object):
     """
 
     def __init__(self, wave, trans, wave_unit=u.AA, name=None):
-        
-        wave = np.asarray(wave) 
+        wave = np.asarray(wave)
         trans = np.asarray(trans)
         if wave.shape != trans.shape:
             raise ValueError('shape of wave and trans must match')
@@ -76,12 +79,6 @@ class Bandpass(object):
             wave_unit = u.Unit(wave_unit)
             wave = wave_unit.to(u.AA, wave, u.spectral())
 
-        # Possibly flip the wavelength and transmission (for cases when
-        # the wavelength was in Hz?)
-        #if wave[0] > wave[-1]:
-        #    wave = np.flipud(wave)
-        #    trans = np.flipud(trans)
-
         # Check that values are monotonically increasing.
         # We could sort them, but if this happens, it is more likely a user
         # error or faulty bandpass definition. So we leave it to the user to
@@ -90,12 +87,11 @@ class Bandpass(object):
             raise ValueError('bandpass wavelength values must be monotonically'
                              ' increasing when supplied in wavelength or '
                              'decreasing when supplied in energy/frequency.')
-
         self.wave = wave
         self._dwave = np.gradient(wave)
         self.trans = trans
         self.name = name
-        
+
     @property
     def dwave(self):
         """Gradient of wavelengths, numpy.gradient(wave)."""
@@ -104,7 +100,7 @@ class Bandpass(object):
     @lazyproperty
     def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
-        weights = self.trans * np.gradient(self.wave) 
+        weights = self.trans * np.gradient(self.wave)
         return np.sum(self.wave * weights) / np.sum(weights)
 
     def to_unit(self, unit):
@@ -126,7 +122,7 @@ class Bandpass(object):
 
         if unit is u.AA:
             return self.wave, self.trans
-        
+
         d = u.AA.to(unit, self.wave, u.spectral())
         t = self.trans
         if d[0] > d[-1]:
@@ -153,7 +149,7 @@ class Spectrum(object):
     error : list_like, optional
         1 standard deviation uncertainty on flux density values.
     wave_unit : `~astropy.units.Unit`
-        Units 
+        Units.
     units : `~astropy.units.BaseUnit`
         For now, only units with flux density in energy (not photon counts).
     z : float, optional
@@ -168,7 +164,6 @@ class Spectrum(object):
     def __init__(self, wave, flux, error=None,
                  unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA,
                  z=None, dist=None, meta=None):
-        
         self._wave = np.asarray(wave)
         self._flux = np.asarray(flux)
         self._wunit = wave_unit
@@ -193,12 +188,11 @@ class Spectrum(object):
         if self._wave.ndim != 1:
             raise ValueError('only 1-d arrays supported')
 
-
     @property
     def wave(self):
         """Wavelength values."""
         return self._wave
-        
+
     @property
     def flux(self):
         """Spectral flux density values"""
@@ -213,7 +207,7 @@ class Spectrum(object):
     def wave_unit(self):
         """Units of wavelength."""
         return self._wunit
-        
+
     @property
     def unit(self):
         """Units of flux density."""
@@ -237,14 +231,13 @@ class Spectrum(object):
     def dist(self, value):
         self._dist = value
 
-
     def bandflux(self, band):
         """Perform synthentic photometry in a given bandpass.
-      
+
         The bandpass transmission is interpolated onto the wavelength grid
         of the spectrum. The result is a weighted sum of the spectral flux
         density values (weighted by transmission values).
-        
+
         Parameters
         ----------
         band : Bandpass object or name of registered bandpass.
@@ -262,23 +255,20 @@ class Spectrum(object):
         band = get_bandpass(band)
         bwave, btrans = band.to_unit(self._wunit)
 
-        if (bwave[0] < self._wave[0] or
-            bwave[-1] > self._wave[-1]):
+        if (bwave[0] < self._wave[0] or bwave[-1] > self._wave[-1]):
             return None
 
-        idx = ((self._wave > bwave[0]) & 
-               (self._wave < bwave[-1]))
-        d = self._wave[idx]
-        f = self._flux[idx]
+        mask = ((self._wave > bwave[0]) & (self._wave < bwave[-1]))
+        d = self._wave[mask]
+        f = self._flux[mask]
 
-        #TODO: use spectral density equivalencies once they can do photons.
-        # first convert to ergs / s /cm^2 / (wavelength unit)
+        # First convert to ergs/s/cm^2/(wavelength unit)...
         target_unit = u.erg / u.s / u.cm**2 / self._wunit
         if self._unit != target_unit:
-            f = self._unit.to(target_unit, f, 
+            f = self._unit.to(target_unit, f,
                               u.spectral_density(self._wunit, d))
 
-        # Then convert ergs to photons: photons = Energy / (h * nu)
+        # Then convert ergs to photons: photons = Energy / (h * nu).
         f = f / const.h.cgs.value / self._wunit.to(u.Hz, d, u.spectral())
 
         trans = np.interp(d, bwave, btrans)
@@ -289,26 +279,24 @@ class Spectrum(object):
             return ftot
 
         else:
-            e = self._error[idx]
+            e = self._error[mask]
 
             # Do the same conversion as above
             if self._unit != target_unit:
-                e = self._unit.to(target_unit, e, 
+                e = self._unit.to(target_unit, e,
                                   u.spectral_density(self._wunit, d))
             e = e / const.h.cgs.value / self._wunit.to(u.Hz, d, u.spectral())
             etot = np.sqrt(np.sum((e * binw) ** 2 * trans))
             return ftot, etot
 
-
-
     def redshifted_to(self, z, adjust_flux=False, dist=None, cosmo=None):
         """Return a new Spectrum object at a new redshift.
 
         The current redshift must be defined (self.z cannot be `None`).
-        A factor of (1 + z) / (1 + self.z) is applied to the wavelength. 
+        A factor of (1 + z) / (1 + self.z) is applied to the wavelength.
         The inverse factor is applied to the flux so that the bolometric
         flux (e.g., erg/s/cm^2) remains constant.
-        
+
         .. note:: Currently this only works for units in ergs.
 
         Parameters
@@ -372,7 +360,8 @@ class Spectrum(object):
             else:
                 dist_in = self._dist
 
-            if dist is None: dist = cosmo.luminosity_distance(z)
+            if dist is None:
+                dist = cosmo.luminosity_distance(z)
 
             if dist_in <= 0. or dist <= 0.:
                 raise ValueError("Distances must be greater than 0.")
@@ -380,7 +369,8 @@ class Spectrum(object):
             # Adjust the flux
             factor = (dist_in / dist) ** 2
             f *= factor
-            if e is not None: e *= factor
+            if e is not None:
+                e *= factor
 
         return Spectrum(d, f, error=e, z=z, dist=dist, meta=self.meta,
                         unit=self._unit, wave_unit=self._wunit)
@@ -409,7 +399,6 @@ class MagSystem(object):
     @name.setter
     def name(self, value):
         self._name = value
-
 
     @property
     def refmags(self):
@@ -453,7 +442,7 @@ class MagSystem(object):
             if band not in self._refmags:
                 raise Exception('Band refmags not defined')
             bandflux *= 10 ** (0.4 * self._refmags[band])
-    
+
         self._zpbandflux[band] = bandflux
         return bandflux
 
@@ -494,7 +483,7 @@ class SpectralMagSystem(MagSystem):
 class ABMagSystem(MagSystem):
     """Magnitude system where a source with F_nu = 3631 Jansky at all
     frequencies has magnitude 0 in all bands."""
-    
+
     def _refspectrum_bandflux(self, band):
         bwave, btrans = band.to_unit(u.Hz)
 
@@ -505,15 +494,3 @@ class ABMagSystem(MagSystem):
 
         binw = np.gradient(bwave)
         return np.sum(f * btrans * binw)
-
-
-#    Examples
-#    --------
-#    >>> chft = LocalMagSystem(bd17spectrum,
-#    ...                       {'megacamu': 9.7688, 'megacamg': 9.6906,
-#    ...                        'megacamr': 9.2183, 'megacami': 8.9142})
-#    >>> chft.zp_cflux('megacamu') # flux an object 9.7688 mag brighter than bd17
-#    >>> chft.zp_cflux('desg') # Exception
-#    """
-
-

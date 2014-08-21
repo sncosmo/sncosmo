@@ -13,9 +13,9 @@ from astropy import units as u
 from .. import registry
 from .. import Spectrum, MagSystem, SpectralMagSystem, ABMagSystem
 
+
 # ---------------------------------------------------------------------------
 # AB system
-
 def load_ab(name=None):
     return ABMagSystem(name=name)
 registry.register_loader(
@@ -23,16 +23,16 @@ registry.register_loader(
     meta={'subclass': '`~sncosmo.ABMagSystem`',
           'description': 'Source of 3631 Jy has magnitude 0 in all bands'})
 
+
 # ---------------------------------------------------------------------------
 # Spectral systems
-
 def load_spectral_magsys_fits(remote_url, name=None):
     fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
     hdulist = fits.open(fn)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
-    refspectrum = Spectrum(dispersion, flux_density, 
+    refspectrum = Spectrum(dispersion, flux_density,
                            unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return SpectralMagSystem(refspectrum, name=name)
 
@@ -73,8 +73,10 @@ for m in registry.get_loaders_metadata(MagSystem):
     if 'url' in m:
         url = m['url']
         if url not in urlnums:
-            if len(urlnums) == 0: urlnums[url] = 0
-            else: urlnums[url] = max(urlnums.values()) + 1
+            if len(urlnums) == 0:
+                urlnums[url] = 0
+            else:
+                urlnums[url] = max(urlnums.values()) + 1
         urllink = '`{0}`_'.format(string.letters[urlnums[url]])
 
     lines.append("{0!r:10}  {1:60}  {2:35}  {3:15}"

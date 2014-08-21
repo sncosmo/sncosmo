@@ -1,5 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Something about the registry."""
+"""The sncosmo registry is used to load and return instances in memory
+based on string identifiers."""
 
 from astropy.utils import OrderedDict
 
@@ -7,6 +8,7 @@ __all__ = ['register_loader', 'register', 'retrieve', 'get_loaders_metadata']
 
 _loaders = OrderedDict()
 _instances = OrderedDict()
+
 
 def register_loader(data_class, name, func, args=None,
                     version=None, meta=None, force=False):
@@ -25,7 +27,7 @@ def register_loader(data_class, name, func, args=None,
         Arguments to pass to the function. Default is an empty list.
     version : str, optional
         Sub-version of name, if desired. Use formats such as ``'1'``,
-        ``'1.0'``, ``'1.0.0'``, etc. Default is `None`. 
+        ``'1.0'``, ``'1.0.0'``, etc. Default is `None`.
     force : bool, optional
         Whether to override any existing function if already present.
     meta : dict, optional
@@ -47,7 +49,7 @@ def register_loader(data_class, name, func, args=None,
         key = (data_class, name, version)
 
     # Add the loader to the registry if it is not already there.
-    if not key in _loaders or force:
+    if key not in _loaders or force:
         _loaders[key] = func, args, meta
     else:
         if version is not None:
@@ -57,6 +59,7 @@ def register_loader(data_class, name, func, args=None,
         raise Exception("Loader for {0:s} named '{1:s}'{2:s} is already "
                         "defined. Use force=True to override."
                         .format(data_class.__name__, name, versionstr))
+
 
 def register(instance, name=None, data_class=None, force=False):
     """Register a class instance.
@@ -91,13 +94,14 @@ def register(instance, name=None, data_class=None, force=False):
 
     name = name.lower()
     key = (data_class, name)
-    
+
     already_present = (key in _instances) or (key in _loaders)
     if not already_present or force:
         _instances[key] = instance
     else:
         raise Exception("{0:s} named {1:s} already in registry. Use force=True"
                         " to override.".format(data_class.__name__, name))
+
 
 def retrieve(data_class, name, version=None):
     """Retrieve a class instance from a registered identifier.
@@ -175,16 +179,14 @@ def retrieve(data_class, name, version=None):
         if version is None:
             _instances[key] = func(*args, name=name)
         else:
-            _instances[key] = func(*args, name=name, 
-                                    version=version)
-            
+            _instances[key] = func(*args, name=name, version=version)
         return _instances[key]
 
+    # If version not specified, find the latest version and try to load it.
     if version is None:
         latest_version = None
         for regkey in _loaders.keys():
-            if (key == regkey[0:2] and
-                (regkey[2] > latest_version or latest_version is None)):
+            if (key == regkey[0:2] and regkey[2] > latest_version):
                 latest_version = regkey[2]
         if latest_version is not None:
             regkey = (key[0], key[1], latest_version)
@@ -212,9 +214,10 @@ def retrieve(data_class, name, version=None):
         " versions: '{3:s}'".format(data_class.__name__, name, version,
                                     "', '".join(registered_versions)))
 
+
 def get_loaders_metadata(data_class):
     """Return the metadata of all registered loaders for a given class.
-    
+
     Parameters
     ----------
     data_class : classobj
@@ -229,9 +232,11 @@ def get_loaders_metadata(data_class):
 
     loaders_metadata = []
     for lkey, loader in _loaders.iteritems():
-        if lkey[0] is not data_class: continue
+        if lkey[0] is not data_class:
+            continue
         m = {'name': lkey[1]}
-        if len(lkey) > 2: m['version'] = lkey[2]
+        if len(lkey) > 2:
+            m['version'] = lkey[2]
         m.update(loader[2])
         loaders_metadata.append(m)
     return loaders_metadata

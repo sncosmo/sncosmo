@@ -16,7 +16,7 @@ _photdata_aliases = odict([
     ('zp', set(['zp', 'zpt', 'zeropoint', 'zero_point'])),
     ('zpsys', set(['zpsys', 'zpmagsys', 'magsys']))
     ])
-    
+
 # Descriptions for docstring only.
 _photdata_descriptions = {
     'time': 'Time of observation in days',
@@ -35,6 +35,7 @@ _photdata_types = {
     'zpsys': 'str'
     }
 
+
 def dict_to_array(d):
     """Convert a dictionary of lists (or single values) to a structured
     numpy.ndarray."""
@@ -42,7 +43,7 @@ def dict_to_array(d):
     # Convert all lists/values to 1-d arrays, in order to let numpy
     # figure out the necessary size of the string arrays.
     new_d = odict()
-    for key in d: 
+    for key in d:
         new_d[key] = np.atleast_1d(d[key])
 
     # Determine dtype of output array.
@@ -55,6 +56,7 @@ def dict_to_array(d):
         result[key] = new_d[key]
 
     return result
+
 
 def standardize_data(data):
     """Standardize photometric data by converting to a structured numpy array
@@ -78,7 +80,7 @@ def standardize_data(data):
         # Check if the data already complies with what we want
         # (correct column names & ordered by date)
         if (set(colnames) == set(_photdata_aliases.keys()) and
-            np.all(np.ediff1d(data['time']) >= 0.)):
+                np.all(np.ediff1d(data['time']) >= 0.)):
             return data
 
     elif isinstance(data, dict):
@@ -89,7 +91,7 @@ def standardize_data(data):
 
     # Create mapping from lowercased column names to originals
     lower_to_orig = dict([(colname.lower(), colname) for colname in colnames])
-        
+
     # Set of lowercase column names
     lower_colnames = set(lower_to_orig.keys())
 
@@ -110,7 +112,7 @@ def standardize_data(data):
         for newkey, oldkey in zip(_photdata_aliases.keys(),
                                   orig_colnames_to_use):
             new_data[newkey] = data[oldkey]
-        
+
         new_data = dict_to_array(new_data)
 
     # Sort by time, if necessary.
@@ -118,6 +120,7 @@ def standardize_data(data):
         new_data.sort(order=['time'])
 
     return new_data
+
 
 def normalize_data(data, zp=25., zpsys='ab'):
     """Return a copy of the data with all flux and fluxerr values normalized
@@ -137,7 +140,7 @@ def normalize_data(data, zp=25., zpsys='ab'):
 
     normmagsys = get_magsystem(zpsys)
     factor = np.empty(len(data), dtype=np.float)
-    
+
     for b in set(data['band'].tolist()):
         idx = data['band'] == b
         b = get_bandpass(b)
@@ -148,7 +151,7 @@ def normalize_data(data, zp=25., zpsys='ab'):
             idx2 = bandzpsys == ms
             ms = get_magsystem(ms)
             bandfactor[idx2] *= (ms.zpbandflux(b) / normmagsys.zpbandflux(b))
-        
+
         factor[idx] = bandfactor
 
     normalized_data = odict([('time', data['time']),

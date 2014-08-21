@@ -14,8 +14,10 @@ from .utils import Result, Interp1d, pdf_to_ppf
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
+
 class DataQualityError(Exception):
     pass
+
 
 def _chisq(data, model, modelcov=False):
     """Like chisq but assumes data is already standardized."""
@@ -27,11 +29,12 @@ def _chisq(data, model, modelcov=False):
         totcov = mcov + np.diag(data['fluxerr']**2)
         invtotcov = np.linalg.inv(totcov)
         return np.dot(np.dot(diff[np.newaxis, :], invtotcov),
-                      diff[:, np.newaxis])[0,0]
+                      diff[:, np.newaxis])[0, 0]
     else:
         mflux = model.bandflux(data['band'], data['time'],
                                zp=data['zp'], zpsys=data['zpsys'])
         return np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
+
 
 def chisq(data, model, modelcov=False):
     """Calculate chisq statistic for the model, given the data.
@@ -53,9 +56,10 @@ def chisq(data, model, modelcov=False):
     data = standardize_data(data)
     return _chisq(data, model, modelcov=modelcov)
 
+
 def flatten_result(res):
     """Turn a result from fit_lc into a simple dictionary of key, value pairs.
-    
+
     Useful when saving results to a text file table, where structures
     like a covariance matrix cannot be easily written to a single
     table row.
@@ -100,6 +104,7 @@ def flatten_result(res):
 
     return flat
 
+
 def cut_bands(data, model, z_bounds=None):
 
     if z_bounds is None:
@@ -121,6 +126,7 @@ def cut_bands(data, model, z_bounds=None):
 
     return data
 
+
 def t0_bounds(data, model):
     """Determine bounds on t0 parameter of the model.
 
@@ -132,6 +138,7 @@ def t0_bounds(data, model):
 
     return (model.get('t0') + np.min(data['time']) - model.maxtime(),
             model.get('t0') + np.max(data['time']) - model.mintime())
+
 
 def guess_t0_and_amplitude(data, model, minsnr):
     """Guess t0 and amplitude of the model based on the data.
@@ -151,8 +158,9 @@ def guess_t0_and_amplitude(data, model, minsnr):
     for band in set(data['band']):
         mask = significant_data['band'] == band
         if np.any(mask):
-            modelflux[band] = (model.bandflux(band, times, zp=zp, zpsys=zpsys)/
-                               model.parameters[2])
+            modelflux[band] = (
+                model.bandflux(band, times, zp=zp, zpsys=zpsys) /
+                model.parameters[2])
             dataflux[band] = significant_data['flux'][mask]
             datatime[band] = significant_data['time'][mask]
 
@@ -176,8 +184,9 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
     return t0, amplitude
 
+
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
-           guess_amplitude=True, guess_t0=True, guess_z=True, 
+           guess_amplitude=True, guess_t0=True, guess_z=True,
            minsnr=5., modelcov=False, verbose=False, maxcall=10000,
            **kwargs):
     """Fit model parameters to data by minimizing chi^2.
@@ -202,7 +211,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         the maximum bound is such that the earliest phase of the model
         lines up with the latest data point.
     guess_amplitude : bool, optional
-        Whether or not to guess the amplitude from the data. If false, the 
+        Whether or not to guess the amplitude from the data. If false, the
         current model amplitude is taken as the initial value. Only has an
         effect when fitting amplitude. Default is True.
     guess_t0 : bool, optional
@@ -265,10 +274,10 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
     **amplitude guess:** If amplitude (assumed to be the first model parameter)
     is being fit and ``guess_amplitude=True``, the function will guess the
-    initial starting point for the amplitude based on the data. 
+    initial starting point for the amplitude based on the data.
 
     **redshift guess:** If redshift (``z``) is being fit and ``guess_z=True``,
-    the function will set the initial value of ``z`` to the average of the 
+    the function will set the initial value of ``z`` to the average of the
     bounds on ``z``.
 
     Examples
@@ -317,17 +326,22 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     if 't0' in param_names and 't0' not in bounds:
         bounds['t0'] = t0_bounds(data, model)
 
+    # Note that in the parameter guessing below, we assume that the source
+    # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
+
+    # Turn off guessing if we're not fitting the parameter.
+    if model.param_names[2] not in param_names:
+        guess_amplitude = False
+    if 't0' not in param_names:
+        guess_t0 = False
+
     # Make guesses for t0 and amplitude.
     # (For now, we assume it is the 3rd parameter of the model.)
-    if ((model.param_names[2] in param_names and guess_amplitude) or
-        ('t0' in param_names and guess_t0)):
-
+    if (guess_amplitude or guess_t0):
         t0, amplitude = guess_t0_and_amplitude(data, model, minsnr)
-
-        if (model.param_names[2] in param_names and guess_amplitude):
+        if guess_amplitude:
             model.parameters[2] = amplitude
-
-        if ('t0' in param_names and guess_t0):
+        if guess_t0:
             model.set(t0=t0)
 
     # count degrees of freedom
@@ -435,7 +449,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
     else:
         raise ValueError("unknown method {0:r}".format(method))
-    
+
     # TODO remove this in v0.6
     if "flatten" in kwargs:
         warnings.warn("flatten keyword is deprecated. Use flatten_result()"
@@ -443,7 +457,6 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if kwargs["flatten"]:
             res = flatten_result(res)
     return res, model
-
 
 # ---------------------------------------------------------------------
 # This is the code for adding tied parameters to results of nest_lc
@@ -461,7 +474,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 #            for j, parname in enumerate(tiedparnames):
 #                tiedparvals[i, j] = tied[parname](d)
 #
-#        res['samples_parvals'] = np.hstack((res['samples_parvals'], 
+#        res['samples_parvals'] = np.hstack((res['samples_parvals'],
 #                                            tiedparvals))
 #        parnames = parnames + tiedparnames
 #
@@ -478,6 +491,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 #    res['dof'] = len(data) - npar
 #
 #    return res
+
 
 def _nest_lc(data, model, param_names,
              bounds=None, priors=None, ppfs=None, tied=None,
@@ -544,6 +558,7 @@ def _nest_lc(data, model, param_names,
     res.ndof = len(data) - len(param_names)
     return res
 
+
 def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
             minsnr=5., priors=None, nobj=100, maxiter=10000, verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
@@ -565,12 +580,12 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         data point.
     guess_amplitude_bound : bool, optional
         If true, bounds for the model's amplitude parameter are determined
-        automatically based on the data and do not need to be included in 
+        automatically based on the data and do not need to be included in
         `bounds`. The lower limit is set to zero and the upper limit is 10
         times the amplitude "guess" (which is based on the highest-flux
         data point in any band). Default is False.
     minsnr : float, optional
-        Minimum signal-to-noise ratio of data points to use when guessing 
+        Minimum signal-to-noise ratio of data points to use when guessing
         amplitude bound. Default is 5.
     priors : dict, optional
         Not currently used.
@@ -586,7 +601,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     -------
     res : Result
         Attributes are:
-        
+
         * ``niter``: total number of iterations
         * ``ncall``: total number of likelihood function calls
         * ``time``: time in seconds spent in iteration loop.
@@ -610,13 +625,13 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
 
         The following additional attributes are determined directly from the
         ``samples`` and ``weights`` arrays:
-    
+
         * ``param_dict``: Dictionary of weighted average of sample parameter
           values (includes fixed parameters).
         * ``covariance``: covariance matrix from sample parameter values
           (does not include fixed parameters).
         * ``errors``: Dictionary of weighted standard deviation of sample
-          parameter values (does not include fixed parameters). 
+          parameter values (does not include fixed parameters).
     estimated_model : `~sncosmo.Model`
         Copy of model with parameters set to the values in ``res.param_dict``.
     """
@@ -657,11 +672,11 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     # the following is a cross-check that we've done the "error" calculation
     # correctly (TODO: move this to tests)
 
-    #sqweightsum = np.sum(res['weights']**2)
-    #biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
-    #                          (res['samples']-parameters)**2, axis=0)
-    #unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum) 
-    #std = np.sqrt(unbiasedvarestimate)
+    # sqweightsum = np.sum(res['weights']**2)
+    # biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
+    #                            (res['samples']-parameters)**2, axis=0)
+    # unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum)
+    # std = np.sqrt(unbiasedvarestimate)
 
     return res, model
 
@@ -733,7 +748,7 @@ def mcmc_lc(data, model, param_names, errors, bounds=None, nwalkers=10,
 
     # define likelihood
     def loglikelihood(parameters):
-        
+
         # If any parameters are out-of-bounds, return 0 probability.
         for i, b in bounds_idx.items():
             if not b[0] < parameters[i] < b[1]:
@@ -763,4 +778,3 @@ def mcmc_lc(data, model, param_names, errors, bounds=None, nwalkers=10,
         print "Avg acceptance fraction:", np.mean(sampler.acceptance_fraction)
 
     return sampler.flatchain
-

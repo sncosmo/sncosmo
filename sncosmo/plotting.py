@@ -22,6 +22,7 @@ _model_ls = ['-', '--', ':', '-.']
 _cmap = cm.get_cmap('jet_r')
 _cmap_wavelims = (3000., 10000.)
 
+
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             xfigsize=None, yfigsize=None, figtext=None, model_label=None,
             errors=None, ncol=2, figtextsize=1., show_model_params=True,
@@ -84,7 +85,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     fig : matplotlib `~matplotlib.figure.Figure`
         Only returned if `fname` is `None`. Display to screen with
         ``plt.show()`` or save with ``fig.savefig(filename)``. When creating
-        many figures, be sure to close with ``plt.close(fig)``. 
+        many figures, be sure to close with ``plt.close(fig)``.
 
     Examples
     --------
@@ -102,7 +103,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     >>> plt.show()  # doctest: +SKIP
 
     Plot a model along with the data:
-    
+
     >>> model = sncosmo.Model('salt2')                # doctest: +SKIP
     >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5)  # doctest: +SKIP
     >>> sncosmo.plot_lc(data, model=model)               # doctest: +SKIP
@@ -216,7 +217,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     # Create the figure and axes.
     fig, axes = plt.subplots(nrow, ncol, figsize=figsize, squeeze=False)
-    
 
     fig.subplots_adjust(left=lspace / figsize[0],
                         bottom=bspace / figsize[1],
@@ -251,8 +251,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     tmin = min(tmin)
     tmax = max(tmax)
     tgrid = np.linspace(tmin, tmax, int(tmax - tmin) + 1)
-
-    # Add 
 
     # Loop over bands
     bands = list(bands)
@@ -293,14 +291,14 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                 mflux = model.bandflux(band, tgrid, zp=zp, zpsys=zpsys)
                 mflux_ranges.append((mflux.min(), mflux.max()))
                 l, = ax.plot(tgrid - toff, mflux,
-                             ls=_model_ls[i%len(_model_ls)],
+                             ls=_model_ls[i % len(_model_ls)],
                              marker='None', color=color)
                 lines.append(l)
             else:
                 # Add a dummy line so the legend displays all models in the
                 # first panel.
                 lines.append(plt.Line2D([0, 1], [0, 1],
-                                        ls=_model_ls[i%len(_model_ls)],
+                                        ls=_model_ls[i % len(_model_ls)],
                                         marker='None', color=color))
             labels.append(model_labels[i])
 
@@ -340,9 +338,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         # steal part of the axes and plot pulls
         if show_pulls:
             divider = make_axes_locatable(ax)
-            axpulls = divider.append_axes('bottom', size='30%' , pad=0.15,
+            axpulls = divider.append_axes('bottom', size='30%', pad=0.15,
                                           sharex=ax)
-            mflux = models[0].bandflux(band, time, zp=zp, zpsys=zpsys) 
+            mflux = models[0].bandflux(band, time, zp=zp, zpsys=zpsys)
             fluxpulls = (flux - mflux) / fluxerr
             axpulls.axhspan(ymin=-1., ymax=1., color='0.95')
             axpulls.axhline(y=0., color=color)
@@ -376,15 +374,13 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         else:
             bottomax = ax
 
-        # If this axes is one of the last `ncol`, set x label and rotate
-        # tick labels. Otherwise don't show tick labels.
+        # If this axes is one of the last `ncol`, set x label.
+        # Otherwise don't show tick labels.
         if (len(bands) - axnum - 1) < ncol:
             if toff == 0.:
                 bottomax.set_xlabel('time')
             else:
                 bottomax.set_xlabel('time - {0:.2f}'.format(toff))
-            #for l in bottomax.get_xticklabels():
-            #    l.set_rotation(22.5)
         else:
             for l in bottomax.get_xticklabels():
                 l.set_visible(False)
@@ -393,6 +389,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         return fig
     plt.savefig(fname, **kwargs)
     plt.close()
+
 
 def animate_source(source, label=None, fps=30, length=20.,
                    phase_range=(None, None), wave_range=(None, None),
@@ -468,8 +465,7 @@ def animate_source(source, label=None, fps=30, length=20.,
     from matplotlib import animation
 
     # Convert input to a list (if it isn't already).
-    if (not isiterable(source) or
-        isinstance(source, basestring)):
+    if (not isiterable(source)) or isinstance(source, basestring):
         sources = [source]
     else:
         sources = source
@@ -495,13 +491,12 @@ def animate_source(source, label=None, fps=30, length=20.,
     # Get a wavelength array for each source.
     waves = [np.arange(m.minwave(), m.maxwave(), 10.) for m in sources]
 
-
     # Phase offsets needed to match peak phases.
     peakphases = [m.peakphase(peakwave) for m in sources]
     if match_peakphase:
         phase_offsets = [p - peakphases[0] for p in peakphases]
     else:
-        phase_offsets =  [0.] * len(sources)
+        phase_offsets = [0.] * len(sources)
 
     # Determine phase range to display.
     minphase, maxphase = phase_range
@@ -511,7 +506,7 @@ def animate_source(source, label=None, fps=30, length=20.,
     if maxphase is None:
         maxphase = max([sources[i].maxphase() - phase_offsets[i] for
                         i in range(len(sources))])
-    
+
     # Determine the wavelength range to display.
     minwave, maxwave = wave_range
     if minwave is None:
@@ -544,10 +539,10 @@ def animate_source(source, label=None, fps=30, length=20.,
     fig = plt.figure()
     ax = plt.axes(xlim=(minwave, maxwave), ylim=(ymin, ymax))
     plt.axhline(y=0., c='k')
-    plt.xlabel('Wavelength ($\\AA$)') 
+    plt.xlabel('Wavelength ($\\AA$)')
     plt.ylabel('Flux Density ($F_\lambda$)')
     phase_text = ax.text(0.05, 0.95, '', ha='left', va='top',
-                        transform=ax.transAxes)
+                         transform=ax.transAxes)
     empty_lists = 2 * len(sources) * [[]]
     lines = ax.plot(*empty_lists, lw=1)
     if label is not None:
@@ -579,7 +574,7 @@ def animate_source(source, label=None, fps=30, length=20.,
         if still:
             i = fname.rfind('.')
             stillfname = fname[:i] + '.png'
-            plt.savefig(stillfname) 
+            plt.savefig(stillfname)
         ext = fname[i+1:]
         codec = {'mp4': 'libx264', 'webm': 'libvpx'}.get(ext, 'mpeg4')
         ani.save(fname, fps=fps, codec=codec, extra_args=['-vcodec', codec],

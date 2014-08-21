@@ -33,6 +33,7 @@ __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
+
 def _check_for_fitpack_error(e, a, name):
     """Raise a more informative error message for fitpack errors.
 
@@ -52,9 +53,10 @@ def _check_for_fitpack_error(e, a, name):
     # Check if the error is a specific one raise by RectBivariateSpline
     # If it is, check if supplied array is *not* monotonically increasing
     if (len(e.args) > 0 and
-        e.args[0].startswith("Error code returned by bispev: 10") and
-        np.any(np.ediff1d(a) < 0.)):
-            raise ValueError(name + ' must be monotonically increasing')
+            e.args[0].startswith("Error code returned by bispev: 10") and
+            np.any(np.ediff1d(a) < 0.)):
+        raise ValueError(name + ' must be monotonically increasing')
+
 
 def get_source(name, version=None, copy=False):
     """Retrieve a Source from the registry by name.
@@ -72,11 +74,11 @@ def get_source(name, version=None, copy=False):
         in the registry is always returned, regardless of the value of this
         parameter.) Default is False.
     """
-    
+
     # If we need to retrieve from the registry, we want to return a shallow
     # copy, in order to keep the copy in the registry "pristene". However, we
     # *don't* want a shallow copy otherwise. Therefore,
-    # we need to check if `name` is already an instance of Model before 
+    # we need to check if `name` is already an instance of Model before
     # going to the registry, so we know whether or not to make a shallow copy.
     if isinstance(name, Source):
         if copy:
@@ -103,8 +105,8 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
         time_or_phase, band, zp, zpsys = \
             np.broadcast_arrays(time_or_phase, band, zp, zpsys)
 
-    # convert all to 1d arrays
-    ndim = time_or_phase.ndim # save input ndim for return val
+    # Convert all to 1-d arrays.
+    ndim = time_or_phase.ndim  # Save input ndim for return val.
     time_or_phase = np.atleast_1d(time_or_phase)
     band = np.atleast_1d(band)
     if zp is not None:
@@ -124,7 +126,7 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
             raise ValueError(
                 'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
                 'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                .format(b.name, b.wave[0], b.wave[-1], 
+                .format(b.name, b.wave[0], b.wave[-1],
                         model.minwave(), model.maxwave()))
 
         # Get the flux
@@ -145,6 +147,7 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
     if ndim == 0:
         return bandflux[0]
     return bandflux
+
 
 def _bandmag(model, band, magsys, time_or_phase):
     """Support function for bandflux in Source and Model.
@@ -234,18 +237,18 @@ class _ModelBase(object):
 
 class Source(_ModelBase):
     """An abstract base class for transient models.
-    
+
     A "transient model" in this case is the spectral time evolution
     of a source as a function of an arbitrary number of parameters.
 
     This is an abstract base class -- You can't create instances of
     this class. Instead, you must work with subclasses such as
-    `TimeSeriesSource`. Subclasses must define (at minimum): 
+    `TimeSeriesSource`. Subclasses must define (at minimum):
 
     * `__init__()`
     * `_param_names` (list of str)
     * `_parameters` (`numpy.ndarray`)
-    * `_flux(ndarray, ndarray)` 
+    * `_flux(ndarray, ndarray)`
     * `minphase()`
     * `maxphase()`
     * `minwave()`
@@ -281,7 +284,7 @@ class Source(_ModelBase):
         ----------
         phase : float or list_like, optional
             Phase(s) in days. Must be monotonically increasing.
-            If `None` (default), the native phases of the model are used. 
+            If `None` (default), the native phases of the model are used.
         wave : float or list_like, optional
             Wavelength(s) in Angstroms. Must be monotonically increasing.
             If `None` (default), the native wavelengths of the model are used.
@@ -344,7 +347,7 @@ class Source(_ModelBase):
             raise e
 
     def bandmag(self, band, magsys, phase):
-        """Magnitude at the given phase(s) through the given 
+        """Magnitude at the given phase(s) through the given
         bandpass(es), and for the given magnitude system(s).
 
         Parameters
@@ -367,7 +370,7 @@ class Source(_ModelBase):
 
     def peakphase(self, band_or_wave, sampling=1.):
         """Determine phase of maximum flux for the given band/wavelength.
-        
+
         This method generates the light curve in the given band/wavelength and
         finds the highest-flux point. It then finds the parabola that
         passes through this point and the two neighboring points, and
@@ -378,8 +381,7 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if (isinstance(band_or_wave, basestring) or
-            isinstance(band_or_wave, Bandpass)):
+        if isinstance(band_or_wave, (basestring, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
@@ -390,7 +392,7 @@ class Source(_ModelBase):
 
         x = phases[i-1: i+2]
         y = fluxes[i-1: i+2]
-        A = np.hstack([x.reshape(3,1)**2, x.reshape(3,1), np.ones((3,1))])
+        A = np.hstack([x.reshape(3, 1)**2, x.reshape(3, 1), np.ones((3, 1))])
         a, b, c = np.linalg.solve(A, y)
         return -b / (2 * a)
 
@@ -434,7 +436,7 @@ class Source(_ModelBase):
 class TimeSeriesSource(Source):
     """A single-component spectral time series model.
 
-    The spectral flux density of this model is given by 
+    The spectral flux density of this model is given by
 
     .. math::
 
@@ -472,17 +474,18 @@ class TimeSeriesSource(Source):
     def _flux(self, phase, wave):
         return self._parameters[0] * self._model_flux(phase, wave)
 
+
 class StretchSource(Source):
     """A single-component spectral time series model, that "stretches" in
     time.
 
-    The spectral flux density of this model is given by 
+    The spectral flux density of this model is given by
 
     .. math::
 
        F(t, \lambda) = A \\times M(t / s, \lambda)
 
-    where _A_ is the amplitude and _s_ is the "stretch". 
+    where _A_ is the amplitude and _s_ is the "stretch".
 
     Parameters
     ----------
@@ -520,7 +523,7 @@ class StretchSource(Source):
 class SALT2Source(Source):
     """The SALT2 Type Ia supernova spectral timeseries model.
 
-    The spectral flux density of this model is given by 
+    The spectral flux density of this model is given by
 
     .. math::
 
@@ -621,8 +624,8 @@ class SALT2Source(Source):
 
         # Set the color dispersion from "color_dispersion" file
         w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
-        self._colordisp = Spline1d(w, val,  k=1)  # linear interp. 
-        
+        self._colordisp = Spline1d(w, val,  k=1)  # linear interp.
+
         # Set the colorlaw based on the "color correction" file.
         # Then interpolate it to the "native" wavelength grid,
         # for performance reasons.
@@ -695,7 +698,7 @@ class SALT2Source(Source):
                 raise ValueError(
                     'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
                     'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                    .format(b.name, b.wave[0], b.wave[-1], 
+                    .format(b.name, b.wave[0], b.wave[-1],
                             self._wave[0], self._wave[-1]))
 
             m0 = self._model['M0'](phase[mask], b.wave)
@@ -709,7 +712,7 @@ class SALT2Source(Source):
 
         # 2-d bool array of shape (len(band), len(band)):
         # true only where bands are same
-        mask = cwave == cwave[:,np.newaxis]
+        mask = cwave == cwave[:, np.newaxis]
 
         colorvar = self._colordisp(cwave)**2  # 1-d array
         colorcov = mask * colorvar  # 2-d * 1-d = 2-d
@@ -720,10 +723,8 @@ class SALT2Source(Source):
         # negatives to 0.0001)
         errsnakesq[errsnakesq < 0.] = 0.01*0.01
 
-        f1 = f0 + x1*m1int
+        f1 = f0 + x1 * m1int
         return colorcov + np.diagflat((f0 / f1)**2 * errsnakesq)
-
-
 
     def bandflux_rcov(self, band, phase):
         """Return the model relative covariance of integrated flux through
@@ -766,7 +767,7 @@ class SALT2Source(Source):
         # Get colorlaw coeffecients.
         npoly = int(words[0])
         self._colorlaw_coeffs = [float(word) for word in words[1: 1 + npoly]]
-    
+
         # Look for keywords in the rest of the file.
         version = 0
         colorlaw_range = [3000., 7000.]
@@ -788,7 +789,6 @@ class SALT2Source(Source):
             raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
                             version)
 
-
     def _colorlaw_v0(self, wave):
         """Return the extinction in magnitudes as a function of wavelength,
         for c=1. This is the version 0 extinction law used in SALT2 1.0 and
@@ -798,11 +798,11 @@ class SALT2Source(Source):
         -----
         From SALT2 code comments:
 
-            ext = exp(color * constant * 
+            ext = exp(color * constant *
                       (l + params(0)*l^2 + params(1)*l^3 + ... ) /
                       (1 + params(0) + params(1) + ... ) )
                 = exp(color * constant *  numerator / denominator )
-                = exp(color * expo_term ) 
+                = exp(color * expo_term )
         """
 
         l = ((wave - self._B_WAVELENGTH) /
@@ -851,7 +851,7 @@ class SALT2Source(Source):
         prime_coeffs = (np.arange(len(coeffs)) * coeffs)[1:]
 
         extinction = np.empty_like(wave)
-        
+
         # Blue side
         idx_lo = l < l_lo
         p_lo = np.polyval(np.flipud(coeffs), l_lo)
@@ -863,7 +863,7 @@ class SALT2Source(Source):
         p_hi = np.polyval(np.flipud(coeffs), l_hi)
         pprime_hi = np.polyval(np.flipud(prime_coeffs), l_hi)
         extinction[idx_hi] = p_hi + pprime_hi * (l[idx_hi] - l_hi)
-        
+
         # In between
         idx_between = np.invert(idx_lo | idx_hi)
         extinction[idx_between] = np.polyval(np.flipud(coeffs), l[idx_between])
@@ -882,7 +882,7 @@ class SALT2Source(Source):
         colorlaw : float or `~numpy.ndarray`
             Values of colorlaw function, which can be interpreted as extinction
             in magnitudes.
-            
+
         Notes
         -----
         Note that this is the "exact" colorlaw. For performance reasons, when
@@ -917,7 +917,7 @@ class Model(_ModelBase):
         to label the parameters.
     effect_frames : list of str
         The frame that each effect is in (same length as `effects`).
-        Must be one of {'rest', 'obs'}. 
+        Must be one of {'rest', 'obs'}.
 
     Notes
     -----
@@ -943,7 +943,7 @@ class Model(_ModelBase):
 
         # Add PropagationEffects
         if (effects is not None or effect_names is not None or
-            effect_frames is not None):
+                effect_frames is not None):
             try:
                 same_length = (len(effects) == len(effect_names) and
                                len(effects) == len(effect_frames))
@@ -955,7 +955,7 @@ class Model(_ModelBase):
                                  'must have matching lengths')
 
             for effect, name, frame in zip(effects, effect_names,
-                                           effect_frames): 
+                                           effect_frames):
                 self.add_effect(effect, name, frame)
 
     # TODO: Check if PropagationEffect covers complete range of model
@@ -1020,7 +1020,7 @@ class Model(_ModelBase):
         param_arrays = [self._parameters[0:2]]
         models = [self._source] + self._effects
         param_arrays.extend([m._parameters for m in models])
-        
+
         # Create a new parameter array built from the individual arrays
         # and reference the individual parameter arrays to the new combined
         # array.
@@ -1040,7 +1040,7 @@ class Model(_ModelBase):
         else:
             names = ['?' if name is None else name for name in names]
             self.description = '+'.join(names)
-        
+
     def mintime(self):
         """Minimum observer-frame time at which the model is defined."""
         return (self._parameters[1] +
@@ -1054,30 +1054,27 @@ class Model(_ModelBase):
     def minwave(self):
         """Minimum observer-frame wavelength of the model."""
         shift = (1. + self._parameters[0])
-        max_minwave = self._source.minwave() * shift 
+        max_minwave = self._source.minwave() * shift
         for effect, frame in zip(self._effects, self._effect_frames):
             effect_minwave = effect.minwave()
             if frame == 'rest':
                 effect_minwave *= shift
-            if effect_minwave > max_minwave :
+            if effect_minwave > max_minwave:
                 max_minwave = effect_minwave
         return max_minwave
 
     def maxwave(self):
         """Maximum observer-frame wavelength of the model."""
         shift = (1. + self._parameters[0])
-        min_maxwave = self._source.maxwave() * shift 
+        min_maxwave = self._source.maxwave() * shift
         for effect, frame in zip(self._effects, self._effect_frames):
             effect_maxwave = effect.maxwave()
             if frame == 'rest':
                 effect_maxwave *= shift
-            if effect_maxwave < min_maxwave :
+            if effect_maxwave < min_maxwave:
                 min_maxwave = effect_maxwave
         return min_maxwave
 
-    # ----------------------------------------------------------------
-    # Flux
-    
     def _baseflux(self, time, wave):
         """Array flux function."""
         a = 1. / (1. + self._parameters[0])
@@ -1238,17 +1235,17 @@ class Model(_ModelBase):
 
         # convert to 1-d arrays
         time, band = np.broadcast_arrays(time, band)
-        ndim = time.ndim # save input ndim for return val
+        ndim = time.ndim  # save input ndim for return val
         time = np.atleast_1d(time)
         band = np.atleast_1d(band)
-        
+
         # Convert `band` to an array of rest-frame bands
         restband = np.empty(len(time), dtype='object')
         for b in set(band):
             mask = band == b
             b = get_bandpass(b)
             restband[mask] = Bandpass(a*b.wave, b.trans)
-        
+
         phase = (time - self._parameters[1]) * a
 
         # Note that not all sources have this method. The idea
@@ -1296,7 +1293,7 @@ class Model(_ModelBase):
         return f, cov
 
     def bandmag(self, band, magsys, time):
-        """Magnitude at the given time(s) through the given 
+        """Magnitude at the given time(s) through the given
         bandpass(es), and for the given magnitude system(s).
 
         Parameters
@@ -1354,9 +1351,8 @@ class PropagationEffect(_ModelBase):
 
     Derived classes must define _minwave (float), _maxwave (float).
     """
-    
-    __metaclass__ = abc.ABCMeta
 
+    __metaclass__ = abc.ABCMeta
 
     def minwave(self):
         return self._minwave
@@ -1389,7 +1385,7 @@ class CCM89Dust(PropagationEffect):
     def propagate(self, wave, flux):
         """Propagate the flux."""
         a_v = self._parameters[0] * self._parameters[1]
-        trans = 10.**(-0.4 *  ccm89(wave, a_v, self._parameters[1]))
+        trans = 10.**(-0.4 * ccm89(wave, a_v, self._parameters[1]))
         return trans * flux
 
 
@@ -1416,8 +1412,8 @@ class F99Dust(PropagationEffect):
     _maxwave = 60000.
     _XKNOTS = 1.e4 / np.array([np.inf, 26500., 12200., 6000., 5470.,
                                4670., 4110., 2700., 2600.])
-    def __init__(self, r_v=3.1):
 
+    def __init__(self, r_v=3.1):
         self._param_names = ['ebv']
         self.param_names_latex = ['E(B-V)']
         self._parameters = np.array([0.])
