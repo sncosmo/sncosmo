@@ -6,8 +6,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from astropy.utils import OrderedDict
-from astropy.utils.misc import lazyproperty
+from astropy.utils import OrderedDict, lazyproperty
 from astropy.io import ascii
 import astropy.units as u
 import astropy.constants as const
