@@ -85,35 +85,6 @@ supernova *cosmology*, as it doesn't cover other types of supernova
 science (radiative transfer simulations for instance).  Hence
 "sncosmo".
 
-Contributing to SNCosmo
-=======================
-
-.. _`issue tracker`: http://github.com/sncosmo/sncosmo/issues
-.. _`contributing`: http://astropy.readthedocs.org/en/latest/development/workflow/index.html
-
-This package is being actively developed. Bug reports, comments, and
-help with development are very welcome.
-
-Report issues
--------------
-
-Even if you don't have time to contribute code or documentation,
-please make sure you report any issues with the package or
-documentation to the `issue tracker`_!
-
-Contribute code
----------------
-
-If you are interested in contributing fixes, code or documentation to
-SNCosmo, take a look at the documentation pages on `contributing`_ to
-Astropy. The idea is that the workflow for SNCosmo is very similar,
-but with http://github.com/sncosmo/sncosmo functioning as the central
-"blessed" repository in place of http://github.com/astropy/astropy
-. You can either send a patch, or (preferably) work on a fork of
-SNCosmo and submit the changes via a pull request. For big changes, it
-is better to discuss your plans first before writing a lot of code.
-
-
 Version History
 ===============
 
@@ -134,3 +105,4 @@ Contributors
 
 * Kyle Barbary
 * Rollin C. Thomas
+* Rahul Biswas

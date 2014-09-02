@@ -28,13 +28,14 @@ possible. It is built on NumPy, SciPy and AstroPy.
    :maxdepth: 1
 
    whatsnew/0.5
-   overview
+   about
    install
+   contributing
 
-* Check out the source code & contribute: https://github.com/sncosmo/sncosmo
-* Report bugs and request features: https://github.com/sncosmo/sncosmo/issues
+* Check out the source code: https://github.com/sncosmo/sncosmo
+* Report bugs, request features: https://github.com/sncosmo/sncosmo/issues
+* User & developer mailing list: https://groups.google.com/forum/#!forum/sncosmo
 * Contact the main author directly: Use kylebarbary [at] gmail [dot] com
-* Mail list: sncosmo@googlegroups.com
 
 Usage
 =====
