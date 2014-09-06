@@ -47,8 +47,8 @@ Usage
    bandpasses
    magsystems
    photdata
-   cuts
    fitting
+   cuts
    simulation
    registry
    reference

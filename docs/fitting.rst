@@ -2,37 +2,28 @@
 Light Curve Fitting
 *******************
 
-*Reference documentation is in* `sncosmo.fit_lc`.
+*This is a user guide. For reference documentation, see the* :ref:`fitting-api`
+*API*.
 
-First, have your photometric data in an astropy
-`~astropy.table.table.Table`, with a row for each observation. For what this
-can look like, see :doc:`photdata`. For now, get an example of
-photometric data::
+Photometric Data
+================
+
+See :doc:`photdata` for how to represent photometric data and how to
+read/write it to various file formats. An important additional note: a
+table of photometric data has a ``band`` column and a ``zpsys`` column
+that use strings to identify the bandpass (e.g., ``'sdssg'``) and
+zeropoint system (``'ab'``) of each observation. If the bandpass and
+zeropoint systems in your data are *not* built-ins known to sncosmo,
+you must register the corresponding `~sncosmo.Bandpass` or
+`~sncosmo.MagSystem` to the right string identifier using the
+:doc:`registry`.
+
+Performing a fit
+================
+
+The following example fits a SALT2 model to some example data::
 
     >>> data = sncosmo.load_example_data()
-    >>> print data
-         time      band        flux          fluxerr      zp  zpsys
-    ------------- ----- ----------------- -------------- ---- -----
-          55070.0 sdssg    0.813499900062 0.651728140824 25.0    ab
-    55072.0512821 sdssr  -0.0852238865812 0.651728140824 25.0    ab
-    55074.1025641 sdssi -0.00681659003089 0.651728140824 25.0    ab
-    55076.1538462 sdssz     2.23929135407 0.651728140824 25.0    ab
-    55078.2051282 sdssg  -0.0308977349373 0.651728140824 25.0    ab
-    55080.2564103 sdssr     2.35450321853 0.651728140824 25.0    ab
-    ...
-
-In this data, both the ``band`` column and the ``zpsys`` column
-contain strings. These specific bands (e.g., ``'sdssg'``) and
-zeropoint system (``'ab'``) are built-ins known to sncosmo, so we can
-feed these to any sncosmo function and it will find the right
-corresponding `~sncosmo.Bandpass` or `~sncosmo.MagSystem`. The data
-could also contain the `~sncosmo.Bandpass` and `~sncosmo.MagSystem`
-objects themselves. Or, if it had strings that were not built-ins, you
-could register the corresponding `~sncosmo.Bandpass` or
-`~sncosmo.MagSystem` using the :doc:`registry`.
-
-Anyway, let's go ahead and fit a SALT2 model to the data::
-
     >>> model = sncosmo.Model(source='salt2')
     >>> res, fitted_model = sncosmo.fit_lc(data, model,
     ...                                    ['z', 't0', 'x0', 'x1', 'c'],

@@ -81,6 +81,8 @@ I/O
    write_griddata_fits
    get_ebv_from_map
 
+.. _fitting-api:
+
 Fitting Photometric Data
 ========================
 

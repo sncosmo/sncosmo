@@ -9,7 +9,7 @@ from astropy.table import Table
 from .spectral import get_magsystem, get_bandpass
 
 _photdata_aliases = odict([
-    ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs'])),
+    ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs', 'mjd_obs'])),
     ('band', set(['band', 'bandpass', 'filter', 'flt'])),
     ('flux', set(['flux', 'f'])),
     ('fluxerr', set(['fluxerr', 'fe', 'fluxerror', 'flux_error', 'flux_err'])),
@@ -165,18 +165,19 @@ def normalize_data(data, zp=25., zpsys='ab'):
 # Generate docstring: table of aliases
 lines = [
     '',
-    '  '.join([60 * '=', 50 * '=', 50 * '=']),
-    '{0:60}  {1:50}  {2:50}'
-    .format('Acceptable column names (case-independent)',
+    '  '.join([10 * '=', 60 * '=', 50 * '=', 50 * '=']),
+    '{0:10}  {1:60}  {2:50}  {3:50}'
+    .format('Column', 'Acceptable aliases (case-independent)',
             'Description', 'Type')
     ]
 lines.append(lines[1])
-
-for field, aliases in _photdata_aliases.iteritems():
-    lines.append('{0:60}  {1:50}  {2:50}'
-                 .format(', '.join([repr(a) for a in aliases]),
-                         _photdata_descriptions[field],
-                         _photdata_types[field]))
-
+for colname in _photdata_aliases:
+    alias_list = ', '.join([repr(a) for a in _photdata_aliases[colname]])
+    line = '{0:10}  {1:60}  {2:50}  {3:50}'.format(
+        colname,
+        alias_list,
+        _photdata_descriptions[colname],
+        _photdata_types[colname])
+    lines.append(line)
 lines.extend([lines[1], ''])
 __doc__ = '\n'.join(lines)
