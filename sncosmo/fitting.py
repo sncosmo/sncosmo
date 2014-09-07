@@ -20,7 +20,13 @@ class DataQualityError(Exception):
 
 
 def _chisq(data, model, modelcov=False):
-    """Like chisq but assumes data is already standardized."""
+    """Like chisq but assumes data is already standardized.
+
+    The purpose of having this as a separate function is for the benefit
+    of fitting functions that standardize data once and call chisq many
+    times. Such functions explicitly call standardize_data and then this
+    function.
+    """
 
     if modelcov:
         mflux, mcov = model.bandfluxcov(data['band'], data['time'],
@@ -653,6 +659,9 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         else:
             _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
             bounds[model.param_names[2]] = (0., 10. * amplitude)
+
+    # Drop data that the model doesn't cover.
+    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
                    nobj=nobj, maxiter=maxiter, verbose=verbose)
