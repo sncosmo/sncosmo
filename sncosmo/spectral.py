@@ -381,10 +381,9 @@ class MagSystem(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, refmags=None, name=None):
+    def __init__(self, name=None):
         self._zpbandflux = {}
         self._name = name
-        self._refmags = refmags
 
     @abc.abstractmethod
     def _refspectrum_bandflux(self, band):
@@ -399,24 +398,6 @@ class MagSystem(object):
     @name.setter
     def name(self, value):
         self._name = value
-
-    @property
-    def refmags(self):
-        """Dictionary of magnitude refmags for particular bands."""
-        return copy.copy(self._refmags)
-
-    @refmags.setter
-    def refmags(self, new_refmags):
-        if new_refmags is None:
-            self._refmags = None
-            return
-
-        if not isinstance(new_refmags, dict):
-            raise ValueError("refmags must be dict-like or None")
-
-        self._refmags = OrderedDict()
-        for band, offset in new_refmags:
-            self._refmags[get_bandpass(band)] = offset
 
     def zpbandflux(self, band):
         """Flux of an object with magnitude zero in the given bandpass.
@@ -435,15 +416,9 @@ class MagSystem(object):
         try:
             return self._zpbandflux[band]
         except KeyError:
-            pass
+            bandflux = self._refspectrum_bandflux(band)
+            self._zpbandflux[band] = bandflux
 
-        bandflux = self._refspectrum_bandflux(band)
-        if self._refmags is not None:
-            if band not in self._refmags:
-                raise Exception('Band refmags not defined')
-            bandflux *= 10 ** (0.4 * self._refmags[band])
-
-        self._zpbandflux[band] = bandflux
         return bandflux
 
     def band_flux_to_mag(self, flux, band):
@@ -463,17 +438,10 @@ class SpectralMagSystem(MagSystem):
     ----------
     refspectrum : `sncosmo.Spectrum`
         The spectrum of the fundamental spectrophotometric standard.
-    refmags : dict, optional
-        The magnitudes (in this magnitude system) of the fundamental
-        spectrophotometric standard in the given bandpasses. If `None`
-        (the default), it is assumed that the fundamental standard has
-        magnitude 0 in all bandpasses. Dictionary keys can either be
-        `sncosmo.Bandpass` objects or string identifiers
-        thereof. Dictionary values are floats.
     """
 
-    def __init__(self, refspectrum, refmags=None, name=None):
-        super(SpectralMagSystem, self).__init__(refmags, name)
+    def __init__(self, refspectrum, name=None):
+        super(SpectralMagSystem, self).__init__(name)
         self._refspectrum = refspectrum
 
     def _refspectrum_bandflux(self, band):
