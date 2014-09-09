@@ -29,10 +29,6 @@ def load_timeseries_ascii(remote_url, name=None, version=None):
     return TimeSeriesSource(phases, wavelengths, flux,
                             name=name, version=version)
 
-def load_timeseries_ascii_local(pkg_data_name, name=None, version=None):
-    fname = get_pkg_data_filename(pkg_data_name)
-    phase, wave, flux = io.read_griddata_ascii(fname)
-    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
 def load_timeseries_fits(remote_url, name=None, version=None):
     fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
@@ -191,6 +187,7 @@ registry.register_loader(Source, 'hsiao-subsampled',
                          args=['../data/models/Hsiao_SED_V3_subsampled.fits'],
                          version='3.0', meta=meta)
 
+
 # -----------------------------------------------------------------------
 # SALT2 models
 
@@ -339,84 +336,6 @@ registry.register_loader(Source, '2011fe', load_2011fe, version='1.0',
                                'subclass': '`~sncosmo.TimeSeriesSource`',
                                'url': 'http://snfactory.lbl.gov/snf/data',
                                'reference': p13ref})
-
-
-# --------------------------------------------------------------------------
-# SNANA CC SN models added by S.Rodney 2014.09.09
-
-meta={'url':'http://das.sdss2.org/ge/sample/sdsssn/SNANA-PUBLIC/',
-      'type':'Ic',
-      'subclass':'`~sncosmo.TimeSeriesSource`',
-      'reference':('SNANA', 'Kessler et al. 2009 '
-                   '<http://adsabs.harvard.edu/abs/2009PASP..121.1028K>'),
-      'note':"extracted from SNANA's SNDATA_ROOT on 5 August 2014."}
-
-for modelname,sedfile,type in [
-    ['Ic.01', 'CSP-2004fe.SED',  'Ic'],
-    ['Ic.02', 'CSP-2004gq.SED',  'Ic'],
-    ['Ic.03', 'SDSS-004012.SED', 'Ic'],
-    ['Ic.04', 'SDSS-013195.SED', 'Ic'],
-    ['Ic.05', 'SDSS-014475.SED', 'Ic'],
-    ['Ic.06', 'SDSS-015475.SED', 'Ic'],
-    ['Ic.07', 'SDSS-017548.SED', 'Ic'],
-    ['Ic.08', 'SNLS-04D1la.SED', 'Ic'],
-    ['Ic.09', 'SNLS-04D4jv.SED', 'Ic'],
-    ['Ib.01', 'CSP-2004gv.SED',  'Ib'],
-    ['Ib.02', 'CSP-2006ep.SED',  'Ib'],
-    ['Ib.03', 'CSP-2007Y.SED',   'Ib'],
-    ['Ib.04', 'SDSS-000020.SED', 'Ib'],
-    ['Ib.05', 'SDSS-002744.SED', 'Ib'],
-    ['Ib.06', 'SDSS-014492.SED', 'Ib'],
-    ['Ib.07', 'SDSS-019323.SED', 'Ib'],
-    ['IIP.01','SDSS-000018.SED', 'IIP'],
-    ['IIP.02','SDSS-003818.SED', 'IIP'],
-    ['IIP.03','SDSS-013376.SED', 'IIP'],
-    ['IIP.04','SDSS-014450.SED', 'IIP'],
-    ['IIP.05','SDSS-014599.SED', 'IIP'],
-    ['IIP.06','SDSS-015031.SED', 'IIP'],
-    ['IIP.07','SDSS-015320.SED', 'IIP'],
-    ['IIP.08','SDSS-015339.SED', 'IIP'],
-    ['IIP.09','SDSS-017564.SED', 'IIP'],
-    ['IIP.10','SDSS-017862.SED', 'IIP'],
-    ['IIP.11','SDSS-018109.SED', 'IIP'],
-    ['IIP.12','SDSS-018297.SED', 'IIP'],
-    ['IIP.13','SDSS-018408.SED', 'IIP'],
-    ['IIP.14','SDSS-018441.SED', 'IIP'],
-    ['IIP.15','SDSS-018457.SED', 'IIP'],
-    ['IIP.16','SDSS-018590.SED', 'IIP'],
-    ['IIP.17','SDSS-018596.SED', 'IIP'],
-    ['IIP.18','SDSS-018700.SED', 'IIP'],
-    ['IIP.19','SDSS-018713.SED', 'IIP'],
-    ['IIP.20','SDSS-018734.SED', 'IIP'],
-    ['IIP.21','SDSS-018793.SED', 'IIP'],
-    ['IIP.22','SDSS-018834.SED', 'IIP'],
-    ['IIP.23','SDSS-018892.SED', 'IIP'],
-    ['IIP.24','SDSS-020038.SED', 'IIP'],
-    ['IIn.01','SDSS-012842.SED', 'IIN'],
-    ['IIn.02','SDSS-013449.SED', 'IIN'],
-    ] :
-
-    meta.update( {'snid':sedfile.split('.')[0]} )
-    registry.register_loader(Source, modelname, load_timeseries_ascii_local,
-                             args=['../data/models/ccsn/'+sedfile],
-                             version='1.0',
-                             meta=meta )
-
-# --------------------------------------------------------------------------
-# Pop III CC SN models from D.Whalen et al. 2013.
-# added by S.Rodney 2014.09.09
-
-for mod in ['z15B','z15D','z15G','z25B','z25D','z25G','z40B','z40G'] :
-    registry.register_loader(Source,mod,load_timeseries_ascii_local,
-                             args=['../data/models/whalen/popIII-%s.sed.restframe10pc.dat'%mod],
-                             version='1.0',
-                             meta={'snid':mod,'type':'PopIII',
-                                   'subclass':'`~sncosmo.TimeSeriesSource`',
-                                   'reference':('Whalen13',
-                                                'Whalen et al. 2013 '
-                                                '<http://adsabs.harvard.edu/abs/2013ApJ...768...95W>'),
-                                   'note':"private communication (D.Whalen to S.Rodney), May 2014."})
-
 
 # --------------------------------------------------------------------------
 # Generate docstring
