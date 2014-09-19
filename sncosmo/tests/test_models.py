@@ -1,7 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal
+from numpy.testing import assert_allclose, assert_approx_equal
 
 import sncosmo
 from sncosmo import registry
@@ -42,7 +42,7 @@ class TestTimeSeriesSource:
         # Correct answer
         b = sncosmo.get_bandpass("bessellb")
         ans = np.sum(b.trans * b.wave * b.dwave) / sncosmo.models.HC_ERG_AA
-        assert_almost_equal(ans, f)
+        assert_approx_equal(ans, f)
 
     def test_bandflux_shapes(self):
         # Just check that these work.
