@@ -45,8 +45,8 @@ def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
 # ------------------------------------------------------------------------
 # Nugent models
 
-baseurl = 'http://supernova.lbl.gov/~nugent/templates/'
-website = 'http://supernova.lbl.gov/~nugent/nugent_templates.html'
+baseurl = 'https://c3.lbl.gov/nugent/templates/'
+website = 'https://c3.lbl.gov/nugent/nugent_templates.html'
 subclass = '`~sncosmo.TimeSeriesSource`'
 n02ref = ('N02', 'Nugent, Kim & Permutter 2002 '
           '<http://adsabs.harvard.edu/abs/2002PASP..114..803N>')
