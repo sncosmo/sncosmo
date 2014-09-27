@@ -1320,6 +1320,8 @@ class Model(_ModelBase):
 
     def set_source_peakabsmag(self, absmag, band, magsys,
                               cosmo=cosmology.WMAP9):
+        """Set the amplitude of the source component of the model according to a desired 
+        absolute magnitude in a specific band"""
         if self._parameters[0] <= 0.:
             raise ValueError('absolute magnitude undefined when z<=0.')
         m = absmag + cosmo.distmod(self._parameters[0]).value
