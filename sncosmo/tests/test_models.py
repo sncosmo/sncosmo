@@ -93,3 +93,24 @@ class TestModel:
         band = sncosmo.get_bandpass('desg')
         self.model.set_source_peakabsmag(-19.3, 'desg', 'ab')
         self.model.set_source_peakabsmag(-19.3, band, 'ab')
+
+
+class TestModelBuiltin( TestModel ):
+    def __init__(self, sourcename):
+        self.model = sncosmo.Model(source=sourcename,
+                                   effects=[sncosmo.CCM89Dust()],
+                                   effect_frames=['obs'],
+                                   effect_names=['mw'])
+
+def test_ccsn_sources():
+    """ Unit test for SNANA CCSN sources  and Whalen POPIII sources."""
+    for sourcename in ['Ic.01','Ib.01','IIP.01','IIn.01','z15G','z25G','z40G'] :
+        try :
+            model = TestModelBuiltin( sourcename=sourcename )
+            model.test_minwave()
+            model.test_maxwave()
+            model.test_set_source_peakabsmag()
+            print("Model %s passed the unit test."%sourcename)
+        except :
+            print("Model %s failed the unit test."%sourcename)
+
