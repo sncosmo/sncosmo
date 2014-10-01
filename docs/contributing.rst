@@ -79,7 +79,7 @@ Every time you want to make a contribution:
    to make enhancements to the simulation code, name the branch
    something like "simulation-enhancements"::
  
-       git branch simulation-enhancements upstream/master.
+       git branch simulation-enhancements upstream/master
 
    (``upstream/master`` is where the branch branches off from.)
 
