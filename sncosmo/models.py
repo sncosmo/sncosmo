@@ -1320,7 +1320,7 @@ class Model(_ModelBase):
 
     def set_source_peakabsmag(self, absmag, band, magsys,
                               cosmo=cosmology.WMAP9):
-        """Set the amplitude of the source component of the model according to 
+        """Set the amplitude of the source component of the model according to
         the desired absolute magnitude(s) in the specified band(s).
 
         Parameters
