@@ -42,7 +42,7 @@ def _chisq(data, model, modelcov):
         return np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
 
 
-def chisq(data, model, modelcov=True):
+def chisq(data, model, modelcov=False):
     """Calculate chisq statistic for the model, given the data.
 
     Parameters
@@ -193,7 +193,7 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
 def fit_lc(data, model, param_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5., modelcov=True, verbose=False, maxcall=10000,
+           minsnr=5., modelcov=False, verbose=False, maxcall=10000,
            **kwargs):
     """Fit model parameters to data by minimizing chi^2.
 
@@ -555,10 +555,7 @@ def _nest_lc(data, model, param_names, modelcov,
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
-        # mflux = model.bandflux(data['band'], data['time'],
-        #                       zp=data['zp'], zpsys=data['zpsys'])
-        # chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2
-        return - chisq(data, model, modelcov=modelcov)/2.0
+        return - _chisq(data, model, modelcov=modelcov)/2.0
 
     res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
                     maxiter=maxiter, verbose=verbose)
@@ -568,7 +565,7 @@ def _nest_lc(data, model, param_names, modelcov,
 
 
 def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
-            minsnr=5., priors=None, nobj=100, maxiter=10000, modelcov=True,
+            minsnr=5., priors=None, nobj=100, maxiter=10000, modelcov=False,
             verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
