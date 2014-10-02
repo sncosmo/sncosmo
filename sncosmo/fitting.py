@@ -555,7 +555,7 @@ def _nest_lc(data, model, param_names, modelcov,
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
-        return - _chisq(data, model, modelcov=modelcov)/2.0
+        return - _chisq(data, model, modelcov=modelcov) / 2.0
 
     res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
                     maxiter=maxiter, verbose=verbose)
@@ -663,9 +663,8 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     # Drop data that the model doesn't cover.
     data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
-    res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
-                   nobj=nobj, maxiter=maxiter, modelcov=modelcov,
-                   verbose=verbose)
+    res = _nest_lc(data, model, param_names, modelcov=modelcov, bounds=bounds, 
+                   priors=priors, nobj=nobj, maxiter=maxiter, verbose=verbose)
 
     res.bounds = bounds
 
