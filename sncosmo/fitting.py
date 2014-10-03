@@ -19,7 +19,7 @@ class DataQualityError(Exception):
     pass
 
 
-def _chisq(data, model, modelcov=False):
+def _chisq(data, model, modelcov):
     """Like chisq but assumes data is already standardized.
 
     The purpose of having this as a separate function is for the benefit
@@ -499,7 +499,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 #    return res
 
 
-def _nest_lc(data, model, param_names,
+def _nest_lc(data, model, param_names, modelcov,
              bounds=None, priors=None, ppfs=None, tied=None,
              nobj=100, maxiter=10000, verbose=False):
     """Assumes that data has already been standardized.
@@ -555,10 +555,7 @@ def _nest_lc(data, model, param_names,
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
-        mflux = model.bandflux(data['band'], data['time'],
-                               zp=data['zp'], zpsys=data['zpsys'])
-        chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
-        return -chisq / 2.
+        return - _chisq(data, model, modelcov=modelcov) / 2.0
 
     res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
                     maxiter=maxiter, verbose=verbose)
@@ -568,7 +565,8 @@ def _nest_lc(data, model, param_names,
 
 
 def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
-            minsnr=5., priors=None, nobj=100, maxiter=10000, verbose=False):
+            minsnr=5., priors=None, nobj=100, maxiter=10000, modelcov=False,
+            verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -603,6 +601,8 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         to solution.
     maxiter : int, optional
         Maximum number of iterations. Default is 10000.
+    modelcov : bool, optional
+        Include model covariance when calculating chisq. Default is False.
     verbose : bool, optional
 
     Returns
@@ -663,8 +663,8 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     # Drop data that the model doesn't cover.
     data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
-    res = _nest_lc(data, model, param_names, bounds=bounds, priors=priors,
-                   nobj=nobj, maxiter=maxiter, verbose=verbose)
+    res = _nest_lc(data, model, param_names, modelcov=modelcov, bounds=bounds,
+                   priors=priors, nobj=nobj, maxiter=maxiter, verbose=verbose)
 
     res.bounds = bounds
 
