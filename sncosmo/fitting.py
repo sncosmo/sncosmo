@@ -648,20 +648,24 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     model = copy.copy(model)
     bounds = copy.copy(bounds)  # need to copy this dict b/c we modify it below
 
-    # Find t0 bounds to use, if not explicitly given
-    if 't0' in param_names and 't0' not in bounds:
-        bounds['t0'] = t0_bounds(data, model)
+    # Drop data that the model doesn't cover.
+    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     if guess_amplitude_bound:
         if model.param_names[2] in bounds:
             raise ValueError("cannot supply bounds for parameter {0!r}"
                              " when guess_amplitude_bound=True")
-        else:
-            _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
-            bounds[model.param_names[2]] = (0., 10. * amplitude)
 
-    # Drop data that the model doesn't cover.
-    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
+        # If redshift is bounded, set model redshift to midpoint of bounds
+        # when doing the guess.
+        if 'z' in bounds:
+            model.set(z=sum(bounds['z']) / 2.)
+        _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+        bounds[model.param_names[2]] = (0., 10. * amplitude)
+
+    # Find t0 bounds to use, if not explicitly given
+    if 't0' in param_names and 't0' not in bounds:
+        bounds['t0'] = t0_bounds(data, model)
 
     res = _nest_lc(data, model, param_names, modelcov=modelcov, bounds=bounds,
                    priors=priors, nobj=nobj, maxiter=maxiter, verbose=verbose)
