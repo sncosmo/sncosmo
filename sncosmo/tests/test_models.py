@@ -52,6 +52,11 @@ class TestTimeSeriesSource:
                              zpsys="ab")
 
 
+class TestSALT2Source:
+    def setup_class(self):
+        self.source = flatsource()
+
+
 class TestModel:
 
     def setup_class(self):

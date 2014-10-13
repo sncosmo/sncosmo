@@ -538,34 +538,37 @@ class SALT2Source(Source):
         Directory path containing model component files. Default is `None`,
         which means that no directory is prepended to filenames when
         determining their path.
-    m0file, m1file, clfile, cdfile, errscalefile,
-    lcrv00file, lcrv11file, lcrv01file : str or fileobj, optional
+    m0file, m1file, clfile : str or fileobj, optional
         Filenames of various model components. Defaults are:
 
         * m0file = 'salt2_template_0.dat' (2-d grid)
         * m1file = 'salt2_template_1.dat' (2-d grid)
         * clfile = 'salt2_color_correction.dat'
+
+    errscalefile, lcrv00file, lcrv11file, lcrv01file, cdfile :
+    str or fileobj, optional
+        Filenames of various model components for model covariance in
+        synthetic photometry. See ``bandflux_rcov`` for details.
+        Defaults are:
+
         * errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
         * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
         * lcrv11file = 'salt2_lc_relative_variance_1.dat' (2-d grid)
         * lcrv01file = 'salt2_lc_relative_covariance_01.dat' (2-d grid)
-        * cdfile = 'salt2_color_dispersion.dat'
-
-        The "2-d grid" files have the format ``<phase> <wavelength>
-        <value>`` on each line. ``m0file``, ``m1file`` and ``clfile``
-        together determine the model values. The ``cdfile`` and the
-        model determine the "k-correction errors". ``errscalefile``,
-        ``lcrv00file``, ``lcrv11file``, and ``lcrv01file`` determine the
-        "error snake".
+        * cdfile = 'salt2_color_dispersion.dat' (1-d grid)
 
     Notes
     -----
+    The "2-d grid" files have the format ``<phase> <wavelength>
+    <value>`` on each line.
+
     The phase and wavelength values of the various components don't
     necessarily need to match. (In the most recent salt2 model data,
     they do not all match.) The phase and wavelength values of the
     first model component (in ``m0file``) are taken as the "native"
     sampling of the model, even though these values might require
     interpolation of the other model components.
+
     """
 
     # These files are distributed with SALT2 model data but not currently
@@ -727,13 +730,69 @@ class SALT2Source(Source):
         return colorcov + np.diagflat((f0 / f1)**2 * errsnakesq)
 
     def bandflux_rcov(self, band, phase):
-        """Return the model relative covariance of integrated flux through
-        the given restframe bands at the given phases
+        """Return the *relative* model covariance (or "model error") on
+        synthetic photometry generated from the model in the given restframe
+        band(s).
 
+        This model covariance represents the scatter of real SNe about
+        the model.  The covariance matrix has two components. The
+        first component is diagonal (pure variance) and depends on the
+        phase :math:`t` and bandpass central wavelength
+        :math:`\lambda_c` of each photometry point:
+
+        .. math::
+
+           (F_{0, \mathrm{band}}(t) / F_{1, \mathrm{band}}(t))^2
+           S(t, \lambda_c)^2
+           (V_{00}(t, \lambda_c) + 2 x_1 V_{01}(t, \lambda_c) +
+            x_1^2 V_{11}(t, \lambda_c))
+
+        where the 2-d functions :math:`S`, :math:`V_{00}`, :math:`V_{01}`,
+        and :math:`V_{11}` are given by the files ``errscalefile``,
+        ``lcrv00file``, ``lcrv01file``, and ``lcrv11file``
+        respectively and :math:`F_0` and :math:`F_1` are given by
+
+        .. math::
+
+           F_{0, \mathrm{band}}(t) = \int_\lambda M_0(t, \lambda)
+                                     T_\mathrm{band}(\lambda) d\lambda
+
+        .. math::
+
+           F_{1, \mathrm{band}}(t) = \int_\lambda
+                                     (M_0(t, \lambda) + x_1 M_1(t, \lambda))
+                                     T_\mathrm{band}(\lambda) d\lambda
+
+        As this first component can sometimes be negative due to
+        interpolation, there is a floor applied wherein values less than zero
+        are set to ``0.01**2``. This is to match the behavior of the
+        original SALT2 code, snfit.
+
+        The second component is block diagonal. It has
+        constant covariance between all photometry points within a
+        bandpass (regardless of phase), and no covariance between
+        photometry points in different bandpasses:
+
+        .. math::
+
+           CD(\lambda_c)^2
+
+        where the 1-d function :math:`CD` is given by the file ``cdfile``.
+        Adding these two components gives the *relative* covariance on model
+        photometry.
+
+        Parameters
+        ----------
         band : `~numpy.ndarray` of `~sncosmo.Bandpass`
             Bandpasses of observations.
         phase : `~numpy.ndarray` (float)
             Phases of observations.
+
+
+        Returns
+        -------
+        rcov : `~numpy.ndarray`
+            Model relative covariance for given bandpasses and phases.
         """
 
         try:
@@ -1258,7 +1317,7 @@ class Model(_ModelBase):
         return rcov
 
     def bandfluxcov(self, band, time, zp=None, zpsys=None):
-        """Like bandflux, but also returns model covariance on values.
+        """Like bandflux(), but also returns model covariance on values.
 
         Parameters
         ----------
