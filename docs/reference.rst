@@ -78,6 +78,7 @@ I/O
    read_snana_simlib
    read_griddata_ascii
    read_griddata_fits
+   write_griddata_ascii
    write_griddata_fits
    get_ebv_from_map
 

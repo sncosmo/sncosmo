@@ -16,7 +16,7 @@ from astropy import wcs
 from .photdata import dict_to_array
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
-           'read_griddata_fits', 'write_griddata_fits']
+           'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
 
 
 def _stripcomment(line, char='#'):
@@ -138,6 +138,35 @@ def read_griddata_fits(name_or_obj, ext=0):
     hdulist.close()
 
     return x0, x1, y
+
+def write_griddata_ascii(x0, x1, y, name_or_obj):
+    """Write 2-d grid data to a text file.
+
+    Each line has values `x0 x1 y`. Space separated.
+
+    Parameters
+    ----------
+    x0 : numpy.ndarray
+        1-d array.
+    x1 : numpy.ndarray
+        1-d array.
+    y : numpy.ndarray
+        2-d array of shape (len(x0), len(x1)).
+    name_or_obj : str or file-like object
+        Filename to write to or open file.
+    """
+
+    if isinstance(name_or_obj, basestring):
+        f = open(name_or_obj, 'rb')
+    else:
+        f = name_or_obj
+
+    for j in x0:
+        for i in x1:
+            f.write("{0:.7g} {1:.7g} {2:.7g}".format(x0[j], x1[i], y[j, i]))
+
+    if isinstance(name_or_obj), basestring):
+        f.close()
 
 
 def write_griddata_fits(x0, x1, y, name_or_obj):
