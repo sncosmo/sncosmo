@@ -91,7 +91,7 @@ common to all `~sncosmo.Model` instances:
 * ``z`` is the redshift of the source.
 * ``t0`` is the observer-frame time corresponding to the source's phase=0.
 
-Note that in some sources phase=0 might be at explosion while others might be at max: the definition of phase is arbitrary. However, observed time is always related to phase via ``time = t0 + phase / (1 + z)``
+Note that in some sources phase=0 might be at explosion while others might be at max: the definition of phase is arbitrary. However, observed time is always related to phase via ``time = t0 + phase * (1 + z)``
 
 The next, ``amplitude``, is specific to the particular type of
 source. In this case, the source is a simple spectral timeseries that
