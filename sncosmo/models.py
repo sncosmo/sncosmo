@@ -545,11 +545,10 @@ class SALT2Source(Source):
         * m1file = 'salt2_template_1.dat' (2-d grid)
         * clfile = 'salt2_color_correction.dat'
 
-    errscalefile, lcrv00file, lcrv11file, lcrv01file, cdfile :
-    str or fileobj, optional
-        Filenames of various model components for model covariance in
-        synthetic photometry. See ``bandflux_rcov`` for details.
-        Defaults are:
+    errscalefile, lcrv00file, lcrv11file, lcrv01file, cdfile : str or fileobj
+        (optional) Filenames of various model components for
+        model covariance in synthetic photometry. See
+        ``bandflux_rcov`` for details.  Defaults are:
 
         * errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
         * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
