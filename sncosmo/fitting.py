@@ -10,7 +10,7 @@ from astropy.utils import OrderedDict as odict
 
 from .photdata import standardize_data, normalize_data
 from . import nest
-from .utils import Result, Interp1d, pdf_to_ppf
+from .utils import Result, Interp1d, pdf_to_ppf, weightedcov
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
@@ -672,26 +672,13 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
 
     res.bounds = bounds
 
-    # Weighted average of samples
-    parameters = np.average(res['samples'], weights=res['weights'], axis=0)
+    # calculate weighted average and weighted covariance matrix of samples
+    parameters, cov = weightedcov(res['samples'], res['weights'])
+
     model.set(**dict(zip(param_names, parameters)))
     res.param_dict = dict(zip(model.param_names, model.parameters))
-
-    # Covariance and "errors" (diagonal of covariance)
-    sqweightsum = np.sum(res['weights']**2)
-    covests = map(np.outer, res['samples'], res['samples'])
-    res.covariance = (np.average(covests, weights=res['weights'], axis=0) -
-                      np.outer(parameters, parameters)) / (1.0 - sqweightsum)
-    res.errors = np.sqrt(np.diagonal(res.covariance))
-
-    # the following is a cross-check that we've done the "error" calculation
-    # correctly (TODO: move this to tests)
-
-    # sqweightsum = np.sum(res['weights']**2)
-    # biasedvarestimate = np.sum(res['weights'][:, np.newaxis] *
-    #                            (res['samples']-parameters)**2, axis=0)
-    # unbiasedvarestimate = biasedvarestimate / (1.0 - sqweightsum)
-    # std = np.sqrt(unbiasedvarestimate)
+    res.covariance = cov
+    res.errors = np.sqrt(np.diagonal(cov))
 
     return res, model
 
