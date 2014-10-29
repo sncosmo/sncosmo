@@ -213,11 +213,11 @@ class _ModelBase(object):
             raise KeyError("Model has no parameter " + repr(name))
         return self._parameters[i]
 
-    def summary(self):
+    def _headsummary(self):
         return ''
 
     def __str__(self):
-        parameter_lines = [self.summary(), 'parameters:']
+        parameter_lines = [self._headsummary(), 'parameters:']
         if len(self._param_names) > 0:
             m = max(map(len, self._param_names))
             extralines = ['  ' + k.ljust(m) + ' = ' + repr(v)
@@ -419,7 +419,7 @@ class Source(_ModelBase):
         return "<{0:s}{1:s}{2:s} at 0x{3:x}>".format(
             self.__class__.__name__, name, version, id(self))
 
-    def summary(self):
+    def _headsummary(self):
         summary = """\
         class      : {0}
         name       : {1!r}
@@ -1396,15 +1396,15 @@ class Model(_ModelBase):
         m = absmag + cosmo.distmod(self._parameters[0]).value
         self._source.set_peakmag(m, band, magsys)
 
-    def summary(self):
+    def _headsummary(self):
         head = "<{0:s} at 0x{1:x}>".format(self.__class__.__name__, id(self))
-        s = 'source:\n' + self._source.summary()
+        s = 'source:\n' + self._source._headsummary()
         summaries = [head, s.replace('\n', '\n  ')]
         for effect, name, frame in zip(self._effects,
                                        self._effect_names,
                                        self._effect_frames):
             s = ('effect (name={0} frame={1}):\n{2}'
-                 .format(repr(name), repr(frame), effect.summary()))
+                 .format(repr(name), repr(frame), effect._headsummary()))
             summaries.append(s.replace('\n', '\n  '))
         return '\n'.join(summaries)
 
@@ -1435,7 +1435,7 @@ class PropagationEffect(_ModelBase):
     def propagate(self, wave, flux):
         pass
 
-    def summary(self):
+    def _headsummary(self):
         summary = """\
         class           : {0}
         wavelength range: [{1:.6g}, {2:.6g}] Angstroms"""\

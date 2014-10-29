@@ -167,3 +167,7 @@ class TestModel:
         band = sncosmo.get_bandpass('desg')
         self.model.set_source_peakabsmag(-19.3, 'desg', 'ab')
         self.model.set_source_peakabsmag(-19.3, band, 'ab')
+
+    def test_str(self):
+        """Test if string summary works at all."""
+        str(self.model)
