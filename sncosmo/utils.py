@@ -144,3 +144,43 @@ def pdf_to_ppf(pdf, a, b, n=101):
         y[i] = _ppf_single_call(pdf, x[i], a, b)
 
     return Interp1d(0., 1., y)
+
+
+def weightedcov(x, w):
+    """Estimate a covariance matrix, given data with weights.
+
+    Implements formula described here:
+    https://en.wikipedia.org/wiki/Sample_mean_and_sample_covariance
+    (see "weighted samples" section)
+
+    Parameters
+    ----------
+    x : `~numpy.ndarray`
+        2-D array containing data samples. Shape is (M, N) where N is the
+        number of variables and M is the number of samples or observations.
+    w : `~numpy.ndarray`
+        1-D array of sample weights. Shape is (M,).
+
+    Returns
+    -------
+    mean : `~numpy.ndarray`
+        Weighted mean of samples.
+    cov : `~numpy.ndarray`
+        Weighted covariance matrix.
+    """
+
+    xmean = np.average(x, weights=w, axis=0)
+    xd = x - xmean
+    wsum = np.sum(w)
+    w2sum = np.sum(w**2)
+
+    # if we only supported numpy 1.6+ we could do this:
+    # cov = wsum / (wsum**2 - w2sum) * np.einsum('i,ij,ik', w, xd, xd)
+
+    cov = np.empty((xmean.size, xmean.size), dtype=np.float64)
+    for j in range(cov.shape[0]):
+        for i in range(cov.shape[1]):
+            cov[j, i] = np.sum(w * xd[:, i] * xd[:, j])
+    cov *= wsum / (wsum**2 - w2sum)
+
+    return xmean, cov
