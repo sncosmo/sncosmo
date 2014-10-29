@@ -157,6 +157,7 @@ representation of its components and current parameter values:
       hostebv   = 0.0
       hostr_v   = 3.1000000000000001
 
+Also, ``str(model)`` will return this string rather than printing it.
 
 Model spectrum
 ==============
