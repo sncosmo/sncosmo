@@ -175,12 +175,12 @@ def weightedcov(x, w):
     w2sum = np.sum(w**2)
 
     # if we only supported numpy 1.6+ we could do this:
-    # cov = wsum / (wsum - w2sum) * np.einsum('i,ij,ik', w, xd, xd)
+    # cov = wsum / (wsum**2 - w2sum) * np.einsum('i,ij,ik', w, xd, xd)
 
     cov = np.empty((xmean.size, xmean.size), dtype=np.float64)
     for j in range(cov.shape[0]):
         for i in range(cov.shape[1]):
             cov[j, i] = np.sum(w * xd[:, i] * xd[:, j])
-    cov *= wsum / (wsum - w2sum)
+    cov *= wsum / (wsum**2 - w2sum)
 
     return xmean, cov
