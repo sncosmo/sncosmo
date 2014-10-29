@@ -76,6 +76,7 @@ package_info = get_package_info(PACKAGENAME)
 
 # Add the project-global data
 data_files = recursive_glob(os.path.join(PACKAGENAME, 'data'), '*')
+data_files.append(os.path.join(PACKAGENAME, 'tests', 'coveragerc'))
 data_files = [f[len(PACKAGENAME)+1:] for f in data_files]
 package_info['package_data'][PACKAGENAME] = data_files
 
