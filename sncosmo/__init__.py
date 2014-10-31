@@ -134,7 +134,6 @@ if not _ASTROPY_SETUP_:
             "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'",
             cfgtype='string(default=None)')
 
-
     # Create an instance of the class we just defined.
     conf = Conf()
 
