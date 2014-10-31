@@ -134,8 +134,9 @@ if not _ASTROPY_SETUP_:
     del os, warn, config_dir  # clean up namespace
 
 # Putting these imports here makes it possible to import the package with
-# no dependencies installed. This is desireable for being able to do 
-# setup.py egg_info. (Though I'm not actually sure if this imports the module.)
+# no dependencies installed. This is desireable for being able to do
+# setup.py egg_info. (Though I'm not actually sure if this imports the
+# module.)
 if not _ASTROPY_SETUP_:
     from .spectral import *
     from .models import *
