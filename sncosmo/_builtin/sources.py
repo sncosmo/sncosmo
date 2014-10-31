@@ -10,13 +10,7 @@ import numpy as np
 from astropy.io import fits
 from astropy import wcs
 from astropy.utils.data import (download_file, get_pkg_data_filename,
-                                get_readable_fileobj, REMOTE_TIMEOUT)
-
-# Note on REMOTE_TIMEOUT: we have to explicitly import REMOTE_TIMEOUT
-# and feed it to the download_file() function. This is because of a bug in
-# download_file: REMOTE_TIMEOUT is evaluated when the module is
-# loaded rather than when the function is called. This means that
-# changing the value of REMOTE_TIMEOUT has no effect on download_file().
+                                get_readable_fileobj)
 
 from .. import registry
 from .. import Source, TimeSeriesSource, SALT2Source
@@ -31,7 +25,7 @@ def load_timeseries_ascii(remote_url, name=None, version=None):
 
 
 def load_timeseries_fits(remote_url, name=None, version=None):
-    fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
+    fn = download_file(remote_url, cache=True)
     phase, wave, flux = io.read_griddata_fits(fn)
     return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
@@ -192,7 +186,7 @@ registry.register_loader(Source, 'hsiao-subsampled',
 # SALT2 models
 
 def load_salt2model(remote_url, topdir, name=None, version=None):
-    fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
+    fn = download_file(remote_url, cache=True)
     t = tarfile.open(fn, 'r:gz')
 
     errscalefn = join(topdir, 'salt2_spec_dispersion_scaling.dat')
@@ -280,7 +274,7 @@ def load_2011fe(name=None, version=None):
     warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
                             append=True)
 
-    tarfname = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
+    tarfname = download_file(remote_url, cache=True)
     t = tarfile.open(tarfname, 'r:gz')
     phasestrs = []
     spectra = []

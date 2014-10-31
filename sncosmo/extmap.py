@@ -5,16 +5,12 @@ import os
 
 import numpy as np
 from scipy.ndimage import map_coordinates
-
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.io import fits
 from astropy.utils import isiterable
-from astropy.config import ConfigurationItem
 
-SFD_MAP_DIR = ConfigurationItem('sfd_map_dir', '.',
-                                'Directory containing SFD (1998) dust maps, '
-                                'with names: SFD_dust_4096_[ngp,sgp].fits')
+from sncosmo import conf
 
 __all__ = ['get_ebv_from_map']
 
@@ -52,7 +48,7 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
 
     # Get mapdir
     if mapdir is None:
-        mapdir = SFD_MAP_DIR()
+        mapdir = conf.sfd98_dir
     mapdir = os.path.expanduser(mapdir)
     mapdir = os.path.expandvars(mapdir)
     fname = os.path.join(mapdir, 'SFD_dust_4096_{0}.fits')

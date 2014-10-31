@@ -113,31 +113,41 @@ def test(package=None, test_path=None, args=None, plugins=None,
         coverage=coverage, open_files=open_files, **kwargs)
 
 
+# Putting everything else in the following block makes it possible to
+# import the package with no dependencies installed. This is
+# desirable for being able to do 'setup.py egg_info'. (Though I'm not
+# sure if 'setup.py egg_info' actually imports the package...)
 if not _ASTROPY_SETUP_:
     import os
-    from warnings import warn
-    from astropy import config
+    from astropy.config import ConfigItem, ConfigNamespace
+    from astropy.config.configuration import update_default_config
 
-    # add these here so we only need to cleanup the namespace at the end
-    config_dir = None
+    # Create default configurations. The file sncosmo.cfg should be
+    # kept in sync with the ConfigItems here.
+    class Conf(ConfigNamespace):
+        """
+        Configuration parameters for sncosmo.
+        """
+        sfd98_dir = ConfigItem(
+            None,
+            "Directory containing SFD (1998) dust maps, with names: "
+            "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'",
+            cfgtype='string(default=None)')
 
-    if not os.environ.get('ASTROPY_SKIP_CONFIG_UPDATE', False):
-        config_dir = os.path.dirname(__file__)
-        try:
-            config.configuration.update_default_config(__package__, config_dir)
-        except config.configuration.ConfigurationDefaultMissingError as e:
-            wmsg = (e.args[0] + " Cannot install default profile. If you are "
-                    "importing from source, this is expected.")
-            warn(config.configuration.ConfigurationDefaultMissingWarning(wmsg))
-            del e
 
-    del os, warn, config_dir  # clean up namespace
+    # Create an instance of the class we just defined.
+    conf = Conf()
 
-# Putting these imports here makes it possible to import the package with
-# no dependencies installed. This is desireable for being able to do
-# setup.py egg_info. (Though I'm not actually sure if this imports the
-# module.)
-if not _ASTROPY_SETUP_:
+    # Update the user's ~/.astropy/config/sncosmo.cfg if needed.
+    update_default_config("sncosmo",  # pkg
+                          os.path.dirname(__file__),  # configdir
+                          version=__version__)
+
+    # clean up namespace
+    del os, ConfigItem, ConfigNamespace, update_default_config
+
+    # Do all the necessary imports: everything except registry goes in the
+    # top-level namespace.
     from .spectral import *
     from .models import *
     from .io import *
@@ -147,6 +157,9 @@ if not _ASTROPY_SETUP_:
     from .simulation import *
     from . import registry
     from . import _builtin
+
+    # For plotting we just don't include the functions
+    # if any of the matplotlib imports fail.
     try:
         from plotting import *
     except ImportError:

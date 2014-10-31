@@ -13,7 +13,7 @@ SNCosmo depends on the following standard scientific python packages:
 
 - `SciPy <http://www.scipy.org/>`_ 0.9 or later
 
-- AstroPy_ 0.3 or later
+- AstroPy_ 0.4 or later
 
 In addition, several optional packages provide additional functionality:
 

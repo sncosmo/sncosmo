@@ -7,7 +7,7 @@
 import string
 
 from astropy.io import fits
-from astropy.utils.data import download_file, REMOTE_TIMEOUT
+from astropy.utils.data import download_file
 from astropy import units as u
 
 from .. import registry
@@ -27,7 +27,7 @@ registry.register_loader(
 # ---------------------------------------------------------------------------
 # Spectral systems
 def load_spectral_magsys_fits(remote_url, name=None):
-    fn = download_file(remote_url, cache=True, timeout=REMOTE_TIMEOUT())
+    fn = download_file(remote_url, cache=True)
     hdulist = fits.open(fn)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
