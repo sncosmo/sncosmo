@@ -96,7 +96,7 @@ install:
 
 script:
    - python setup.py $SETUP_CMD
-   - pep8 sncosmo --exclude=version.py
+   - if [[ $SETUP_CMD == 'test --coverage' ]]; then pep8 sncosmo --exclude=version.py; fi
 
 after_success:
    - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='sncosmo/tests/coveragerc'; fi
