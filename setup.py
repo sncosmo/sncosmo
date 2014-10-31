@@ -47,11 +47,6 @@ AUTHOR_EMAIL = 'kylebarbary@gmail.com'
 LICENSE = 'BSD'
 URL = 'http://sncosmo.readthedocs.org'
 
-# Get the long description from the package's docstring
-__import__(PACKAGENAME)
-package = sys.modules[PACKAGENAME]
-LONG_DESCRIPTION = package.__doc__
-
 # Store the package name in a built-in variable so it's easy
 # to get from other parts of the setup infrastructure
 builtins._ASTROPY_PACKAGE_NAME_ = PACKAGENAME
@@ -92,7 +87,6 @@ data_files = recursive_glob(os.path.join(PACKAGENAME, 'data'), '*')
 data_files.append(os.path.join(PACKAGENAME, 'tests', 'coveragerc'))
 data_files = [f[len(PACKAGENAME)+1:] for f in data_files]
 package_info['package_data'][PACKAGENAME] = data_files
-
 
 setup(name=PACKAGENAME,
       version=VERSION,

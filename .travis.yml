@@ -86,13 +86,17 @@ install:
     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION scipy matplotlib; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL iminuit; fi
 
+    # This is a special hack to work around a broken conda dependency!
+    # conda thinks matplotlib 1.2.1 needs shiboken 1.2, but it needs 1.1.
+    - if [[ $NUMPY_VERSION == 1.5 ]]; then $CONDA_INSTALL shiboken=1.1; 
+
     # PEP8 / COVERAGE DEPENDENCIES
     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL pep8; fi
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
 
 script:
    - python setup.py $SETUP_CMD
-   - if [[ $SETUP_CMD == 'test --coverage' ]]; then pep8 sncosmo --exclude=version.py; fi
+   - pep8 sncosmo --exclude=version.py
 
 after_success:
    - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='sncosmo/tests/coveragerc'; fi
