@@ -3,8 +3,8 @@ SNCosmo
 
 _Python library for supernova cosmology_
 
-[![Build Status](https://api.travis-ci.org/sncosmo/sncosmo.svg?branch=master)](https://travis-ci.org/sncosmo/sncosmo)
-[![Coverage Status](https://coveralls.io/repos/sncosmo/sncosmo/badge.png?branch=master)](https://coveralls.io/r/sncosmo/sncosmo?branch=master)
+[![Build Status](https://img.shields.io/travis/sncosmo/sncosmo.svg?style=flat-square)](https://travis-ci.org/sncosmo/sncosmo)
+[![Coverage Status](http://img.shields.io/coveralls/sncosmo/sncosmo.svg?style=flat-square)](https://coveralls.io/r/sncosmo/sncosmo?branch=master)
 
 **Documentation:** http://sncosmo.readthedocs.org
 
