@@ -1,6 +1,9 @@
 0.5.0 (unreleased)
 ------------------
 
+- update to new configuration system available in astropy v0.4 onward.
+  This makes this release incompatible with astropy versions less than
+  0.4.
 - Add `tighten_ylim` keyword argument to `plot_lc()`.
 - Deprecate `flatten` keyword argument in `fit_lc()` in favor of explicit
   use of `flatten_result()` function.
