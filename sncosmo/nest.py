@@ -108,7 +108,7 @@ def sample_ellipsoid(vs, mean, nsamples=1):
 
 
 def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
-         verbose=False, verbose_name=''):
+         maxcall=1000000, verbose=False, verbose_name=''):
     """Simple nested sampling algorithm to evaluate Bayesian evidence.
 
     Parameters
@@ -141,8 +141,9 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
         number of iterations required to converge. Default is 50.
     maxiter : int, optional
         Maximum number of iterations. Iteration may stop earlier if
-        termination condition is reached. Default is 10000. The total number
-        of likelihood evaluations will be ``nexplore * niter``.
+        termination condition is reached. Default is 10000.
+    maxcall : int, optional
+        Maximum number of likelihood evaluations. Default is 1000000.
     verbose : bool, optional
         Print a single line of running total iterations.
     verbose_name : str, optional
@@ -155,7 +156,7 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
         Containing following keys:
 
         * ``niter`` (int) number of iterations.
-        * ``ncalls`` (int) number of likelihood calls.
+        * ``ncall`` (int) number of likelihood calls.
         * ``time`` (float) time in seconds.
         * ``logz`` (float) log of evidence.
         * ``logzerr`` (float) error on ``logz``.
@@ -207,7 +208,8 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
     ndecl = 0
     logwt_old = None
     time0 = time.time()
-    for it in range(maxiter):
+    it = 0
+    while it < maxiter and loglcalls < maxcall:
         if verbose:
             if logz > -1.e6:
                 print "\r{0} iter={1:6d} logz={2:8f}".format(verbose_name, it,
@@ -269,6 +271,9 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
         if ndecl > nobj * 2 and ndecl > it / 6:
             break
         logwt_old = logwt
+
+        # increment loop counter
+        it += 1
 
     tottime = time.time() - time0
     if verbose:

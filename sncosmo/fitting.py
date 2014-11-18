@@ -501,7 +501,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
 def _nest_lc(data, model, param_names, modelcov,
              bounds=None, priors=None, ppfs=None, tied=None,
-             nobj=100, maxiter=10000, verbose=False):
+             nobj=100, maxiter=10000, maxcall=1000000, verbose=False):
     """Assumes that data has already been standardized.
 
     Run `data = standardize_data(data)`"""
@@ -558,15 +558,15 @@ def _nest_lc(data, model, param_names, modelcov,
         return - _chisq(data, model, modelcov=modelcov) / 2.0
 
     res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
-                    maxiter=maxiter, verbose=verbose)
+                    maxiter=maxiter, maxcall=maxcall, verbose=verbose)
     res.param_names = param_names
     res.ndof = len(data) - len(param_names)
     return res
 
 
 def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
-            minsnr=5., priors=None, nobj=100, maxiter=10000, modelcov=False,
-            verbose=False):
+            minsnr=5., priors=None, nobj=100, maxiter=10000, maxcall=1000000,
+            modelcov=False, verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -601,6 +601,8 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         to solution.
     maxiter : int, optional
         Maximum number of iterations. Default is 10000.
+    maxcall : int, optional
+        Maximum number of likelihood evaluations. Default is 1000000.
     modelcov : bool, optional
         Include model covariance when calculating chisq. Default is False.
     verbose : bool, optional
@@ -668,7 +670,8 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         bounds['t0'] = t0_bounds(data, model)
 
     res = _nest_lc(data, model, param_names, modelcov=modelcov, bounds=bounds,
-                   priors=priors, nobj=nobj, maxiter=maxiter, verbose=verbose)
+                   priors=priors, nobj=nobj, maxiter=maxiter, maxcall=maxcall,
+                   verbose=verbose)
 
     res.bounds = bounds
 
