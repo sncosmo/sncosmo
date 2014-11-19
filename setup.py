@@ -83,7 +83,12 @@ scripts = []
 package_info = get_package_info()
 
 # Add the project-global data
-data_files = recursive_glob(os.path.join(PACKAGENAME, 'data'), '*')
+pkgdatadir = os.path.join(PACKAGENAME, 'data')
+testdatadir = os.path.join(PACKAGENAME, 'tests', 'data')
+
+data_files = []
+data_files.extend(recursive_glob(pkgdatadir, '*'))
+data_files.extend(recursive_glob(testdatadir, '*'))
 data_files.append(os.path.join(PACKAGENAME, 'tests', 'coveragerc'))
 data_files.append(os.path.join(PACKAGENAME, PACKAGENAME + '.cfg'))
 data_files = [f[len(PACKAGENAME)+1:] for f in data_files]

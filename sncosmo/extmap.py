@@ -5,7 +5,8 @@ import os
 
 import numpy as np
 from scipy.ndimage import map_coordinates
-import astropy.coordinates as coord
+from astropy.coordinates import SkyCoord
+from astropy.wcs import WCS
 import astropy.units as u
 from astropy.io import fits
 from astropy.utils import isiterable
@@ -54,9 +55,9 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
     fname = os.path.join(mapdir, 'SFD_dust_4096_{0}.fits')
 
     # Parse input
-    if not isinstance(coordinates, coord.SphericalCoordinatesBase):
+    if not isinstance(coordinates, SkyCoord):
         ra, dec = coordinates
-        coordinates = coord.ICRS(ra=ra, dec=dec, unit=(u.degree, u.degree))
+        coordinates = SkyCoord(ra=ra, dec=dec, frame='icrs', unit=u.degree)
 
     # Convert to galactic coordinates.
     coordinates = coordinates.galactic
@@ -73,28 +74,29 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
     ebv = np.empty_like(l)
 
     # Treat north (b>0) separately from south (b<0).
-    for n, idx, ext in [(1, b >= 0, 'ngp'), (-1, b < 0, 'sgp')]:
-
-        if not np.any(idx):
+    for sign, mask, ext in [(1, b >= 0, 'ngp'), (-1, b < 0, 'sgp')]:
+        if not np.any(mask):
             continue
+
         hdulist = fits.open(fname.format(ext))
-        mapd = hdulist[0].data
+        header = hdulist[0].header
+        data = hdulist[0].data
 
         # Project from galactic longitude/latitude to lambert pixels.
         # (See SFD98).
-        npix = mapd.shape[0]
-        x = (npix / 2 * np.cos(l[idx]) * np.sqrt(1. - n*np.sin(b[idx])) +
-             npix / 2 - 0.5)
-        y = (-npix / 2 * n * np.sin(l[idx]) * np.sqrt(1. - n*np.sin(b[idx])) +
-             npix / 2 - 0.5)
+        x = header['CRPIX1']-1. + (header['LAM_SCAL'] * np.cos(l[mask]) *
+                                   np.sqrt(1. - sign*np.sin(b[mask])))
+        y = header['CRPIX2']-1. - sign*(header['LAM_SCAL'] * np.sin(l[mask]) *
+                                        np.sqrt(1. - sign*np.sin(b[mask])))
+
 
         # Get map values at these pixel coordinates.
         if interpolate:
-            ebv[idx] = map_coordinates(mapd, [y, x], order=order)
+            ebv[mask] = map_coordinates(data, [y, x], order=order)
         else:
             x = np.round(x).astype(np.int)
             y = np.round(y).astype(np.int)
-            ebv[idx] = mapd[y, x]
+            ebv[mask] = data[y, x]
 
         hdulist.close()
 
