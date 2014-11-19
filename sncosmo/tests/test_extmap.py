@@ -8,6 +8,7 @@ from astropy.coordinates import SkyCoord
 
 import sncosmo
 
+
 def test_get_ebv_from_map():
     """Try get_ebv_from_map."""
 

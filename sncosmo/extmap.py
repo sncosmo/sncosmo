@@ -89,7 +89,6 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
         y = header['CRPIX2']-1. - sign*(header['LAM_SCAL'] * np.sin(l[mask]) *
                                         np.sqrt(1. - sign*np.sin(b[mask])))
 
-
         # Get map values at these pixel coordinates.
         if interpolate:
             ebv[mask] = map_coordinates(data, [y, x], order=order)
