@@ -443,7 +443,11 @@ class TimeSeriesSource(Source):
        F(t, \lambda) = A \\times M(t, \lambda)
 
     where _M_ is the flux defined on a grid in phase and wavelength and _A_
-    (amplitude) is the single free parameter of the model.
+    (amplitude) is the single free parameter of the model. It should be noted
+    that while t and \lambda are in the rest frame of the object, the flux
+    density is defined at redshift zero. This means that for objects with the
+    same intrinsic luminosity, the amplitude will be smaller for objects at
+     larger luminosity distances.
 
     Parameters
     ----------
