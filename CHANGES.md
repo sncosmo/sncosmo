@@ -1,6 +1,10 @@
 0.5.0 (unreleased)
 ------------------
 
+- update `get_ebv_from_map()` to work with new SkyCoord class in
+  `astropy.coordinates` available in astropy v0.3 onward. Previously, this
+  function did not work with astropy v0.4.x (where older coordinates classes
+  had been removed).
 - update to new configuration system available in astropy v0.4 onward.
   This makes this release incompatible with astropy versions less than
   0.4.
