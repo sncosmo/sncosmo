@@ -15,4 +15,4 @@ _Python library for supernova cosmology_
 
 **Chat room:** http://gitter.im/sncosmo/sncosmo
 
-**Citing sncosmo:** [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.11938.png)](http://dx.doi.org/10.5281/zenodo.11938)
+**Citing sncosmo:** [![DOI](http://img.shields.io/badge/DOI-10.5281%2Fzenodo.11938-blue.svg?style=flat-square)](http://dx.doi.org/10.5281/zenodo.11938)
