@@ -53,6 +53,9 @@ matrix:
 
 before_install:
 
+    # need a C++ compiler for iminuit
+    - sudo apt-get install g++ -y
+
     # Use utf8 encoding. Should be default, but this is insurance against
     # future changes
     - export PYTHONIOENCODING=UTF8
