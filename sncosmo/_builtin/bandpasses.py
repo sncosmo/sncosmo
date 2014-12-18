@@ -23,11 +23,10 @@ def load_bandpass(pkg_data_name, name=None):
 
 # --------------------------------------------------------------------------
 # DES
-des_meta = {'filterset': 'des',
-            'dataurl': ('http://www.ctio.noao.edu/noao/content/'
-                        'dark-energy-camera-decam'),
-            'retrieved': '19 June 2012',
-            'description': 'Dark Energy Camera grizy filter set'}
+des_meta = {
+    'filterset': 'des',
+    'retrieved': '22 March 2013',
+    'description': 'Dark Energy Camera grizy filter set at airmass 1.3'}
 registry.register_loader(Bandpass, 'desg', load_bandpass,
                          args=['../data/bandpasses/des_g.dat'], meta=des_meta)
 registry.register_loader(Bandpass, 'desr', load_bandpass,
