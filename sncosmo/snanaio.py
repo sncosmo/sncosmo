@@ -223,7 +223,7 @@ def read_snana_ascii(fname, default_tablename=None):
 
         # If the word starts with 'VARNAMES', the following `nvar` words
         # define the column names of the table.
-        elif word.startswith('VARNAMES'):
+        elif word.startswith('VARNAMES') or word.startswith('VARLIST'):
 
             # Check that nvar is defined and that no column names are defined
             # for the current table.
