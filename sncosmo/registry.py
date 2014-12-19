@@ -3,6 +3,7 @@
 based on string identifiers."""
 
 from astropy.utils import OrderedDict
+from astropy.extern import six
 
 __all__ = ['register_loader', 'register', 'retrieve', 'get_loaders_metadata']
 
@@ -231,7 +232,7 @@ def get_loaders_metadata(data_class):
     """
 
     loaders_metadata = []
-    for lkey, loader in _loaders.iteritems():
+    for lkey, loader in six.iteritems(_loaders):
         if lkey[0] is not data_class:
             continue
         m = {'name': lkey[1]}

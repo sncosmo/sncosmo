@@ -1,12 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from __future__ import division
+from __future__ import division, print_function
 from warnings import warn
 import copy
-from itertools import product
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.utils import OrderedDict as odict
+from astropy.extern import six
 
 from .photdata import standardize_data, normalize_data
 from . import nest
@@ -394,12 +394,13 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             kwargs['error_' + name] = step
 
         if verbose:
-            print "Initial parameters:"
+            print("Initial parameters:")
             for name in param_names:
-                print name, kwargs[name], 'step=', kwargs['error_' + name],
+                print(name, kwargs[name], 'step=', kwargs['error_' + name],
+                      end=" ")
                 if 'limit_' + name in kwargs:
-                    print 'bounds=', kwargs['limit_' + name],
-                print ''
+                    print('bounds=', kwargs['limit_' + name], end=" ")
+                print()
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
                            forced_parameters=model.param_names,
@@ -513,7 +514,7 @@ def _nest_lc(data, model, param_names, modelcov,
 
     # Convert bounds/priors combinations into ppfs
     if bounds is not None:
-        for key, val in bounds.iteritems():
+        for key, val in six.iteritems(bounds):
             if key in ppfs:
                 continue  # ppfs take priority over bounds/priors
             a, b = val
@@ -803,6 +804,6 @@ def mcmc_lc(data, model, param_names, errors, bounds=None, nwalkers=10,
     # production run
     sampler.run_mcmc(pos, nsamples)
     if verbose:
-        print "Avg acceptance fraction:", np.mean(sampler.acceptance_fraction)
+        print("Avg acceptance fraction:", np.mean(sampler.acceptance_fraction))
 
     return sampler.flatchain

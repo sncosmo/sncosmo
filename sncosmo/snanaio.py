@@ -1,7 +1,9 @@
 import numpy as np
+
 from astropy.utils import OrderedDict as odict
 from astropy.io import fits
 from astropy.table import Table, vstack
+from astropy.extern import six
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
@@ -266,7 +268,7 @@ def read_snana_ascii(fname, default_tablename=None):
     # All values in each column are currently strings. Convert to int or
     # float if possible.
     for table in tables.values():
-        for colname, values in table.iteritems():
+        for colname, values in six.iteritems(table):
             try:
                 table[colname] = [int(val) for val in values]
             except ValueError:
@@ -308,7 +310,7 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
         meta, tables = read_snana_ascii(fname,
                                         default_tablename=default_tablename)
 
-        for key, table in tables.iteritems():
+        for key, table in six.iteritems(tables):
             if key in alltables:
                 alltables[key].append(table)
             else:

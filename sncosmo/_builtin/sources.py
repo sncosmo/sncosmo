@@ -11,6 +11,7 @@ from astropy.io import fits
 from astropy import wcs
 from astropy.utils.data import (download_file, get_pkg_data_filename,
                                 get_readable_fileobj)
+from astropy.extern import six
 
 from .. import registry
 from .. import Source, TimeSeriesSource, SALT2Source
@@ -379,7 +380,7 @@ lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
     lines.append('.. [{0}] `{1}`__'.format(refkey, ref))
 lines.append('')
-for url, urlnum in urlnums.iteritems():
+for url, urlnum in six.iteritems(urlnums):
     lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
 lines.append('')
 for i, note in enumerate(allnotes):

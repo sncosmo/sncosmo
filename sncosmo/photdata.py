@@ -3,9 +3,12 @@
 from __future__ import division
 
 import math
+
 import numpy as np
 from astropy.utils import OrderedDict as odict
 from astropy.table import Table
+from astropy.extern import six
+
 from .spectral import get_magsystem, get_bandpass
 
 _photdata_aliases = odict([
@@ -47,7 +50,8 @@ def dict_to_array(d):
         new_d[key] = np.atleast_1d(d[key])
 
     # Determine dtype of output array.
-    dtype = [(key, arr.dtype) for key, arr in new_d.iteritems()]
+    dtype = [(key, arr.dtype)
+             for key, arr in six.iteritems(new_d)]
 
     # Initialize ndarray and then fill it.
     col_len = max([len(v) for v in new_d.values()])

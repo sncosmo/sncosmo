@@ -12,6 +12,7 @@ from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 from astropy.io import fits
 from astropy import wcs
+from astropy.extern import six
 
 from .photdata import dict_to_array
 
@@ -502,7 +503,7 @@ def _write_ascii(f, data, meta, **kwargs):
     metachar = kwargs.get('metachar', '@')
 
     if meta is not None:
-        for key, val in meta.iteritems():
+        for key, val in six.iteritems(meta):
             f.write('{0}{1}{2}{3}\n'.format(metachar, key, delim, str(val)))
 
     keys = data.dtype.names
@@ -540,7 +541,7 @@ def _write_salt2(f, data, meta, **kwargs):
     pedantic = kwargs.get('pedantic', True)
 
     if meta is not None:
-        for key, val in meta.iteritems():
+        for key, val in six.iteritems(meta):
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SALT2KEY_META.get(key, key)
@@ -597,7 +598,7 @@ def _write_snana(f, data, meta, **kwargs):
     # Write metadata
     keys_as_written = []
     if meta is not None:
-        for key, val in meta.iteritems():
+        for key, val in six.iteritems(meta):
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SNANAKEY_META.get(key, key)
