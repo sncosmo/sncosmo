@@ -151,7 +151,7 @@ def read_snana_ascii(fname, default_tablename=None):
     Examples
     --------
 
-    >>> from StringIO import StringIO  # StringIO behaves like a file
+    >>> from astropy.extern.six import StringIO  # StringIO behaves like a file
     >>> f = StringIO('META1: a\\n'
     ...              'META2: 6\\n'
     ...              'NVAR_SN: 3\\n'
@@ -168,7 +168,7 @@ def read_snana_ascii(fname, default_tablename=None):
 
     The second is a dictionary of all the tables in the file:
 
-    >>> tables['SN']
+    >>> tables['SN']                                          # doctest: +SKIP
     <Table rows=2 names=('A','B','C')>
     array([(1, 2.0, 'x'), (4, 5.0, 'y')],
           dtype=[('A', '<i8'), ('B', '<f8'), ('C', 'S1')])
@@ -192,7 +192,7 @@ def read_snana_ascii(fname, default_tablename=None):
     meta = odict()  # initialize structure to hold metadata.
     tables = {}  # initialize structure to hold data.
 
-    if isinstance(fname, basestring):
+    if isinstance(fname, six.string_types):
         fh = open(fname, 'U')
     else:
         fh = fname

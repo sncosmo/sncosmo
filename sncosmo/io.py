@@ -1,6 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions for supernova light curve I/O"""
 
+from __future__ import print_function
+
 from warnings import warn
 import os
 import sys
@@ -59,7 +61,7 @@ def read_griddata_ascii(name_or_obj):
         2-d array of shape (len(x0), len(x1)).
     """
 
-    if isinstance(name_or_obj, basestring):
+    if isinstance(name_or_obj, six.string_types):
         f = open(name_or_obj, 'rb')
     else:
         f = name_or_obj
@@ -158,7 +160,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
         Filename to write to or open file.
     """
 
-    if isinstance(name_or_obj, basestring):
+    if isinstance(name_or_obj, six.string_types):
         f = open(name_or_obj, 'rb')
     else:
         f = name_or_obj
@@ -167,7 +169,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
         for i in range(len(x1)):
             f.write("{0:.7g} {1:.7g} {2:.7g}\n".format(x0[j], x1[i], y[j, i]))
 
-    if isinstance(name_or_obj, basestring):
+    if isinstance(name_or_obj, six.string_types):
         f.close()
 
 
@@ -453,9 +455,10 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
     Examples
     --------
 
-    Read an ascii format file that includes metadata:
+    Read an ascii format file that includes metadata (``StringIO``
+    behaves like a file object):
 
-    >>> from StringIO import StringIO  # StringIO behaves like a file object.
+    >>> from astropy.extern.six import StringIO
     >>> f = StringIO('''
     ... @id 1
     ... @RA 36.0
@@ -465,13 +468,14 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
     ... 50000.1 r 2. 0.1 25. ab
     ... ''')
     >>> t = read_lc(f, format='ascii')
-    >>> print t
+    >>> print(t)
       time  band flux fluxerr  zp  zpsys
     ------- ---- ---- ------- ---- -----
     50000.0    g  1.0     0.1 25.0    ab
     50000.1    r  2.0     0.1 25.0    ab
     >>> t.meta
     OrderedDict([('id', 1), ('RA', 36.0), ('description', 'good')])
+
     """
 
     try:
@@ -482,8 +486,8 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
 
     if format == 'salt2-old':
         meta, data = readfunc(file_or_dir, **kwargs)
-    elif isinstance(file_or_dir, basestring):
-        with open(file_or_dir, 'rb') as f:
+    elif isinstance(file_or_dir, six.string_types):
+        with open(file_or_dir, 'r') as f:
             meta, data = readfunc(f, **kwargs)
     else:
         meta, data = readfunc(file_or_dir, **kwargs)

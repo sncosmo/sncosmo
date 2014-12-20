@@ -6,10 +6,8 @@ import math
 
 import numpy as np
 from astropy.utils.misc import isiterable
-from matplotlib import cm
-from matplotlib import pyplot as plt
-from matplotlib.ticker import MaxNLocator, NullFormatter
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from astropy.extern import six
+from six.moves import range
 
 from .models import Source, Model, get_source
 from .spectral import get_bandpass, get_magsystem
@@ -19,8 +17,12 @@ from .utils import format_value
 __all__ = ['plot_lc', 'animate_source', 'animate_model']
 
 _model_ls = ['-', '--', ':', '-.']
-_cmap = cm.get_cmap('jet_r')
 _cmap_wavelims = (3000., 10000.)
+try:
+    from matplotlib import cm
+    _cmap = cm.get_cmap('jet_r')
+except:
+    pass
 
 
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
@@ -128,6 +130,11 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     """
 
+    from matplotlib import pyplot as plt
+    from matplotlib.ticker import MaxNLocator, NullFormatter
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
     if data is None and model is None:
         raise ValueError('must specify at least one of: data, model')
     if data is None and bands is None:
@@ -146,7 +153,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     # Get the model labels
     if model_label is None:
         model_labels = [None] * len(models)
-    elif isinstance(model_label, basestring):
+    elif isinstance(model_label, six.string_types):
         model_labels = [model_label]
     else:
         model_labels = model_label
@@ -172,7 +179,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
         errors = {}
     if figtext is None:
         figtext = []
-    elif isinstance(figtext, basestring):
+    elif isinstance(figtext, six.string_types):
         figtext = [figtext]
     if len(models) == 1 and show_model_params:
         model = models[0]
@@ -256,7 +263,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     bands = list(bands)
     waves = [get_bandpass(b).wave_eff for b in bands]
     waves_and_bands = sorted(zip(waves, bands))
-    for axnum in xrange(ncol * nrow):
+    for axnum in range(ncol * nrow):
         row = axnum // ncol
         col = axnum % ncol
         ax = axes[row, col]
@@ -462,17 +469,19 @@ def animate_source(source, label=None, fps=30, length=20.,
     ... # doctest: +SKIP
     >>> plt.show()                        # doctest: +SKIP
     """
+
+    from matplotlib import pyplot as plt
     from matplotlib import animation
 
     # Convert input to a list (if it isn't already).
-    if (not isiterable(source)) or isinstance(source, basestring):
+    if (not isiterable(source)) or isinstance(source, six.string_types):
         sources = [source]
     else:
         sources = source
 
     # Check that all entries are Source or strings.
     for m in sources:
-        if not (isinstance(m, basestring) or isinstance(m, Source)):
+        if not (isinstance(m, six.string_types) or isinstance(m, Source)):
             raise ValueError('str or Source instance expected for '
                              'source(s)')
     sources = [get_source(m) for m in sources]
@@ -480,7 +489,7 @@ def animate_source(source, label=None, fps=30, length=20.,
     # Get the source labels
     if label is None:
         labels = [None] * len(sources)
-    elif isinstance(label, basestring):
+    elif isinstance(label, six.string_types):
         labels = [label]
     else:
         labels = label

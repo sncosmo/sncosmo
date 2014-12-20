@@ -157,9 +157,4 @@ if not _ASTROPY_SETUP_:
     from . import registry
     from . import _builtin
 
-    # For plotting we just don't include the functions
-    # if any of the matplotlib imports fail.
-    try:
-        from plotting import *
-    except ImportError:
-        pass
+    from .plotting import *

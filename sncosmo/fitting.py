@@ -151,8 +151,8 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
     Assumes the data has been standardized."""
 
-    times = np.linspace(model.mintime(), model.maxtime(),
-                        int(model.maxtime() - model.mintime() + 1))
+    timegrid = np.linspace(model.mintime(), model.maxtime(),
+                           int(model.maxtime() - model.mintime() + 1))
 
     snr = data['flux'] / data['fluxerr']
     significant_data = data[snr > minsnr]
@@ -165,27 +165,30 @@ def guess_t0_and_amplitude(data, model, minsnr):
         mask = significant_data['band'] == band
         if np.any(mask):
             modelflux[band] = (
-                model.bandflux(band, times, zp=zp, zpsys=zpsys) /
+                model.bandflux(band, timegrid, zp=zp, zpsys=zpsys) /
                 model.parameters[2])
             dataflux[band] = significant_data['flux'][mask]
             datatime[band] = significant_data['time'][mask]
 
-    significant_bands = modelflux.keys()
-    if len(significant_bands) == 0:
+    if len(modelflux) == 0:
         raise DataQualityError('No data points with S/N > {0}. Initial '
                                'guessing failed.'.format(minsnr))
 
-    # ratio of maximum data flux to maximum model flux in each band
-    bandratios = np.array([np.max(dataflux[band]) / np.max(modelflux[band])
-                           for band in significant_bands])
+    # find band with biggest ratio of maximum data flux to maximum model flux
+    maxratio = float("-inf")
+    maxband = None
+    for band in modelflux:
+        ratio = np.max(dataflux[band]) / np.max(modelflux[band])
+        if ratio > maxratio:
+            maxratio = ratio
+            maxband = band
 
-    # Amplitude guess is biggest ratio one
-    amplitude = abs(max(bandratios))
+    # amplitude guess is the largest ratio
+    amplitude = abs(maxratio)
 
     # time guess is time of max in the band with the biggest ratio
-    band = significant_bands[np.argmax(bandratios)]
-    data_tmax = datatime[band][np.argmax(dataflux[band])]
-    model_tmax = times[np.argmax(modelflux[band])]
+    data_tmax = datatime[maxband][np.argmax(dataflux[maxband])]
+    model_tmax = timegrid[np.argmax(modelflux[maxband])]
     t0 = model.get('t0') + data_tmax - model_tmax
 
     return t0, amplitude

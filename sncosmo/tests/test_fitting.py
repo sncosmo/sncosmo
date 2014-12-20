@@ -2,15 +2,21 @@
 from __future__ import print_function
 
 
+import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy.table import Table
 
 import sncosmo
 
+try:
+    import iminuit
+    HAS_IMINUIT = True
+except:
+    HAS_IMINUIT = False
 
+@pytest.mark.skipif(not HAS_IMINUIT, reason="no iminuit")
 class TestFitting:
-
     def setup_class(self):
         model = sncosmo.Model(source='hsiao-subsampled')
         params = {'t0': 56000., 'amplitude': 1.e-7, 'z': 0.1}
