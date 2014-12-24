@@ -104,10 +104,12 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     for i in xrange(random.poisson(nsim)):
         yield float(snrate_ppf(random.random()))
 
+
 def _cut_obsTable(obsTable, tmin, tmax):
     """
-    private function to select observations of the obsTable that occur in the 
-    time range (tmin, tmax) as specified in mjd. 
+    private function to select observations of the obsTable that occur in the
+    time range (tmin, tmax) as specified in mjd.
+
 
     Parameters
     ---------
@@ -119,8 +121,10 @@ def _cut_obsTable(obsTable, tmin, tmax):
     """
     mask = (obsTable['time'] < tmax) & (obsTable['time'] > tmin)
     return obsTable[mask]
-        
-def realize_lcs(observations, model, params, thresh=None, phaseWin=[-30.,60.]):
+
+
+def realize_lcs(observations, model, params, thresh=None,
+                phaseWin=[-30., 60.]):
     """Realize data for a set of SNe given a set of observations.
 
     Parameters
@@ -138,8 +142,8 @@ def realize_lcs(observations, model, params, thresh=None, phaseWin=[-30.,60.]):
     phaseWin: iterable of two floats or None
         if not None, restrict light curve data to those observations that fall
         within the observer time window  corresponding to the phase of the SN
-        being withing (phaseWin[0],phaseWin[1]). Note (a) this means 
-        phaseWin[0] is a negative number if the peak is included. 
+        being withing (phaseWin[0],phaseWin[1]). Note (a) this means
+        phaseWin[0] is a negative number if the peak is included.
         If None, then no cuts are applied and the light curve is realized for
         all points in the observation set.
 
@@ -173,7 +177,7 @@ def realize_lcs(observations, model, params, thresh=None, phaseWin=[-30.,60.]):
         if phaseWin is not None:
             # Find observations corresponding to times in phaseWin
             t0 = model.get('t0')
-            z= model.get('z')
+            z = model.get('z')
             tmax = phaseWin[1]*(1. + z) + t0
             tmin = phaseWin[0]*(1. + z) + t0
             observations = _cut_obsTable(observations, tmin, tmax)
