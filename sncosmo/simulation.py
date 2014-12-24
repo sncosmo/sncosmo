@@ -104,8 +104,23 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     for i in xrange(random.poisson(nsim)):
         yield float(snrate_ppf(random.random()))
 
+def _cut_obsTable(obsTable, tmin, tmax):
+    """
+    private function to select observations of the obsTable that occur in the 
+    time range (tmin, tmax) as specified in mjd. 
 
-def realize_lcs(observations, model, params, thresh=None):
+    Parameters
+    ---------
+    obsTable: `~astropy.table.Table` with a field 'time'
+    tmin: float
+    tmax: float
+    Note:
+        tmin assumed to be less than tmax
+    """
+    mask = (obsTable['time'] < tmax) & (obsTable['time'] > tmin)
+    return obsTable[mask]
+        
+def realize_lcs(observations, model, params, thresh=None, phaseWin=[-30.,60.]):
     """Realize data for a set of SNe given a set of observations.
 
     Parameters
@@ -120,6 +135,13 @@ def realize_lcs(observations, model, params, thresh=None):
     thresh : float, optional
         If given, light curves are skipped (not returned) if none of the data
         points have signal-to-noise greater than ``thresh``.
+    phaseWin: iterable of two floats or None
+        if not None, restrict light curve data to those observations that fall
+        within the observer time window  corresponding to the phase of the SN
+        being withing (phaseWin[0],phaseWin[1]). Note (a) this means 
+        phaseWin[0] is a negative number if the peak is included. 
+        If None, then no cuts are applied and the light curve is realized for
+        all points in the observation set.
 
     Returns
     -------
@@ -141,13 +163,21 @@ def realize_lcs(observations, model, params, thresh=None):
     ``sigma_pixel`` is the background noise in a single pixel in counts.
     """
 
-    observations = np.asarray(observations)
     lcs = []
 
     # TODO: copy model so we don't mess up the user's model?
 
     for p in params:
         model.set(**p)
+
+        if phaseWin is not None:
+            # Find observations corresponding to times in phaseWin
+            t0 = model.get('t0')
+            z= model.get('z')
+            tmax = phaseWin[1]*(1. + z) + t0
+            tmin = phaseWin[0]*(1. + z) + t0
+            observations = _cut_obsTable(observations, tmin, tmax)
+        observations = np.asarray(observations)
 
         flux = model.bandflux(observations['band'],
                               observations['time'],
