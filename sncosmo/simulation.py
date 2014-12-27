@@ -124,7 +124,7 @@ def _cut_obsTable(obsTable, tmin, tmax):
 
 
 def realize_lcs(observations, model, params, thresh=None,
-                phaseWin=[-30., 60.]):
+                padtimes=[-0., 0.]):
     """Realize data for a set of SNe given a set of observations.
 
     Parameters
@@ -176,11 +176,13 @@ def realize_lcs(observations, model, params, thresh=None,
 
         if phaseWin is not None:
             # Find observations corresponding to times in phaseWin
-            t0 = model.get('t0')
-            z = model.get('z')
-            tmax = phaseWin[1]*(1. + z) + t0
-            tmin = phaseWin[0]*(1. + z) + t0
-            observations = _cut_obsTable(observations, tmin, tmax)
+            # t0 = model.get('t0')
+            # z = model.get('z')
+            tmax = model.tmax() + padtimes[1]
+            tmin = model.tmin() + padtimes[0]
+            # observations = _cut_obsTable(observations, tmin, tmax)
+            mask = (observations['time'] > tmin) & (observations['time'] < tmax)
+
         observations = np.asarray(observations)
 
         flux = model.bandflux(observations['band'],
