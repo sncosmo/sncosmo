@@ -158,17 +158,17 @@ def realize_lcs(observations, model, params, thresh=None,
 
             mask = (observations['time'] > tmin) & \
                    (observations['time'] < tmax)
-            observations = np.asarray(observations[mask])
+            snobs = np.asarray(observations[mask])
         else:
-            observations = np.asarray(observations)
+            snobs = np.asarray(observations)
 
-        flux = model.bandflux(observations['band'],
-                              observations['time'],
-                              zp=observations['zp'],
-                              zpsys=observations['zpsys'])
+        flux = model.bandflux(snobs['band'],
+                              snobs['time'],
+                              zp=snobs['zp'],
+                              zpsys=snobs['zpsys'])
 
-        fluxerr = np.sqrt(observations['skynoise']**2 +
-                          np.abs(flux) / observations['gain'])
+        fluxerr = np.sqrt(snobs['skynoise']**2 +
+                          np.abs(flux) / snobs['gain'])
 
         # Scatter fluxes by the fluxerr
         flux = np.random.normal(flux, fluxerr)
@@ -177,12 +177,12 @@ def realize_lcs(observations, model, params, thresh=None,
         if thresh is not None and not np.any(flux/fluxerr > thresh):
             continue
 
-        data = odict([('time', observations['time']),
-                      ('band', observations['band']),
+        data = odict([('time', snobs['time']),
+                      ('band', snobs['band']),
                       ('flux', flux),
                       ('fluxerr', fluxerr),
-                      ('zp', observations['zp']),
-                      ('zpsys', observations['zpsys'])])
+                      ('zp', snobs['zp']),
+                      ('zpsys', snobs['zpsys'])])
         lcs.append(Table(data, meta=p))
 
     return lcs
