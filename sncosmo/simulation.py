@@ -104,25 +104,6 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     for i in xrange(random.poisson(nsim)):
         yield float(snrate_ppf(random.random()))
 
-
-def _cut_obsTable(obsTable, tmin, tmax):
-    """
-    private function to select observations of the obsTable that occur in the
-    time range (tmin, tmax) as specified in mjd.
-
-
-    Parameters
-    ---------
-    obsTable: `~astropy.table.Table` with a field 'time'
-    tmin: float
-    tmax: float
-    Note:
-        tmin assumed to be less than tmax
-    """
-    mask = (obsTable['time'] < tmax) & (obsTable['time'] > tmin)
-    return obsTable[mask]
-
-
 def realize_lcs(observations, model, params, thresh=None,
                 trim_observations=False):
     """Realize data for a set of SNe given a set of observations.
