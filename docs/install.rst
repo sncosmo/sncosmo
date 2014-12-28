@@ -9,7 +9,7 @@ SNCosmo depends on the following standard scientific python packages:
 
 - `Python <http://www.python.org/>`_ 2.6 or 2.7
 
-- `NumPy <http://www.numpy.org/>`_ 1.5 or later
+- `NumPy <http://www.numpy.org/>`_ 1.6 or later
 
 - `SciPy <http://www.scipy.org/>`_ 0.9 or later
 
