@@ -104,6 +104,7 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     for i in xrange(random.poisson(nsim)):
         yield float(snrate_ppf(random.random()))
 
+
 def realize_lcs(observations, model, params, thresh=None,
                 trim_observations=False):
     """Realize data for a set of SNe given a set of observations.
@@ -155,11 +156,11 @@ def realize_lcs(observations, model, params, thresh=None,
             tmin = model.mintime()
             tmax = model.maxtime()
 
-            mask = (observations['time'] > tmin) & (observations['time'] < tmax)
+            mask = (observations['time'] > tmin) & \
+                   (observations['time'] < tmax)
             observations = np.asarray(observations[mask])
         else:
             observations = np.asarray(observations)
-
 
         flux = model.bandflux(observations['band'],
                               observations['time'],
