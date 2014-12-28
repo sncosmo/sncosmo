@@ -1,8 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
+from __future__ import print_function
+
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
-
 from astropy.table import Table
 
 import sncosmo
@@ -38,10 +39,25 @@ class TestFitting:
         self.params = params
 
     def test_fit_lc(self):
+        """Ensure that fit results match input model parameters (data are
+        noise-free)."""
         res, fitmodel = sncosmo.fit_lc(self.data, self.model,
                                        ['z', 't0', 'amplitude'],
                                        bounds={'z': (0., 1.0)})
 
-        # set model to true parameters
+        # set model to true parameters and compare to fit results.
         self.model.set(**self.params)
         assert_allclose(res.parameters, self.model.parameters, rtol=1.e-3)
+
+    def test_nest_lc(self):
+        """Ensure that nested sampling runs."""
+
+        np.random.seed(0)  # seed the RNG for reproducible results.
+
+        self.model.set(**self.params)
+
+        res, fitmodel = sncosmo.nest_lc(
+            self.data, self.model, ['z', 't0', 'amplitude'],
+            bounds={'z': (0., 1.0)}, guess_amplitude_bound=True, nobj=50)
+
+        assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
