@@ -124,7 +124,7 @@ def _cut_obsTable(obsTable, tmin, tmax):
 
 
 def realize_lcs(observations, model, params, thresh=None,
-                padtimes=[-0., 0.]):
+                trim_observations=False):
     """Realize data for a set of SNe given a set of observations.
 
     Parameters
@@ -139,13 +139,9 @@ def realize_lcs(observations, model, params, thresh=None,
     thresh : float, optional
         If given, light curves are skipped (not returned) if none of the data
         points have signal-to-noise greater than ``thresh``.
-    phaseWin: iterable of two floats or None
-        if not None, restrict light curve data to those observations that fall
-        within the observer time window  corresponding to the phase of the SN
-        being withing (phaseWin[0],phaseWin[1]). Note (a) this means
-        phaseWin[0] is a negative number if the peak is included.
-        If None, then no cuts are applied and the light curve is realized for
-        all points in the observation set.
+    trim_observations : optional, bool, defaults to False
+        If ``True``, only SN observations with times ``t > model.mintime() and
+        model.maxtime()`` are realized
 
     Returns
     -------
@@ -173,17 +169,16 @@ def realize_lcs(observations, model, params, thresh=None,
 
     for p in params:
         model.set(**p)
+        # Select times  for output that fall within tmin amd tmax of the model
+        if trim_observations:
+            tmin = model.mintime()
+            tmax = model.maxtime()
 
-        if phaseWin is not None:
-            # Find observations corresponding to times in phaseWin
-            # t0 = model.get('t0')
-            # z = model.get('z')
-            tmax = model.tmax() + padtimes[1]
-            tmin = model.tmin() + padtimes[0]
-            # observations = _cut_obsTable(observations, tmin, tmax)
             mask = (observations['time'] > tmin) & (observations['time'] < tmax)
+            observations = np.asarray(observations[mask])
+        else:
+            observations = np.asarray(observations)
 
-        observations = np.asarray(observations)
 
         flux = model.bandflux(observations['band'],
                               observations['time'],
