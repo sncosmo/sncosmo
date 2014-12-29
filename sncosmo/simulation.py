@@ -105,7 +105,8 @@ def zdist(zmin, zmax, time=365.25, area=1.,
         yield float(snrate_ppf(random.random()))
 
 
-def realize_lcs(observations, model, params, thresh=None):
+def realize_lcs(observations, model, params, thresh=None,
+                trim_observations=False):
     """Realize data for a set of SNe given a set of observations.
 
     Parameters
@@ -120,6 +121,9 @@ def realize_lcs(observations, model, params, thresh=None):
     thresh : float, optional
         If given, light curves are skipped (not returned) if none of the data
         points have signal-to-noise greater than ``thresh``.
+    trim_observations : optional, bool, defaults to False
+        If ``True``, only SN observations with times ``t > model.mintime() and
+        model.maxtime()`` are realized
 
     Returns
     -------
@@ -141,21 +145,30 @@ def realize_lcs(observations, model, params, thresh=None):
     ``sigma_pixel`` is the background noise in a single pixel in counts.
     """
 
-    observations = np.asarray(observations)
     lcs = []
 
     # TODO: copy model so we don't mess up the user's model?
 
     for p in params:
         model.set(**p)
+        # Select times  for output that fall within tmin amd tmax of the model
+        if trim_observations:
+            tmin = model.mintime()
+            tmax = model.maxtime()
 
-        flux = model.bandflux(observations['band'],
-                              observations['time'],
-                              zp=observations['zp'],
-                              zpsys=observations['zpsys'])
+            mask = (observations['time'] > tmin) & \
+                   (observations['time'] < tmax)
+            snobs = np.asarray(observations[mask])
+        else:
+            snobs = np.asarray(observations)
 
-        fluxerr = np.sqrt(observations['skynoise']**2 +
-                          np.abs(flux) / observations['gain'])
+        flux = model.bandflux(snobs['band'],
+                              snobs['time'],
+                              zp=snobs['zp'],
+                              zpsys=snobs['zpsys'])
+
+        fluxerr = np.sqrt(snobs['skynoise']**2 +
+                          np.abs(flux) / snobs['gain'])
 
         # Scatter fluxes by the fluxerr
         flux = np.random.normal(flux, fluxerr)
@@ -164,12 +177,12 @@ def realize_lcs(observations, model, params, thresh=None):
         if thresh is not None and not np.any(flux/fluxerr > thresh):
             continue
 
-        data = odict([('time', observations['time']),
-                      ('band', observations['band']),
+        data = odict([('time', snobs['time']),
+                      ('band', snobs['band']),
                       ('flux', flux),
                       ('fluxerr', fluxerr),
-                      ('zp', observations['zp']),
-                      ('zpsys', observations['zpsys'])])
+                      ('zp', snobs['zp']),
+                      ('zpsys', snobs['zpsys'])])
         lcs.append(Table(data, meta=p))
 
     return lcs
