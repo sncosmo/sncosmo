@@ -121,9 +121,10 @@ def realize_lcs(observations, model, params, thresh=None,
     thresh : float, optional
         If given, light curves are skipped (not returned) if none of the data
         points have signal-to-noise greater than ``thresh``.
-    trim_observations : optional, bool, defaults to False
-        If ``True``, only SN observations with times ``t > model.mintime() and
-        model.maxtime()`` are realized
+    trim_observations : bool, optional
+        If True, only observations with times between
+        ``model.mintime()`` and ``model.maxtime()`` are included in
+        result table for each SN. Default is False.
 
     Returns
     -------
@@ -143,24 +144,26 @@ def realize_lcs(observations, model, params, thresh=None,
     PSF photometry, ``skynoise`` would be ``4 * pi * sigma_PSF * sigma_pixel``
     where ``sigma_PSF`` is the standard deviation of the PSF in pixels and
     ``sigma_pixel`` is the background noise in a single pixel in counts.
+
     """
 
     lcs = []
 
     # TODO: copy model so we don't mess up the user's model?
 
+    # get underlying numpy structured array (if astropy.Table)
+    observations = np.asarray(observations)
+
     for p in params:
         model.set(**p)
-        # Select times  for output that fall within tmin amd tmax of the model
-        if trim_observations:
-            tmin = model.mintime()
-            tmax = model.maxtime()
 
-            mask = (observations['time'] > tmin) & \
-                   (observations['time'] < tmax)
-            snobs = np.asarray(observations[mask])
+        # Select times for output that fall within tmin amd tmax of the model
+        if trim_observations:
+            mask = ((observations['time'] > model.mintime()) &
+                    (observations['time'] < model.maxtime()))
+            snobs = observations[mask]
         else:
-            snobs = np.asarray(observations)
+            snobs = observations
 
         flux = model.bandflux(snobs['band'],
                               snobs['time'],
