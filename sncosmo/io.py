@@ -162,8 +162,8 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
     else:
         f = name_or_obj
 
-    for j in range(length(x0)):
-        for i in range(length(x1)):
+    for j in range(len(x0)):
+        for i in range(len(x1)):
             f.write("{0:.7g} {1:.7g} {2:.7g}\n".format(x0[j], x1[i], y[j, i]))
 
     if isinstance(name_or_obj, basestring):
