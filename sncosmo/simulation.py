@@ -147,12 +147,17 @@ def realize_lcs(observations, model, params, thresh=None,
 
     """
 
+    RESULT_COLNAMES = ('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys')
     lcs = []
 
     # TODO: copy model so we don't mess up the user's model?
 
     # get underlying numpy structured array (if astropy.Table)
     observations = np.asarray(observations)
+
+    band_dtype = observations.dtype['band']
+    zpsys_dtype = observations.dtype['zpsys']
+    result_dtype = ('f8', band_dtype, 'f8', 'f8', 'f8', zpsys_dtype)
 
     for p in params:
         model.set(**p)
@@ -165,6 +170,13 @@ def realize_lcs(observations, model, params, thresh=None,
         else:
             snobs = observations
 
+        # explicitly detect no observations and add an empty table
+        if len(snobs) == 0:
+            if thresh is None:
+                lcs.append(Table(names=RESULT_COLNAMES,
+                                 dtype=result_dtype, meta=p))
+            continue
+
         flux = model.bandflux(snobs['band'],
                               snobs['time'],
                               zp=snobs['zp'],
@@ -174,23 +186,24 @@ def realize_lcs(observations, model, params, thresh=None,
                           np.abs(flux) / snobs['gain'])
 
         # Scatter fluxes by the fluxerr
-        flux = np.random.normal(flux, fluxerr)
+        # np.atleast_1d is necessary here because of an apparent bug in
+        # np.random.normal: when the inputs are both length 1 arrays,
+        # the output is a Python float!
+        flux = np.atleast_1d(np.random.normal(flux, fluxerr))
 
         # Check if any of the fluxes are significant
         if thresh is not None and not np.any(flux/fluxerr > thresh):
             continue
 
-        data = odict([('time', snobs['time']),
-                      ('band', snobs['band']),
-                      ('flux', flux),
-                      ('fluxerr', fluxerr),
-                      ('zp', snobs['zp']),
-                      ('zpsys', snobs['zpsys'])])
-        lcs.append(Table(data, meta=p))
+        data = [snobs['time'], snobs['band'], flux, fluxerr,
+                snobs['zp'], snobs['zpsys']]
+
+        lcs.append(Table(data, names=RESULT_COLNAMES, meta=p))
 
     return lcs
 
 
+# This function is deprecated.
 def simulate_vol(obs_sets, model, gen_params, vrate,
                  cosmo=FlatLambdaCDM(H0=70., Om0=0.3),
                  z_range=(0., 1.), default_area=1., nsim=None,
