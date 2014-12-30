@@ -42,6 +42,7 @@ def test_write_griddata_ascii():
     assert_allclose(x1_in, x1)
     assert_allclose(y_in, y)
 
+
 def test_griddata_fits():
     """Round tripping with write_griddata_fits() and read_griddata_fits()"""
 
