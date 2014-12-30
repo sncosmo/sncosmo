@@ -15,7 +15,7 @@ def test_zdist():
     np.random.seed(0)
     z = list(sncosmo.zdist(0., 0.25))
 
-    # check that zdist returns the same number of SNe as 
+    # check that zdist returns the same number of SNe as
     # when this test was written (does not test whether the number is
     # correct)
     assert len(z) == 14
@@ -33,7 +33,7 @@ def test_realize_lcs():
                  'gain': [1., 1., 1.],
                  'skynoise': [100., 100., 100.],
                  'zp': [30., 30., 30.],
-                 'zpsys':['ab', 'ab', 'ab']})
+                 'zpsys': ['ab', 'ab', 'ab']})
 
     # A model with a flat spectrum between 0 and 100 days.
     model = sncosmo.Model(source=flatsource())
