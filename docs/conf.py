@@ -26,7 +26,7 @@
 # be accessible, and the documentation will not build correctly.
 
 # Load all of the global Astropy configuration
-from astropy.sphinx.conf import *
+from astropy_helpers.sphinx.conf import *
 
 # TODO: remove this once astropy#1841 is merged
 intersphinx_mapping['astropy'] = ('http://docs.astropy.org/en/stable/', None)
