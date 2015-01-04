@@ -447,7 +447,7 @@ class TimeSeriesSource(Source):
     that while t and \lambda are in the rest frame of the object, the flux
     density is defined at redshift zero. This means that for objects with the
     same intrinsic luminosity, the amplitude will be smaller for objects at
-     larger luminosity distances.
+    larger luminosity distances.
 
     Parameters
     ----------
