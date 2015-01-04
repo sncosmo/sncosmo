@@ -31,7 +31,7 @@ Model & Sources
 PropagationEffects
 ==================
 
-*Effects for interstellar dust extinction*
+*Adding interstellar dust extinction to models*
 
 .. autosummary::
    :toctree: api
@@ -81,6 +81,7 @@ I/O
    write_griddata_ascii
    write_griddata_fits
    get_ebv_from_map
+   SFD98Map
 
 .. _fitting-api:
 
