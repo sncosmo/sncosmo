@@ -7,3 +7,6 @@ Example files for I/O tests
 
 - `salt2_example.dat` : Example `lc-03D4ag.list` from
   http://supernovae.in2p3.fr/salt/doku.php?id=usage
+
+- `SNLS3-04D3gx` : Example data from SNLS3-04D3gx, distributed with
+  SALT2 data.

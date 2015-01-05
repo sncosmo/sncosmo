@@ -78,3 +78,18 @@ def test_read_salt2():
     assert_allclose(data.meta["Z_HELIO"], 0.285)
     assert_allclose(data.meta["RA"], 333.690959)
     assert data.meta["z_source"] == "H"
+
+def test_read_salt2_old():
+    dname = join(dirname(__file__), "data", "SNLS3-04D3gx")
+    data = sncosmo.read_lc(dname, format="salt2-old")
+
+    # Test length and column names:
+    assert len(data) == 25 + 37 + 38 + 18  # g + r + i + z lengths
+    assert data.colnames == ["Date", "Flux", "Fluxerr", "ZP", "Filter",
+                             "MagSys"]
+
+    # Test a bit of metadata and data
+    assert data.meta["NAME"] == "04D3gx"
+    assert_allclose(data.meta["Redshift"], 0.91)
+    assert_allclose(data.meta["RA"], 215.056948)
+    assert np.all(data["MagSys"] == "VEGA")
