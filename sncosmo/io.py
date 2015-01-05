@@ -252,26 +252,6 @@ def _read_ascii(f, **kwargs):
 # -----------------------------------------------------------------------------
 # Reader: salt2
 
-# TODO: remove _salt2_rename_keys()
-# conversion upon reading has been removed.
-
-# SALT2 conversions upon reading:
-# Names are converted to lowercase, then the following lookup table is used.
-SALT2KEY_TO_KEY = {'redshift': 'z',
-                   'z_heliocentric': 'z_helio',
-                   'filter': 'band'}
-
-
-def _salt2_rename_keys(d):
-    newd = odict()
-    for key, val in d.iteritems():
-        key = key.lower()
-        if key in SALT2KEY_TO_KEY:
-            key = SALT2KEY_TO_KEY[key]
-        newd[key] = val
-    return newd
-
-
 def _read_salt2(f, **kwargs):
     """Read a new-style SALT2 file.
 
