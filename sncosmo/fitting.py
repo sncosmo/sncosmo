@@ -642,8 +642,20 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
           (does not include fixed parameters).
         * ``errors``: Dictionary of weighted standard deviation of sample
           parameter values (does not include fixed parameters).
+
     estimated_model : `~sncosmo.Model`
         Copy of model with parameters set to the values in ``res.param_dict``.
+
+    Notes
+    -----
+
+    The algorithm uses the numpy random number generator to generate samples,
+    and is therefore non-deterministic in default use. To get reproducible
+    results, simply seed the random number generator before calling `nest_lc`:
+
+    >>> import numpy as np
+    >>> np.random.seed(0)
+
     """
 
     data = standardize_data(data)
