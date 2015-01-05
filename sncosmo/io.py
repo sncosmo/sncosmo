@@ -345,7 +345,7 @@ def _read_salt2_old(dirname, **kwargs):
                 raise ValueError('expected space-separated key value pairs in '
                                  'lightfile: {0}'
                                  .format(os.path.join(dirname, 'lightfile')))
-            meta[key] = val
+            meta[key] = _cast_str(val)
 
     # Get list of filenames to read.
     if filenames is None:
