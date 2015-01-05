@@ -1,13 +1,27 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 from __future__ import print_function
 
+import os
 from os.path import dirname, join
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
+from astropy.table import Table
 from astropy.extern import six
 
 import sncosmo
+
+# Dummy data used for read_lc/write_lc round-tripping tests
+time = [1., 2., 3., 4.]
+band = ['sdssg', 'sdssr', 'sdssi', 'sdssz']
+zp = [25., 25., 25., 25.]
+zpsys = ['ab', 'ab', 'ab', 'ab']
+flux = [1., 1., 1., 1.]
+fluxerr = [0.1, 0.1, 0.1, 0.1]
+lcdata = Table(data=(time, band, flux, fluxerr, zp, zpsys),
+               names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'),
+               meta={'a': 1, 'b': 1.0, 'c': 'one'})
 
 
 def test_read_griddata_ascii():
@@ -79,6 +93,7 @@ def test_read_salt2():
     assert_allclose(data.meta["RA"], 333.690959)
     assert data.meta["z_source"] == "H"
 
+
 def test_read_salt2_old():
     dname = join(dirname(__file__), "data", "SNLS3-04D3gx")
     data = sncosmo.read_lc(dname, format="salt2-old")
@@ -93,3 +108,18 @@ def test_read_salt2_old():
     assert_allclose(data.meta["Redshift"], 0.91)
     assert_allclose(data.meta["RA"], 215.056948)
     assert np.all(data["MagSys"] == "VEGA")
+
+
+def test_json():
+    f = NamedTemporaryFile(delete=False)
+    f.close()  # close to ensure that we can open it in write_lc()
+
+    sncosmo.write_lc(lcdata, f.name, format='json')
+    data = sncosmo.read_lc(f.name, format='json')
+
+    for key in lcdata.colnames:
+        assert np.all(data[key] == lcdata[key])
+    for key in lcdata.meta:
+        assert data.meta[key] == lcdata.meta[key]
+
+    os.unlink(f.name)
