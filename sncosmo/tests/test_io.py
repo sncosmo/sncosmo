@@ -110,16 +110,36 @@ def test_read_salt2_old():
     assert np.all(data["MagSys"] == "VEGA")
 
 
-def test_json():
+def test_roundtripping():
+    for format in ['json', 'ascii', 'salt2']:
+        f = NamedTemporaryFile(delete=False)
+        f.close()  # close to ensure that we can open it in write_lc()
+
+        # raw=True is for the benefit of salt2 writer that modifies column
+        # and header names by default.
+        sncosmo.write_lc(lcdata, f.name, format=format, raw=True,
+                         pedantic=False)
+        data = sncosmo.read_lc(f.name, format=format)
+
+        for key in lcdata.colnames:
+            assert np.all(data[key] == lcdata[key])
+        for key in lcdata.meta:
+            assert data.meta[key] == lcdata.meta[key]
+
+        os.unlink(f.name)
+
+
+def test_write_lc_salt2():
+    """Extra test to see if column renaming works"""
     f = NamedTemporaryFile(delete=False)
     f.close()  # close to ensure that we can open it in write_lc()
+    sncosmo.write_lc(lcdata, f.name, format='salt2')
+    os.unlink(f.name)
 
-    sncosmo.write_lc(lcdata, f.name, format='json')
-    data = sncosmo.read_lc(f.name, format='json')
 
-    for key in lcdata.colnames:
-        assert np.all(data[key] == lcdata[key])
-    for key in lcdata.meta:
-        assert data.meta[key] == lcdata.meta[key]
-
+def test_write_lc_snana():
+    """Just check if the snana writer works without error."""
+    f = NamedTemporaryFile(delete=False)
+    f.close()  # close to ensure that we can open it in write_lc()
+    sncosmo.write_lc(lcdata, f.name, format='snana', pedantic=False)
     os.unlink(f.name)
