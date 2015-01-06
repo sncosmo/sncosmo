@@ -150,7 +150,7 @@ class Spectrum(object):
         1 standard deviation uncertainty on flux density values.
     wave_unit : `~astropy.units.Unit`
         Units.
-    units : `~astropy.units.BaseUnit`
+    unit : `~astropy.units.BaseUnit`
         For now, only units with flux density in energy (not photon counts).
     z : float, optional
         Redshift of spectrum (default is `None`)
