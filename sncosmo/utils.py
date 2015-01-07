@@ -9,8 +9,13 @@ def format_value(value, error=None, latex=False):
 
     If latex=True, use '\pm' and '\times'.
     """
-    pm = '\pm' if latex else '+/-'
-    suffix = ''
+
+    if latex:
+        pm = '\pm'
+        suffix_templ = ' \\times 10^{{{0:d}}}'
+    else:
+        pm = '+/-'
+        suffix_templ = ' x 10^{0:d}'
 
     # First significant digit
     absval = abs(value)
@@ -31,15 +36,13 @@ def format_value(value, error=None, latex=False):
         if error is not None:
             error /= 10**first
         p = max(0, first - last + 1)
-        if latex:
-            suffix = ' \\times 10^{{{0:d}}}'.format(first)
-        else:
-            suffix = ' x 10^{0:d}'.format(first)
+        suffix = suffix_templ.format(first)
     else:
         p = max(0, -last + 1)
+        suffix = ''
 
     if error is None:
-        prefix = '{0:g}'.format(value)
+        prefix = ('{0:.' + str(p) + 'f}').format(value)
     else:
         prefix = (('{0:.' + str(p) + 'f} {1:s} {2:.' + str(p) + 'f}')
                   .format(value, pm, error))
@@ -79,44 +82,66 @@ class Result(dict):
             return self.__class__.__name__ + "()"
 
 
-def _cdf(pdf, x, a):
-    return integrate.quad(pdf, a, x)[0]
+def _integral_diff(x, pdf, a, q):
+    """Return difference between q and the integral of the function `pdf`
+    between a and x. This is used for solving for the ppf."""
+    return integrate.quad(pdf, a, x)[0] - q
 
 
-def _ppf_to_solve(x, pdf, q, a):
-    return _cdf(pdf, x, a) - q
+def ppf(pdf, x, a, b):
+    """Percent-point function (inverse cdf), given the probability
+    distribution function pdf and limits a, b.
 
+    Parameters
+    ----------
+    pdf : callable
+        Probability distribution function
+    x : array_like
+        Points at which to evaluate the ppf
+    a, b : float
+        Limits (can be -np.inf, np.inf, assuming pdf has finite integral).
+    """
 
-def _ppf_single_call(pdf, q, a, b):
-    left = right = None
-    if a > -np.inf:
+    FACTOR = 10.
+
+    if not b > a:
+        raise ValueError('b must be greater than a')
+
+    # integral of pdf between a and b
+    tot = integrate.quad(pdf, a, b)[0]
+
+    # initialize result array
+    x = np.asarray(x)
+    shape = x.shape
+    x = np.ravel(x)
+    result = np.zeros(len(x))
+
+    for i in range(len(x)):
+        cumsum = x[i] * tot  # target cumulative sum
         left = a
-    if b < np.inf:
         right = b
 
-    factor = 10.
+        # Need finite limits for the solver.
+        # For inifinite upper or lower limits, find finite limits such that
+        # cdf(left) < cumsum < cdf(right).
+        if left == -np.inf:
+            left = -FACTOR
+            while integrate.quad(pdf, a, left)[0] > cumsum:
+                right = left
+                left *= FACTOR
+        if right == np.inf:
+            right = FACTOR
+            while integrate.quad(pdf, a, right)[0] < cumsum:
+                left = right
+                right *= FACTOR
 
-    # if lower limit is -infinity, adjust to
-    # ensure that cdf(left) < q
-    if left is None:
-        left = -1. * factor
-        while _cdf(pdf, left, a) > q:
-            right = left
-            left *= factor
+        result[i] = optimize.brentq(_integral_diff, left, right,
+                                    args=(pdf, a, cumsum))
 
-    # if upper limit is infinity, adjust to
-    # ensure that cdf(right) > q
-    if right is None:
-        right = factor
-        while _cdf(pdf, right, a) < q:
-            left = right
-            right *= factor
-
-    return optimize.brentq(_ppf_to_solve, left, right, args=(pdf, q, a))
+    return result.reshape(shape)
 
 
-class Interp1d(object):
-
+class Interp1D(object):
     def __init__(self, xmin, xmax, y):
         self._xmin = xmin
         self._xmax = xmax
@@ -130,20 +155,6 @@ class Interp1d(object):
         i = int(nsteps)
         w = nsteps - i
         return (1.-w) * self._y[i] + w * self._y[i+1]
-
-
-def pdf_to_ppf(pdf, a, b, n=101):
-    """Given a function representing a pdf, return a callable representing the
-    inverse cdf (or ppf) of the pdf."""
-
-    x = np.linspace(0., 1., n)
-    y = np.empty(n, dtype=np.float)
-    y[0] = a
-    y[-1] = b
-    for i in range(1, n-1):
-        y[i] = _ppf_single_call(pdf, x[i], a, b)
-
-    return Interp1d(0., 1., y)
 
 
 def weightedcov(x, w):

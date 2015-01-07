@@ -10,7 +10,7 @@ from astropy.utils import OrderedDict as odict
 
 from .photdata import standardize_data, normalize_data
 from . import nest
-from .utils import Result, Interp1d, pdf_to_ppf, weightedcov
+from .utils import Result, Interp1D, ppf, weightedcov
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
@@ -518,9 +518,13 @@ def _nest_lc(data, model, param_names, modelcov,
                 continue  # ppfs take priority over bounds/priors
             a, b = val
             if priors is not None and key in priors:
-                f = pdf_to_ppf(priors[key], a, b)
+                # solve ppf at discrete points and return interpolating
+                # function
+                x_samples = np.linspace(0., 1., 101)
+                ppf_samples = ppf(priors[key], x_samples, a, b)
+                f = Interp1D(0., 1., ppf_samples)
             else:
-                f = Interp1d(0., 1., np.array([a, b]))
+                f = Interp1D(0., 1., np.array([a, b]))
             ppfs[key] = f
 
     iparam_names = ppfs.keys()
