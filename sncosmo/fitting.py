@@ -569,8 +569,8 @@ def _nest_lc(data, model, param_names, modelcov,
 
 
 def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
-            minsnr=5., priors=None, nobj=100, maxiter=10000, maxcall=1000000,
-            modelcov=False, verbose=False):
+            minsnr=5., priors=None, ppfs=None, nobj=100, maxiter=10000,
+            maxcall=1000000, modelcov=False, verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -597,8 +597,15 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
     minsnr : float, optional
         Minimum signal-to-noise ratio of data points to use when guessing
         amplitude bound. Default is 5.
-    priors : dict, optional
-        Not currently used.
+    priors : `dict`, optional
+        Prior probability distribution function for each parameter. The keys
+        should be parameter names and the values should be callables that
+        accept a float. If a parameter is not in the dictionary, the prior
+        defaults to a flat distribution between the bounds.
+    ppfs : `dict`, optional
+        Prior percent point function (inverse of the cumulative distribution
+        function) for each parameter. If a parameter is in this dictionary,
+        the ppf takes precedence over a prior pdf specified in ``priors``.
     nobj : int, optional
         Number of objects (e.g., concurrent sample points) to use. Increasing
         nobj increases the accuracy (due to denser sampling) and also the time
@@ -686,8 +693,8 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         bounds['t0'] = t0_bounds(data, model)
 
     res = _nest_lc(data, model, param_names, modelcov=modelcov, bounds=bounds,
-                   priors=priors, nobj=nobj, maxiter=maxiter, maxcall=maxcall,
-                   verbose=verbose)
+                   priors=priors, ppfs=ppfs, nobj=nobj, maxiter=maxiter,
+                   maxcall=maxcall, verbose=verbose)
 
     res.bounds = bounds
 
