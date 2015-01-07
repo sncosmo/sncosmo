@@ -26,7 +26,7 @@ def test_ppf():
     priordist = norm(0., 1.)
     x = np.linspace(0.05, 0.95, 5.)
     y = utils.ppf(priordist.pdf, x, -np.inf, np.inf)
-    assert_allclose(y, priordist.ppf(x))
+    assert_allclose(y, priordist.ppf(x), atol=1.e-10)
 
 
 def test_weightedcov():
