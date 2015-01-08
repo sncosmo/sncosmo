@@ -1,7 +1,9 @@
 import numpy as np
+
 from astropy.utils import OrderedDict as odict
 from astropy.io import fits
 from astropy.table import Table, vstack
+from astropy.extern import six
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
@@ -149,7 +151,7 @@ def read_snana_ascii(fname, default_tablename=None):
     Examples
     --------
 
-    >>> from StringIO import StringIO  # StringIO behaves like a file
+    >>> from astropy.extern.six import StringIO  # StringIO behaves like a file
     >>> f = StringIO('META1: a\\n'
     ...              'META2: 6\\n'
     ...              'NVAR_SN: 3\\n'
@@ -166,7 +168,7 @@ def read_snana_ascii(fname, default_tablename=None):
 
     The second is a dictionary of all the tables in the file:
 
-    >>> tables['SN']
+    >>> tables['SN']                                          # doctest: +SKIP
     <Table rows=2 names=('A','B','C')>
     array([(1, 2.0, 'x'), (4, 5.0, 'y')],
           dtype=[('A', '<i8'), ('B', '<f8'), ('C', 'S1')])
@@ -190,7 +192,7 @@ def read_snana_ascii(fname, default_tablename=None):
     meta = odict()  # initialize structure to hold metadata.
     tables = {}  # initialize structure to hold data.
 
-    if isinstance(fname, basestring):
+    if isinstance(fname, six.string_types):
         fh = open(fname, 'U')
     else:
         fh = fname
@@ -266,7 +268,7 @@ def read_snana_ascii(fname, default_tablename=None):
     # All values in each column are currently strings. Convert to int or
     # float if possible.
     for table in tables.values():
-        for colname, values in table.iteritems():
+        for colname, values in six.iteritems(table):
             try:
                 table[colname] = [int(val) for val in values]
             except ValueError:
@@ -308,7 +310,7 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
         meta, tables = read_snana_ascii(fname,
                                         default_tablename=default_tablename)
 
-        for key, table in tables.iteritems():
+        for key, table in six.iteritems(tables):
             if key in alltables:
                 alltables[key].append(table)
             else:

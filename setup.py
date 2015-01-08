@@ -116,5 +116,5 @@ setup(name=PACKAGENAME,
           'Topic :: Scientific/Engineering :: Physics'],
       cmdclass=cmdclassd,
       zip_safe=False,
-      use_2to3=True,
+      use_2to3=False,
       **package_info)

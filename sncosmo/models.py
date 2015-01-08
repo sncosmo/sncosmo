@@ -13,9 +13,8 @@ from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
                                RectBivariateSpline as Spline2d,
                                splmake, spleval)
 from astropy.utils import OrderedDict as odict
-from astropy import (cosmology,
-                     units as u,
-                     constants as const)
+from astropy import (cosmology, units as u, constants as const)
+from astropy.extern import six
 
 from .io import read_griddata_ascii
 from . import registry
@@ -381,7 +380,7 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if isinstance(band_or_wave, (basestring, Bandpass)):
+        if isinstance(band_or_wave, (six.string_types, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
@@ -608,7 +607,7 @@ class SALT2Source(Source):
         if modeldir is not None:
             for k in names_or_objs:
                 v = names_or_objs[k]
-                if (v is not None and isinstance(v, basestring)):
+                if (v is not None and isinstance(v, six.string_types)):
                     names_or_objs[k] = os.path.join(modeldir, v)
 
         # model components are interpolated to 2nd order
@@ -819,7 +818,7 @@ class SALT2Source(Source):
         self._V_WAVELENGTH = 5428.55
 
         # Read file
-        if isinstance(name_or_obj, basestring):
+        if isinstance(name_or_obj, six.string_types):
             f = open(name_or_obj, 'rb')
         else:
             f = name_or_obj

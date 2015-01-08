@@ -1,12 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from __future__ import division
+from __future__ import division, print_function
 from warnings import warn
 import copy
-from itertools import product
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.utils import OrderedDict as odict
+from astropy.extern import six
 
 from .photdata import standardize_data, normalize_data
 from . import nest
@@ -151,8 +151,8 @@ def guess_t0_and_amplitude(data, model, minsnr):
 
     Assumes the data has been standardized."""
 
-    times = np.linspace(model.mintime(), model.maxtime(),
-                        int(model.maxtime() - model.mintime() + 1))
+    timegrid = np.linspace(model.mintime(), model.maxtime(),
+                           int(model.maxtime() - model.mintime() + 1))
 
     snr = data['flux'] / data['fluxerr']
     significant_data = data[snr > minsnr]
@@ -165,27 +165,30 @@ def guess_t0_and_amplitude(data, model, minsnr):
         mask = significant_data['band'] == band
         if np.any(mask):
             modelflux[band] = (
-                model.bandflux(band, times, zp=zp, zpsys=zpsys) /
+                model.bandflux(band, timegrid, zp=zp, zpsys=zpsys) /
                 model.parameters[2])
             dataflux[band] = significant_data['flux'][mask]
             datatime[band] = significant_data['time'][mask]
 
-    significant_bands = modelflux.keys()
-    if len(significant_bands) == 0:
+    if len(modelflux) == 0:
         raise DataQualityError('No data points with S/N > {0}. Initial '
                                'guessing failed.'.format(minsnr))
 
-    # ratio of maximum data flux to maximum model flux in each band
-    bandratios = np.array([np.max(dataflux[band]) / np.max(modelflux[band])
-                           for band in significant_bands])
+    # find band with biggest ratio of maximum data flux to maximum model flux
+    maxratio = float("-inf")
+    maxband = None
+    for band in modelflux:
+        ratio = np.max(dataflux[band]) / np.max(modelflux[band])
+        if ratio > maxratio:
+            maxratio = ratio
+            maxband = band
 
-    # Amplitude guess is biggest ratio one
-    amplitude = abs(max(bandratios))
+    # amplitude guess is the largest ratio
+    amplitude = abs(maxratio)
 
     # time guess is time of max in the band with the biggest ratio
-    band = significant_bands[np.argmax(bandratios)]
-    data_tmax = datatime[band][np.argmax(dataflux[band])]
-    model_tmax = times[np.argmax(modelflux[band])]
+    data_tmax = datatime[maxband][np.argmax(dataflux[maxband])]
+    model_tmax = timegrid[np.argmax(modelflux[maxband])]
     t0 = model.get('t0') + data_tmax - model_tmax
 
     return t0, amplitude
@@ -394,12 +397,13 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             kwargs['error_' + name] = step
 
         if verbose:
-            print "Initial parameters:"
+            print("Initial parameters:")
             for name in param_names:
-                print name, kwargs[name], 'step=', kwargs['error_' + name],
+                print(name, kwargs[name], 'step=', kwargs['error_' + name],
+                      end=" ")
                 if 'limit_' + name in kwargs:
-                    print 'bounds=', kwargs['limit_' + name],
-                print ''
+                    print('bounds=', kwargs['limit_' + name], end=" ")
+                print()
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
                            forced_parameters=model.param_names,
@@ -513,7 +517,7 @@ def _nest_lc(data, model, param_names, modelcov,
 
     # Convert bounds/priors combinations into ppfs
     if bounds is not None:
-        for key, val in bounds.iteritems():
+        for key, val in six.iteritems(bounds):
             if key in ppfs:
                 continue  # ppfs take priority over bounds/priors
             a, b = val
@@ -803,6 +807,6 @@ def mcmc_lc(data, model, param_names, errors, bounds=None, nwalkers=10,
     # production run
     sampler.run_mcmc(pos, nsamples)
     if verbose:
-        print "Avg acceptance fraction:", np.mean(sampler.acceptance_fraction)
+        print("Avg acceptance fraction:", np.mean(sampler.acceptance_fraction))
 
     return sampler.flatchain

@@ -1,9 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
-from cStringIO import StringIO
-
 import numpy as np
 from numpy.testing import assert_allclose, assert_approx_equal
+from astropy.extern import six
 
 import sncosmo
 from sncosmo import registry
@@ -65,7 +64,7 @@ class TestSALT2Source:
         # Create some 2-d grid files
         files = []
         for i in [0, 1]:
-            f = StringIO()
+            f = six.StringIO()
             sncosmo.write_griddata_ascii(phase, wave, vals, f)
             f.seek(0)  # return to start of file.
             files.append(f)
@@ -73,7 +72,7 @@ class TestSALT2Source:
         # CL file. The CL in magnitudes will be
         # CL(wave) = -(wave - B) / (V - B)  [B = 4302.57, V = 5428.55]
         # and transmission will be 10^(-0.4 * CL(wave))^c
-        clfile = StringIO()
+        clfile = six.StringIO()
         clfile.write("1\n"
                      "0.0\n"
                      "Salt2ExtinctionLaw.version 1\n"
@@ -83,13 +82,13 @@ class TestSALT2Source:
 
         # Create some more 2-d grid files
         for factor in [1., 0.01, 0.01, 0.01]:
-            f = StringIO()
+            f = six.StringIO()
             sncosmo.write_griddata_ascii(phase, wave, factor * vals, f)
             f.seek(0)  # return to start of file.
             files.append(f)
 
         # Create a 1-d grid file (color dispersion)
-        cdfile = StringIO()
+        cdfile = six.StringIO()
         for w in wave:
             cdfile.write("{0:f} {1:f}\n".format(w, 0.2))
         cdfile.seek(0)  # return to start of file.

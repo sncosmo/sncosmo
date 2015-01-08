@@ -1,3 +1,3 @@
-import bandpasses
-import sources
-import magsystems
+from . import bandpasses
+from . import sources
+from . import magsystems

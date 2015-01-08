@@ -3,6 +3,7 @@
 based on string identifiers."""
 
 from astropy.utils import OrderedDict
+from astropy.extern import six
 
 __all__ = ['register_loader', 'register', 'retrieve', 'get_loaders_metadata']
 
@@ -86,7 +87,7 @@ def register(instance, name=None, data_class=None, force=False):
         except AttributeError:
             raise ValueError("name not given and instance has no 'name' "
                              "attribute")
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise ValueError("name attribute of {0!r:s} is not a string.")
 
     if data_class is None:
@@ -186,7 +187,8 @@ def retrieve(data_class, name, version=None):
     if version is None:
         latest_version = None
         for regkey in _loaders.keys():
-            if (key == regkey[0:2] and regkey[2] > latest_version):
+            if (key == regkey[0:2] and (latest_version is None or
+                                        regkey[2] > latest_version)):
                 latest_version = regkey[2]
         if latest_version is not None:
             regkey = (key[0], key[1], latest_version)
@@ -231,7 +233,7 @@ def get_loaders_metadata(data_class):
     """
 
     loaders_metadata = []
-    for lkey, loader in _loaders.iteritems():
+    for lkey, loader in six.iteritems(_loaders):
         if lkey[0] is not data_class:
             continue
         m = {'name': lkey[1]}

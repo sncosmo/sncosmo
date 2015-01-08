@@ -12,6 +12,7 @@ from astropy import units as u
 from astropy.utils.data import get_pkg_data_filename
 from astropy.utils import OrderedDict
 from astropy.config import ConfigurationItem
+from astropy.extern import six
 
 from .. import registry
 from ..spectral import Bandpass, read_bandpass
@@ -133,7 +134,7 @@ lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
     lines.append('.. [{0}] {1}'.format(refkey, ref))
 lines.append('')
-for url, urlnum in urlnums.iteritems():
+for url, urlnum in six.iteritems(urlnums):
     lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
 lines.append('')
 __doc__ = '\n'.join(lines)

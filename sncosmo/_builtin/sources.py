@@ -11,6 +11,7 @@ from astropy.io import fits
 from astropy import wcs
 from astropy.utils.data import (download_file, get_pkg_data_filename,
                                 get_readable_fileobj)
+from astropy.extern import six
 
 from .. import registry
 from .. import Source, TimeSeriesSource, SALT2Source
@@ -369,7 +370,7 @@ for m in registry.get_loaders_metadata(Source):
                 urlnums[url] = 0
             else:
                 urlnums[url] = max(urlnums.values()) + 1
-        urllink = '`{0}`_'.format(string.letters[urlnums[url]])
+        urllink = '`{0}`_'.format(string.ascii_letters[urlnums[url]])
 
     lines.append("{0!r:20}  {1!r:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}"
                  .format(m['name'], m['version'], m['type'], m['subclass'],
@@ -379,8 +380,8 @@ lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
     lines.append('.. [{0}] `{1}`__'.format(refkey, ref))
 lines.append('')
-for url, urlnum in urlnums.iteritems():
-    lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
+for url, urlnum in six.iteritems(urlnums):
+    lines.append('.. _`{0}`: {1}'.format(string.ascii_letters[urlnum], url))
 lines.append('')
 for i, note in enumerate(allnotes):
     lines.append('.. [{0}] {1}'.format(i + 1, note))

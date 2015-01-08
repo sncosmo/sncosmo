@@ -9,6 +9,7 @@ import string
 from astropy.io import fits
 from astropy.utils.data import download_file
 from astropy import units as u
+from astropy.extern import six
 
 from .. import registry
 from .. import Spectrum, MagSystem, SpectralMagSystem, ABMagSystem
@@ -77,14 +78,14 @@ for m in registry.get_loaders_metadata(MagSystem):
                 urlnums[url] = 0
             else:
                 urlnums[url] = max(urlnums.values()) + 1
-        urllink = '`{0}`_'.format(string.letters[urlnums[url]])
+        urllink = '`{0}`_'.format(string.ascii_letters[urlnums[url]])
 
     lines.append("{0!r:10}  {1:60}  {2:35}  {3:15}"
                  .format(m['name'], description, m['subclass'], urllink))
 
 lines.extend([lines[1], ''])
-for url, urlnum in urlnums.iteritems():
-    lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
+for url, urlnum in six.iteritems(urlnums):
+    lines.append('.. _`{0}`: {1}'.format(string.ascii_letters[urlnum], url))
 lines.append('')
 __doc__ = '\n'.join(lines)
 

@@ -1,5 +1,7 @@
 """Tools for simulation of transients."""
 
+from __future__ import print_function
+
 import sys
 import math
 from copy import deepcopy
@@ -10,6 +12,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
 from astropy.utils import OrderedDict as odict
+from astropy.extern.six.moves import range
 
 __all__ = ['zdist', 'realize_lcs']
 
@@ -49,7 +52,7 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     Loop over the generator:
 
     >>> for z in zdist(0.0, 0.25):  # doctest: +SKIP
-    ...     print z                 # doctest: +SKIP
+    ...     print(z)                # doctest: +SKIP
     ...
     0.151285827576
     0.204078030595
@@ -87,7 +90,7 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     # SN / (observer year) in shell
     shell_snrate = np.array([shell_vols[i] *
                              ratefunc(z_binctrs[i]) / (1.+z_binctrs[i])
-                             for i in xrange(z_bins)])
+                             for i in range(z_bins)])
 
     # SN / (observer year) within z_binedges
     vol_snrate = np.zeros_like(z_binedges)
@@ -101,7 +104,7 @@ def zdist(zmin, zmax, time=365.25, area=1.,
     # Total numbe of SNe to simulate.
     nsim = vol_snrate[-1] * (time/365.25) * (area/WHOLESKY_SQDEG)
 
-    for i in xrange(random.poisson(nsim)):
+    for i in range(random.poisson(nsim)):
         yield float(snrate_ppf(random.random()))
 
 
