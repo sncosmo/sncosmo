@@ -134,7 +134,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     from matplotlib.ticker import MaxNLocator, NullFormatter
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-
     if data is None and model is None:
         raise ValueError('must specify at least one of: data, model')
     if data is None and bands is None:

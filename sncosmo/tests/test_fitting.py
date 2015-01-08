@@ -15,6 +15,7 @@ try:
 except:
     HAS_IMINUIT = False
 
+
 @pytest.mark.skipif(not HAS_IMINUIT, reason="no iminuit")
 class TestFitting:
     def setup_class(self):
