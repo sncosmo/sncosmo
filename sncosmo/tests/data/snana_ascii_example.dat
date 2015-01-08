@@ -1,0 +1,44 @@
+SURVEY:    DES 
+SNID:      5407
+SNTYPE:      0     #  
+FILTERS:   griz 
+PIXSIZE:   0.27    # arcsec 
+NXPIX:     2048  
+NYPIX:     4096  
+FAKE:      0 
+RA:        9.209158  deg
+DECL:      -44.913342  deg
+MWEBV:     0  # WARNING: see OPT_MWEBV in SNANA manual 
+MWEBV_ERR: 0  
+REDSHIFT_HELIO:  0.3614  +-  0.0779    # zPHOT(host) 
+REDSHIFT_FINAL:  0.3614  +-  0.0779 
+
+HOSTGAL_OBJID:   747 
+HOSTGAL_PHOTOZ:  0.3614 +-  0.0779
+HOSTGAL_SPECZ:   -9.0000 +-  -9.0000
+HOSTGAL_SNSEP:   0.32    # arcsec
+HOSTGAL_MAG:     23.56 22.97 22.85 22.28    # Aper_4 
+HOSTGAL_SB_FLUXCAL: 7.81 12.57 16.28 25.07    # griz FLUXCAL/asec^2 
+
+PRIVATE(DES_snid):            5407 
+PRIVATE(DES_cand_type):         0 
+PRIVATE(DES_ccdnum):            60 
+PRIVATE(DES_numepochs):         12 
+PRIVATE(DES_numepochs_ml):      12 
+PRIVATE(DES_nobs_offccd):       0 
+PRIVATE(DES_swap_aflux):        0   (PHOTFLAG & 32768) 
+PRIVATE(DES_hostgal_dlr):       0.71   
+PRIVATE(DES_hostgal_gradient_g):   -3.61 
+PRIVATE(DES_hostgal_gradient_r):   -6.36 
+PRIVATE(DES_hostgal_gradient_i):   -7.48 
+PRIVATE(DES_hostgal_gradient_z):  -15.07 
+
+
+# ------------------ 
+NOBS: 4 
+NVAR: 13 
+VARLIST: MJD  FLT  FIELD FLUXCAL  FLUXCALERR PHOTFLAG PHOTPROB ZPFLUX PSF SKYSIG SKYSIG_T XPIX YPIX    NITE 
+OBS:   56534.185  g  E2   5.8777e+00   3.7100e+00  2049   -9  0.000 0.000 0.0 0.0 1254.25 3417.99           
+OBS:   56534.188  r  E2   6.0339e+00   5.2144e+00  2049   -9  0.000 0.000 0.0 0.0 1252.46 3422.74           
+OBS:   56534.190  i  E2  -7.4055e-01   6.1795e+00  2049   -9  0.000 0.000 0.0 0.0 1251.38 3424.79           
+OBS:   56534.192  z  E2   2.6296e+00   8.6619e+00  2049   -9  0.000 0.000 0.0 0.0 1249.99 3426.95

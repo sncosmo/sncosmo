@@ -142,7 +142,9 @@ def read_snana_ascii(fname, default_tablename=None):
     * Any other keywords anywhere in the file are treated as metadata. The
       first string after the keyword is treated as the value for that keyword.
     * **Note:** Newlines are treated as equivalent to spaces; they do not
-      indicate a new row.
+      indicate a new row. This is necessary because some SNANA-format files
+      have multiple metadata on a single row or single table rows split over
+      multiple lines, making newline characters meaningless.
 
     Examples
     --------
