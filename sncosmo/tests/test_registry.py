@@ -20,3 +20,9 @@ def test_register():
 def test_retrieve_cases():
     for name in ['ab', 'Ab', 'AB']:  # Should work regardless of case.
         sncosmo.get_magsystem(name)
+
+
+def test_hst_bands():
+    """  check that the HST and JWST bands are accessible """
+    for bandname in ['f606w', 'uvf606w', 'f125w', 'f127m', 'f115w', 'f1130w']:
+        sncosmo.get_bandpass(bandname)
