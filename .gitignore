@@ -44,3 +44,6 @@ sncosmo/sncosmo.cfg
 
 # emacs files
 *~
+
+# pycharm files
+.idea
