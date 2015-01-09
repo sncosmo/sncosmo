@@ -102,58 +102,87 @@ def load_hst_bandpass(pkg_data_name, name=None):
 # --------------------------------------------------------------------------
 # HST NICMOS
 nicmos_meta = {'filterset': 'nicmos2',
-            'dataurl': ('http://www.stsci.edu/hst/'
-                        'wfc3ir'),
-            'retrieved': '05 Aug 2014',
-            'description': 'Hubble Space Telescope NICMOS2 filters'}
-registry.register_loader(Bandpass, 'nicf110w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_nicmos_nic2_f110w.dat'], meta=nicmos_meta)
-registry.register_loader(Bandpass, 'nicf160w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_nicmos_nic2_f160w.dat'], meta=nicmos_meta)
+               'dataurl': ('http://www.stsci.edu/hst/'
+                           'wfc3ir'),
+               'retrieved': '05 Aug 2014',
+               'description': 'Hubble Space Telescope NICMOS2 filters'}
+registry.register_loader(Bandpass, 'nicf110w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_nicmos_nic2_f110w.dat'], meta=nicmos_meta)
+registry.register_loader(Bandpass, 'nicf160w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_nicmos_nic2_f160w.dat'], meta=nicmos_meta)
 del nicmos_meta
 
 # --------------------------------------------------------------------------
 # HST WFC3-IR
 wfc3ir_meta = {'filterset': 'wfc3-ir',
-            'dataurl': ('http://www.stsci.edu/hst/wfc3/ins_performance/throughputs/Throughput_Tables'
-                        'wfc3ir'),
-            'retrieved': '05 Aug 2014',
-            'description': 'Hubble Space Telescope WFC3 IR filters'}
-registry.register_loader(Bandpass, 'f098m', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f098m.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f105w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f105w.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f110w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f110w.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f125w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f125w.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f127m', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f127m.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f139m', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f139m.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f140w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f140w.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f153m', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f153m.dat'], meta=wfc3ir_meta)
-registry.register_loader(Bandpass, 'f160w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_ir_f160w.dat'], meta=wfc3ir_meta)
+               'dataurl': ('http://www.stsci.edu/hst/wfc3/ins_performance/throughputs/Throughput_Tables'
+                           'wfc3ir'),
+               'retrieved': '05 Aug 2014',
+               'description': 'Hubble Space Telescope WFC3 IR filters'}
+registry.register_loader(Bandpass, 'f098m', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f098m.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f105w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f105w.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f110w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f110w.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f125w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f125w.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f127m', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f127m.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f139m', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f139m.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f140w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f140w.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f153m', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f153m.dat'], meta=wfc3ir_meta)
+registry.register_loader(Bandpass, 'f160w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_ir_f160w.dat'], meta=wfc3ir_meta)
 
 del wfc3ir_meta
 
 # --------------------------------------------------------------------------
 # HST WFC3-UVIS
 wfc3uvis_meta = {'filterset': 'wfc3-uvis',
-            'dataurl': ('http://www.stsci.edu/hst/wfc3/ins_performance/throughputs/Throughput_Tables'
-                        'wfc3uvis'),
-            'retrieved': '05 Aug 2014',
-            'description': 'Hubble Space Telescope WFC3 UVIS filters'}
-registry.register_loader(Bandpass, 'f218w',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f218w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f225w',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f225w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f275w',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f275w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f300x',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f300x.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f336w',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f336w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f350lp',  load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f350lp.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f390w',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f390w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f689m',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f689m.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f763m',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f763m.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f845m',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f845m.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'f438w',   load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f438w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf475w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f475w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf555w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f555w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf606w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f606w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf625w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f625w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf775w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f775w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf814w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f814w.dat'], meta=wfc3uvis_meta)
-registry.register_loader(Bandpass, 'uvf850lp',load_hst_bandpass, args=['../data/bandpasses/hst/hst_wfc3_uvis_f850lp.dat'], meta=wfc3uvis_meta)
+                 'dataurl': ('http://www.stsci.edu/hst/wfc3/ins_performance/throughputs/Throughput_Tables'
+                             'wfc3uvis'),
+                 'retrieved': '05 Aug 2014',
+                 'description': 'Hubble Space Telescope WFC3 UVIS filters'}
+registry.register_loader(Bandpass, 'f218w',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f218w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f225w',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f225w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f275w',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f275w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f300x',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f300x.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f336w',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f336w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f350lp',  load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f350lp.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f390w',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f390w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f689m',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f689m.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f763m',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f763m.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f845m',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f845m.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'f438w',   load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f438w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf475w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f475w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf555w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f555w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf606w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f606w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf625w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f625w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf775w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f775w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf814w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f814w.dat'], meta=wfc3uvis_meta)
+registry.register_loader(Bandpass, 'uvf850lp', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_wfc3_uvis_f850lp.dat'], meta=wfc3uvis_meta)
 
 del wfc3uvis_meta
 
@@ -164,14 +193,22 @@ acs_meta = {'filterset': 'acs',
                         'acs'),
             'retrieved': '05 Aug 2014',
             'description': 'Hubble Space Telescope ACS WFC filters'}
-registry.register_loader(Bandpass, 'f435w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f435w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f475w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f475w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f555w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f555w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f606w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f606w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f625w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f625w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f775w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f775w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f814w', load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f814w.dat'], meta=acs_meta)
-registry.register_loader(Bandpass, 'f850lp',load_hst_bandpass, args=['../data/bandpasses/hst/hst_acs_wfc_f850lp.dat'],meta=acs_meta)
+registry.register_loader(Bandpass, 'f435w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f435w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f475w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f475w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f555w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f555w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f606w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f606w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f625w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f625w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f775w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f775w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f814w', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f814w.dat'], meta=acs_meta)
+registry.register_loader(Bandpass, 'f850lp', load_hst_bandpass, args=[
+                         '../data/bandpasses/hst/hst_acs_wfc_f850lp.dat'], meta=acs_meta)
 
 del acs_meta
 
@@ -186,32 +223,52 @@ def load_jwst_bandpass(pkg_data_name, name=None):
 # --------------------------------------------------------------------------
 # JWST NIRCAM Wide and medium bands
 jwst_nircam_meta = {'filterset': 'jwst-nircam',
-            'dataurl': ('http://www.stsci.edu/jwst/instruments/nircam/instrumentdesign/filters'
-                        'jwstnircam'),
-            'retrieved': '09 Sep 2014',
-            'description': 'James Webb Space Telescope NIRCAM Wide+Medium filters'}
+                    'dataurl': ('http://www.stsci.edu/jwst/instruments/nircam/instrumentdesign/filters'
+                                'jwstnircam'),
+                    'retrieved': '09 Sep 2014',
+                    'description': 'James Webb Space Telescope NIRCAM Wide+Medium filters'}
 
-registry.register_loader(Bandpass, 'f070w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f070w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f090w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f090w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f115w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f115w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f150w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f150w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f200w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f200w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f277w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f277w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f356w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f356w.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f444w', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f444w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f070w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f070w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f090w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f090w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f115w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f115w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f150w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f150w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f200w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f200w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f277w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f277w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f356w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f356w.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f444w', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f444w.dat'], meta=jwst_nircam_meta)
 
-registry.register_loader(Bandpass, 'f140m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f140m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f162m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f162m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f182m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f182m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f210m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f210m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f250m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f250m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f300m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f300m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f335m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f335m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f360m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f360m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f410m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f410m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f430m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f430m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f460m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f460m.dat'], meta=jwst_nircam_meta)
-registry.register_loader(Bandpass, 'f480m', load_jwst_bandpass, args=['../data/bandpasses/jwst/jwst_nircam_f480m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f140m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f140m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f162m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f162m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f182m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f182m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f210m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f210m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f250m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f250m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f300m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f300m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f335m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f335m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f360m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f360m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f410m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f410m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f430m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f430m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f460m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f460m.dat'], meta=jwst_nircam_meta)
+registry.register_loader(Bandpass, 'f480m', load_jwst_bandpass, args=[
+                         '../data/bandpasses/jwst/jwst_nircam_f480m.dat'], meta=jwst_nircam_meta)
 
 del jwst_nircam_meta
 
@@ -219,28 +276,42 @@ del jwst_nircam_meta
 # --------------------------------------------------------------------------
 # JWST MIRI filters (idealized tophat functions)
 jwst_miri_meta = {'filterset': 'jwst-miri',
-            'dataurl': ('http://www.stsci.edu/jwst/instruments/miri/instrumentdesign/filters'
-                        'jwstmiri'),
-            'retrieved': '09 Sep 2014',
-            'description': 'James Webb Space Telescope MIRI filters (idealized tophats)'}
+                  'dataurl': ('http://www.stsci.edu/jwst/instruments/miri/instrumentdesign/filters'
+                              'jwstmiri'),
+                  'retrieved': '09 Sep 2014',
+                  'description': 'James Webb Space Telescope MIRI filters (idealized tophats)'}
 
 import numpy as np
-wave = np.arange( 1.0, 40.0, 0.05 )
-tophat = lambda ctr,width : np.where( (ctr-width/2.<wave) & (wave<ctr+width/2.), 1, 0 )
+wave = np.arange(1.0, 40.0, 0.05)
+tophat = lambda ctr, width: np.where(
+    (ctr - width / 2. < wave) & (wave < ctr + width / 2.), 1, 0)
 
-registry.register( Bandpass(wave, tophat(5.6	, 1.2	), wave_unit=u.micron, name='f560w' ) )
-registry.register( Bandpass(wave, tophat(7.7	, 2.2	), wave_unit=u.micron, name='f770w' ) )
-registry.register( Bandpass(wave, tophat(10	, 2	), wave_unit=u.micron, name='f1000w' ) )
-registry.register( Bandpass(wave, tophat(11.3	, 0.7	), wave_unit=u.micron, name='f1130w' ) )
-registry.register( Bandpass(wave, tophat(12.8	, 2.4	), wave_unit=u.micron, name='f1280w' ) )
-registry.register( Bandpass(wave, tophat(15	, 3	), wave_unit=u.micron, name='f1500w' ) )
-registry.register( Bandpass(wave, tophat(18	, 3	), wave_unit=u.micron, name='f1800w' ) )
-registry.register( Bandpass(wave, tophat(21	, 5	), wave_unit=u.micron, name='f2100w' ) )
-registry.register( Bandpass(wave, tophat(25.5	, 4	), wave_unit=u.micron, name='f2550w' ) )
-registry.register( Bandpass(wave, tophat(10.65	, 0.53	), wave_unit=u.micron, name='f1065c' ) )
-registry.register( Bandpass(wave, tophat(11.4	, 0.57	), wave_unit=u.micron, name='f1140c' ) )
-registry.register( Bandpass(wave, tophat(15.5	, 0.78	), wave_unit=u.micron, name='f1550c' ) )
-registry.register( Bandpass(wave, tophat(23	, 4.6	), wave_unit=u.micron, name='f2300c' ) )
+registry.register(
+    Bandpass(wave, tophat(5.6	, 1.2	), wave_unit=u.micron, name='f560w'))
+registry.register(
+    Bandpass(wave, tophat(7.7	, 2.2	), wave_unit=u.micron, name='f770w'))
+registry.register(
+    Bandpass(wave, tophat(10	, 2	), wave_unit=u.micron, name='f1000w'))
+registry.register(
+    Bandpass(wave, tophat(11.3	, 0.7	), wave_unit=u.micron, name='f1130w'))
+registry.register(
+    Bandpass(wave, tophat(12.8	, 2.4	), wave_unit=u.micron, name='f1280w'))
+registry.register(
+    Bandpass(wave, tophat(15	, 3	), wave_unit=u.micron, name='f1500w'))
+registry.register(
+    Bandpass(wave, tophat(18	, 3	), wave_unit=u.micron, name='f1800w'))
+registry.register(
+    Bandpass(wave, tophat(21	, 5	), wave_unit=u.micron, name='f2100w'))
+registry.register(
+    Bandpass(wave, tophat(25.5	, 4	), wave_unit=u.micron, name='f2550w'))
+registry.register(
+    Bandpass(wave, tophat(10.65	, 0.53	), wave_unit=u.micron, name='f1065c'))
+registry.register(
+    Bandpass(wave, tophat(11.4	, 0.57	), wave_unit=u.micron, name='f1140c'))
+registry.register(
+    Bandpass(wave, tophat(15.5	, 0.78	), wave_unit=u.micron, name='f1550c'))
+registry.register(
+    Bandpass(wave, tophat(23	, 4.6	), wave_unit=u.micron, name='f2300c'))
 
 del jwst_miri_meta
 
@@ -249,10 +320,10 @@ del jwst_miri_meta
 
 lines = [
     '',
-    '  '.join([11*'=', 80*'=', 14*'=', 8*'=', 12*'=']),
+    '  '.join([11 * '=', 80 * '=', 14 * '=', 8 * '=', 12 * '=']),
     '{0:11}  {1:80}  {2:14}  {3:8}  {4:12}'
     .format('Name', 'Description', 'Reference', 'Data URL', 'Retrieved')
-    ]
+]
 lines.append(lines[1])
 
 urlnums = {}
