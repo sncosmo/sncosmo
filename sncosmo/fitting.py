@@ -420,7 +420,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if not d.has_covariance:
             message.append('No covariance.')
         elif not d.has_accurate_covar:  # iminuit docs wrong
-            message.append('Covariance may not be accuate.')
+            message.append('Covariance may not be accurate.')
         if not d.has_posdef_covar:  # iminuit docs wrong
             message.append('Covariance not positive definite.')
         if d.has_made_posdef_covar:
@@ -444,6 +444,11 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             errors = None
         else:
             errors = odict([(key, m.errors[key]) for key in cov_names])
+
+        # adopt the parameter values that minimize the chi2 into the model
+        for param in param_names:
+            ipar = param_names.index(param)
+            model.parameters[ipar] = m.values[param]
 
         # Compile results
         res = Result(success=d.is_valid,
