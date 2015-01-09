@@ -1212,7 +1212,7 @@ class Model(_ModelBase):
     # ----------------------------------------------------------------------
     # Bandpass-related functions
 
-    def bandoverlap(self, band, z=None):
+    def bandoverlap(self, band, z=None, checkeffects=False ):
         """Return True if model dispersion range fully overlaps the band.
 
         Parameters
@@ -1222,6 +1222,9 @@ class Model(_ModelBase):
         z : float or list_like, optional
             If given, evaluate the overlap when the model is at the given
             redshifts. If `None`, use the model redshift.
+        checkeffects : bool
+            If True, include wavelength limits of added effects (e.g. dust)
+            when defining the range of wavelengths accessible to the model.
 
         Returns
         -------
@@ -1239,8 +1242,23 @@ class Model(_ModelBase):
         overlap = np.empty((len(band), len(z)), dtype=np.bool)
         for i, b in enumerate(band):
             b = get_bandpass(b)
-            overlap[i, :] = ((b.wave[0] > self._source.minwave() * (1. + z)) &
-                             (b.wave[-1] < self._source.maxwave() * (1. + z)))
+            shift = (1. + z)
+            source_minwave = self._source.minwave() * shift
+            source_maxwave = self._source.maxwave() * shift
+            if checkeffects :
+                for effect, frame in zip(self._effects, self._effect_frames):
+                    effect_minwave = effect.minwave()
+                    effect_maxwave = effect.maxwave()
+                    if frame == 'rest':
+                        effect_minwave *= shift
+                        effect_maxwave *= shift
+                    source_minwave = np.where(effect_minwave > source_minwave,
+                                              effect_minwave, source_minwave)
+                    source_maxwave = np.where(effect_maxwave < source_maxwave,
+                                              effect_maxwave, source_maxwave)
+
+            overlap[i, :] = ((b.wave[0] > source_minwave ) &
+                             (b.wave[-1] < source_maxwave))
         if ndim == (0, 0):
             return overlap[0, 0]
         if ndim[1] == 0:

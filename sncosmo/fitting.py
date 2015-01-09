@@ -114,9 +114,9 @@ def flatten_result(res):
 def cut_bands(data, model, z_bounds=None):
 
     if z_bounds is None:
-        valid = model.bandoverlap(data['band'])
+        valid = model.bandoverlap(data['band'], checkeffects=True )
     else:
-        valid = model.bandoverlap(data['band'], z=z_bounds)
+        valid = model.bandoverlap(data['band'], z=z_bounds, checkeffects=True )
         valid = np.all(valid, axis=1)
 
     if not np.all(valid):
