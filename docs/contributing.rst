@@ -101,8 +101,52 @@ Every time you want to make a contribution:
    request")
 
 
+What happens when the upstream branch is updated?
+-------------------------------------------------
+
+Suppose that you are following the above workflow: you created a topic
+branch ``simulation-enhancements`` and made a few commits on that
+branch. You now want to create a pull request, but there's a problem:
+while you were working, more commmits were added to the
+``upstream/master`` branch on GitHub. The history of your branch has
+now diverged from the main development branch! What to do?
+
+1. Fetch the changes made to the upstream branch on so that you can
+   deal with the changes locally::
+
+       git fetch upstream
+
+   This will update your local branch ``upstream/master`` (and any
+   other ``upstream`` branches) to the match the state of the upstream
+   branch on GitHub. It doesn't do any merging or resolving, it just
+   makes the new changes to ``upstream/master`` visible locally.
+
+2. There are two options for this next step: ``merge`` or ``rebase``
+   with the latter being preferred for this purpose. Assuming you are
+   on your branch ``simulation-enhancements``, you *could* do ``git
+   merge upstream/master``. This would create a merge commit that
+   merges the diverged histories back together. This works, but it can
+   end up creating a confusing commit history, particularly if you
+   repeat this process several times while working on your new
+   branch. Instead, you can do::
+
+       git rebase upstream/master
+
+   This actually *rewrites* your commits to make it look like they
+   started from where ``upstream/master`` now is, rather than where it
+   was when you started work on your ``simulation-enhancements``
+   branch. Your branch will have the exact same contents as if you had
+   used ``git merge``, but the history will be different than it would
+   have been if you had merged. In particular, there is no merge
+   commit created, because the history has been rewritten so that your
+   branch starts where ``upstream/master`` ends, and there is no
+   divergent history to resolve.  This means you can rebase again and
+   again without creating a convoluted history full of merges back and
+   forth between the branches.
+
+
 Trying out new ideas
-====================
+--------------------
 
 git branches are the best way to try out new ideas for code
 modifications or additions. You don't even have to tell anyone about
@@ -112,6 +156,7 @@ commits, you decide that your new branch ``simulation-enhancements``
 sucks, you can just create a new branch starting from upstream/master
 again. If it is a really terrible idea you never want to see again,
 you can delete it by doing ``git branch -D simulation-enhancements``.
+
 
 Obviously this isn't a complete guide to git, but hopefully it
 jump-starts the git learning process.
