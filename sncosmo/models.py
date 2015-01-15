@@ -1212,7 +1212,7 @@ class Model(_ModelBase):
     # ----------------------------------------------------------------------
     # Bandpass-related functions
 
-    def bandoverlap(self, band, z=None, checkeffects=False):
+    def bandoverlap(self, band, z=None):
         """Return True if model dispersion range fully overlaps the band.
 
         Parameters
