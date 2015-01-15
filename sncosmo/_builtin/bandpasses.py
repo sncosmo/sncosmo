@@ -378,7 +378,8 @@ kepler_meta = {
     'description': 'Bandpass for the Kepler spacecraft',
     'dataurl': 'http://keplergo.arc.nasa.gov/CalibrationResponse.shtml'}
 registry.register_loader(Bandpass, 'kepler', load_bandpass,
-                         args=['../data/bandpasses/kepler.dat'], meta=kepler_meta)
+                         args=['../data/bandpasses/kepler.dat'],
+                         meta=kepler_meta)
 del kepler_meta
 
 # --------------------------------------------------------------------------
