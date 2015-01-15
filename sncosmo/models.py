@@ -1222,6 +1222,9 @@ class Model(_ModelBase):
         z : float or list_like, optional
             If given, evaluate the overlap when the model is at the given
             redshifts. If `None`, use the model redshift.
+        checkeffects : bool
+            If True, include wavelength limits of added effects (e.g. dust)
+            when defining the range of wavelengths accessible to the model.
 
         Returns
         -------
@@ -1239,8 +1242,8 @@ class Model(_ModelBase):
         overlap = np.empty((len(band), len(z)), dtype=np.bool)
         for i, b in enumerate(band):
             b = get_bandpass(b)
-            overlap[i, :] = ((b.wave[0] > self._source.minwave() * (1. + z)) &
-                             (b.wave[-1] < self._source.maxwave() * (1. + z)))
+            overlap[i, :] = ((b.wave[0] > self.minwave() * (1. + z)) &
+                             (b.wave[-1] < self.maxwave() * (1. + z)))
         if ndim == (0, 0):
             return overlap[0, 0]
         if ndim[1] == 0:
