@@ -372,6 +372,15 @@ registry.register(
 
 del jwst_miri_meta
 
+kepler_meta = {
+    'filterset': 'kepler',
+    'retrieved': '14 Jan 2015',
+    'description': 'Bandpass for the Kepler spacecraft',
+    'dataurl': 'http://keplergo.arc.nasa.gov/CalibrationResponse.shtml'}
+registry.register_loader(Bandpass, 'kepler', load_bandpass,
+                         args=['../data/bandpasses/kepler.dat'], meta=kepler_meta)
+del kepler_meta
+
 # --------------------------------------------------------------------------
 # Generate docstring
 
