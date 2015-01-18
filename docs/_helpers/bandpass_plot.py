@@ -1,28 +1,40 @@
-"""Helper function for documentation to plot a set of bandpasses."""
+"""Helper function to plot a set of bandpasses in sphinx docs."""
+from __future__ import division
 
 from sncosmo import registry, Bandpass, get_bandpass
-import matplotlib.pyplot as plt
+from matplotlib import rc
+from matplotlib import pyplot as plt
 
 
 def plot_bandpass_set(setname):
     """Plot the given set of bandpasses."""
+
+    rc("font", family="serif")
 
     bandpass_meta = registry.get_loaders_metadata(Bandpass)
 
     fig = plt.figure(figsize=(9, 3))
     ax = plt.axes()
 
+    nbands = 0
     for m in bandpass_meta:
         if m['filterset'] != setname:
             continue
         b = get_bandpass(m['name'])
         ax.plot(b.wave, b.trans, label=m['name'])
+        nbands += 1
 
     ax.set_xlabel("Wavelength ($\\AA$)")
     ax.set_ylabel("Transmission")
-    ax.legend(loc='upper right')
 
+    ncol = 1 + (nbands-1) // 9  # 9 labels per column
+    ax.legend(loc='upper right', frameon=False, fontsize='small',
+              ncol=ncol)
+
+    # Looks like each legend column takes up about 0.125 of the figure.
+    # Make room for the legend.
     xmin, xmax = ax.get_xlim()
-    ax.set_xlim(right=(xmax + 1000.))  # make room for legend
+    xmax += ncol * 0.125 * (xmax - xmin)
+    ax.set_xlim(xmin, xmax)
     plt.tight_layout()
     plt.show()
