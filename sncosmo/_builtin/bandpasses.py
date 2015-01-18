@@ -381,7 +381,7 @@ registry.register_loader(Bandpass, 'f2300c', tophat_bandpass,
 del jwst_miri_meta
 
 # --------------------------------------------------------------------------
-# Kepler filters (idealized tophat functions)
+# Kepler filter
 
 kepler_meta = {
     'filterset': 'kepler',
