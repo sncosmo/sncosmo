@@ -28,6 +28,11 @@
 # Load all of the global Astropy configuration
 from astropy_helpers.sphinx.conf import *
 
+# testing
+import sys
+import os
+sys.path.insert(0, os.path.abspath("_helpers"))
+
 # TODO: remove this once astropy#1841 is merged
 intersphinx_mapping['astropy'] = ('http://docs.astropy.org/en/stable/', None)
 

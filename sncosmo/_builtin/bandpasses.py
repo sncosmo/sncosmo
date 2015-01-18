@@ -377,59 +377,8 @@ kepler_meta = {
     'retrieved': '14 Jan 2015',
     'description': 'Bandpass for the Kepler spacecraft',
     'dataurl': 'http://keplergo.arc.nasa.gov/CalibrationResponse.shtml'}
+
 registry.register_loader(Bandpass, 'kepler', load_bandpass,
                          args=['../data/bandpasses/kepler.dat'],
                          meta=kepler_meta)
 del kepler_meta
-
-# --------------------------------------------------------------------------
-# Generate docstring
-
-lines = [
-    '',
-    '  '.join([11 * '=', 80 * '=', 14 * '=', 8 * '=', 12 * '=']),
-    '{0:11}  {1:80}  {2:14}  {3:8}  {4:12}'
-    .format('Name', 'Description', 'Reference', 'Data URL', 'Retrieved')
-]
-lines.append(lines[1])
-
-urlnums = {}
-allrefs = []
-for m in registry.get_loaders_metadata(Bandpass):
-
-    reflink = ''
-    urllink = ''
-    retrieved = ''
-
-    if 'reference' in m:
-        reflink = '[{0}]_'.format(m['reference'][0])
-        if m['reference'] not in allrefs:
-            allrefs.append(m['reference'])
-
-    if 'dataurl' in m:
-        dataurl = m['dataurl']
-        if dataurl not in urlnums:
-            if len(urlnums) == 0:
-                urlnums[dataurl] = 0
-            else:
-                urlnums[dataurl] = max(urlnums.values()) + 1
-        urllink = '`{0}`_'.format(string.letters[urlnums[dataurl]])
-
-    if 'retrieved' in m:
-        retrieved = m['retrieved']
-
-    lines.append("{0!r:11}  {1:80}  {2:14}  {3:8}  {4:12}".format(
-        m['name'], m['description'], reflink, urllink, retrieved))
-
-lines.extend([lines[1], ''])
-for refkey, ref in allrefs:
-    lines.append('.. [{0}] {1}'.format(refkey, ref))
-lines.append('')
-for url, urlnum in six.iteritems(urlnums):
-    lines.append('.. _`{0}`: {1}'.format(string.letters[urlnum], url))
-lines.append('')
-__doc__ = '\n'.join(lines)
-
-del lines
-del urlnums
-del allrefs

@@ -3,6 +3,4 @@
 List of Built-in Bandpasses
 ---------------------------
 
-.. automodule:: sncosmo._builtin.bandpasses
-
-.. plot:: pyplots/bandpasses.py
+.. automodule:: bandpass_page
