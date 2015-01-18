@@ -337,9 +337,11 @@ def tophat_bandpass(ctr, width, name=None):
     """Create a tophat Bandpass centered at `ctr` with width `width` (both
     in microns. Sampling is fixed at 100 A == 0.01 microns"""
 
-    wmin = ctr - width / 2. - 0.005
-    wmax = ctr + width / 2. + 0.005
-    wave = np.arange(wmin, wmax + 0.00001, 0.01)
+    nintervals = 100  # intervals between wmin and wmax
+    interval = width / nintervals  # interval of each sample
+    wmin = ctr - width / 2. - interval / 2.
+    wmax = ctr + width / 2. + interval / 2.
+    wave = np.linspace(wmin, wmax, nintervals + 1)
     trans = np.ones_like(wave)
     trans[[0, -1]] = 0.
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
