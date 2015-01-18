@@ -7,6 +7,7 @@
 import string
 from os.path import join
 
+import numpy as np
 from astropy.io import ascii
 from astropy import units as u
 from astropy.utils.data import get_pkg_data_filename
@@ -331,6 +332,18 @@ del jwst_nircam_meta
 
 # --------------------------------------------------------------------------
 # JWST MIRI filters (idealized tophat functions)
+
+def tophat_bandpass(ctr, width, name=None):
+    """Create a tophat Bandpass centered at `ctr` with width `width` (both
+    in microns. Sampling is fixed at 100 A == 0.01 microns"""
+
+    wmin = ctr - width / 2. - 0.005
+    wmax = ctr + width / 2. + 0.005
+    wave = np.arange(wmin, wmax + 0.00001, 0.01)
+    trans = np.ones_like(wave)
+    trans[[0, -1]] = 0.
+    return Bandpass(wave, trans, wave_unit=u.micron, name=name)
+
 jwst_miri_meta = {'filterset': 'jwst-miri',
                   'dataurl': 'http://www.stsci.edu/jwst/instruments/miri/'
                              'instrumentdesign/filters',
@@ -338,39 +351,37 @@ jwst_miri_meta = {'filterset': 'jwst-miri',
                   'description': 'James Webb Space Telescope MIRI '
                                  'filters (idealized tophats)'}
 
-import numpy as np
-wave = np.arange(1.0, 40.0, 0.05)
-tophat = lambda ctr, width: np.where(
-    (ctr - width / 2. < wave) & (wave < ctr + width / 2.), 1, 0)
-
-registry.register(
-    Bandpass(wave, tophat(5.6	, 1.2	), wave_unit=u.micron, name='f560w'))
-registry.register(
-    Bandpass(wave, tophat(7.7	, 2.2	), wave_unit=u.micron, name='f770w'))
-registry.register(
-    Bandpass(wave, tophat(10	, 2	), wave_unit=u.micron, name='f1000w'))
-registry.register(
-    Bandpass(wave, tophat(11.3	, 0.7	), wave_unit=u.micron, name='f1130w'))
-registry.register(
-    Bandpass(wave, tophat(12.8	, 2.4	), wave_unit=u.micron, name='f1280w'))
-registry.register(
-    Bandpass(wave, tophat(15	, 3	), wave_unit=u.micron, name='f1500w'))
-registry.register(
-    Bandpass(wave, tophat(18	, 3	), wave_unit=u.micron, name='f1800w'))
-registry.register(
-    Bandpass(wave, tophat(21	, 5	), wave_unit=u.micron, name='f2100w'))
-registry.register(
-    Bandpass(wave, tophat(25.5	, 4	), wave_unit=u.micron, name='f2550w'))
-registry.register(
-    Bandpass(wave, tophat(10.65	, 0.53	), wave_unit=u.micron, name='f1065c'))
-registry.register(
-    Bandpass(wave, tophat(11.4	, 0.57	), wave_unit=u.micron, name='f1140c'))
-registry.register(
-    Bandpass(wave, tophat(15.5	, 0.78	), wave_unit=u.micron, name='f1550c'))
-registry.register(
-    Bandpass(wave, tophat(23	, 4.6	), wave_unit=u.micron, name='f2300c'))
+registry.register_loader(Bandpass, 'f560w', tophat_bandpass, args=[5.6, 1.2],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f770w', tophat_bandpass, args=[7.7, 2.2],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1000w', tophat_bandpass, args=[10., 2.],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1130w', tophat_bandpass, args=[11.3, 0.7],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1280w', tophat_bandpass, args=[12.8, 2.4],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1500w', tophat_bandpass, args=[15., 3.],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1800w', tophat_bandpass, args=[18., 3.],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f2100w', tophat_bandpass, args=[21., 5.],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f2550w', tophat_bandpass, args=[25.5, 4.],
+                         meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1065c', tophat_bandpass,
+                         args=[10.65, 0.53], meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1140c', tophat_bandpass,
+                         args=[11.4, 0.57], meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f1550c', tophat_bandpass,
+                         args=[15.5, 0.78], meta=jwst_miri_meta)
+registry.register_loader(Bandpass, 'f2300c', tophat_bandpass,
+                         args=[23., 4.6], meta=jwst_miri_meta)
 
 del jwst_miri_meta
+
+# --------------------------------------------------------------------------
+# Kepler filters (idealized tophat functions)
 
 kepler_meta = {
     'filterset': 'kepler',
