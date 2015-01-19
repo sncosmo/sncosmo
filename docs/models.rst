@@ -182,12 +182,11 @@ Adding Milky Way dust
 
 Dust in the Milky Way will affect the shape of an observed supernova
 spectrum.  It is important to take this into account in our model when
-fitting the model to observed data. A typical pattern is to first get
-an estimate of the amount of dust at the location of the supernova
-from a dust map, and then to use the dust amount and a dust extinction
-law to calculate the dust transmission as a function of
-wavelength. The following example illustrates how to do this. First,
-create a model that includes Milky Way dust as an effect::
+fitting the model to observed data.  As with host galaxy dust treated
+above, we can model Milky Way dust as a "propagation effect". The only
+difference is that Milky Way dust is in the observer frame rather than the
+supernova rest frame. Here, we create a model with dust in *both* the
+SN rest frame and the observer frame::
 
     >>> dust = sncosmo.CCM89Dust()
     >>> model = sncosmo.Model(source='hsiao',
@@ -195,11 +194,26 @@ create a model that includes Milky Way dust as an effect::
     ...                       effect_names=['host', 'mw'],
     ...                       effect_frames=['rest', 'obs'])
 
-Note that we've added dust to the model in both the SN rest frame
-(``'host'``) as before, but now *also* in the observer frame (``'obs'``). We've
-named the observer-frame dust ``'mw'`` for "Milky Way".
+We can see that the model includes four extra parameters (two describing the
+host galaxy dust and two describing the milky way dust)::
 
-Next, load the Schlegel, Finkbeiner and Davis (1998) dust map:
+    >>> model.param_names
+    ['z', 't0', 'amplitude', 'hostebv', 'hostr_v', 'mwebv', 'mwr_v']
+    >>> model.parameters  # default values
+    array([ 0. ,  0. ,  1. ,  0. ,  3.1,  0. ,  3.1])
+
+The host galaxy dust parameters are prefixed with ``'host'`` and the
+Milky Way dust parameters are prefixed with ``'mw'``. These are just
+the names we supplied when constructing the model. The effect names
+have no significance beyond this.  The effect frames, on the other
+hand, *are* significant. The only allowed values are ``'rest'`` (rest
+frame) and ``'obs'`` (observer frame).
+
+A typical use pattern is to get an estimate of the amount of Milky Way
+dust at the location of the supernova from a dust map, and then to fix
+that amount of dust in the model.  The following example illustrates
+how to do this using the Schlegel, Finkbeiner and Davis (1998) dust map.
+First, load the dust map (do this only once)::
 
     >>> dustmap = sncosmo.SFD98Map("/path/to/dust/maps")
 
