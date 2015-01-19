@@ -10,3 +10,4 @@ Example files for I/O tests
 
 - `SNLS3-04D3gx` : Example data from SNLS3-04D3gx, distributed with
   SALT2 data.
+

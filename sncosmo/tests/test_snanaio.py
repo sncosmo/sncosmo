@@ -16,3 +16,22 @@ def test_read_snana_ascii():
 
     assert len(data) == 4  # 4 rows.
     assert len(data.colnames) == 13  # 13 columns.
+
+
+def test_read_snana_fits():
+    fname1 = join(dirname(__file__), "data", "snana_fits_example_head.fits")
+    fname2 = join(dirname(__file__), "data", "snana_fits_example_phot.fits")
+    sne = sncosmo.read_snana_fits(fname1, fname2)
+    assert len(sne) == 2
+
+
+def test_read_snana_simlib():
+    fname = join(dirname(__file__), "data", "snana_simlib_example.dat")
+    meta, obs_sets = sncosmo.read_snana_simlib(fname)
+    assert len(obs_sets) == 2
+
+
+def test_read_snana_simlib_noend():
+    fname = join(dirname(__file__), "data", "snana_simlib_example_noend.dat")
+    meta, obs_sets = sncosmo.read_snana_simlib(fname)
+    assert len(obs_sets) == 2

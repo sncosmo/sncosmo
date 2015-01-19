@@ -439,7 +439,8 @@ def read_snana_simlib(fname):
             if len(words) == 0:
                 continue
 
-            # are we currently reading an obsset?
+            # If we're not currently reading an obs set, check if this line
+            # is the start of one. If it isn't, update the global metadata.
             if not reading_obsset:
                 if line[0:6] == 'LIBID:':
                     reading_obsset = True
@@ -448,11 +449,23 @@ def read_snana_simlib(fname):
                 else:
                     meta.update(_parse_meta_from_line(line))
 
+            # If we are currently reading an obsset...
             else:
+                # Check for the explicit end of the obs set.
                 if line[0:10] == 'END_LIBID:':
                     reading_obsset = False
                     observation_sets[current_meta['LIBID']] = \
                         Table(current_data, meta=current_meta)
+
+                # Sometimes there's not an explicit end, but the next one
+                # starts anyway.
+                elif line[0:6] == 'LIBID:':
+                    observation_sets[current_meta['LIBID']] = \
+                        Table(current_data, meta=current_meta)
+                    current_meta = _parse_meta_from_line(line)
+                    current_data = odict([(key, []) for key in COLNAMES])
+
+                # Otherwise, read the line into the current obs set.
                 elif line[0:2] in ['S:', 'T:']:
                     words = line.split()
                     for colname, val in [('SEARCH', words[0] == 'S:'),
@@ -471,5 +484,11 @@ def read_snana_simlib(fname):
                         current_data[colname].append(val)
                 else:
                     current_meta.update(_parse_meta_from_line(line))
+
+    # At the end, check for the case where there's not an explicit end
+    # to the last obs set:
+    if reading_obsset:
+        observation_sets[current_meta['LIBID']] = \
+            Table(current_data, meta=current_meta)
 
     return meta, observation_sets
