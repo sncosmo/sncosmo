@@ -91,21 +91,38 @@ common to all `~sncosmo.Model` instances:
 * ``z`` is the redshift of the source.
 * ``t0`` is the observer-frame time corresponding to the source's phase=0.
 
-Note that in some sources phase=0 might be at explosion while others might be at max: the definition of phase is arbitrary. However, observed time is always related to phase via ``time = t0 + phase * (1 + z)``
+Note that in some sources phase=0 might be at explosion while others
+might be at max: the definition of phase is arbitrary. However,
+observed time is always related to phase via ``time = t0 + phase *
+(1 + z)``
 
 The next, ``amplitude``, is specific to the particular type of
 source. In this case, the source is a simple spectral timeseries that
 can only be scaled up and down. Other sources could have other
 parameters that affect the shape of the spectrum at each phase.
 
-For a given model, you can set the `amplitude` (or `x0` in case you are using a SALT model) according to a desired absolute magnitude in a specific band by using the method `model.set_source_peakabsmag()`. Note that the redshift `z` affects your result. Therefore, you could specify:
+For a given model, you can set the `amplitude` (or `x0` in case you
+are using a SALT model) according to a desired absolute magnitude in a
+specific band by using the method
+`model.set_source_peakabsmag()`. Note that the redshift `z` affects
+your result. Therefore, you could specify:
 
      >>> model.set(z=1.6)
      >>> model.set_source_peakabsmag(-19.0, 'bessellb', 'ab')
 
-Specifically, for SALT models, it is recommended to call `model.set_source_peakabsmag()` after setting the other model parameters, such as `x1` and `c`. It probably won't make a difference if you are using `'bessellb'`, but if you were setting the absolute magnitude in another band, it would make a small difference.
+Specifically, for SALT models, it is recommended to call
+`model.set_source_peakabsmag()` after setting the other model
+parameters, such as `x1` and `c`. It probably won't make a difference
+if you are using `'bessellb'`, but if you were setting the absolute
+magnitude in another band, it would make a small difference.
 
-The reason for this peculiarity is that "absolute magnitude" is not a parameter in the SALT2 model, per se. The parameters are `x0`, `x1`, `c`, `t0` and `z`. `x0` is a simple multiplicative scaling factor on the whole spectral timeseries. The set_source_peakabsmag() method is a convenience for setting `x0` such that the integrated flux through a given bandpass is as desired. Since the integrated flux depends on the spectral shape, it will depend on `x1` and `c`.
+The reason for this peculiarity is that "absolute magnitude" is not a
+parameter in the SALT2 model, per se. The parameters are `x0`, `x1`,
+`c`, `t0` and `z`. `x0` is a simple multiplicative scaling factor on
+the whole spectral timeseries. The set_source_peakabsmag() method is a
+convenience for setting `x0` such that the integrated flux through a
+given bandpass is as desired. Since the integrated flux depends on the
+spectral shape, it will depend on `x1` and `c`.
 
 Creating a model with a source and effect(s)
 ============================================
@@ -158,6 +175,57 @@ representation of its components and current parameter values:
       hostr_v   = 3.1000000000000001
 
 Also, ``str(model)`` will return this string rather than printing it.
+
+
+Adding Milky Way dust
+=====================
+
+Dust in the Milky Way will affect the shape of an observed supernova
+spectrum.  It is important to take this into account in our model when
+fitting the model to observed data. A typical pattern is to first get
+an estimate of the amount of dust at the location of the supernova
+from a dust map, and then to use the dust amount and a dust extinction
+law to calculate the dust transmission as a function of
+wavelength. The following example illustrates how to do this. First,
+create a model that includes Milky Way dust as an effect::
+
+    >>> dust = sncosmo.CCM89Dust()
+    >>> model = sncosmo.Model(source='hsiao',
+    ...                       effects=[dust, dust],
+    ...                       effect_names=['host', 'mw'],
+    ...                       effect_frames=['rest', 'obs'])
+
+Note that we've added dust to the model in both the SN rest frame
+(``'host'``) as before, but now *also* in the observer frame (``'obs'``). We've
+named the observer-frame dust ``'mw'`` for "Milky Way".
+
+Next, load the Schlegel, Finkbeiner and Davis (1998) dust map:
+
+    >>> dustmap = sncosmo.SFD98Map("/path/to/dust/maps")
+
+.. note::
+
+   This supposes that you've downloaded the full resolution E(B-V)
+   maps from `this website
+   <http://www.astro.princeton.edu/~schlegel/dust/data/data.html>`_
+   and placed them in the given directory
+   ``"/path/to/dust/maps"``. The directory can also be set in the
+   sncosmo configuration file, in which case you can just do
+   ``sncosmo.SFD98Map()``. See `~sncosmo.SFD98Map` for more details.
+
+Now, for each SN you wish to fit, get the amount of dust at the SN location
+and set the ``mwebv`` model parameter appropriately. For example, if the SN is
+located at RA=42.8 degrees, Dec=0 degrees::
+
+  >>> ebv = dustmap.get_ebv((42.8, 0.))
+  >>> model.set(mwebv=ebv)
+  >>> # proceed with fitting the other model parameters to the data.
+
+Note that we wish to *fix* the ``mwebv`` model parameter rather than
+fitting it to the data like the other parameters: We're supposing that
+this value is perfectly known from the dust map. Therefore, when using
+a function such as `~sncosmo.fit_lc` to fit the parameters, be sure *not* to
+include ``'mwebv'`` in the list of parameters to vary.
 
 Model spectrum
 ==============
@@ -278,7 +346,7 @@ Creating New Source Classes
 
 A "source" is something that specifies the spectral
 timeseries as a function of an arbitrary number of parameters. For
-example, the SALT2 model has two parameters (``x0``, ``x1`` and ``c``) that
+example, the SALT2 model has three parameters (``x0``, ``x1`` and ``c``) that
 determine a unique spectrum as a function of phase. New models can be
 easily implemented by deriving from the abstract base class
 `sncosmo.Source` and inheriting most of the functionality described here.
