@@ -194,7 +194,7 @@ def guess_t0_and_amplitude(data, model, minsnr):
     return t0, amplitude
 
 
-def fit_lc(data, model, param_names, bounds=None, method='minuit',
+def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
            minsnr=5., modelcov=False, verbose=False, maxcall=10000,
            **kwargs):
@@ -209,7 +209,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         Table of photometric data. Must include certain column names.
     model : `~sncosmo.Model`
         The model to fit.
-    param_names : list
+    vparam_names : list
         Model parameters to vary in the fit.
     bounds : `dict`, optional
         Bounded range for each parameter. Keys should be parameter
@@ -244,21 +244,21 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     res : Result
         The optimization result represented as a ``Result`` object, which is
         a `dict` subclass with attribute access. Therefore, ``res.keys()``
-        provides a list of the attributes:
+        provides a list of the attributes. Attributes are:
 
         - ``success``: boolean describing whether fit succeeded.
         - ``message``: string with more information about exit status.
         - ``ncall``: number of function evaluations.
         - ``chisq``: minimum chi^2 value.
-        - ``ndof``: number of degrees of freedom (len(data) - len(param_names))
+        - ``ndof``: number of degrees of freedom (len(data) - len(vparam_names))
         - ``param_names``: same as ``model.param_names``.
-        - ``parameters``: 1-d `~numpy.ndarray` of parameter values
-          (including fixed parameters), in order of ``param_names``.
-        - ``cov_names``: list of varied parameter names, in same order as
-          ``param_names``.
+        - ``parameters``: 1-d `~numpy.ndarray` of best-fit values
+          (including fixed parameters) corresponding to ``param_names``.
+        - ``vparam_names``: list of varied parameter names.
         - ``covariance``: 2-d `~numpy.ndarray` of parameter covariance;
-          indicies correspond to order of ``cov_names``.
-        - ``errors``: dictionary of parameter uncertainties.
+          indicies correspond to order of ``vparam_names``.
+        - ``errors``: OrderedDict of varied parameter uncertainties.
+          Corresponds to square root of diagonal entries in covariance matrix.
 
     fitmodel : `~sncosmo.Model`
         A copy of the model with parameters set to best-fit values.
@@ -312,12 +312,15 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
 
+    # Order vparam_names the same way it is ordered in the model:
+    vparam_names = [s for s in model.param_names if s in vparam_names]
+
     # initialize bounds
     if bounds is None:
         bounds = {}
 
     # Check that 'z' is bounded (if it is going to be fit).
-    if 'z' in param_names:
+    if 'z' in vparam_names:
         if 'z' not in bounds or None in bounds['z']:
             raise ValueError('z must be bounded if fit.')
         if guess_z:
@@ -332,16 +335,16 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
     bands = set(data['band'].tolist())
 
     # Find t0 bounds to use, if not explicitly given
-    if 't0' in param_names and 't0' not in bounds:
+    if 't0' in vparam_names and 't0' not in bounds:
         bounds['t0'] = t0_bounds(data, model)
 
     # Note that in the parameter guessing below, we assume that the source
     # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
 
     # Turn off guessing if we're not fitting the parameter.
-    if model.param_names[2] not in param_names:
+    if model.param_names[2] not in vparam_names:
         guess_amplitude = False
-    if 't0' not in param_names:
+    if 't0' not in vparam_names:
         guess_t0 = False
 
     # Make guesses for t0 and amplitude.
@@ -354,7 +357,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             model.set(t0=t0)
 
     # count degrees of freedom
-    ndof = len(data) - len(param_names)
+    ndof = len(data) - len(vparam_names)
 
     if method == 'minuit':
         try:
@@ -375,7 +378,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             kwargs[name] = model.get(name)  # Starting point.
 
             # Fix parameters not being varied in the fit.
-            if name not in param_names:
+            if name not in vparam_names:
                 kwargs['fix_' + name] = True
                 kwargs['error_' + name] = 0.
                 continue
@@ -398,7 +401,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 
         if verbose:
             print("Initial parameters:")
-            for name in param_names:
+            for name in vparam_names:
                 print(name, kwargs[name], 'step=', kwargs['error_' + name],
                       end=" ")
                 if 'limit_' + name in kwargs:
@@ -431,24 +434,23 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
             message.append('Minimization exited successfully.')
         # iminuit: m.np_matrix() doesn't work
 
-        cov_names = [n for n in model.param_names
-                     if n in param_names]
+        # numpy array of best-fit values (including fixed parameters).
+        parameters = np.array([m.values[name] for name in model.param_names])
+        model.parameters = parameters  # set model parameters to best fit.
 
+        # Covariance matrix (only varied parameters) as numpy array.
         if m.covariance is None:
             covariance = None
         else:
-            covariance = np.array([[m.covariance[(n1, n2)] for n1 in cov_names]
-                                   for n2 in cov_names])
+            covariance = np.array([
+                [m.covariance[(n1, n2)] for n1 in vparam_names]
+                for n2 in vparam_names])
 
+        # OrderedDict of errors
         if m.errors is None:
             errors = None
         else:
-            errors = odict([(key, m.errors[key]) for key in cov_names])
-
-        # adopt the parameter values that minimize the chi2 into the model
-        for param in param_names:
-            ipar = param_names.index(param)
-            model.parameters[ipar] = m.values[param]
+            errors = odict([(name, m.errors[name]) for name in vparam_names])
 
         # Compile results
         res = Result(success=d.is_valid,
@@ -457,10 +459,13 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
                      chisq=d.fval,
                      ndof=ndof,
                      param_names=model.param_names,
-                     parameters=model.parameters.copy(),
-                     cov_names=cov_names,
+                     parameters=parameters,
+                     vparam_names=vparam_names,
                      covariance=covariance,
-                     errors=errors)
+                     errors=errors,
+                     cov_names=vparam_names)
+
+        # TODO remove cov_names in v0.6
 
     else:
         raise ValueError("unknown method {0:r}".format(method))
@@ -472,6 +477,7 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
         if kwargs["flatten"]:
             res = flatten_result(res)
     return res, model
+
 
 # ---------------------------------------------------------------------
 # This is the code for adding tied parameters to results of nest_lc
@@ -508,12 +514,15 @@ def fit_lc(data, model, param_names, bounds=None, method='minuit',
 #    return res
 
 
-def _nest_lc(data, model, param_names, modelcov,
+def _nest_lc(data, model, vparam_names, modelcov,
              bounds=None, priors=None, ppfs=None, tied=None,
              nobj=100, maxiter=10000, maxcall=1000000, verbose=False):
     """Assumes that data has already been standardized.
 
     Run `data = standardize_data(data)`"""
+
+    # Order vparam_names the same way it is ordered in the model:
+    vparam_names = [s for s in model.param_names if s in vparam_names]
 
     if ppfs is None:
         ppfs = {}
@@ -539,10 +548,10 @@ def _nest_lc(data, model, param_names, modelcov,
     iparam_names = ppfs.keys()
     ppflist = [ppfs[n] for n in iparam_names]
     nipar = len(iparam_names)  # length of u
-    npar = len(param_names)  # length of v
+    npar = len(vparam_names)  # length of v
 
     # Check that all param_names either have a direct prior or are tied.
-    for name in param_names:
+    for name in vparam_names:
         if name in iparam_names:
             continue
         if name in tied:
@@ -556,15 +565,15 @@ def _nest_lc(data, model, param_names, modelcov,
             d[iparam_names[i]] = ppflist[i](u[i])
         v = np.empty(npar, dtype=np.float)
         for i in range(npar):
-            key = param_names[i]
+            key = vparam_names[i]
             try:
                 v[i] = d[key]
             except KeyError:
                 v[i] = tied[key](d)
         return v
 
-    # Indicies of the model parameters in param_names
-    idx = np.array([model.param_names.index(name) for name in param_names])
+    # Indicies of the model parameters in vparam_names
+    idx = np.array([model.param_names.index(name) for name in vparam_names])
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
@@ -572,12 +581,12 @@ def _nest_lc(data, model, param_names, modelcov,
 
     res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
                     maxiter=maxiter, maxcall=maxcall, verbose=verbose)
-    res.param_names = param_names
-    res.ndof = len(data) - len(param_names)
+    res.vparam_names = vparam_names
+    res.ndof = len(data) - len(vparam_names)
     return res
 
 
-def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
+def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
             minsnr=5., priors=None, ppfs=None, nobj=100, maxiter=10000,
             maxcall=1000000, modelcov=False, verbose=False):
     """Run nested sampling algorithm to estimate model parameters and evidence.
@@ -588,7 +597,7 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         Table of photometric data. Must include certain column names.
     model : `~sncosmo.Model`
         The model to fit.
-    param_names : list
+    vparam_names : list
         Model parameters to vary in the fit.
     bounds : `dict`
         Bounded range for each parameter. Bounds must be given for
@@ -638,33 +647,32 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         * ``logz``: natural log of the Bayesian evidence Z.
         * ``logzerr``: estimate of uncertainty in logz (due to finite sampling)
         * ``h``: Bayesian information.
-        * ``param_names``: list of parameter names varied.
+        * ``vparam_names``: list of parameter names varied.
         * ``samples``: 2-d `~numpy.ndarray`, shape is (nsamples, nparameters).
           Each row is the parameter values for a single sample. For example,
           ``samples[0, :]`` is the parameter values for the first sample.
-        * ``logprior``: 1-d `~numpy.ndarray`, length=nsamples;
+        * ``logprior``: 1-d `~numpy.ndarray` (length=nsamples);
           log(prior volume) for each sample.
-        * ``logl``: 1-d `~numpy.ndarray`, length=nsamples; log(likelihood)
+        * ``logl``: 1-d `~numpy.ndarray` (length=nsamples); log(likelihood)
           for each sample.
-        * ``weights``: 1-d `~numpy.ndarray`, length=nsamples;
+        * ``weights``: 1-d `~numpy.ndarray` (length=nsamples);
           Weight corresponding to each sample. The weight is proportional to
           the prior * likelihood for the sample.
-        * ``ndof``: Number of degrees of freedom.
+        * ``parameters``: 1-d `~numpy.ndarray` of weighted-mean parameter
+          values from samples (including fixed parameters). Order corresponds
+          to ``model.param_names``.
+        * ``covariance``: 2-d `~numpy.ndarray` of parameter covariance;
+          indicies correspond to order of ``vparam_names``. Calculated from
+          ``samples`` and ``weights``.
+        * ``errors``: OrderedDict of varied parameter uncertainties.
+          Corresponds to square root of diagonal entries in covariance matrix.
+        * ``ndof``: Number of degrees of freedom (len(data) -
+          len(vparam_names)).
         * ``bounds``: Dictionary of bounds on varied parameters (including
           any automatically determined bounds).
 
-        The following additional attributes are determined directly from the
-        ``samples`` and ``weights`` arrays:
-
-        * ``param_dict``: Dictionary of weighted average of sample parameter
-          values (includes fixed parameters).
-        * ``covariance``: covariance matrix from sample parameter values
-          (does not include fixed parameters).
-        * ``errors``: Dictionary of weighted standard deviation of sample
-          parameter values (does not include fixed parameters).
-
     estimated_model : `~sncosmo.Model`
-        Copy of model with parameters set to the values in ``res.param_dict``.
+        A copy of the model with parameters set to the values in ``res.parameters``.
 
     Notes
     -----
@@ -698,22 +706,26 @@ def nest_lc(data, model, param_names, bounds, guess_amplitude_bound=False,
         bounds[model.param_names[2]] = (0., 10. * amplitude)
 
     # Find t0 bounds to use, if not explicitly given
-    if 't0' in param_names and 't0' not in bounds:
+    if 't0' in vparam_names and 't0' not in bounds:
         bounds['t0'] = t0_bounds(data, model)
 
-    res = _nest_lc(data, model, param_names, modelcov=modelcov, bounds=bounds,
+    res = _nest_lc(data, model, vparam_names, modelcov=modelcov, bounds=bounds,
                    priors=priors, ppfs=ppfs, nobj=nobj, maxiter=maxiter,
                    maxcall=maxcall, verbose=verbose)
 
     res.bounds = bounds
 
     # calculate weighted average and weighted covariance matrix of samples
-    parameters, cov = weightedcov(res['samples'], res['weights'])
+    vparameters, cov = weightedcov(res['samples'], res['weights'])
 
-    model.set(**dict(zip(param_names, parameters)))
-    res.param_dict = dict(zip(model.param_names, model.parameters))
+    model.set(**dict(zip(vparam_names, vparameters)))
+    res.parameters = model.parameters.copy()
     res.covariance = cov
     res.errors = np.sqrt(np.diagonal(cov))
+
+    # backwards compatibility. TODO remove these in a future release.
+    res.param_names = res.vparam_names
+    res.param_dict = odict(zip(model.param_names, model.parameters))
 
     return res, model
 
