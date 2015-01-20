@@ -1,18 +1,38 @@
 0.5.0 (unreleased)
 ------------------
 
-- update `get_ebv_from_map()` to work with new SkyCoord class in
+**Enhancements:**
+
+- SALT2 model covariance available via `Model.bandfluxcov()` method and
+  `modelcov=True` keyword argument passed to `fit_lc`.
+- New simulation function, `zdist`, generates a distribution of redshifts
+  given a volumetric rate function and cosmology.
+- New simulation function, `realize_lcs`, simulates light curve data given a
+  model, parameters, and observations.
+- Add `tighten_ylim` keyword argument to `plot_lc()`.
+- Add `chisq()` function and use internally in `fit_lc()`.
+- Add `SFD98Map` class for dealing with SFD (1998) dust maps persistently so
+  that the underlying FITS files are opened only once. 
+- Update `get_ebv_from_map()` to work with new SkyCoord class in
   `astropy.coordinates` available in astropy v0.3 onward. Previously, this
   function did not work with astropy v0.4.x (where older coordinates classes
   had been removed).
-- update to new configuration system available in astropy v0.4 onward.
+- Update to new configuration system available in astropy v0.4 onward.
   This makes this release incompatible with astropy versions less than
   0.4.
-- Add `tighten_ylim` keyword argument to `plot_lc()`.
-- Deprecate `flatten` keyword argument in `fit_lc()` in favor of explicit
-  use of `flatten_result()` function.
-- Add `Model.bandfluxcov()` function.
-- Add `chisq()` function and use internally in `fit_lc()`.
+- Now compatible with Python 3.
+- Increased test coverage.
+- Numerous minor bugfixes.
+
+**API changes:**
+
+- [DEPRECATION] In result of `fit_lc`, `res.cov_names` changed to
+  `res.vparam_names`.  In result of `nest_lc`, `res.param_names` and
+  `res.param_dict` deprecated. This is for compatibility between
+  results of `fit_lc` and `nest_lc`. [#30]
+
+- [DEPRECATION] Deprecate `flatten` keyword argument in `fit_lc()` in
+  favor of explicit use of `flatten_result()` function.
 
 
 0.4.2 (2014-04-08)
