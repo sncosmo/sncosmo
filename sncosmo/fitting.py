@@ -250,7 +250,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         - ``message``: string with more information about exit status.
         - ``ncall``: number of function evaluations.
         - ``chisq``: minimum chi^2 value.
-        - ``ndof``: number of degrees of freedom (len(data) - len(vparam_names))
+        - ``ndof``: number of degrees of freedom
+          (len(data) - len(vparam_names)).
         - ``param_names``: same as ``model.param_names``.
         - ``parameters``: 1-d `~numpy.ndarray` of best-fit values
           (including fixed parameters) corresponding to ``param_names``.
@@ -672,7 +673,8 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
           any automatically determined bounds).
 
     estimated_model : `~sncosmo.Model`
-        A copy of the model with parameters set to the values in ``res.parameters``.
+        A copy of the model with parameters set to the values in
+        ``res.parameters``.
 
     Notes
     -----
