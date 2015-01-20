@@ -332,6 +332,86 @@ registry.register_loader(Source, '2011fe', load_2011fe, version='1.0',
                                'url': 'http://snfactory.lbl.gov/snf/data',
                                'reference': p13ref})
 
+
+# --------------------------------------------------------------------------
+# SNANA CC SN models
+
+baseurl = 'http://sncosmo.github.io/data/models/snana/'
+meta = {'url': 'http://das.sdss2.org/ge/sample/sdsssn/SNANA-PUBLIC/',
+        'type': 'Ic',
+        'subclass': '`~sncosmo.TimeSeriesSource`',
+        'reference': ('SNANA', 'Kessler et al. 2009 '
+                      '<http://adsabs.harvard.edu/abs/2009PASP..121.1028K>'),
+        'note': "extracted from SNANA's SNDATA_ROOT on 5 August 2014."}
+
+for modelname, sedfile, type in [
+    ['Ic.01', 'CSP-2004fe.SED',  'Ic'],
+    ['Ic.02', 'CSP-2004gq.SED',  'Ic'],
+    ['Ic.03', 'SDSS-004012.SED', 'Ic'],
+    ['Ic.04', 'SDSS-013195.SED', 'Ic'],  # PSNID
+    ['Ic.05', 'SDSS-014475.SED', 'Ic'],
+    ['Ic.06', 'SDSS-015475.SED', 'Ic'],
+    ['Ic.07', 'SDSS-017548.SED', 'Ic'],
+    ['Ic.08', 'SNLS-04D1la.SED', 'Ic'],
+    ['Ic.09', 'SNLS-04D4jv.SED', 'Ic'],
+    ['Ib.01', 'CSP-2004gv.SED',  'Ib'],
+    ['Ib.02', 'CSP-2006ep.SED',  'Ib'],
+    ['Ib.03', 'CSP-2007Y.SED',   'Ib'],
+    ['Ib.04', 'SDSS-000020.SED', 'Ib'],
+    ['Ib.05', 'SDSS-002744.SED', 'Ib'],  # PSNID
+    ['Ib.06', 'SDSS-014492.SED', 'Ib'],  # PSNID
+    ['Ib.07', 'SDSS-019323.SED', 'Ib'],
+    ['IIP.01', 'SDSS-000018.SED', 'IIP'],  # PSNID
+    ['IIP.02', 'SDSS-003818.SED', 'IIP'],  # PSNID
+    ['IIP.03', 'SDSS-013376.SED', 'IIP'],
+    ['IIP.04', 'SDSS-014450.SED', 'IIP'],
+    ['IIP.05', 'SDSS-014599.SED', 'IIP'],  # PSNID
+    ['IIP.06', 'SDSS-015031.SED', 'IIP'],
+    ['IIP.07', 'SDSS-015320.SED', 'IIP'],
+    ['IIP.08', 'SDSS-015339.SED', 'IIP'],
+    ['IIP.09', 'SDSS-017564.SED', 'IIP'],
+    ['IIP.10', 'SDSS-017862.SED', 'IIP'],
+    ['IIP.11', 'SDSS-018109.SED', 'IIP'],
+    ['IIP.12', 'SDSS-018297.SED', 'IIP'],
+    ['IIP.13', 'SDSS-018408.SED', 'IIP'],
+    ['IIP.14', 'SDSS-018441.SED', 'IIP'],
+    ['IIP.15', 'SDSS-018457.SED', 'IIP'],
+    ['IIP.16', 'SDSS-018590.SED', 'IIP'],
+    ['IIP.17', 'SDSS-018596.SED', 'IIP'],
+    ['IIP.18', 'SDSS-018700.SED', 'IIP'],
+    ['IIP.19', 'SDSS-018713.SED', 'IIP'],
+    ['IIP.20', 'SDSS-018734.SED', 'IIP'],
+    ['IIP.21', 'SDSS-018793.SED', 'IIP'],
+    ['IIP.22', 'SDSS-018834.SED', 'IIP'],
+    ['IIP.23', 'SDSS-018892.SED', 'IIP'],
+    ['IIP.24', 'SDSS-020038.SED', 'IIP'],
+    ['IIn.01', 'SDSS-012842.SED', 'IIN'],
+    ['IIn.02', 'SDSS-013449.SED', 'IIN'],
+]:
+
+    meta.update({'snid': sedfile.split('.')[0], 'type': type})
+    registry.register_loader(Source, modelname, load_timeseries_ascii,
+                             args=[baseurl + sedfile], version='1.0',
+                             meta=meta)
+
+# --------------------------------------------------------------------------
+# Pop III CC SN models from D.Whalen et al. 2013.
+
+baseurl = 'http://sncosmo.github.io/data/models/whalen/'
+meta = {'snid': 'z15B', 'type': 'PopIII',
+        'subclass': '`~sncosmo.TimeSeriesSource`',
+        'reference': ('Whalen13',
+                      'Whalen et al. 2013 '
+                      '<http://adsabs.harvard.edu/abs/2013ApJ...768...95W>'),
+        'note': "private communication (D.Whalen, May 2014)."}
+
+for mod in ['z15B', 'z15D', 'z15G', 'z25B', 'z25D', 'z25G', 'z40B', 'z40G']:
+    meta.update({'snid': mod})
+    datfile = 'popIII-%s.sed.restframe10pc.dat' % mod
+    registry.register_loader(Source, mod, load_timeseries_ascii,
+                             args=[baseurl + datfile], version='1.0',
+                             meta=meta)
+
 # --------------------------------------------------------------------------
 # Generate docstring
 
