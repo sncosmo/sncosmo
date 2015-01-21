@@ -34,8 +34,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     Parameters
     ----------
     data : astropy `~astropy.table.Table` or similar
-        Table of photometric data points, which must have columns 'time',
-        'band', 'flux', fluxerr', 'zp' and 'zpsys'
+        Table of photometric data points, which must have certain columns:
+        'time', 'band', 'flux', fluxerr', 'zp' and 'zpsys' or their aliases as
+        explained in :doc:`photdata`
     model : `~sncosmo.Model` or list thereof, optional
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
