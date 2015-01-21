@@ -2,4 +2,4 @@
 List of Built-in Magnitude Systems
 ----------------------------------
 
-.. automodule:: sncosmo._builtin.magsystems
+.. automodule:: magsystem_page

@@ -155,6 +155,5 @@ if not _ASTROPY_SETUP_:
     from .extmap import *
     from .simulation import *
     from . import registry
-    from . import _builtin
-
+    from .builtins import *
     from .plotting import *
