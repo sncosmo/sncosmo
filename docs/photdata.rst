@@ -26,7 +26,9 @@ looks like, you can load an example with the following function::
     ... etc ...
 
 Additionally, metadata about the photometric data can be stored with
-the table: ``data.meta`` is an `OrderedDict` of the metadata.
+the table: ``data.meta`` is an `OrderedDict` of the metadata. Additional
+columns in the table can exist, but the above columns (with aliases for
+the names defined in the next section) are necessary.
 
 
 Column names and units
