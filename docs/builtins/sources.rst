@@ -3,4 +3,4 @@
 List of Built-in Sources
 ------------------------
 
-.. automodule:: sncosmo._builtin.sources
+.. automodule:: source_page
