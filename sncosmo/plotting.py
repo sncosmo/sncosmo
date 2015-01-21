@@ -34,7 +34,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     Parameters
     ----------
     data : astropy `~astropy.table.Table` or similar
-        Table of photometric data points.
+        Table of photometric data points, which must have columns 'time',
+        'band', 'flux', fluxerr', 'zp' and 'zpsys'
     model : `~sncosmo.Model` or list thereof, optional
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
@@ -49,9 +50,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     bands : list, optional
         List of Bandpasses, or names thereof, to plot.
     zp : float, optional
-        Zeropoint to normalize the flux. Default is 25.
+        Zeropoint to normalize the flux in the light curve plot. Default is 25.
     zpsys : str, optional
-        Zeropoint system for ``zp``. Default is ``'ab'``.
+        Zeropoint system for ``zp`` used in the light curve plot. Default is
+        ``'ab'``.
     pulls : bool, optional
         If True (and if model and data are given), plot pulls. Default is
         ``True``.
