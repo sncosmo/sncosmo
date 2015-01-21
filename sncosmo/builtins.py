@@ -26,6 +26,7 @@ from .models import Source, TimeSeriesSource, SALT2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
                        SpectralMagSystem, ABMagSystem)
 
+
 # =============================================================================
 # Bandpasses
 
