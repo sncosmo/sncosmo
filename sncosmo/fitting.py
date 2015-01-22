@@ -50,7 +50,7 @@ def chisq(data, model, modelcov=False):
     model : `~sncosmo.Model`
     data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
         Table of photometric data. Must include certain column names as
-        explained in :doc:`~photdata`
+        explained in `~doc.photdata`
     modelcov : bool
         Include model covariance? Calls ``model.bandfluxcov`` method
         instead of ``model.bandflux``. The source in the model must therefore
@@ -207,7 +207,9 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     Parameters
     ----------
     data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
-        Table of photometric data. Must include certain column names.
+        Table of photometric data. Must include certain column names as
+        explained in :doc:`~photdata`
+                .
     model : `~sncosmo.Model`
         The model to fit.
     vparam_names : list
