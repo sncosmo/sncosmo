@@ -33,8 +33,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
     Parameters
     ----------
-    data : astropy `~astropy.table.Table` or similar
-        Table of photometric data points.
+    data : astropy `~astropy.table.Table` or similar, optional
+        Table of photometric data. Must include certain column names.
+        See the "Photometric Data" section of the documentation for required
+        columns.
     model : `~sncosmo.Model` or list thereof, optional
         If given, model light curve is plotted. If a string, the corresponding
         model is fetched from the registry. If a list or tuple of
@@ -49,12 +51,16 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     bands : list, optional
         List of Bandpasses, or names thereof, to plot.
     zp : float, optional
-        Zeropoint to normalize the flux. Default is 25.
+        Zeropoint to normalize the flux in the plot (for the purpose of
+        plotting all observations on a common flux scale). Default is 25.
     zpsys : str, optional
-        Zeropoint system for ``zp``. Default is ``'ab'``.
+        Zeropoint system to normalize the flux in the plot (for the purpose of
+        plotting all observations on a common flux scale).
+        Default is ``'ab'``.
     pulls : bool, optional
-        If True (and if model and data are given), plot pulls. Default is
-        ``True``.
+        If True (and if model and data are given), plot pulls. Pulls are the
+        deviation of the data from the model divided by the data uncertainty.
+        Default is ``True``.
     figtext : str, optional
         Text to add to top of figure. If a list of strings, each item is
         placed in a separate "column". Use newline separators for multiple

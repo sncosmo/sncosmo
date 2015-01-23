@@ -25,6 +25,11 @@ looks like, you can load an example with the following function::
     55080.2564103 sdssr     2.35450321853 0.651728140824 25.0    ab
     ... etc ...
 
+This example data table above has the minimum six columns necessary for
+sncosmo's light curve fitting and plotting functions to interpret the
+data. (There's no harm in having more columns for other supplementary
+data.)
+
 Additionally, metadata about the photometric data can be stored with
 the table: ``data.meta`` is an `OrderedDict` of the metadata.
 
@@ -32,20 +37,21 @@ the table: ``data.meta`` is an `OrderedDict` of the metadata.
 Column names and units
 ======================
 
-The example data table above has the minimum six columns necessary for
-sncosmo's light curve fitting and plotting functions to interpret the
-data. (There's no harm in having more columns for other supplementary
-data.) There is some flexibility in the column names that sncosmo
-recognizes. For example, you can use ``filter`` for a column name
-instead of ``band``:
+What if you'd rather call the time column ``'date'``, or perhaps
+``'mjd'``?  Good news! SNCosmo is flexible about the column names. For
+each column, it accepts a variety of alias names:
 
 .. automodule:: sncosmo.photdata
 
-The units of the flux and flux uncertainty are given by the zeropoint
-system, with the zeropoint itself serving as a scaling factor: For
-example, if the zeropoint is ``25.0`` and the zeropoint system is
-``'vega'``, a flux of 1.0 corresponds to ``10**(-25/2.5)`` times the
-integrated flux of Vega in the given bandpass.
+Note that each column must be present in some form or another, with no
+repeats.  For example, you can have either a ``'flux'`` column or a
+``'f'`` column, but not both.
+
+The units of the flux and flux uncertainty are effectively given by
+the zeropoint system, with the zeropoint itself serving as a scaling
+factor: For example, if the zeropoint is ``25.0`` and the zeropoint
+system is ``'vega'``, a flux of 1.0 corresponds to ``10**(-25/2.5)``
+times the integrated flux of Vega in the given bandpass.
 
 
 Reading and Writing photometric data from files
