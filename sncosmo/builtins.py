@@ -626,53 +626,53 @@ registry.register_loader(Source, '2011fe', load_2011fe, version='1.0',
 
 
 # SNANA CC SN models
-url = 'http://das.sdss2.org/ge/sample/sdsssn/SNANA-PUBLIC/',
-subclass = '`~sncosmo.TimeSeriesSource`',
+url = 'http://das.sdss2.org/ge/sample/sdsssn/SNANA-PUBLIC/'
+subclass = '`~sncosmo.TimeSeriesSource`'
 ref = ('SNANA', 'Kessler et al. 2009 '
-       '<http://adsabs.harvard.edu/abs/2009PASP..121.1028K>'),
+       '<http://adsabs.harvard.edu/abs/2009PASP..121.1028K>')
 note = "extracted from SNANA's SNDATA_ROOT on 5 August 2014."
-for name, sntype in [('snana-2004fe', 'Ic'),
-                     ('snana-2004gq', 'Ic'),
-                     ('snana-sdss004012', 'Ic'),
-                     ('snana-sdss013195', 'Ic'),  # PSNID
-                     ('snana-sdss014475', 'Ic'),
-                     ('snana-sdss015475', 'Ic'),
-                     ('snana-sdss017548', 'Ic'),
-                     ('snana-04D1la', 'Ic'),
-                     ('snana-04D4jv', 'Ic'),
-                     ('snana-2004gv', 'Ib'),
-                     ('snana-2006ep', 'Ib'),
-                     ('snana-2007Y', 'Ib'),
-                     ('snana-sdss000020', 'Ib'),
-                     ('snana-sdss002744', 'Ib'),  # PSNID
-                     ('snana-sdss014492', 'Ib'),  # PSNID
-                     ('snana-sdss019323', 'Ib'),
-                     ('snana-sdss000018', 'IIP'),  # PSNID
-                     ('snana-sdss003818', 'IIP'),  # PSNID
-                     ('snana-sdss013376', 'IIP'),
-                     ('snana-sdss014450', 'IIP'),
-                     ('snana-sdss014599', 'IIP'),  # PSNID
-                     ('snana-sdss015031', 'IIP'),
-                     ('snana-sdss015320', 'IIP'),
-                     ('snana-sdss015339', 'IIP'),
-                     ('snana-sdss017564', 'IIP'),
-                     ('snana-sdss017862', 'IIP'),
-                     ('snana-sdss018109', 'IIP'),
-                     ('snana-sdss018297', 'IIP'),
-                     ('snana-sdss018408', 'IIP'),
-                     ('snana-sdss018441', 'IIP'),
-                     ('snana-sdss018457', 'IIP'),
-                     ('snana-sdss018590', 'IIP'),
-                     ('snana-sdss018596', 'IIP'),
-                     ('snana-sdss018700', 'IIP'),
-                     ('snana-sdss018713', 'IIP'),
-                     ('snana-sdss018734', 'IIP'),
-                     ('snana-sdss018793', 'IIP'),
-                     ('snana-sdss018834', 'IIP'),
-                     ('snana-sdss018892', 'IIP'),
-                     ('snana-sdss020038', 'IIP'),
-                     ('snana-sdss012842', 'IIn'),
-                     ('snana-sdss013449', 'IIn')]:
+for name, sntype in [('snana-2004fe', 'SN Ic'),
+                     ('snana-2004gq', 'SN Ic'),
+                     ('snana-sdss004012', 'SN Ic'),
+                     ('snana-sdss013195', 'SN Ic'),  # PSNID
+                     ('snana-sdss014475', 'SN Ic'),
+                     ('snana-sdss015475', 'SN Ic'),
+                     ('snana-sdss017548', 'SN Ic'),
+                     ('snana-04D1la', 'SN Ic'),
+                     ('snana-04D4jv', 'SN Ic'),
+                     ('snana-2004gv', 'SN Ib'),
+                     ('snana-2006ep', 'SN Ib'),
+                     ('snana-2007Y', 'SN Ib'),
+                     ('snana-sdss000020', 'SN Ib'),
+                     ('snana-sdss002744', 'SN Ib'),  # PSNID
+                     ('snana-sdss014492', 'SN Ib'),  # PSNID
+                     ('snana-sdss019323', 'SN Ib'),
+                     ('snana-sdss000018', 'SN IIP'),  # PSNID
+                     ('snana-sdss003818', 'SN IIP'),  # PSNID
+                     ('snana-sdss013376', 'SN IIP'),
+                     ('snana-sdss014450', 'SN IIP'),
+                     ('snana-sdss014599', 'SN IIP'),  # PSNID
+                     ('snana-sdss015031', 'SN IIP'),
+                     ('snana-sdss015320', 'SN IIP'),
+                     ('snana-sdss015339', 'SN IIP'),
+                     ('snana-sdss017564', 'SN IIP'),
+                     ('snana-sdss017862', 'SN IIP'),
+                     ('snana-sdss018109', 'SN IIP'),
+                     ('snana-sdss018297', 'SN IIP'),
+                     ('snana-sdss018408', 'SN IIP'),
+                     ('snana-sdss018441', 'SN IIP'),
+                     ('snana-sdss018457', 'SN IIP'),
+                     ('snana-sdss018590', 'SN IIP'),
+                     ('snana-sdss018596', 'SN IIP'),
+                     ('snana-sdss018700', 'SN IIP'),
+                     ('snana-sdss018713', 'SN IIP'),
+                     ('snana-sdss018734', 'SN IIP'),
+                     ('snana-sdss018793', 'SN IIP'),
+                     ('snana-sdss018834', 'SN IIP'),
+                     ('snana-sdss018892', 'SN IIP'),
+                     ('snana-sdss020038', 'SN IIP'),
+                     ('snana-sdss012842', 'SN IIn'),
+                     ('snana-sdss013449', 'SN IIn')]:
     meta = {'url': url, 'subclass': subclass, 'type': sntype, 'ref': ref,
             'note': note}
     registry.register_loader(Source, name, load_timeseries_ascii,
