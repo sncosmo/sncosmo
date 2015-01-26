@@ -147,12 +147,12 @@ if not _ASTROPY_SETUP_:
 
     # Do all the necessary imports: everything except registry goes in the
     # top-level namespace.
+    from .dustmap import *
     from .spectral import *
     from .models import *
     from .io import *
     from .snanaio import *
     from .fitting import *
-    from .extmap import *
     from .simulation import *
     from . import registry
     from .builtins import *
