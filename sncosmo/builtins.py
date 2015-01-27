@@ -46,19 +46,19 @@ def get_url(name, version=None):
     return urls[key]
 
 
-def load_bandpass(pkg_data_name, name=None):
+def load_bandpass_angstroms(pkg_data_name, name=None):
     fname = get_pkg_data_filename(pkg_data_name)
     return read_bandpass(fname, wave_unit=u.AA, name=name)
 
 
-def load_jwst_bandpass(pkg_data_name, name=None):
+def load_bandpass_microns(pkg_data_name, name=None):
     fname = get_pkg_data_filename(pkg_data_name)
     return read_bandpass(fname, wave_unit=u.micron, name=name)
 
 
 def tophat_bandpass(ctr, width, name=None):
     """Create a tophat Bandpass centered at `ctr` with width `width` (both
-    in microns. Sampling is fixed at 100 A == 0.01 microns"""
+    in microns) sampled at 100 intervals."""
 
     nintervals = 100  # intervals between wmin and wmax
     interval = width / nintervals  # interval of each sample
@@ -303,7 +303,14 @@ bands = [('bessellux', 'bessell/bessell_ux.dat', bessell_meta),
          ('f775w', 'hst/hst_acs_wfc_f775w.dat', acs_meta),
          ('f814w', 'hst/hst_acs_wfc_f814w.dat', acs_meta),
          ('f850lp', 'hst/hst_acs_wfc_f850lp.dat', acs_meta),
-         ('f070w', 'jwst/jwst_nircam_f070w.dat', jwst_nircam_meta),
+         ('kepler', 'kepler/kepler.dat', kepler_meta)]
+
+for name, fname, meta in bands:
+    registry.register_loader(Bandpass, name, load_bandpass_angstroms,
+                             args=['data/bandpasses/' + fname],
+                             meta=meta)
+
+bands = [('f070w', 'jwst/jwst_nircam_f070w.dat', jwst_nircam_meta),
          ('f090w', 'jwst/jwst_nircam_f090w.dat', jwst_nircam_meta),
          ('f115w', 'jwst/jwst_nircam_f115w.dat', jwst_nircam_meta),
          ('f150w', 'jwst/jwst_nircam_f150w.dat', jwst_nircam_meta),
@@ -322,11 +329,10 @@ bands = [('bessellux', 'bessell/bessell_ux.dat', bessell_meta),
          ('f410m', 'jwst/jwst_nircam_f410m.dat', jwst_nircam_meta),
          ('f430m', 'jwst/jwst_nircam_f430m.dat', jwst_nircam_meta),
          ('f460m', 'jwst/jwst_nircam_f460m.dat', jwst_nircam_meta),
-         ('f480m', 'jwst/jwst_nircam_f480m.dat', jwst_nircam_meta),
-         ('kepler', 'kepler/kepler.dat', kepler_meta)]
+         ('f480m', 'jwst/jwst_nircam_f480m.dat', jwst_nircam_meta)]
 
 for name, fname, meta in bands:
-    registry.register_loader(Bandpass, name, load_bandpass,
+    registry.register_loader(Bandpass, name, load_bandpass_microns,
                              args=['data/bandpasses/' + fname],
                              meta=meta)
 
