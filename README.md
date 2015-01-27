@@ -5,7 +5,9 @@ _Python library for supernova cosmology_
 
 [![Build Status](https://img.shields.io/travis/sncosmo/sncosmo.svg?style=flat-square)](https://travis-ci.org/sncosmo/sncosmo)
 [![Coverage Status](http://img.shields.io/coveralls/sncosmo/sncosmo.svg?style=flat-square)](https://coveralls.io/r/sncosmo/sncosmo?branch=master)
+
 [![PyPI](https://img.shields.io/pypi/v/sncosmo.svg?style=flat-square)](https://pypi.python.org/pypi/sncosmo)
+[![PyPI](https://img.shields.io/pypi/dm/sncosmo.svg?style=flat-square)](https://pypi.python.org/pypi/sncosmo)
 
 **Documentation:** http://sncosmo.readthedocs.org
 
