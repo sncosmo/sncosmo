@@ -317,6 +317,14 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
 
+    # Check that vparam_names isn't empty and contains only parameters
+    # known to the model.
+    if len(vparam_names) == 0:
+        raise ValueError("no parameters supplied")
+    for s in vparam_names:
+        if s not in model.param_names:
+            raise ValueError("Parameter not in model: " + repr(s))
+
     # Order vparam_names the same way it is ordered in the model:
     vparam_names = [s for s in model.param_names if s in vparam_names]
 

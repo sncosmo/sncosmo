@@ -56,6 +56,19 @@ class TestFitting:
         self.model.set(**self.params)
         assert_allclose(res.parameters, self.model.parameters, rtol=1.e-3)
 
+    def test_wrong_param_names(self):
+        """Supplying parameter names that are not part of the model should
+        raise an error."""
+
+        # a parameter not in the model
+        with pytest.raises(ValueError):
+            res, fitmodel = sncosmo.fit_lc(self.data, self.model,
+                                           ['t0', 'not_a_param'])
+
+        # no parameters
+        with pytest.raises(ValueError):
+            res, fitmodel = sncosmo.fit_lc(self.data, self.model, [])
+
     def test_nest_lc(self):
         """Ensure that nested sampling runs."""
 
