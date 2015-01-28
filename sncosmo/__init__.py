@@ -125,9 +125,12 @@ if not _ASTROPY_SETUP_:
     # Create default configurations. The file sncosmo.cfg should be
     # kept in sync with the ConfigItems here.
     class Conf(ConfigNamespace):
-        """
-        Configuration parameters for sncosmo.
-        """
+        """Configuration parameters for sncosmo."""
+        data_dir = ConfigItem(
+            None,
+            "Directory where sncosmo will store and read downloaded data "
+            "resources.",
+            cfgtype='string(default=None)')
         sfd98_dir = ConfigItem(
             None,
             "Directory containing SFD (1998) dust maps, with names: "

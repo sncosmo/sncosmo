@@ -14,7 +14,7 @@ from os.path import join
 import numpy as np
 from astropy import wcs, units as u
 from astropy.io import ascii, fits
-from astropy.config import ConfigurationItem
+from astropy.config import ConfigurationItem, get_cache_dir
 from astropy.extern import six
 from astropy.utils import OrderedDict
 from astropy.utils.data import (download_file, get_pkg_data_filename,
@@ -25,6 +25,7 @@ from . import io
 from .models import Source, TimeSeriesSource, SALT2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
                        SpectralMagSystem, ABMagSystem)
+from . import conf
 
 # Dictionary of urls
 urls = None
@@ -43,7 +44,17 @@ def get_url(name, version=None):
         f.close()
 
     key = name if (version is None) else "{0}_v{1}".format(name, version)
+
     return urls[key]
+
+
+def full_data_name(name):
+    """Return the full path to a local resource, by prepending conf.data_dir
+    if set or (astropy cache dir)/sncosmo."""
+    if conf.data_dir is not None:
+        return join(conf.data_dir, name)
+    else:
+        return join(get_cache_dir(), "sncosmo", name)
 
 
 def load_bandpass_angstroms(pkg_data_name, name=None):
