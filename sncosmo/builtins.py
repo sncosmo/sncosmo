@@ -473,10 +473,10 @@ note = "extracted from SNANA's SNDATA_ROOT on 5 August 2014."
 for name, sntype in [('snana-2004fe', 'SN Ic'),
                      ('snana-2004gq', 'SN Ic'),
                      ('snana-sdss004012', 'SN Ic'),  # no IAU ID
-                     ('snana-2006fo', 'SN Ic'),  # PSNID, sdss013195
-                     ('snana-sdss014475', 'SN Ic'), # no IAU ID
-                     ('snana-2006lc', 'SN Ic'), # sdss015475
-                     ('snana-2007ms', 'SN II-pec'), # sdss017458 (Ic in SNANA?)
+                     ('snana-2006fo', 'SN Ic'),      # sdss013195 PSNID
+                     ('snana-sdss014475', 'SN Ic'),  # no IAU ID
+                     ('snana-2006lc', 'SN Ic'),      # sdss015475
+                     ('snana-2007ms', 'SN II-pec'),  # sdss017458 (Ic in SNANA)
                      ('snana-04D1la', 'SN Ic'),
                      ('snana-04D4jv', 'SN Ic'),
                      ('snana-2004gv', 'SN Ib'),
@@ -511,7 +511,7 @@ for name, sntype in [('snana-2004fe', 'SN Ic'),
                      ('snana-2007nv', 'SN IIP'),  # sdss018892
                      ('snana-2007pg', 'SN IIP'),  # sdss020038
                      ('snana-2006ez', 'SN IIn'),  # sdss012842
-                     ('snana-2006ix', 'SN IIn')]: # sdss013449
+                     ('snana-2006ix', 'SN IIn')]:  # sdss013449
     meta = {'url': url, 'subclass': subclass, 'type': sntype, 'ref': ref,
             'note': note}
     registry.register_loader(Source, name, load_timeseries_ascii,
