@@ -472,46 +472,46 @@ ref = ('SNANA', 'Kessler et al. 2009 '
 note = "extracted from SNANA's SNDATA_ROOT on 5 August 2014."
 for name, sntype in [('snana-2004fe', 'SN Ic'),
                      ('snana-2004gq', 'SN Ic'),
-                     ('snana-sdss004012', 'SN Ic'),
-                     ('snana-sdss013195', 'SN Ic'),  # PSNID
-                     ('snana-sdss014475', 'SN Ic'),
-                     ('snana-sdss015475', 'SN Ic'),
-                     ('snana-sdss017548', 'SN Ic'),
+                     ('snana-sdss004012', 'SN Ic'),  # no IAU ID
+                     ('snana-2006fo', 'SN Ic'),  # PSNID, sdss013195
+                     ('snana-sdss014475', 'SN Ic'), # no IAU ID
+                     ('snana-2006lc', 'SN Ic'), # sdss015475
+                     ('snana-2007ms', 'SN II-pec'), # sdss017458 (Ic in SNANA?)
                      ('snana-04D1la', 'SN Ic'),
                      ('snana-04D4jv', 'SN Ic'),
                      ('snana-2004gv', 'SN Ib'),
                      ('snana-2006ep', 'SN Ib'),
                      ('snana-2007Y', 'SN Ib'),
-                     ('snana-sdss000020', 'SN Ib'),
-                     ('snana-sdss002744', 'SN Ib'),  # PSNID
-                     ('snana-sdss014492', 'SN Ib'),  # PSNID
-                     ('snana-sdss019323', 'SN Ib'),
-                     ('snana-sdss000018', 'SN IIP'),  # PSNID
-                     ('snana-sdss003818', 'SN IIP'),  # PSNID
-                     ('snana-sdss013376', 'SN IIP'),
-                     ('snana-sdss014450', 'SN IIP'),
-                     ('snana-sdss014599', 'SN IIP'),  # PSNID
-                     ('snana-sdss015031', 'SN IIP'),
-                     ('snana-sdss015320', 'SN IIP'),
-                     ('snana-sdss015339', 'SN IIP'),
-                     ('snana-sdss017564', 'SN IIP'),
-                     ('snana-sdss017862', 'SN IIP'),
-                     ('snana-sdss018109', 'SN IIP'),
-                     ('snana-sdss018297', 'SN IIP'),
-                     ('snana-sdss018408', 'SN IIP'),
-                     ('snana-sdss018441', 'SN IIP'),
-                     ('snana-sdss018457', 'SN IIP'),
-                     ('snana-sdss018590', 'SN IIP'),
-                     ('snana-sdss018596', 'SN IIP'),
-                     ('snana-sdss018700', 'SN IIP'),
-                     ('snana-sdss018713', 'SN IIP'),
-                     ('snana-sdss018734', 'SN IIP'),
-                     ('snana-sdss018793', 'SN IIP'),
-                     ('snana-sdss018834', 'SN IIP'),
-                     ('snana-sdss018892', 'SN IIP'),
-                     ('snana-sdss020038', 'SN IIP'),
-                     ('snana-sdss012842', 'SN IIn'),
-                     ('snana-sdss013449', 'SN IIn')]:
+                     ('snana-2004ib', 'SN Ib'),   # sdss000020
+                     ('snana-2005hm', 'SN Ib'),   # sdss002744 PSNID
+                     ('snana-2006jo', 'SN Ib'),   # sdss014492 PSNID
+                     ('snana-2007nc', 'SN Ib'),   # sdss019323
+                     ('snana-2004hx', 'SN IIP'),  # sdss000018 PSNID
+                     ('snana-2005gi', 'SN IIP'),  # sdss003818 PSNID
+                     ('snana-2006gq', 'SN IIP'),  # sdss013376
+                     ('snana-2006kn', 'SN IIP'),  # sdss014450
+                     ('snana-2006jl', 'SN IIP'),  # sdss014599 PSNID
+                     ('snana-2006iw', 'SN IIP'),  # sdss015031
+                     ('snana-2006kv', 'SN IIP'),  # sdss015320
+                     ('snana-2006ns', 'SN IIP'),  # sdss015339
+                     ('snana-2007iz', 'SN IIP'),  # sdss017564
+                     ('snana-2007nr', 'SN IIP'),  # sdss017862
+                     ('snana-2007kw', 'SN IIP'),  # sdss018109
+                     ('snana-2007ky', 'SN IIP'),  # sdss018297
+                     ('snana-2007lj', 'SN IIP'),  # sdss018408
+                     ('snana-2007lb', 'SN IIP'),  # sdss018441
+                     ('snana-2007ll', 'SN IIP'),  # sdss018457
+                     ('snana-2007nw', 'SN IIP'),  # sdss018590
+                     ('snana-2007ld', 'SN IIP'),  # sdss018596
+                     ('snana-2007md', 'SN IIP'),  # sdss018700
+                     ('snana-2007lz', 'SN IIP'),  # sdss018713
+                     ('snana-2007lx', 'SN IIP'),  # sdss018734
+                     ('snana-2007og', 'SN IIP'),  # sdss018793
+                     ('snana-2007ny', 'SN IIP'),  # sdss018834
+                     ('snana-2007nv', 'SN IIP'),  # sdss018892
+                     ('snana-2007pg', 'SN IIP'),  # sdss020038
+                     ('snana-2006ez', 'SN IIn'),  # sdss012842
+                     ('snana-2006ix', 'SN IIn')]: # sdss013449
     meta = {'url': url, 'subclass': subclass, 'type': sntype, 'ref': ref,
             'note': note}
     registry.register_loader(Source, name, load_timeseries_ascii,
@@ -525,8 +525,8 @@ meta = {'type': 'PopIII',
                       'Whalen et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013ApJ...768...95W>'),
         'note': "private communication (D.Whalen, May 2014)."}
-for name in ['whalen-z15B', 'whalen-z15D', 'whalen-z15G', 'whalen-z25B',
-             'whalen-z25D', 'whalen-z25G', 'whalen-z40B', 'whalen-z40G']:
+for name in ['whalen-z15b', 'whalen-z15d', 'whalen-z15g', 'whalen-z25b',
+             'whalen-z25d', 'whalen-z25g', 'whalen-z40b', 'whalen-z40g']:
     registry.register_loader(Source, name, load_timeseries_ascii,
                              version='1.0', meta=meta)
 
