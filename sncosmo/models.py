@@ -1231,7 +1231,6 @@ class Model(_ModelBase):
         overlap : bool or `~numpy.ndarray`
 
         """
-
         band = np.asarray(band)
         if z is None:
             z = self._parameters[0]
@@ -1240,10 +1239,11 @@ class Model(_ModelBase):
         band = band.ravel()
         z = z.ravel()
         overlap = np.empty((len(band), len(z)), dtype=np.bool)
+        shift = (1. + z)/(1+self._parameters[0])
         for i, b in enumerate(band):
             b = get_bandpass(b)
-            overlap[i, :] = ((b.wave[0] > self.minwave() * (1. + z)) &
-                             (b.wave[-1] < self.maxwave() * (1. + z)))
+            overlap[i, :] = ((b.wave[0] > self.minwave()*shift) &
+                             (b.wave[-1] < self.maxwave()*shift))
         if ndim == (0, 0):
             return overlap[0, 0]
         if ndim[1] == 0:
