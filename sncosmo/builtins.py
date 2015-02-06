@@ -509,55 +509,55 @@ ref = ('SNANA', 'Kessler et al. 2009 '
        '<http://adsabs.harvard.edu/abs/2009PASP..121.1028K>')
 note = "extracted from SNANA's SNDATA_ROOT on 5 August 2014."
 
-# Two SDSS SNe do not have IAU IDs.
 # 'PSNID' denotes that model is used in PSNID.
-for name, sntype, fn in [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
-                         ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
-                         ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),
-                         ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
-                         ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),
-                         ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
-                         # 2007ms is type Ic in SNANA
-                         ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),
-                         ('snana-04D1la', 'SN Ic', 'SNLS-04D1la.SED'),
-                         ('snana-04D4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
-                     ('snana-2004gv', 'SN Ib'),
-                     ('snana-2006ep', 'SN Ib'),
-                     ('snana-2007Y', 'SN Ib'),
-                     ('snana-2004ib', 'SN Ib'),   # sdss000020
-                     ('snana-2005hm', 'SN Ib'),   # sdss002744 PSNID
-                     ('snana-2006jo', 'SN Ib'),   # sdss014492 PSNID
-                     ('snana-2007nc', 'SN Ib'),   # sdss019323
-                     ('snana-2004hx', 'SN IIP'),  # sdss000018 PSNID
-                     ('snana-2005gi', 'SN IIP'),  # sdss003818 PSNID
-                     ('snana-2006gq', 'SN IIP'),  # sdss013376
-                     ('snana-2006kn', 'SN IIP'),  # sdss014450
-                     ('snana-2006jl', 'SN IIP'),  # sdss014599 PSNID
-                     ('snana-2006iw', 'SN IIP'),  # sdss015031
-                     ('snana-2006kv', 'SN IIP'),  # sdss015320
-                     ('snana-2006ns', 'SN IIP'),  # sdss015339
-                     ('snana-2007iz', 'SN IIP'),  # sdss017564
-                     ('snana-2007nr', 'SN IIP'),  # sdss017862
-                     ('snana-2007kw', 'SN IIP'),  # sdss018109
-                     ('snana-2007ky', 'SN IIP'),  # sdss018297
-                     ('snana-2007lj', 'SN IIP'),  # sdss018408
-                     ('snana-2007lb', 'SN IIP'),  # sdss018441
-                     ('snana-2007ll', 'SN IIP'),  # sdss018457
-                     ('snana-2007nw', 'SN IIP'),  # sdss018590
-                     ('snana-2007ld', 'SN IIP'),  # sdss018596
-                     ('snana-2007md', 'SN IIP'),  # sdss018700
-                     ('snana-2007lz', 'SN IIP'),  # sdss018713
-                     ('snana-2007lx', 'SN IIP'),  # sdss018734
-                     ('snana-2007og', 'SN IIP'),  # sdss018793
-                     ('snana-2007ny', 'SN IIP'),  # sdss018834
-                     ('snana-2007nv', 'SN IIP'),  # sdss018892
-                     ('snana-2007pg', 'SN IIP'),  # sdss020038
-                     ('snana-2006ez', 'SN IIn'),  # sdss012842
-                     ('snana-2006ix', 'SN IIn')]:  # sdss013449
+models = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
+          ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
+          ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),  # no IAU name
+          ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
+          ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU name
+          ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
+          ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),  # type Ic in SNANA
+          ('snana-04D1la', 'SN Ic', 'SNLS-04D1la.SED'),
+          ('snana-04D4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
+          ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
+          ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
+          ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
+          ('snana-2004ib', 'SN Ib', 'SDSS-000020.SED'),
+          ('snana-2005hm', 'SN Ib', 'SDSS-002744.SED'),  # PSNID
+          ('snana-2006jo', 'SN Ib', 'SDSS-014492.SED'),  # PSNID
+          ('snana-2007nc', 'SN Ib', 'SDSS-019323.SED'),
+          ('snana-2004hx', 'SN IIP', 'SDSS-000018.SED'),  # PSNID
+          ('snana-2005gi', 'SN IIP', 'SDSS-003818.SED'),  # PSNID
+          ('snana-2006gq', 'SN IIP', 'SDSS-013376.SED'),
+          ('snana-2006kn', 'SN IIP', 'SDSS-014450.SED'),
+          ('snana-2006jl', 'SN IIP', 'SDSS-014599.SED'),  # PSNID
+          ('snana-2006iw', 'SN IIP', 'SDSS-015031.SED'),
+          ('snana-2006kv', 'SN IIP', 'SDSS-015320.SED'),
+          ('snana-2006ns', 'SN IIP', 'SDSS-015339.SED'),
+          ('snana-2007iz', 'SN IIP', 'SDSS-017564.SED'),
+          ('snana-2007nr', 'SN IIP', 'SDSS-017862.SED'),
+          ('snana-2007kw', 'SN IIP', 'SDSS-018109.SED'),
+          ('snana-2007ky', 'SN IIP', 'SDSS-018297.SED'),
+          ('snana-2007lj', 'SN IIP', 'SDSS-018408.SED'),
+          ('snana-2007lb', 'SN IIP', 'SDSS-018441.SED'),
+          ('snana-2007ll', 'SN IIP', 'SDSS-018457.SED'),
+          ('snana-2007nw', 'SN IIP', 'SDSS-018590.SED'),
+          ('snana-2007ld', 'SN IIP', 'SDSS-018596.SED'),
+          ('snana-2007md', 'SN IIP', 'SDSS-018700.SED'),
+          ('snana-2007lz', 'SN IIP', 'SDSS-018713.SED'),
+          ('snana-2007lx', 'SN IIP', 'SDSS-018734.SED'),
+          ('snana-2007og', 'SN IIP', 'SDSS-018793.SED'),
+          ('snana-2007ny', 'SN IIP', 'SDSS-018834.SED'),
+          ('snana-2007nv', 'SN IIP', 'SDSS-018892.SED'),
+          ('snana-2007pg', 'SN IIP', 'SDSS-020038.SED'),
+          ('snana-2006ez', 'SN IIn', 'SDSS-012842.SED'),
+          ('snana-2006ix', 'SN IIn', 'SDSS-013449.SED')]
+for name, sntype, fn in models:
+    relpath = 'models/snana/' + fn
     meta = {'url': url, 'subclass': subclass, 'type': sntype, 'ref': ref,
             'note': note}
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             version='1.0', meta=meta)
+                             args=[relpath], version='1.0', meta=meta)
 
 
 # Pop III CC SN models from D.Whalen et al. 2013.
@@ -567,10 +567,17 @@ meta = {'type': 'PopIII',
                       'Whalen et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013ApJ...768...95W>'),
         'note': "private communication (D.Whalen, May 2014)."}
-for name in ['whalen-z15b', 'whalen-z15d', 'whalen-z15g', 'whalen-z25b',
-             'whalen-z25d', 'whalen-z25g', 'whalen-z40b', 'whalen-z40g']:
+for name, fn in [('whalen-z15b', 'popIII-z15B.sed.restframe10pc.dat'),
+                 ('whalen-z15d', 'popIII-z15D.sed.restframe10pc.dat'),
+                 ('whalen-z15g', 'popIII-z15G.sed.restframe10pc.dat'),
+                 ('whalen-z25b', 'popIII-z25B.sed.restframe10pc.dat'),
+                 ('whalen-z25d', 'popIII-z25D.sed.restframe10pc.dat'),
+                 ('whalen-z25g', 'popIII-z25G.sed.restframe10pc.dat'),
+                 ('whalen-z40b', 'popIII-z40B.sed.restframe10pc.dat'),
+                 ('whalen-z40g', 'popIII-z40G.sed.restframe10pc.dat')]:
+    relpath = 'models/whalen/' + fn
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             version='1.0', meta=meta)
+                             args=[relpath], version='1.0', meta=meta)
 
 
 # =============================================================================
@@ -587,7 +594,9 @@ website = 'ftp://ftp.stsci.edu/cdbs/calspec/'
 subclass = '`~sncosmo.SpectralMagSystem`'
 vega_desc = 'Vega (alpha lyrae) has magnitude 0 in all bands.'
 bd17_desc = 'BD+17d4708 has magnitude 0 in all bands.'
-for name, desc in [('vega', vega_desc), ('bd17', bd17_desc)]:
+for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
+                       ('bd17', 'bd_17d4708_stisnic_005.fits', bd17_desc)]:
     registry.register_loader(MagSystem, name, load_spectral_magsys_fits,
+                             args=['spectra/' + fn],
                              meta={'subclass': subclass, 'url': website,
                                    'description': desc})
