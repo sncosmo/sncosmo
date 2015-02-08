@@ -475,8 +475,10 @@ class TimeSeriesSource(Source):
         self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
 
     def _flux(self, phase, wave):
-        return self._parameters[0] * self._model_flux(phase, wave)
-
+        f = self._parameters[0] *self._model_flux(phase, wave)    
+        mask = phase <self.minphase()    
+        f[mask, :] =0.    
+        return f
 
 class StretchSource(Source):
     """A single-component spectral time series model, that "stretches" in
@@ -1167,6 +1169,27 @@ class Model(_ModelBase):
                 f = effect.propagate(restwave, f)
 
         return f
+
+    def _flux_checkphase(self, time, wave):
+        """Array flux function."""
+
+        a = 1. / (1. + self._parameters[0])
+        phase = (time - self._parameters[1]) * a
+        restwave = wave * a
+
+        # Note that below we multiply by the scale factor to conserve
+        # bolometric luminosity.
+        f = a * self._source._flux_checkphase(phase, restwave)
+
+        # Pass the flux through the PropagationEffects.
+        for effect, frame in zip(self._effects, self._effect_frames):
+            if frame == 'obs':
+                f = effect.propagate(wave, f)
+            else:
+                f = effect.propagate(restwave, f)
+
+        return f
+
 
     def flux(self, time, wave):
         """The spectral flux density at the given time and wavelength values.
