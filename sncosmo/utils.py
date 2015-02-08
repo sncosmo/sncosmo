@@ -203,7 +203,7 @@ def _download_file(remote_url, target):
     """
 
     from contextlib import closing
-    from six.moves.urllib.request import urlopen
+    from six.moves.urllib.request import urlopen, Request
     from six.moves.urllib.error import URLError
     from astropy.utils.console import ProgressBarOrSpinner
     from astropy.utils.data import conf
@@ -211,7 +211,13 @@ def _download_file(remote_url, target):
     timeout = conf.remote_timeout
 
     try:
-        with closing(urlopen(remote_url, timeout=timeout)) as remote:
+        # Pretend to be a web browser (IE 6.0). Some servers that we download
+        # from forbid access from programs.
+        headers = {'User-Agent': 'Mozilla/5.0',
+                   'Accept': ('text/html,application/xhtml+xml,'
+                              'application/xml;q=0.9,*/*;q=0.8')}
+        req = Request(remote_url, headers=headers)
+        with closing(urlopen(req, timeout=timeout)) as remote:
 
             # get size of remote if available (for use in progress bar)
             info = remote.info()
