@@ -1,5 +1,7 @@
+from __future__ import absolute_import
+
+import os
 import sys
-import io
 import math
 
 import numpy as np
@@ -249,7 +251,7 @@ def _download_file(remote_url, target):
         raise URLError(e)
 
 
-def download_file(remote_url, local_name)
+def download_file(remote_url, local_name):
     """
     Download a remote file to local path, unzipping if the URL ends in '.gz'.
 
@@ -274,7 +276,7 @@ def download_file(remote_url, local_name)
 
     if remote_url.endswith(".gz"):
         import io
-        from astropy.compat import gzip
+        from astropy.utils.compat import gzip
 
         buf = io.BytesIO()
         _download_file(remote_url, buf)
@@ -290,7 +292,7 @@ def download_file(remote_url, local_name)
             _download_file(remote_url, target)
 
 
-def download_dir(remote_url, dirname)
+def download_dir(remote_url, dirname):
     """
     Download a remote tar file to a local directory.
 
@@ -321,9 +323,9 @@ def download_dir(remote_url, dirname)
     buf = io.BytesIO()
     _download_file(remote_url, buf)
     buf.seek(0)
-    
+
     # create a tarfile with the buffer and extract
     tf = tarfile.open(fileobj=buf, mode=mode)
     tf.extractall(path=dirname)
     tf.close()
-    f.close()  # f not closed when tf is closed.
+    buf.close()  # buf not closed when tf is closed.

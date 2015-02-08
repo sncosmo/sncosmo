@@ -3,6 +3,8 @@
 sncosmo: A Python package for supernova cosmology
 """
 
+from __future__ import absolute_import
+
 # This indicates whether or not we are in the package's setup.py
 try:
     _ASTROPY_SETUP_
@@ -157,6 +159,7 @@ if not _ASTROPY_SETUP_:
     from .snanaio import *
     from .fitting import *
     from .simulation import *
-    from . import registry
-    from .builtins import *
     from .plotting import *
+    from . import registry
+
+    from .builtins import *

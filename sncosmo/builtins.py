@@ -22,12 +22,14 @@ from astropy.utils.data import get_pkg_data_filename
 
 from . import registry
 from . import io
-from .utils import download_file
+from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
                        SpectralMagSystem, ABMagSystem)
 from . import conf
 
+# This module is only imported for its side effects.
+__all__ = []
 
 # Dictionary of urls, used by get_url()
 urls = None
@@ -89,7 +91,7 @@ def get_abspath(relpath, name, version=None):
         Version of built-in, used to look up URL if needed.
     """
 
-    abspath = join(get_data_dir(), relname)
+    abspath = join(get_data_dir(), relpath)
 
     if not os.path.exists(abspath):
         url = get_url(name, version)
@@ -158,23 +160,20 @@ def load_salt2model(relpath, name=None, version=None):
     return SALT2Source(modeldir=abspath)
 
 
-# TODO: update this to new system.
 def load_2011fe(relpath, name=None, version=None):
-
-    remote_url = get_url(name, version)
 
     # filter warnings about RADESYS keyword in files
     warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
                             append=True)
 
-    tarfname = download_file(remote_url, cache=True)
-    t = tarfile.open(tarfname, 'r:gz')
+    abspath = get_abspath(relpath, name, version=version)
+
     phasestrs = []
     spectra = []
     disp = None
-    for fname in t.getnames():
+    for fname in os.listdir(abspath):
         if fname[-4:] == '.fit':
-            hdulist = fits.open(t.extractfile(fname))
+            hdulist = fits.open(join(abspath, fname))
             flux_density = hdulist[0].data
             phasestrs.append(fname[-8:-4])  # like 'P167' or 'M167'
             spectra.append(flux_density)
@@ -489,7 +488,7 @@ meta = {'type': 'SN Ia',
         'url': 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/',
         'note': "extracted from SNANA's SNDATA_ROOT on 15 August 2013."}
 registry.register_loader(Source, 'salt2-extended', load_salt2model,
-                         args=['models/salt2/salt2_extended'], version='1.0',
+                         args=['models/snana/salt2_extended'], version='1.0',
                          meta=meta)
 
 # 2011fe
@@ -498,8 +497,8 @@ meta = {'type': 'SN Ia',
         'url': 'http://snfactory.lbl.gov/snf/data',
         'reference': ('P13', 'Pereira et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')}
-registry.register_loader(Source, '2011fe', load_2011fe, version='1.0',
-                         meta=meta)
+registry.register_loader(Source, 'snf-2011fe', load_2011fe, version='1.0',
+                         args=['models/snf/SN2011fe'], meta=meta)
 
 
 # SNANA CC SN models
