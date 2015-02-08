@@ -131,12 +131,14 @@ if not _ASTROPY_SETUP_:
         data_dir = ConfigItem(
             None,
             "Directory where sncosmo will store and read downloaded data "
-            "resources.",
+            "resources. If None, ASTROPY_CACHE_DIR/sncosmo is created and "
+            "used. Example: data_dir = /home/user/data/sncosmo",
             cfgtype='string(default=None)')
         sfd98_dir = ConfigItem(
             None,
             "Directory containing SFD (1998) dust maps, with names: "
-            "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'",
+            "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'. "
+            "Example: sfd98_dir = /home/user/data/sfd98",
             cfgtype='string(default=None)')
 
     # Create an instance of the class we just defined.

@@ -41,7 +41,6 @@ docs/api
 MANIFEST
 sncosmo/version.py
 sncosmo/cython_version.py
-sncosmo/sncosmo.cfg
 
 # emacs files
 *~
