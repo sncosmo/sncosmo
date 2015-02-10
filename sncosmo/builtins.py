@@ -516,8 +516,8 @@ models = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
           ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU name
           ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
           ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),  # type Ic in SNANA
-          ('snana-04D1la', 'SN Ic', 'SNLS-04D1la.SED'),
-          ('snana-04D4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
+          ('snana-04d1la', 'SN Ic', 'SNLS-04D1la.SED'),
+          ('snana-04d4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
           ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
           ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
           ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
