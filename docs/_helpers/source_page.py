@@ -10,8 +10,8 @@ from sncosmo import registry, Source
 
 lines = [
     '',
-    '  '.join([20*'=', 7*'=', 8*'=', 27*'=', 14*'=', 7*'=', 7*'=']),
-    '{0:20}  {1:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}'.format(
+    '  '.join([20*'=', 7*'=', 10*'=', 27*'=', 14*'=', 7*'=', 7*'=']),
+    '{0:20}  {1:7}  {2:10}  {3:27}  {4:14}  {5:7}  {6:50}'.format(
         'Name', 'Version', 'Type', 'Subclass', 'Reference', 'Website', 'Notes')
     ]
 lines.append(lines[1])
@@ -45,7 +45,7 @@ for m in registry.get_loaders_metadata(Source):
                 urlnums[url] = max(urlnums.values()) + 1
         urllink = '`{0}`_'.format(string.ascii_letters[urlnums[url]])
 
-    lines.append("{0!r:20}  {1!r:7}  {2:8}  {3:27}  {4:14}  {5:7}  {6:50}"
+    lines.append("{0!r:20}  {1!r:7}  {2:10}  {3:27}  {4:14}  {5:7}  {6:50}"
                  .format(m['name'], m['version'], m['type'], m['subclass'],
                          reflink, urllink, notelink))
 

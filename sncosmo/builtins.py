@@ -9,24 +9,29 @@
 import string
 import tarfile
 import warnings
+import os
 from os.path import join
 
 import numpy as np
 from astropy import wcs, units as u
 from astropy.io import ascii, fits
-from astropy.config import ConfigurationItem
+from astropy.config import ConfigurationItem, get_cache_dir
 from astropy.extern import six
 from astropy.utils import OrderedDict
-from astropy.utils.data import (download_file, get_pkg_data_filename,
-                                get_readable_fileobj)
+from astropy.utils.data import get_pkg_data_filename
 
 from . import registry
 from . import io
+from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
                        SpectralMagSystem, ABMagSystem)
+from . import conf
 
-# Dictionary of urls
+# This module is only imported for its side effects.
+__all__ = []
+
+# Dictionary of urls, used by get_url()
 urls = None
 
 
@@ -43,7 +48,69 @@ def get_url(name, version=None):
         f.close()
 
     key = name if (version is None) else "{0}_v{1}".format(name, version)
+
     return urls[key]
+
+
+def get_data_dir():
+    """Return the full path to the data directory, ensuring that it exists.
+
+    If the 'data_dir' configuration parameter is set, checks that it exists
+    and returns it (doesn't automatically create it).
+
+    Otherwise, uses `(astropy cache dir)/sncosmo` (automatically created if
+    it doesn't exist)."""
+    if conf.data_dir is not None:
+        if os.path.isdir(conf.data_dir):
+            return conf.data_dir
+        else:
+            raise RuntimeError(
+                "data directory {0!r} not an existing directory"
+                .format(conf.data_dir))
+    else:
+        data_dir = join(get_cache_dir(), "sncosmo")
+        if not os.path.isdir(data_dir):
+            if os.path.exists(data_dir):
+                raise RuntimeError("{0} not a directory".format(data_dir))
+            else:
+                os.mkdir(data_dir)
+        return data_dir
+
+
+def get_abspath(relpath, name, version=None):
+    """Return the absolute path to a sncosmo data file, ensuring that
+    it exists (file will be downloaded if needed).
+
+    Parameters
+    ----------
+    relpath : str
+        Relative path; data directory will be appended.
+    name : str
+        Name of built-in, used to look up URL if needed.
+    version : str
+        Version of built-in, used to look up URL if needed.
+    """
+
+    abspath = join(get_data_dir(), relpath)
+
+    if not os.path.exists(abspath):
+        url = get_url(name, version)
+
+        # If it's a tar file, download and unpack a directory.
+        if url.endswith(".tar.gz") or url.endswith(".tar"):
+            dirname = os.path.dirname(abspath)
+            download_dir(url, dirname)
+
+            # ensure that tarfile unpacked into the expected directory
+            if not os.path.exists(abspath):
+                raise RuntimeError("Tarfile not unpacked into expected "
+                                   "subdirectory. Please file an issue.")
+
+        # Otherwise, its a single file.
+        else:
+            download_file(url, abspath)
+
+    return abspath
 
 
 def load_bandpass_angstroms(pkg_data_name, name=None):
@@ -70,18 +137,15 @@ def tophat_bandpass(ctr, width, name=None):
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
 
 
-def load_timeseries_ascii(name=None, version=None):
-    remote_url = get_url(name, version)
-    with get_readable_fileobj(remote_url, cache=True) as f:
-        phases, wavelengths, flux = io.read_griddata_ascii(f)
-    return TimeSeriesSource(phases, wavelengths, flux,
-                            name=name, version=version)
+def load_timeseries_ascii(relpath, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    phase, wave, flux = io.read_griddata_ascii(abspath)
+    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
 
-def load_timeseries_fits(name=None, version=None):
-    remote_url = get_url(name, version)
-    fn = download_file(remote_url, cache=True)
-    phase, wave, flux = io.read_griddata_fits(fn)
+def load_timeseries_fits(relpath, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    phase, wave, flux = io.read_griddata_fits(abspath)
     return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
 
@@ -91,54 +155,25 @@ def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
     return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
 
-def load_salt2model(topdir, name=None, version=None):
-    remote_url = get_url(name, version)
-    fn = download_file(remote_url, cache=True)
-    t = tarfile.open(fn, 'r:gz')
-
-    errscalefn = join(topdir, 'salt2_spec_dispersion_scaling.dat')
-    if errscalefn in t.getnames():
-        errscalefile = t.extractfile(errscalefn)
-    else:
-        errscalefile = None
-
-    model = SALT2Source(
-        m0file=t.extractfile(join(topdir, 'salt2_template_0.dat')),
-        m1file=t.extractfile(join(topdir, 'salt2_template_1.dat')),
-        clfile=t.extractfile(join(topdir, 'salt2_color_correction.dat')),
-        cdfile=t.extractfile(join(topdir, 'salt2_color_dispersion.dat')),
-        errscalefile=t.extractfile(
-            join(topdir, 'salt2_lc_dispersion_scaling.dat')),
-        lcrv00file=t.extractfile(
-            join(topdir, 'salt2_lc_relative_variance_0.dat')),
-        lcrv11file=t.extractfile(
-            join(topdir, 'salt2_lc_relative_variance_1.dat')),
-        lcrv01file=t.extractfile(
-            join(topdir, 'salt2_lc_relative_covariance_01.dat')),
-        name=name,
-        version=version)
-
-    t.close()
-
-    return model
+def load_salt2model(relpath, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    return SALT2Source(modeldir=abspath)
 
 
-def load_2011fe(name=None, version=None):
-
-    remote_url = get_url(name, version)
+def load_2011fe(relpath, name=None, version=None):
 
     # filter warnings about RADESYS keyword in files
     warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
                             append=True)
 
-    tarfname = download_file(remote_url, cache=True)
-    t = tarfile.open(tarfname, 'r:gz')
+    abspath = get_abspath(relpath, name, version=version)
+
     phasestrs = []
     spectra = []
     disp = None
-    for fname in t.getnames():
+    for fname in os.listdir(abspath):
         if fname[-4:] == '.fit':
-            hdulist = fits.open(t.extractfile(fname))
+            hdulist = fits.open(join(abspath, fname))
             flux_density = hdulist[0].data
             phasestrs.append(fname[-8:-4])  # like 'P167' or 'M167'
             spectra.append(flux_density)
@@ -184,10 +219,9 @@ def load_ab(name=None):
     return ABMagSystem(name=name)
 
 
-def load_spectral_magsys_fits(name=None):
-    remote_url = get_url(name)
-    fn = download_file(remote_url, cache=True)
-    hdulist = fits.open(fn)
+def load_spectral_magsys_fits(relpath, name=None):
+    abspath = get_abspath(relpath, name)
+    hdulist = fits.open(abspath)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
@@ -373,19 +407,21 @@ l05ref = ('L05', 'Levan et al. 2005 '
           '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>')
 g99ref = ('G99', 'Gilliland, Nugent & Phillips 1999 '
           '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>')
-for name, ver, sntype, ref in [('nugent-sn1a', '1.2', 'SN Ia', n02ref),
-                               ('nugent-sn91t', '1.1', 'SN Ia', s04ref),
-                               ('nugent-sn91bg', '1.1', 'SN Ia', n02ref),
-                               ('nugent-sn1bc', '1.1', 'SN Ib/c', l05ref),
-                               ('nugent-hyper', '1.2', 'SN Ib/c', l05ref),
-                               ('nugent-sn2p', '1.2', 'SN IIP', g99ref),
-                               ('nugent-sn2l', '1.2', 'SN IIL', g99ref),
-                               ('nugent-sn2n', '2.1', 'SN IIn', g99ref)]:
+
+for suffix, ver, sntype, ref in [('sn1a', '1.2', 'SN Ia', n02ref),
+                                 ('sn91t', '1.1', 'SN Ia', s04ref),
+                                 ('sn91bg', '1.1', 'SN Ia', n02ref),
+                                 ('sn1bc', '1.1', 'SN Ib/c', l05ref),
+                                 ('hyper', '1.2', 'SN Ib/c', l05ref),
+                                 ('sn2p', '1.2', 'SN IIP', g99ref),
+                                 ('sn2l', '1.2', 'SN IIL', g99ref),
+                                 ('sn2n', '2.1', 'SN IIn', g99ref)]:
+    name = "nugent-" + suffix
+    relpath = "models/nugent/{0}_flux.v{1}.dat".format(suffix, ver)
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             version=ver,
+                             args=[relpath], version=ver,
                              meta={'url': website, 'type': sntype,
                                    'subclass': subclass, 'reference': ref})
-
 
 # Sako et al 2011 models
 ref = ('S11', 'Sako et al. 2011 '
@@ -394,19 +430,19 @@ website = 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/'
 subclass = '`~sncosmo.TimeSeriesSource`'
 note = "extracted from SNANA's SNDATA_ROOT on 29 March 2013."
 
-for name, sntype in [('s11-2004hx', 'SN IIL/P'),
-                     ('s11-2005lc', 'SN IIP'),
-                     ('s11-2005hl', 'SN Ib'),
-                     ('s11-2005hm', 'SN Ib'),
-                     ('s11-2005gi', 'SN IIP'),
-                     ('s11-2006fo', 'SN Ic'),
-                     ('s11-2006jo', 'SN Ib'),
-                     ('s11-2006jl', 'SN IIP')]:
+for name, sntype, fn in [('s11-2004hx', 'SN IIL/P', 'S11_SDSS-000018.SED'),
+                         ('s11-2005lc', 'SN IIP', 'S11_SDSS-001472.SED'),
+                         ('s11-2005hl', 'SN Ib', 'S11_SDSS-002000.SED'),
+                         ('s11-2005hm', 'SN Ib', 'S11_SDSS-002744.SED'),
+                         ('s11-2005gi', 'SN IIP', 'S11_SDSS-003818.SED'),
+                         ('s11-2006fo', 'SN Ic', 'S11_SDSS-013195.SED'),
+                         ('s11-2006jo', 'SN Ib', 'S11_SDSS-014492.SED'),
+                         ('s11-2006jl', 'SN IIP', 'S11_SDSS-014599.SED')]:
     meta = {'url': website, 'type': sntype, 'subclass': subclass,
             'reference': ref, 'note': note}
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             version='1.0', meta=meta)
-
+                             args=['models/sako/' + fn], version='1.0',
+                             meta=meta)
 
 # Hsiao models
 meta = {'url': 'http://csp.obs.carnegiescience.edu/data/snpy',
@@ -415,16 +451,18 @@ meta = {'url': 'http://csp.obs.carnegiescience.edu/data/snpy',
         'reference': ('H07', 'Hsiao et al. 2007 '
                       '<http://adsabs.harvard.edu/abs/2007ApJ...663.1187H>'),
         'note': 'extracted from the SNooPy package on 21 Dec 2012.'}
-for version in ['1.0', '2.0', '3.0']:
+for version, fn in [('1.0', 'Hsiao_SED.fits'),
+                    ('2.0', 'Hsiao_SED_V2.fits'),
+                    ('3.0', 'Hsiao_SED_V3.fits')]:
     registry.register_loader(Source, 'hsiao', load_timeseries_fits,
-                             version=version, meta=meta)
+                             args=['models/hsiao/' + fn], version=version,
+                             meta=meta)
 
 # subsampled version of Hsiao v3.0, for testing purposes.
 registry.register_loader(Source, 'hsiao-subsampled',
                          load_timeseries_fits_local,
                          args=['data/models/Hsiao_SED_V3_subsampled.fits'],
                          version='3.0', meta=meta)
-
 
 # SALT2 models
 website = 'http://supernovae.in2p3.fr/salt/doku.php?id=salt_templates'
@@ -440,9 +478,9 @@ for topdir, ver, ref in [('salt2', '1.0', g07ref),
                          ('salt2-4', '2.4', b14ref)]:
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
             'url': website, 'reference': ref}
-    registry.register_loader(Source, 'salt2', load_salt2model, args=[topdir],
+    registry.register_loader(Source, 'salt2', load_salt2model,
+                             args=['models/salt2/'+topdir],
                              version=ver, meta=meta)
-
 
 # SALT2 extended
 meta = {'type': 'SN Ia',
@@ -450,9 +488,8 @@ meta = {'type': 'SN Ia',
         'url': 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/',
         'note': "extracted from SNANA's SNDATA_ROOT on 15 August 2013."}
 registry.register_loader(Source, 'salt2-extended', load_salt2model,
-                         args=['salt2_extended'], version='1.0',
+                         args=['models/snana/salt2_extended'], version='1.0',
                          meta=meta)
-
 
 # 2011fe
 meta = {'type': 'SN Ia',
@@ -460,8 +497,8 @@ meta = {'type': 'SN Ia',
         'url': 'http://snfactory.lbl.gov/snf/data',
         'reference': ('P13', 'Pereira et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')}
-registry.register_loader(Source, '2011fe', load_2011fe, version='1.0',
-                         meta=meta)
+registry.register_loader(Source, 'snf-2011fe', load_2011fe, version='1.0',
+                         args=['models/snf/SN2011fe'], meta=meta)
 
 
 # SNANA CC SN models
@@ -470,52 +507,56 @@ subclass = '`~sncosmo.TimeSeriesSource`'
 ref = ('SNANA', 'Kessler et al. 2009 '
        '<http://adsabs.harvard.edu/abs/2009PASP..121.1028K>')
 note = "extracted from SNANA's SNDATA_ROOT on 5 August 2014."
-for name, sntype in [('snana-2004fe', 'SN Ic'),
-                     ('snana-2004gq', 'SN Ic'),
-                     ('snana-sdss004012', 'SN Ic'),  # no IAU ID
-                     ('snana-2006fo', 'SN Ic'),      # sdss013195 PSNID
-                     ('snana-sdss014475', 'SN Ic'),  # no IAU ID
-                     ('snana-2006lc', 'SN Ic'),      # sdss015475
-                     ('snana-2007ms', 'SN II-pec'),  # sdss017458 (Ic in SNANA)
-                     ('snana-04D1la', 'SN Ic'),
-                     ('snana-04D4jv', 'SN Ic'),
-                     ('snana-2004gv', 'SN Ib'),
-                     ('snana-2006ep', 'SN Ib'),
-                     ('snana-2007Y', 'SN Ib'),
-                     ('snana-2004ib', 'SN Ib'),   # sdss000020
-                     ('snana-2005hm', 'SN Ib'),   # sdss002744 PSNID
-                     ('snana-2006jo', 'SN Ib'),   # sdss014492 PSNID
-                     ('snana-2007nc', 'SN Ib'),   # sdss019323
-                     ('snana-2004hx', 'SN IIP'),  # sdss000018 PSNID
-                     ('snana-2005gi', 'SN IIP'),  # sdss003818 PSNID
-                     ('snana-2006gq', 'SN IIP'),  # sdss013376
-                     ('snana-2006kn', 'SN IIP'),  # sdss014450
-                     ('snana-2006jl', 'SN IIP'),  # sdss014599 PSNID
-                     ('snana-2006iw', 'SN IIP'),  # sdss015031
-                     ('snana-2006kv', 'SN IIP'),  # sdss015320
-                     ('snana-2006ns', 'SN IIP'),  # sdss015339
-                     ('snana-2007iz', 'SN IIP'),  # sdss017564
-                     ('snana-2007nr', 'SN IIP'),  # sdss017862
-                     ('snana-2007kw', 'SN IIP'),  # sdss018109
-                     ('snana-2007ky', 'SN IIP'),  # sdss018297
-                     ('snana-2007lj', 'SN IIP'),  # sdss018408
-                     ('snana-2007lb', 'SN IIP'),  # sdss018441
-                     ('snana-2007ll', 'SN IIP'),  # sdss018457
-                     ('snana-2007nw', 'SN IIP'),  # sdss018590
-                     ('snana-2007ld', 'SN IIP'),  # sdss018596
-                     ('snana-2007md', 'SN IIP'),  # sdss018700
-                     ('snana-2007lz', 'SN IIP'),  # sdss018713
-                     ('snana-2007lx', 'SN IIP'),  # sdss018734
-                     ('snana-2007og', 'SN IIP'),  # sdss018793
-                     ('snana-2007ny', 'SN IIP'),  # sdss018834
-                     ('snana-2007nv', 'SN IIP'),  # sdss018892
-                     ('snana-2007pg', 'SN IIP'),  # sdss020038
-                     ('snana-2006ez', 'SN IIn'),  # sdss012842
-                     ('snana-2006ix', 'SN IIn')]:  # sdss013449
+
+# 'PSNID' denotes that model is used in PSNID.
+models = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
+          ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
+          ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),  # no IAU name
+          ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
+          ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU name
+          ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
+          ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),  # type Ic in SNANA
+          ('snana-04d1la', 'SN Ic', 'SNLS-04D1la.SED'),
+          ('snana-04d4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
+          ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
+          ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
+          ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
+          ('snana-2004ib', 'SN Ib', 'SDSS-000020.SED'),
+          ('snana-2005hm', 'SN Ib', 'SDSS-002744.SED'),  # PSNID
+          ('snana-2006jo', 'SN Ib', 'SDSS-014492.SED'),  # PSNID
+          ('snana-2007nc', 'SN Ib', 'SDSS-019323.SED'),
+          ('snana-2004hx', 'SN IIP', 'SDSS-000018.SED'),  # PSNID
+          ('snana-2005gi', 'SN IIP', 'SDSS-003818.SED'),  # PSNID
+          ('snana-2006gq', 'SN IIP', 'SDSS-013376.SED'),
+          ('snana-2006kn', 'SN IIP', 'SDSS-014450.SED'),
+          ('snana-2006jl', 'SN IIP', 'SDSS-014599.SED'),  # PSNID
+          ('snana-2006iw', 'SN IIP', 'SDSS-015031.SED'),
+          ('snana-2006kv', 'SN IIP', 'SDSS-015320.SED'),
+          ('snana-2006ns', 'SN IIP', 'SDSS-015339.SED'),
+          ('snana-2007iz', 'SN IIP', 'SDSS-017564.SED'),
+          ('snana-2007nr', 'SN IIP', 'SDSS-017862.SED'),
+          ('snana-2007kw', 'SN IIP', 'SDSS-018109.SED'),
+          ('snana-2007ky', 'SN IIP', 'SDSS-018297.SED'),
+          ('snana-2007lj', 'SN IIP', 'SDSS-018408.SED'),
+          ('snana-2007lb', 'SN IIP', 'SDSS-018441.SED'),
+          ('snana-2007ll', 'SN IIP', 'SDSS-018457.SED'),
+          ('snana-2007nw', 'SN IIP', 'SDSS-018590.SED'),
+          ('snana-2007ld', 'SN IIP', 'SDSS-018596.SED'),
+          ('snana-2007md', 'SN IIP', 'SDSS-018700.SED'),
+          ('snana-2007lz', 'SN IIP', 'SDSS-018713.SED'),
+          ('snana-2007lx', 'SN IIP', 'SDSS-018734.SED'),
+          ('snana-2007og', 'SN IIP', 'SDSS-018793.SED'),
+          ('snana-2007ny', 'SN IIP', 'SDSS-018834.SED'),
+          ('snana-2007nv', 'SN IIP', 'SDSS-018892.SED'),
+          ('snana-2007pg', 'SN IIP', 'SDSS-020038.SED'),
+          ('snana-2006ez', 'SN IIn', 'SDSS-012842.SED'),
+          ('snana-2006ix', 'SN IIn', 'SDSS-013449.SED')]
+for name, sntype, fn in models:
+    relpath = 'models/snana/' + fn
     meta = {'url': url, 'subclass': subclass, 'type': sntype, 'ref': ref,
             'note': note}
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             version='1.0', meta=meta)
+                             args=[relpath], version='1.0', meta=meta)
 
 
 # Pop III CC SN models from D.Whalen et al. 2013.
@@ -525,10 +566,17 @@ meta = {'type': 'PopIII',
                       'Whalen et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013ApJ...768...95W>'),
         'note': "private communication (D.Whalen, May 2014)."}
-for name in ['whalen-z15b', 'whalen-z15d', 'whalen-z15g', 'whalen-z25b',
-             'whalen-z25d', 'whalen-z25g', 'whalen-z40b', 'whalen-z40g']:
+for name, fn in [('whalen-z15b', 'popIII-z15B.sed.restframe10pc.dat'),
+                 ('whalen-z15d', 'popIII-z15D.sed.restframe10pc.dat'),
+                 ('whalen-z15g', 'popIII-z15G.sed.restframe10pc.dat'),
+                 ('whalen-z25b', 'popIII-z25B.sed.restframe10pc.dat'),
+                 ('whalen-z25d', 'popIII-z25D.sed.restframe10pc.dat'),
+                 ('whalen-z25g', 'popIII-z25G.sed.restframe10pc.dat'),
+                 ('whalen-z40b', 'popIII-z40B.sed.restframe10pc.dat'),
+                 ('whalen-z40g', 'popIII-z40G.sed.restframe10pc.dat')]:
+    relpath = 'models/whalen/' + fn
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             version='1.0', meta=meta)
+                             args=[relpath], version='1.0', meta=meta)
 
 
 # =============================================================================
@@ -545,7 +593,9 @@ website = 'ftp://ftp.stsci.edu/cdbs/calspec/'
 subclass = '`~sncosmo.SpectralMagSystem`'
 vega_desc = 'Vega (alpha lyrae) has magnitude 0 in all bands.'
 bd17_desc = 'BD+17d4708 has magnitude 0 in all bands.'
-for name, desc in [('vega', vega_desc), ('bd17', bd17_desc)]:
+for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
+                       ('bd17', 'bd_17d4708_stisnic_005.fits', bd17_desc)]:
     registry.register_loader(MagSystem, name, load_spectral_magsys_fits,
+                             args=['spectra/' + fn],
                              meta={'subclass': subclass, 'url': website,
                                    'description': desc})

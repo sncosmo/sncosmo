@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+import os
+import sys
 import math
 
 import numpy as np
@@ -188,3 +192,146 @@ def weightedcov(x, w):
     cov = wsum / (wsum**2 - w2sum) * np.einsum('i,ij,ik', w, xd, xd)
 
     return xmean, cov
+
+
+def _download_file(remote_url, target):
+    """
+    Accepts a URL, downloads the file to a given open file object.
+
+    This is a modified version of astropy.utils.data.download_file that
+    downloads to an open file object instead of a cache directory.
+    """
+
+    from contextlib import closing
+    from six.moves.urllib.request import urlopen, Request
+    from six.moves.urllib.error import URLError
+    from astropy.utils.console import ProgressBarOrSpinner
+    from astropy.utils.data import conf
+
+    timeout = conf.remote_timeout
+
+    try:
+        # Pretend to be a web browser (IE 6.0). Some servers that we download
+        # from forbid access from programs.
+        headers = {'User-Agent': 'Mozilla/5.0',
+                   'Accept': ('text/html,application/xhtml+xml,'
+                              'application/xml;q=0.9,*/*;q=0.8')}
+        req = Request(remote_url, headers=headers)
+        with closing(urlopen(req, timeout=timeout)) as remote:
+
+            # get size of remote if available (for use in progress bar)
+            info = remote.info()
+            size = None
+            if 'Content-Length' in info:
+                try:
+                    size = int(info['Content-Length'])
+                except ValueError:
+                    pass
+
+            dlmsg = "Downloading {0}".format(remote_url)
+            with ProgressBarOrSpinner(size, dlmsg) as p:
+                bytes_read = 0
+                block = remote.read(conf.download_block_size)
+                while block:
+                    target.write(block)
+                    bytes_read += len(block)
+                    p.update(bytes_read)
+                    block = remote.read(conf.download_block_size)
+
+    # Append a more informative error message to URLErrors.
+    except URLError as e:
+        append_msg = (hasattr(e, 'reason') and hasattr(e.reason, 'errno') and
+                      e.reason.errno == 8)
+        if append_msg:
+            msg = "{0}. requested URL: {1}".format(e.reason.strerror,
+                                                   remote_url)
+            e.reason.strerror = msg
+            e.reason.args = (e.reason.errno, msg)
+        raise e
+
+    # This isn't supposed to happen, but occasionally a socket.timeout gets
+    # through.  It's supposed to be caught in `urrlib2` and raised in this
+    # way, but for some reason in mysterious circumstances it doesn't. So
+    # we'll just re-raise it here instead.
+    except socket.timeout as e:
+        raise URLError(e)
+
+
+def download_file(remote_url, local_name):
+    """
+    Download a remote file to local path, unzipping if the URL ends in '.gz'.
+
+    Parameters
+    ----------
+    remote_url : str
+        The URL of the file to download
+
+    local_name : str
+        Absolute path filename of target file.
+
+    Raises
+    ------
+    URLError (from urllib2 on PY2, urllib.request on PY3)
+        Whenever there's a problem getting the remote file.
+    """
+
+    # ensure target directory exists
+    dn = os.path.dirname(local_name)
+    if not os.path.exists(dn):
+        os.makedirs(dn)
+
+    if remote_url.endswith(".gz"):
+        import io
+        from astropy.utils.compat import gzip
+
+        buf = io.BytesIO()
+        _download_file(remote_url, buf)
+        buf.seek(0)
+        f = gzip.GzipFile(fileobj=buf, mode='rb')
+
+        with open(local_name, 'wb') as target:
+            target.write(f.read())
+        f.close()
+
+    else:
+        with open(local_name, 'wb') as target:
+            _download_file(remote_url, target)
+
+
+def download_dir(remote_url, dirname):
+    """
+    Download a remote tar file to a local directory.
+
+    Parameters
+    ----------
+    remote_url : str
+        The URL of the file to download
+
+    dirname : str
+        Directory in which to place contents of tarfile. Created if it
+        doesn't exist.
+
+    Raises
+    ------
+    URLError (from urllib2 on PY2, urllib.request on PY3)
+        Whenever there's a problem getting the remote file.
+    """
+
+    import io
+    import tarfile
+
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    mode = 'r:gz' if remote_url.endswith(".gz") else None
+
+    # download file to buffer
+    buf = io.BytesIO()
+    _download_file(remote_url, buf)
+    buf.seek(0)
+
+    # create a tarfile with the buffer and extract
+    tf = tarfile.open(fileobj=buf, mode=mode)
+    tf.extractall(path=dirname)
+    tf.close()
+    buf.close()  # buf not closed when tf is closed.
