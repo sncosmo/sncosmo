@@ -55,7 +55,12 @@ sncosmo knows about.
 	  remotely, downloaded as needed, and cached locally. So the
 	  first time you load a given model, you need to be connected
 	  to the internet.  You will see a progress bar as the data
-	  are downloaded.
+	  are downloaded.  By default, SNCosmo will use a subdirectory
+	  of the AstroPy cache directory for this purpose, e.g.,
+	  ``$HOME/.astropy/cache/sncosmo``, but this can be changed
+	  by setting the ``data_dir`` configuration parameter in 
+          ``$HOME/.astropy/config/sncosmo.cfg``.  See :doc:`configuration`
+	  for more information.
 
 Some built-in source models have multiple versions, which can
 be explicitly retrieved using the `~sncosmo.get_source` function:

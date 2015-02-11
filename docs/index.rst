@@ -51,4 +51,5 @@ Usage
    cuts
    simulation
    registry
+   configuration
    reference
