@@ -1019,7 +1019,6 @@ class Model(_ModelBase):
                                            effect_frames):
                 self.add_effect(effect, name, frame)
 
-    # TODO: Check if PropagationEffect covers complete range of model
     def add_effect(self, effect, name, frame):
         """
         Add a PropagationEffect to the model.

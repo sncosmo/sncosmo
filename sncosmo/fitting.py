@@ -478,12 +478,14 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                      errors=errors,
                      cov_names=vparam_names)
 
-        # TODO remove cov_names in v0.6
+        # cov_names deprecated in v1.0.
+        # TODO remove cov_names in a future release.
 
     else:
         raise ValueError("unknown method {0:r}".format(method))
 
-    # TODO remove this in v0.6
+    # Deprecated in v1.0
+    # TODO remove this in a future release.
     if "flatten" in kwargs:
         warnings.warn("flatten keyword is deprecated. Use flatten_result()"
                       "function instead.")
@@ -737,7 +739,8 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     res.covariance = cov
     res.errors = np.sqrt(np.diagonal(cov))
 
-    # backwards compatibility. TODO remove these in a future release.
+    # backwards compatibility; deprecated in v1.0.
+    # TODO remove these in a future release.
     res.param_names = res.vparam_names
     res.param_dict = odict(zip(model.param_names, model.parameters))
 

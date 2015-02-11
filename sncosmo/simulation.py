@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import sys
 import math
-from copy import deepcopy
+import copy
 
 import numpy as np
 from numpy import random
@@ -153,7 +153,8 @@ def realize_lcs(observations, model, params, thresh=None,
     RESULT_COLNAMES = ('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys')
     lcs = []
 
-    # TODO: copy model so we don't mess up the user's model?
+    # Copy model so we don't mess up the user's model.
+    model = copy.copy(model)
 
     # get underlying numpy structured array (if astropy.Table)
     observations = np.asarray(observations)

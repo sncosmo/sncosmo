@@ -14,7 +14,7 @@ from .spectral import get_bandpass, get_magsystem
 from .photdata import standardize_data, normalize_data
 from .utils import format_value
 
-__all__ = ['plot_lc', 'animate_source', 'animate_model']
+__all__ = ['plot_lc', 'animate_source']
 
 _model_ls = ['-', '--', ':', '-.']
 _cmap_wavelims = (3000., 10000.)
@@ -596,6 +596,3 @@ def animate_source(source, label=None, fps=30, length=20.,
         plt.close()
     else:
         return ani
-
-# TODO This is for backwards compatibility only
-animate_model = animate_source
