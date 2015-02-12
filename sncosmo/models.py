@@ -351,12 +351,12 @@ class Source(_ModelBase):
 
         Parameters
         ----------
-        phase : float or list_like
-            Phase(s) in days.
         band : str or list_like
             Name(s) of bandpass in registry.
         magsys : str or list_like
             Name(s) of `~sncosmo.MagSystem` in registry.
+        phase : float or list_like
+            Phase(s) in days.
 
         Returns
         -------
@@ -1361,12 +1361,12 @@ class Model(_ModelBase):
 
         Parameters
         ----------
-        time : float or list_like
-            Observer-frame time(s) in days.
         band : str or list_like
             Name(s) of bandpass in registry.
         magsys : str or list_like
             Name(s) of `~sncosmo.MagSystem` in registry.
+        time : float or list_like
+            Observer-frame time(s) in days.
 
         Returns
         -------
