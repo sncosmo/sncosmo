@@ -47,9 +47,12 @@ class TestFitting:
 
     def test_fit_lc(self):
         """Ensure that fit results match input model parameters (data are
-        noise-free)."""
+        noise-free).
+
+        Pass in parameter names in order different from that stored in
+        model; tests parameter re-ordering."""
         res, fitmodel = sncosmo.fit_lc(self.data, self.model,
-                                       ['z', 't0', 'amplitude'],
+                                       ['amplitude', 'z', 't0'],
                                        bounds={'z': (0., 1.0)})
 
         # set model to true parameters and compare to fit results.
@@ -70,14 +73,18 @@ class TestFitting:
             res, fitmodel = sncosmo.fit_lc(self.data, self.model, [])
 
     def test_nest_lc(self):
-        """Ensure that nested sampling runs."""
+        """Ensure that nested sampling runs.
+
+        Pass in parameter names in order different from that stored in
+        model; tests parameter re-ordering.
+        """
 
         np.random.seed(0)  # seed the RNG for reproducible results.
 
         self.model.set(**self.params)
 
         res, fitmodel = sncosmo.nest_lc(
-            self.data, self.model, ['z', 't0', 'amplitude'],
+            self.data, self.model, ['amplitude', 'z', 't0'],
             bounds={'z': (0., 1.0)}, guess_amplitude_bound=True, nobj=50)
 
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
