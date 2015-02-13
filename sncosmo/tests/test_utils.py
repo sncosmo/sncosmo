@@ -16,8 +16,12 @@ def test_format_value():
 
 
 def test_ppf():
-    # test a flat prior between 0 and 10
-    prior = lambda x: 1.
+    """Test the ppf function."""
+
+    # Flat prior between 0 and 10
+    def prior(x):
+        return 1.
+
     x = np.array([0.1, 0.2, 0.9, 0.9999])
     y = utils.ppf(prior, x, 0., 10.)
     assert_allclose(y, [1., 2., 9., 9.999])
