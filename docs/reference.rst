@@ -64,7 +64,8 @@ Magnitude Systems
 I/O
 ===
 
-*Functions for reading and writing photometric data, gridded data, extinction maps, and more.*
+*Functions for reading and writing photometric data, gridded data, extinction
+maps, and more.*
 
 .. autosummary::
    :toctree: api
@@ -94,8 +95,8 @@ Fitting Photometric Data
    :toctree: api
 
    fit_lc
-   nest_lc
    mcmc_lc
+   nest_lc
    chisq
    flatten_result
 

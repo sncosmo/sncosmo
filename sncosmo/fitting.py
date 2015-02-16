@@ -607,7 +607,9 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     Parameters
     ----------
     data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
-        Table of photometric data. Must include certain column names.
+        Table of photometric data. Must include certain columns.
+        See the "Photometric Data" section of the documentation for
+        required columns.
     model : `~sncosmo.Model`
         The model to fit.
     vparam_names : list
@@ -726,9 +728,9 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     if 't0' in vparam_names and 't0' not in bounds:
         bounds['t0'] = t0_bounds(data, model)
 
-    res = _nest_lc(data, model, vparam_names, modelcov=modelcov, bounds=bounds,
-                   priors=priors, ppfs=ppfs, nobj=nobj, maxiter=maxiter,
-                   maxcall=maxcall, verbose=verbose)
+    res = _nest_lc(data, model, vparam_names, modelcov=modelcov,
+                   bounds=bounds, priors=priors, ppfs=ppfs, nobj=nobj,
+                   maxiter=maxiter, maxcall=maxcall, verbose=verbose)
 
     res.bounds = bounds
 
@@ -738,7 +740,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     model.set(**dict(zip(vparam_names, vparameters)))
     res.parameters = model.parameters.copy()
     res.covariance = cov
-    res.errors = np.sqrt(np.diagonal(cov))
+    res.errors = odict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
 
     # backwards compatibility; deprecated in v1.0.
     # TODO remove these in a future release.
@@ -748,46 +750,97 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     return res, model
 
 
-def mcmc_lc(data, model, vparam_names, errors, bounds=None, nwalkers=10,
-            nburn=100, nsamples=500, verbose=False):
+def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
+            guess_amplitude=True, guess_t0=True, guess_z=True,
+            minsnr=5., modelcov=False, nwalkers=10, nburn=200,
+            nsamples=1000, thin=1, a=2.0):
     """Run an MCMC chain to get model parameter samples.
 
-    This is a convenience function around emcee.EnsembleSampler.
-    It defines the likelihood function and starting point and runs
-    the sampler, starting with a burn-in run.
+    This is a convenience function around `emcee.EnsembleSampler`.
+    It defines the likelihood function and makes a heuristic guess at a
+    good set of starting points for the walkers. It then runs the sampler,
+    starting with a burn-in run.
 
-    .. warning::
-
-        This function is experimental and may change or be removed in future
-        versions.
+    If you're not getting good results, you might want to try
+    increasing the burn-in, increasing the walkers, or specifying a
+    better starting position.  To get a better starting position, you
+    could first run `~sncosmo.fit_lc`, then run this function with all
+    ``guess_[name]`` keyword arguments set to False, so that the
+    current model parameters are used as the starting point.
 
     Parameters
     ----------
-    data : `~numpy.ndarray` or `dict` of list_like
-        Table of photometric data. Must include certain column names.
+    data : `~astropy.table.Table` or `~numpy.ndarray` or `dict`
+        Table of photometric data. Must include certain columns.
+        See the "Photometric Data" section of the documentation for
+        required columns.
     model : `~sncosmo.Model`
         The model to fit.
     vparam_names : iterable
         Model parameters to vary.
-    errors : iterable
-        The starting positions of the walkers are randomly selected from a
-        normal distribution in each dimension. The normal distribution is
-        centered around the current model parameters and `errors` gives the
-        standard deviation of the distribution for each parameter.
-    bounds : dict
+    bounds : `dict`, optional
+        Bounded range for each parameter. Keys should be parameter
+        names, values are tuples. If a bound is not given for some
+        parameter, the parameter is unbounded. The exception is
+        ``t0``: by default, the minimum bound is such that the latest
+        phase of the model lines up with the earliest data point and
+        the maximum bound is such that the earliest phase of the model
+        lines up with the latest data point.
+    priors : `dict`, optional
+        Prior probability functions. Keys are parameter names, values are
+        functions that return probability given the parameter value.
+        The default prior is a flat distribution.
+    guess_amplitude : bool, optional
+        Whether or not to guess the amplitude from the data. If false, the
+        current model amplitude is taken as the initial value. Only has an
+        effect when fitting amplitude. Default is True.
+    guess_t0 : bool, optional
+        Whether or not to guess t0. Only has an effect when fitting t0.
+        Default is True.
+    guess_z : bool, optional
+        Whether or not to guess z (redshift). Only has an effect when fitting
+        redshift. Default is True.
+    minsnr : float, optional
+        When guessing amplitude and t0, only use data with signal-to-noise
+        ratio (flux / fluxerr) greater than this value. Default is 5.
+    modelcov : bool, optional
+        Include model covariance when calculating chisq. Default is False.
     nwalkers : int, optional
         Number of walkers in the EnsembleSampler
     nburn : int, optional
         Number of samples in burn-in phase.
     nsamples : int, optional
         Number of samples in production run.
-    verbose : bool, optional
-        Print more.
+    thin : int, optional
+        Factor by which to thin samples in production run. Output samples
+        array will have (nsamples/thin) samples.
+    a : float, optional
+        Proposal scale parameter passed to the EnsembleSampler.
 
     Returns
     -------
-    samples : `~numpy.ndarray` (nsamples * nwalkers, ndim)
-        Samples
+    res : Result
+        Has the following attributes:
+
+        * ``param_names``: All parameter names of model, including fixed.
+        * ``parameters``: Model parameters, with varied parameters set to
+          mean value in samples.
+        * ``vparam_names``: Names of parameters varied. Order of parameters
+          matches order of samples.
+        * ``samples``: 2-d array with shape ``(N, len(vparam_names))``.
+          Order of parameters in each row  matches order in
+          ``res.vparam_names``.
+        * ``covariance``: 2-d array giving covariance, measured from samples.
+          Order corresponds to ``res.vparam_names``.
+        * ``errors``: dictionary giving square root of diagonal of covariance
+          matrix for varied parameters. Useful for ``plot_lc``.
+        * ``mean_acceptance_fraction``: mean acceptance fraction for all
+          walkers in the sampler.
+
+    est_model : `~sncosmo.Model`
+        Copy of input model with varied parameters set to mean value in
+        samples.
+
     """
 
     try:
@@ -795,57 +848,121 @@ def mcmc_lc(data, model, vparam_names, errors, bounds=None, nwalkers=10,
     except:
         raise ImportError("mcmc_lc() requires the emcee package.")
 
+    # Standardize and normalize data.
     data = standardize_data(data)
+    data = normalize_data(data)
+
+    # Make a copy of the model so we can modify it with impunity.
+    model = copy.copy(model)
+
+    if bounds is None:
+        bounds = {}
+    if priors is None:
+        priors = {}
+
+    # Check that vparam_names isn't empty, check for unknown parameters.
+    if len(vparam_names) == 0:
+        raise ValueError("no parameters supplied")
+    for names in (vparam_names, bounds, priors):
+        for name in names:
+            if name not in model.param_names:
+                raise ValueError("Parameter not in model: " + repr(name))
 
     # Order vparam_names the same way it is ordered in the model:
     vparam_names = [s for s in model.param_names if s in vparam_names]
-
     ndim = len(vparam_names)
-    idx = np.array([model.param_names.index(name) for name in vparam_names])
 
-    # Check that z is bounded if it is being varied.
-    if bounds is None:
-        bounds = {}
+    # Check that 'z' is bounded (if it is going to be fit).
     if 'z' in vparam_names:
         if 'z' not in bounds or None in bounds['z']:
-            raise ValueError('z must be bounded if fit.')
+            raise ValueError('z must be bounded if allowed to vary.')
+        if guess_z:
+            model.set(z=sum(bounds['z']) / 2.)
+        if model.get('z') < bounds['z'][0] or model.get('z') > bounds['z'][1]:
+            raise ValueError('z out of range.')
 
-    # Drop data that the model doesn't cover.
+    # Cut bands that are not allowed by the wavelength range of the model.
     data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
-    # Convert bounds indicies to integers
-    bounds_idx = dict([(vparam_names.index(name), bounds[name])
-                       for name in bounds])
+    # Find t0 bounds to use, if not explicitly given
+    if 't0' in vparam_names and 't0' not in bounds:
+        bounds['t0'] = t0_bounds(data, model)
 
-    # define likelihood
-    def loglikelihood(parameters):
+    # Note that in the parameter guessing below, we assume that the source
+    # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
 
-        # If any parameters are out-of-bounds, return 0 probability.
-        for i, b in bounds_idx.items():
-            if not b[0] < parameters[i] < b[1]:
+    # Turn off guessing if we're not fitting the parameter.
+    if model.param_names[2] not in vparam_names:
+        guess_amplitude = False
+    if 't0' not in vparam_names:
+        guess_t0 = False
+
+    # Make guesses for t0 and amplitude.
+    # (we assume amplitude is the 3rd parameter of the model.)
+    if guess_amplitude or guess_t0:
+        t0, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+        if guess_amplitude:
+            model.parameters[2] = amplitude
+        if guess_t0:
+            model.set(t0=t0)
+
+    # Indicies used in probability function.
+    # modelidx: Indicies of model parameters corresponding to vparam_names.
+    # idxbounds: tuples of (varied parameter index, low bound, high bound).
+    # idxpriors: tuples of (varied parameter index, function).
+    modelidx = np.array([model.param_names.index(k) for k in vparam_names])
+    idxbounds = [(vparam_names.index(k), bounds[k][0], bounds[k][1])
+                 for k in bounds]
+    idxpriors = [(vparam_names.index(k), priors[k]) for k in priors]
+
+    # Posterior function.
+    def lnprob(parameters):
+        for i, low, high in idxbounds:
+            if not low < parameters[i] < high:
                 return -np.inf
 
-        model.parameters[idx] = parameters
-        mflux = model.bandflux(data['band'], data['time'],
-                               zp=data['zp'], zpsys=data['zpsys'])
-        chisq = np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
-        return -chisq / 2.
+        model.parameters[modelidx] = parameters
+        logp = -0.5 * _chisq(data, model, modelcov=modelcov)
 
-    # Create sampler
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglikelihood)
+        for i, func in idxpriors:
+            logp += math.log(func(parameters[i]))
 
-    # Starting positions of walkers.
-    current = model.parameters[idx]
-    errors = np.asarray(errors)
-    pos = [current + errors*np.random.randn(ndim) for i in range(nwalkers)]
+        return logp
 
-    # burn-in
-    pos, prob, state = sampler.run_mcmc(pos, nburn)
+    # Heuristic determination of  walker initial positions:
+    # distribute walkers in a symmetric gaussian ball, with heuristically
+    # determined scale.
+    ctr = model.parameters[modelidx]
+    scale = np.ones(ndim)
+    for i, name in enumerate(vparam_names):
+        if name in bounds:
+            scale[i] = 0.0001 * (bounds[name][1] - bounds[name][0])
+        elif model.get(name) != 0.:
+            scale[i] = 0.01 * model.get(name)
+        else:
+            scale[i] = 0.1
+    pos = ctr + scale * np.random.normal(size=(nwalkers, ndim))
+
+    # Run the sampler.
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, a=a)
+    pos, prob, state = sampler.run_mcmc(pos, nburn)  # burn-in
     sampler.reset()
+    sampler.run_mcmc(pos, nsamples, thin=thin)  # production run
+    samples = sampler.flatchain
 
-    # production run
-    sampler.run_mcmc(pos, nsamples)
-    if verbose:
-        print("Avg acceptance fraction:", np.mean(sampler.acceptance_fraction))
+    # Summary statistics.
+    vparameters = np.mean(samples, axis=0)
+    cov = np.cov(samples, rowvar=0)
+    model.set(**dict(zip(vparam_names, vparameters)))
+    errors = odict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
+    mean_acceptance_fraction = np.mean(sampler.acceptance_fraction)
 
-    return sampler.flatchain
+    res = Result(param_names=copy.copy(model.param_names),
+                 parameters=model.parameters.copy(),
+                 vparam_names=vparam_names,
+                 samples=samples,
+                 covariance=cov,
+                 errors=errors,
+                 mean_acceptance_fraction=mean_acceptance_fraction)
+
+    return res, model
