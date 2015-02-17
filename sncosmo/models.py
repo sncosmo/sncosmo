@@ -457,6 +457,10 @@ class TimeSeriesSource(Source):
     flux : `~numpy.ndarray`
         Model spectral flux density in erg / s / cm^2 / Angstrom.
         Must have shape ``(num_phases, num_wave)``.
+    zero_before : bool, optional
+        If True, flux at phases before minimum phase will be zeroed. The
+        default is False, in which case the flux at such phases will be equal
+        to the flux at the minimum phase (``flux[0, :]`` in the input array).
     name : str, optional
         Name of the model. Default is `None`.
     version : str, optional
@@ -466,16 +470,22 @@ class TimeSeriesSource(Source):
     _param_names = ['amplitude']
     param_names_latex = ['A']
 
-    def __init__(self, phase, wave, flux, name=None, version=None):
+    def __init__(self, phase, wave, flux, zero_before=False, name=None,
+                 version=None):
         self.name = name
         self.version = version
         self._phase = phase
         self._wave = wave
         self._parameters = np.array([1.])
         self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
+        self._zero_before = zero_before
 
     def _flux(self, phase, wave):
-        return self._parameters[0] * self._model_flux(phase, wave)
+        f = self._parameters[0] * self._model_flux(phase, wave)
+        if self._zero_before:
+            mask = np.atleast_1d(phase) < self.minphase()
+            f[mask, :] = 0.
+        return f
 
 
 class StretchSource(Source):
