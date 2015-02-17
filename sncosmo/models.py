@@ -475,7 +475,10 @@ class TimeSeriesSource(Source):
         self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
 
     def _flux(self, phase, wave):
-        return self._parameters[0] * self._model_flux(phase, wave)
+        f = self._parameters[0] * self._model_flux(phase, wave)
+        mask = phase < self.minphase()
+        f[mask, :] = 0.
+        return f
 
 
 class StretchSource(Source):
@@ -519,8 +522,11 @@ class StretchSource(Source):
         return self._parameters[1] * self._phase[-1]
 
     def _flux(self, phase, wave):
-        return (self._parameters[0] *
-                self._model_flux(phase / self._parameters[1], wave))
+        f = self._parameters[0] *\
+            self._model_flux(phase / self._parameters[1], wave)
+        mask = phase < self.minphase()
+        f[mask, :] = 0.
+        return f
 
 
 class SALT2Source(Source):
@@ -642,8 +648,11 @@ class SALT2Source(Source):
     def _flux(self, phase, wave):
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)
-        return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
-                self._model['clbase'](wave)**self._parameters[2])
+        f = self._parameters[0] * (m0 + self._parameters[1] * m1) *\
+            self._model['clbase'](wave)**self._parameters[2]
+        mask = phase < self.minphase()
+        f[mask, :] = 0.
+        return f
 
     def _errsnakesq(self, wave, phase):
         """Return the errorsnake squared (model variance) for the given
