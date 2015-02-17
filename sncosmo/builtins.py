@@ -137,10 +137,11 @@ def tophat_bandpass(ctr, width, name=None):
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
 
 
-def load_timeseries_ascii(relpath, name=None, version=None):
+def load_timeseries_ascii(relpath, zero_before=False, name=None, version=None):
     abspath = get_abspath(relpath, name, version=version)
     phase, wave, flux = io.read_griddata_ascii(abspath)
-    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
+    return TimeSeriesSource(phase, wave, flux, name=name, version=version,
+                            zero_before=zero_before)
 
 
 def load_timeseries_fits(relpath, name=None, version=None):
@@ -576,7 +577,7 @@ for name, fn in [('whalen-z15b', 'popIII-z15B.sed.restframe10pc.dat'),
                  ('whalen-z40g', 'popIII-z40G.sed.restframe10pc.dat')]:
     relpath = 'models/whalen/' + fn
     registry.register_loader(Source, name, load_timeseries_ascii,
-                             args=[relpath], version='1.0', meta=meta)
+                             args=[relpath, True], version='1.0', meta=meta)
 
 
 # =============================================================================
