@@ -17,18 +17,13 @@ from .utils import format_value
 __all__ = ['plot_lc', 'animate_source']
 
 _model_ls = ['-', '--', ':', '-.']
-_cmap_wavelims = (3000., 10000.)
-try:
-    from matplotlib import cm
-    _cmap = cm.get_cmap('jet_r')
-except:
-    pass
 
 
-def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
-            xfigsize=None, yfigsize=None, figtext=None, model_label=None,
-            errors=None, ncol=2, figtextsize=1., show_model_params=True,
-            tighten_ylim=False, fname=None, **kwargs):
+def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
+            pulls=True, xfigsize=None, yfigsize=None, figtext=None,
+            model_label=None, errors=None, ncol=2, figtextsize=1.,
+            show_model_params=True, tighten_ylim=False, color=None,
+            cmap=None, cmap_lims=(3000., 10000.), fname=None, **kwargs):
     """Plot light curve data or model light curves.
 
     Parameters
@@ -81,8 +76,21 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     tighten_ylim : bool, optional
         If true, tighten the y limits so that the model is visible (if any
         models are plotted).
-    fname : str, optional
-        Filename to pass to savefig. If `None` (default), figure is returned.
+    color : str or mpl_color, optional
+        Color of data and model lines in each band. Can be any type of color
+        that matplotlib understands. If None (default) a colormap will be used
+        to choose a color for each band according to its central wavelength.
+    cmap : Colormap, optional
+        A matplotlib colormap to use, if color is None. If both color
+        and cmap are None, a default colormap will be used.
+    cmap_lims : (float, float), optional
+        The wavelength limits for the colormap, in Angstroms. Default is
+        (3000., 10000.) meaning that a bandpass with a central wavelength of
+        3000 Angstroms will be assigned a color at the low end of the colormap
+        and a bandpass with a central wavelength of 10000 will be assigned a
+        color at the high end of the colormap.
+   fname : str, optional
+        Filename to pass to savefig. If None (default), figure is returned.
     kwargs : optional
         Any additional keyword args are passed to `~matplotlib.pyplot.savefig`.
         Popular options include ``dpi``, ``format``, ``transparent``. See
@@ -137,6 +145,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     """
 
     from matplotlib import pyplot as plt
+    from matplotlib import cm
     from matplotlib.ticker import MaxNLocator, NullFormatter
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -165,6 +174,11 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
     if len(model_labels) != len(models):
         raise ValueError('if given, length of model_label must match '
                          'that of model')
+
+    # Color options.
+    if color is None:
+        if cmap is None:
+            cmap = cm.get_cmap('jet_r')
 
     # Standardize and normalize data.
     if data is not None:
@@ -282,8 +296,11 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
 
         bandname_coords = (0.92, 0.92)
         bandname_ha = 'right'
-        color = _cmap((_cmap_wavelims[1] - wave) /
-                      (_cmap_wavelims[1] - _cmap_wavelims[0]))
+        if color is None:
+            bandcolor = cmap((cmap_lims[1] - wave) /
+                             (cmap_lims[1] - cmap_lims[0]))
+        else:
+            bandcolor = color
 
         # Plot data if there are any.
         if data is not None:
@@ -292,7 +309,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             flux = data['flux'][mask]
             fluxerr = data['fluxerr'][mask]
             ax.errorbar(time - toff, flux, fluxerr, ls='None',
-                        color=color, marker='.', markersize=3.)
+                        color=bandcolor, marker='.', markersize=3.)
 
         # Plot model(s) if there are any.
         lines = []
@@ -304,14 +321,14 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
                 mflux_ranges.append((mflux.min(), mflux.max()))
                 l, = ax.plot(tgrid - toff, mflux,
                              ls=_model_ls[i % len(_model_ls)],
-                             marker='None', color=color)
+                             marker='None', color=bandcolor)
                 lines.append(l)
             else:
                 # Add a dummy line so the legend displays all models in the
                 # first panel.
                 lines.append(plt.Line2D([0, 1], [0, 1],
                                         ls=_model_ls[i % len(_model_ls)],
-                                        marker='None', color=color))
+                                        marker='None', color=bandcolor))
             labels.append(model_labels[i])
 
         # Add a legend, if this is the first axes and there are two
@@ -355,9 +372,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab', pulls=True,
             mflux = models[0].bandflux(band, time, zp=zp, zpsys=zpsys)
             fluxpulls = (flux - mflux) / fluxerr
             axpulls.axhspan(ymin=-1., ymax=1., color='0.95')
-            axpulls.axhline(y=0., color=color)
+            axpulls.axhline(y=0., color=bandcolor)
             axpulls.plot(time - toff, fluxpulls, marker='.',
-                         markersize=5., color=color, ls='None')
+                         markersize=5., color=bandcolor, ls='None')
 
             # Ensure y range is centered at 0.
             ymin, ymax = axpulls.get_ylim()
