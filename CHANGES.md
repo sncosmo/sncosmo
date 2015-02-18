@@ -1,14 +1,18 @@
-0.5.0 (unreleased)
+1.0.0 (unreleased)
 ------------------
 
 **Enhancements:**
 
+- Many new built-in models.
+- Many new built-in bandpasses.
+- New remote data fetching system. [#73]
 - SALT2 model covariance available via `Model.bandfluxcov()` method and
   `modelcov=True` keyword argument passed to `fit_lc`.
 - New simulation function, `zdist`, generates a distribution of redshifts
   given a volumetric rate function and cosmology.
 - New simulation function, `realize_lcs`, simulates light curve data given a
   model, parameters, and observations.
+- Add color-related keyword arguments to `plot_lc()`.
 - Add `tighten_ylim` keyword argument to `plot_lc()`.
 - Add `chisq()` function and use internally in `fit_lc()`.
 - Add `SFD98Map` class for dealing with SFD (1998) dust maps persistently so
@@ -25,6 +29,9 @@
 - Numerous minor bugfixes.
 
 **API changes:**
+
+- The API of `mcmc_lc` has changed significantly (the function was marked
+  experimental in previous release).
 
 - [DEPRECATION] In result of `fit_lc`, `res.cov_names` changed to
   `res.vparam_names`.  In result of `nest_lc`, `res.param_names` and

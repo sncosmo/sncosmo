@@ -85,11 +85,11 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
         and cmap are None, a default colormap will be used.
     cmap_lims : (float, float), optional
         The wavelength limits for the colormap, in Angstroms. Default is
-        (3000., 10000.) meaning that a bandpass with a central wavelength of
+        (3000., 10000.), meaning that a bandpass with a central wavelength of
         3000 Angstroms will be assigned a color at the low end of the colormap
         and a bandpass with a central wavelength of 10000 will be assigned a
         color at the high end of the colormap.
-   fname : str, optional
+    fname : str, optional
         Filename to pass to savefig. If None (default), figure is returned.
     kwargs : optional
         Any additional keyword args are passed to `~matplotlib.pyplot.savefig`.

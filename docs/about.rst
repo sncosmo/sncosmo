@@ -91,7 +91,7 @@ Version History
 .. toctree::
    :maxdepth: 1
 
-   whatsnew/0.5
+   whatsnew/1.0
    whatsnew/0.4
    whatsnew/0.3
    whatsnew/0.2
