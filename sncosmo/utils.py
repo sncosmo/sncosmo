@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import sys
 import math
+import warnings
 
 import numpy as np
 from scipy import integrate, optimize
@@ -67,7 +68,28 @@ class Result(dict):
     Since this class is essentially a subclass of dict with attribute
     accessors, one can see which attributes are available using the
     `keys()` method.
+
+    Deprecated attributes can be added via, e.g.:
+
+        >>> res = Result(a=1, b=2)
+        >>> res.__dict__['deprecated']['c'] = (2, "Use b instead")
+
     """
+
+    # only necessary for deprecation functionality
+    def __init__(self, *args, **kwargs):
+        self.__dict__['deprecated'] = {}
+        dict.__init__(self, *args, **kwargs)
+
+    # only necessary for deprecation functionality
+    def __getitem__(self, name):
+        try:
+            return dict.__getitem__(self, name)
+        except:
+            val, msg = self.__dict__['deprecated'][name]
+            warnings.warn(msg)
+            return val
+
     def __getattr__(self, name):
         try:
             return self[name]

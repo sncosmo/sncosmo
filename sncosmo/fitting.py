@@ -475,19 +475,20 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                      parameters=parameters,
                      vparam_names=vparam_names,
                      covariance=covariance,
-                     errors=errors,
-                     cov_names=vparam_names)
+                     errors=errors)
 
-        # cov_names deprecated in v1.0.
         # TODO remove cov_names in a future release.
+        depmsg = ("The `cov_names` attribute is deprecated in sncosmo v1.0 "
+                  "and will be removed in v1.1. Use `vparam_names` instead.")
+        res.__dict__['deprecated']['cov_names'] = (vparam_names, depmsg)
 
     else:
         raise ValueError("unknown method {0:r}".format(method))
 
-    # Deprecated in v1.0
     # TODO remove this in a future release.
     if "flatten" in kwargs:
-        warnings.warn("flatten keyword is deprecated. Use flatten_result()"
+        warnings.warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
+                      "and will be removed in v1.1. Use the flatten_result() "
                       "function instead.")
         if kwargs["flatten"]:
             res = flatten_result(res)
@@ -741,11 +742,12 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     res.parameters = model.parameters.copy()
     res.covariance = cov
     res.errors = odict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
-
-    # backwards compatibility; deprecated in v1.0.
-    # TODO remove these in a future release.
-    res.param_names = res.vparam_names
     res.param_dict = odict(zip(model.param_names, model.parameters))
+
+    # TODO remove/change in a future release.
+    depmsg = ("The `param_names` attribute is deprecated in sncosmo v1.0 "
+              "and will be changed in v1.1. Use `vparam_names` instead.")
+    res.__dict__['deprecated']['param_names'] = (res.vparam_names, depmsg)
 
     return res, model
 

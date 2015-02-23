@@ -1,6 +1,18 @@
 1.0.0 (unreleased)
 ------------------
 
+**API changes:**
+
+- The API of `mcmc_lc` has changed significantly (the function was marked
+  experimental in previous release).
+- **[DEPRECATION]** In result of `fit_lc`, `res.cov_names` changed to
+  `res.vparam_names`.
+- **[DEPRECATION]** In result of `nest_lc`, `res.param_names` changed to
+  `res.vparam_names`. This is for compatibility between the results of `fit_lc` and `nest_lc`. [#30]
+- **[DEPRECATION]** Deprecate `flatten` keyword argument in `fit_lc()` in
+  favor of explicit use of `flatten_result()` function.
+
+
 **Enhancements:**
 
 - Many new built-in models.
@@ -27,19 +39,6 @@
 - Now compatible with Python 3.
 - Increased test coverage.
 - Numerous minor bugfixes.
-
-**API changes:**
-
-- The API of `mcmc_lc` has changed significantly (the function was marked
-  experimental in previous release).
-
-- [DEPRECATION] In result of `fit_lc`, `res.cov_names` changed to
-  `res.vparam_names`.  In result of `nest_lc`, `res.param_names` and
-  `res.param_dict` deprecated. This is for compatibility between
-  results of `fit_lc` and `nest_lc`. [#30]
-
-- [DEPRECATION] Deprecate `flatten` keyword argument in `fit_lc()` in
-  favor of explicit use of `flatten_result()` function.
 
 
 0.4.2 (2014-04-08)
