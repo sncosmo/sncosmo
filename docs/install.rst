@@ -13,9 +13,9 @@ SNCosmo depends on the following standard scientific python packages:
 
 - `SciPy <http://www.scipy.org/>`_ 0.9 or later
 
-- AstroPy_ 0.4 or later
+- AstroPy_ 0.4 or later (`Installation instructions <http://astropy.readthedocs.org/en/stable/install.html>`_)
 
-In addition, several optional packages provide additional functionality:
+In addition, several packages provide optional functionality:
 
 - Optional: `matplotlib <http://www.matplotlib.org/>`_ for plotting functions.
 
@@ -25,79 +25,57 @@ In addition, several optional packages provide additional functionality:
 - Optional: `emcee <http://dan.iel.fm/emcee/>`_ for Monte Carlo parameter
   estimation in `sncosmo.mcmc_lc`.
 
-- Optional: `triangle <https://github.com/dfm/triangle.py>`_ for plotting
-  results from `sncosmo.mcmc_lc` and `sncosmo.nest_lc` 
+The `triangle <https://github.com/dfm/triangle.py>`_ package is also
+recommended for plotting results from the samplers `sncosmo.mcmc_lc`
+and `sncosmo.nest_lc`, but triangle is not used by any part of
+sncosmo.
 
-Install AstroPy
----------------
-
-Assuming you already have NumPy and SciPy, install AstroPy by
-following the `AstroPy installation instructions
-<http://astropy.readthedocs.org/en/latest/install.html>`_.
 
 Installation instructions
 =========================
 
-Latest released version (using pip)
------------------------------------
+Use pip::
 
-To install with `pip`, simply run one of::
+    pip install --no-deps sncosmo
 
-    pip install sncosmo --no-deps --user
-    pip install sncosmo --no-deps --install-option="--prefix=/path/to/install/basedir"
-    pip install sncosmo --no-deps --target=/path/to/library/dir
-    pip install sncosmo --no-deps  # as root (not recommended)
+.. note::
 
-* ``--user`` will typically install things in ``~/.local/lib``,
-  ``~/.local/bin``, etc (on Linux systems anyway).
-* ``--install-option=...`` will install in ``/path/to/install/basedir/lib``,
-  ``/path/to/install/basedir/bin``, etc.
-* ``--target=...`` will install *just* the python library (no scripts)
-  in ``/path/to/library/dir`` (e.g., you have ``/path/to/library/dir`` in
-  your ``$PYTHONPATH``). (There are currently no scripts.)
-* The last option will try to install to the system directories, and
-  requires root access. I don't recommend this option unless this is
-  already your typical way of using pip. I prefer to allow only the package
-  manager to install to system directories, using pip only to install
-  packages somewhere in my home directory using one of the above
-  methods.
+    The ``--no-deps`` flag is optional, but highly recommended if you already
+    have Numpy installed, since otherwise pip will sometimes try to "help" you
+    by upgrading your Numpy installation, which may not always be desired.
 
-Latest released version (from source)
--------------------------------------
+.. note::
 
-A source tarball or zip is available from `github <https://github.com/sncosmo/sncosmo/releases>`_. After downloading the appropriate tarball, run, e.g.::
+    If you get a ``PermissionError`` this means that you do not have the
+    required administrative access to install new packages to your Python
+    installation.  In this case you may consider using the ``--user`` option
+    to install the package into your home directory.  You can read more
+    about how to do this in the `pip documentation
+    <http://www.pip-installer.org/en/1.2.1/other-tools.html#using-pip-with-the-user-scheme>`_.
 
-    tar xzf sncosmo-0.2.tar.gz
-    cd sncosmo-0.2
+    Do **not** install Astropy or other third-party packages using ``sudo``
+    unless you are fully aware of the risks.
 
-then one of::
+.. note::
 
-    setup.py install --user
-    setup.py install --prefix=/path/to/install/basedir
-    setup.py install  # as root (not recommended)
-    
+    You will need a C compiler (e.g. ``gcc`` or ``clang``) to be
+    installed for the installation to succeed.
 
-Development version (using git)
--------------------------------
 
-To get the latest development version source, using ``git``::
+Development version
+-------------------
+
+SNCosmo is being developed `on github
+<https://github.com/sncosmo/sncosmo>`_. To get the latest development
+version using ``git``::
 
     git clone git://github.com/sncosmo/sncosmo.git
     cd sncosmo
 
-then one of::
+then::
 
-    setup.py install --user
-    setup.py install --prefix=/path/to/install/basedir
-    setup.py install  # as root (not recommended)
+    ./setup.py install
 
-Development version (no git)
-----------------------------
-
-If you don't have git but want to use the latest development version,
-download the latest zip, using::
-
-    wget https://github.com/sncosmo/sncosmo/archive/master.zip
-    unzip master.zip
-    cd sncosmo-master
-    setup.py install [--user] [--prefix=...]
+As with the pip install instructions, you may want to use either
+``setup.py install --user`` or ``setup.py develop`` to alter where the
+package is installed.
