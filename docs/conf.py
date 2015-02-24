@@ -66,6 +66,9 @@ version = sncosmo.__version__.split('-', 1)[0]
 # The full version, including alpha/beta/rc tags.
 release = sncosmo.__version__
 
+# For the astropy_helpers.sphinx.ext.changelog_links extension.
+github_issues_url = 'https://github.com/sncosmo/sncosmo/issues/'
+
 # -- Options for HTML output ---------------------------------------------------
 
 # A NOTE ON HTML THEMES

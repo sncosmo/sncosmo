@@ -52,7 +52,7 @@ URL = 'http://sncosmo.readthedocs.org'
 builtins._ASTROPY_PACKAGE_NAME_ = PACKAGENAME
 
 # VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-VERSION = '1.0.dev'
+VERSION = '1.0.0'
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in VERSION
@@ -107,11 +107,12 @@ setup(name=PACKAGENAME,
       url=URL,
       long_description=LONG_DESCRIPTION,
       classifiers=[
+          'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: BSD License',
           'Operating System :: OS Independent',
-          'Programming Language :: Python :: 2.6',
-          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 3',
           'Topic :: Scientific/Engineering :: Astronomy',
           'Topic :: Scientific/Engineering :: Physics'],
       cmdclass=cmdclassd,
