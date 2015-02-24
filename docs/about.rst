@@ -2,53 +2,31 @@
 About SNCosmo
 *************
 
-Package Functionality
-=====================
+Package Features
+================
 
-At the core of the library is a class (and subclasses) for
-representing supernova models: A model represents how the
-spectroscopic time series of a transient astronomical source appears
-to an observer. The spectroscopic times series can vary as a function
-of any number of parameters (e.g., color of the source, redshift of
-the source). Simulation, fitting and typing are built on this core
-functionality.
+- **SN models:** Synthesize supernova spectra and photometry from SN models.
 
-Key Features
-------------
+- **Fitting and sampling:** Functions for fitting and sampling SN
+  model parameters given photometric light curve data.
 
-- **Built-ins:** There are many built-in supernova models accessible
-  by name (both Type Ia and core-collapse), such as Hsiao, Nugent, and
-  models from PSNID (Sako et al 2011). Common bandpasses and magnitude
-  systems are also built-in and available by name.
+- **Dust laws:** Fast implementations of several commonly used
+  extinction laws; can be used to construct SN models including dust.
 
-- **Object-oriented and extensible:** New models, bandpasses, and
+- **I/O:** Convenience functions for reading and writing peculiar data formats
+  used in other packages and getting dust values from SFD (1998) maps.
+
+- **Built-in supernova models** such as the Hsiao, Nugent, PSNID,
+  SNANA and Whalen models, as well as a variety of built-in bandpasses
+  and magnitude systems.
+
+- **Extensible:** New models, bandpasses, and
   magnitude systems can be defined, using an object-oriented interface.
 
 - **Fast:** Fully NumPy-ified and profiled. Generating
   synthetic photometry for 100 observations spread between four
   bandpasses takes on the order of 2 milliseconds (depends on model
   and bandpass sampling).
-
-
-Package Scope
-=============
-
-We will consider for inclusion any functionality that is relevant to
-supernova cosmology and of general use (that is, not specific to a
-single survey or instrument). For example, cosmological fits may
-eventually be included. The goal is to create a collection of Python
-tools for use by, and developed by, the entire SN cosmology community.
-
-
-Relation to core ``astropy`` package
-------------------------------------
-
-The package currently contains some functionality that is planned for
-inclusion in the core ``astropy`` package or other affiliated packages. As
-this functionality is implemented in the core, we will transition to
-using that functionality, provided that there are not significant
-performance issues. Also, some general functionality implemented in
-this package might propagate upward into the core ``astropy`` package.
 
 
 Relation to other SN cosmology software
@@ -104,5 +82,9 @@ Contributors
 ============
 
 * Kyle Barbary
-* Rollin C. Thomas
 * Rahul Biswas
+* Steve Rodney
+* Caroline Sofiatti
+* Tom Barclay
+* Rollin C. Thomas
+* Danny Goldstein
