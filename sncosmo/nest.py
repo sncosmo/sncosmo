@@ -162,7 +162,6 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
         * ``time`` (float) time in seconds.
         * ``logz`` (float) log of evidence.
         * ``logzerr`` (float) error on ``logz``.
-        * ``loglmax`` (float) Maximum likelihood of any sample.
         * ``h`` (float) information.
         * ``samples`` (array, shape=(nsamples, npar)) parameter values
           of each sample.
@@ -306,7 +305,6 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
         ('time', tottime),
         ('logz', logz),
         ('logzerr', math.sqrt(h / nobj)),
-        ('loglmax', np.max(objects_logl)),
         ('h', h),
         ('samples', np.array(samples_parvals)),  # (nsamp, npar)
         ('weights', np.exp(np.array(samples_logwt) - logz)),  # (nsamp,)

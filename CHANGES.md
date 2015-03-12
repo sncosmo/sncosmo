@@ -1,6 +1,8 @@
 1.1.0 (unreleased)
 ------------------
 
+- Remove `loglmax` from result of `nest_lc()`, which was not
+  officially documented or supported. Use `np.max(res.logl)` instead.
 
 1.0.0 (2015-02-23)
 ------------------

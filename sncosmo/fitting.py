@@ -524,7 +524,6 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 #
 #    # Add some more to results
 #    res['parnames'] = parnames
-#    res['chisq_min'] = -2. * res.pop('loglmax')
 #    res['dof'] = len(data) - npar
 #
 #    return res
