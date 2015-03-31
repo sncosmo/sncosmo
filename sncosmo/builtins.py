@@ -158,7 +158,7 @@ def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
 
 def load_salt2model(relpath, name=None, version=None):
     abspath = get_abspath(relpath, name, version=version)
-    return SALT2Source(modeldir=abspath)
+    return SALT2Source(modeldir=abspath, name=name, version=version)
 
 
 def load_2011fe(relpath, name=None, version=None):
