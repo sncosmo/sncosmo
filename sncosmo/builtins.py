@@ -11,6 +11,7 @@ import tarfile
 import warnings
 import os
 from os.path import join
+import codecs
 
 import numpy as np
 from astropy import wcs, units as u
@@ -44,7 +45,8 @@ def get_url(name, version=None):
         from six.moves.urllib.request import urlopen
         import json
         f = urlopen("http://sncosmo.github.io/data/urls.json")
-        urls = json.load(f)
+        reader = codecs.getreader("utf-8")
+        urls = json.load(reader(f))
         f.close()
 
     key = name if (version is None) else "{0}_v{1}".format(name, version)
