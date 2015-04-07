@@ -62,7 +62,7 @@ def read_griddata_ascii(name_or_obj):
     """
 
     if isinstance(name_or_obj, six.string_types):
-        f = open(name_or_obj, 'rb')
+        f = open(name_or_obj, 'r')
     else:
         f = name_or_obj
 
