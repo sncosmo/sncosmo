@@ -161,7 +161,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
     """
 
     if isinstance(name_or_obj, six.string_types):
-        f = open(name_or_obj, 'rb')
+        f = open(name_or_obj, 'r')
     else:
         f = name_or_obj
 
@@ -710,7 +710,7 @@ def write_lc(data, fname, format='ascii', **kwargs):
         meta = odict()
         if not isinstance(data, np.ndarray):
             data = dict_to_array(data)
-    with open(fname, 'wb') as f:
+    with open(fname, 'w') as f:
         WRITERS[format](f, data, meta, **kwargs)
 
 
