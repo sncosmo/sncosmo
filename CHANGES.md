@@ -4,6 +4,11 @@
 - Remove `loglmax` from result of `nest_lc()`, which was not
   officially documented or supported. Use `np.max(res.logl)` instead.
 
+**Bugfixes**
+
+- Fixed file I/O problems on Python 3 related to string encoding [#83, #85]
+
+
 1.0.0 (2015-02-23)
 ------------------
 
