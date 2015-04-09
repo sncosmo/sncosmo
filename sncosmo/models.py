@@ -13,6 +13,7 @@ from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
                                RectBivariateSpline as Spline2d,
                                splmake, spleval)
 from astropy.utils import OrderedDict as odict
+from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six
 
@@ -1386,6 +1387,42 @@ class Model(_ModelBase):
             The return value is an `~numpy.ndarray` if any are interable.
         """
         return _bandmag(self, band, magsys, time)
+
+    def color(self, band1, band2, magsys, phase):
+        """Color at the given time(s) through the given pair of bandpasses, and
+        for the given magnitude system.
+
+        Parameters
+        ----------
+        band1 : str
+            Name of first bandpass in registry.
+        band2 : str
+            Name of second bandpass in registry.
+        magsys : str
+            Name of `~sncosmo.MagSystem` in registry.
+        time : float or list_like
+            Observer-frame time(s) in days.
+
+        Returns
+        -------
+        mag : float or `~numpy.ndarray`
+            Color for each item in time, band, magsys.
+            The return value is a float if all parameters are not iterables.
+            The return value is an `~numpy.ndarray` if phase is iterable.
+        """
+
+        if (((isiterable(band1)) and
+           not (isinstance(band1, six.string_types))) or
+           ((isiterable(band2)) and
+           not (isinstance(band2, six.string_types)))):
+            raise TypeError("Band arguments must be scalars.")
+
+        if ((isiterable(magsys)) and
+           not (isinstance(magsys, six.string_types))):
+            raise TypeError("Magnitude system argument must be scalar.")
+
+        return (self.bandmag(band1, magsys, phase) -
+                self.bandmag(band2, magsys, phase))
 
     def source_peakabsmag(self, band, magsys, cosmo=cosmology.WMAP9):
         return (self._source.peakmag(band, magsys) -
