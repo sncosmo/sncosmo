@@ -1389,7 +1389,7 @@ class Model(_ModelBase):
         return _bandmag(self, band, magsys, time)
 
     def color(self, band1, band2, magsys, time):
-        """Color at the given time(s) through the given pair of bandpasses, and
+        """Band1 - band2 color at the given time(s) through the given pair of bandpasses, and
         for the given magnitude system.
 
         Parameters
