@@ -1388,7 +1388,7 @@ class Model(_ModelBase):
         """
         return _bandmag(self, band, magsys, time)
 
-    def color(self, band1, band2, magsys, phase):
+    def color(self, band1, band2, magsys, time):
         """Color at the given time(s) through the given pair of bandpasses, and
         for the given magnitude system.
 
@@ -1421,8 +1421,8 @@ class Model(_ModelBase):
            not (isinstance(magsys, six.string_types))):
             raise TypeError("Magnitude system argument must be scalar.")
 
-        return (self.bandmag(band1, magsys, phase) -
-                self.bandmag(band2, magsys, phase))
+        return (self.bandmag(band1, magsys, time) -
+                self.bandmag(band2, magsys, time))
 
     def source_peakabsmag(self, band, magsys, cosmo=cosmology.WMAP9):
         return (self._source.peakmag(band, magsys) -
