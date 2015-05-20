@@ -7,7 +7,7 @@ import math
 import numpy as np
 from astropy.utils.misc import isiterable
 from astropy.extern import six
-from six.moves import range
+from astropy.extern.six.moves import range
 
 from .models import Source, Model, get_source
 from .spectral import get_bandpass, get_magsystem
