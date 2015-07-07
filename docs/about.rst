@@ -76,7 +76,7 @@ Version History
 
 This package uses `Semantic Versioning`_.
 
-.. _`Semantic Versioning`: http:\\semver.org
+.. _`Semantic Versioning`: http://semver.org
 
 Contributors
 ============
