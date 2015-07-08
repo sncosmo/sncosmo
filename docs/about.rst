@@ -88,3 +88,5 @@ Contributors
 * Tom Barclay
 * Rollin C. Thomas
 * Danny Goldstein
+
+ LocalWords:  sncosmo

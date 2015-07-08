@@ -79,7 +79,7 @@ might only want to load them as they are needed, rather than having to
 load everything into memory when you do ``import mydefs``. You can use
 the `sncosmo.registry.register_loader` function. Suppose we have a
 bandpass that requires a huge data file (In reality it is unlikely
-that loading bandpasses would take a noticable amount of time, but it
+that loading bandpasses would take a noticeable amount of time, but it
 might for models or spectra.)::
 
     # contents of mydefs.py

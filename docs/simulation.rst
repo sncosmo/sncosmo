@@ -3,7 +3,7 @@ Simulation
 ==========
 
 First, define a set of "observations". These are the properties of our
-obsevations: the time, bandpass and depth.
+observations: the time, bandpass and depth.
 
 .. code:: python
 
@@ -59,7 +59,7 @@ Generating SN parameters
 
 We see above that it is straightforward to simulate SNe once we already
 know the parameters of each one. But what if we want to pick SN
-parmeters from some defined distribution?
+parameters from some defined distribution?
 
 Suppose we want to generate SN parameters for all the SNe we would find
 in a given search area over a defined period of time. We start by
@@ -114,7 +114,7 @@ and ``c`` from normal distributions:
 
 
 So far so good. The only problem is that ``x0`` doesn't vary. We'd like
-it to be randomly distributed with some scatter around the hubble line,
+it to be randomly distributed with some scatter around the Hubble line,
 so it should depend on the redshift. Here's an alternative:
 
 .. code:: python
