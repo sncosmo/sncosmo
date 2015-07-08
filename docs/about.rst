@@ -49,7 +49,7 @@ supernova cosmology. These include (but are not limited to) `snfit`_
   with a (mostly) different feature set. The current maintenance and
   development status of the package is unclear.
 
-.. _`snfit`: http://supernovae.in2p3.fr/~guy/salt/index.html
+.. _`snfit`: http://supernovae.in2p3.fr/salt
 .. _`SNANA`: http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/
 .. _`SNooPy`: http://csp.obs.carnegiescience.edu/data/snpy
 
@@ -88,3 +88,4 @@ Contributors
 * Tom Barclay
 * Rollin C. Thomas
 * Danny Goldstein
+* Michael Wood-Vasey

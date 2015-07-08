@@ -43,7 +43,7 @@ A Model in sncosmo consists of
 
 * **One "source"** A model of the spectral evolution of the source
   (e.g., a supernova).
-* **Zero or more "propagation effects"** Models of how interveneing structures
+* **Zero or more "propagation effects"** Models of how intervening structures
   (e.g., host galaxy dust, milky way dust) affect the spectrum.
 
 In the above example, we created a model with no propagation effects,
