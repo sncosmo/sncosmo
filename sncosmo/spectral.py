@@ -68,8 +68,8 @@ class Bandpass(object):
     """
 
     def __init__(self, wave, trans, wave_unit=u.AA, name=None):
-        wave = np.asarray(wave)
-        trans = np.asarray(trans)
+        wave = np.asarray(wave, dtype=np.float64)
+        trans = np.asarray(trans, dtype=np.float64)
         if wave.shape != trans.shape:
             raise ValueError('shape of wave and trans must match')
         if wave.ndim != 1:
