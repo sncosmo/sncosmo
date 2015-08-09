@@ -31,3 +31,21 @@ def test_spectralmagsystem():
     # of calculating bandflux between Spectrum and ABMagSystem.
     assert_allclose(magsys1.zpbandflux('bessellb'),
                     magsys2.zpbandflux('bessellb'), rtol=1e-3)
+
+
+# issue 100
+def test_bandpass_type():
+    """Check that bandpass wavelength type is always float64,
+    and that color laws work with them."""
+
+    dust = sncosmo.CCM89Dust()
+
+    for dt in [np.int32, np.int64, np.float32]:
+        wave = np.arange(4000., 5000., 20., dtype=dt)
+        trans = np.ones_like(wave)
+        band = sncosmo.Bandpass(wave, trans)
+
+        assert band.wave.dtype == np.float64
+
+        # Ensure that it works with cython-based propagation effect.
+        dust.propagate(band.wave, np.ones_like(wave))
