@@ -1,10 +1,24 @@
 language: python
 
+# Setting sudo to false opts in to Travis-CI container-based builds.
+sudo: false
+
+# The apt packages below are needed for sphinx builds, which can no longer
+# be installed with sudo apt-get.
+# (need g++ for iminuit install)
+addons:
+    apt:
+        packages:
+            - graphviz
+            - texlive-latex-extra
+            - dvipng
+            - g++
+
 python:
     - 2.6
     - 2.7
-    #- 3.3
-    #- 3.4
+    - 3.3
+    - 3.4
     # This is just for "egg_info".  All other builds are explicitly given in the matrix
 env:
     global:
@@ -15,46 +29,55 @@ env:
         - ASTROPY_VERSION=stable
         - CONDA_INSTALL='conda install -c astropy-ci-extras --yes'
         - PIP_INSTALL='pip install'
+        - COVERAGE=N
+        - PEP8=N
+        - DOCS=N
+        - DEPS=N
     matrix:
-        - SETUP_CMD='egg_info'
+        - CMD='python setup.py egg_info'
 
 matrix:
     include:
 
         # Do a coverage test in Python 2. 
         - python: 2.7
-          env: SETUP_CMD='test --coverage'
+          env: CMD='python setup.py test --coverage' COVERAGE=Y DEPS=Y
+
+        # Check for sphinx doc build warnings
+        # Currently skipping until sphinx is updated. Also, astropy-helpers seems to have
+        # problems installing with conda on travis, though it works locally.
+        #- python: 2.7
+        #  env: CMD='python setup.py install; cd docs; sphinx-build . _build/html -W' DOCS=Y DEPS=Y
 
         # Try Astropy development version
         - python: 2.7
-          env: ASTROPY_VERSION=development SETUP_CMD='test'
-        # - python: 3.3
-        #   env: ASTROPY_VERSION=development SETUP_CMD='test'
+          env: ASTROPY_VERSION=development CMD='python setup.py test' DEPS=Y
+        - python: 3.4
+          env: ASTROPY_VERSION=development CMD='python setup.py test' DEPS=Y
 
         # Try all python versions with the latest numpy
         - python: 2.6
-          env: SETUP_CMD='test'
+          env: CMD='python setup.py test' DEPS=Y
         - python: 2.7
-          env: SETUP_CMD='test'
-        # - python: 3.2
-        #   env: SETUP_CMD='test'
-        # - python: 3.3
-        #   env: SETUP_CMD='test'
-        # - python: 3.4
-        #   env: SETUP_CMD='test'
+          env: CMD='python setup.py test' DEPS=Y
+        - python: 3.3
+          env: CMD='python setup.py test' DEPS=Y
+        - python: 3.4
+          env: CMD='python setup.py test' DEPS=Y
 
         # Try older numpy versions
         - python: 2.7
-          env: NUMPY_VERSION=1.8 SETUP_CMD='test'
+          env: NUMPY_VERSION=1.8 CMD='python setup.py test' DEPS=Y
         - python: 2.7
-          env: NUMPY_VERSION=1.7 SETUP_CMD='test'
+          env: NUMPY_VERSION=1.7 CMD='python setup.py test' DEPS=Y
         - python: 2.7
-          env: NUMPY_VERSION=1.6 SETUP_CMD='test'
+          env: NUMPY_VERSION=1.6 CMD='python setup.py test' DEPS=Y
+
+        # pep8 checker
+        - python: 2.7
+          env: CMD='pep8 sncosmo --exclude=version.py' PEP8=Y
 
 before_install:
-
-    # need a C++ compiler for iminuit
-    - sudo apt-get install g++ -y
 
     # Use utf8 encoding. Should be default, but this is insurance against
     # future changes
@@ -75,31 +98,34 @@ install:
     - conda create --yes -n test -c astropy-ci-extras python=$TRAVIS_PYTHON_VERSION
     - source activate test
 
-    # CORE DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION pytest pip Cython jinja2; fi
-    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
-
-    # ASTROPY
-    - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
-    - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy; fi
-
-    # SNCOSMO REQUIRED AND OPTIONAL DEPENDENCIES
+    # DEPENDENCIES
     # Leave the `numpy=$NUMPY_VERSION` in the `conda`
     # install since this ensures Numpy does not get automatically upgraded.
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION scipy matplotlib; fi
-    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL iminuit; fi
+    - if [[ $DEPS == Y ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION pytest pip Cython jinja2 scipy matplotlib; fi
+    - if [[ $DEPS == Y ]]; then $PIP_INSTALL pytest-xdist; fi
 
-    # This is a special hack to work around a broken conda dependency!
-    # conda thinks matplotlib 1.2.1 needs shiboken 1.2, but it needs 1.1.
-    - if [[ $NUMPY_VERSION == 1.5 ]]; then $CONDA_INSTALL shiboken=1.1; fi
+    # ASTROPY
+    - if [[ $DEPS == Y ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
+    - if [[ $DEPS == Y ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy; fi
+
+    # IMINUIT
+    # Currently need the dev version of iminuit for Python 3
+    # TODO: remove ipython once https://github.com/iminuit/iminuit/issues/166 is fixed
+    - if [[ $DEPS == Y && $TRAVIS_PYTHON_VERSION < 3 ]]; then $PIP_INSTALL iminuit; fi
+    - if [[ $DEPS == Y && $TRAVIS_PYTHON_VERSION > 3 ]]; then $PIP_INSTALL git+http://github.com/iminuit/iminuit.git#egg=iminuit; fi
+    - if [[ $DEPS == Y && $TRAVIS_PYTHON_VERSION > 3 ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION ipython; fi
+
+    # DOCUMENTATION DEPENDENCIES
+    # Note that this matplotlib will *not* work with py 3.x, but our sphinx build is
+    # currently 2.7, so that's fine
+    - if [[ $DOCS == Y ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy-helpers sphinx; fi
 
     # PEP8 / COVERAGE DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL pep8; fi
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
+    - if [[ $PEP8 == Y ]]; then $CONDA_INSTALL pep8; fi
+    - if [[ $COVERAGE == Y ]]; then $PIP_INSTALL coverage coveralls; fi
 
 script:
-   - python setup.py $SETUP_CMD
-   - if [[ $SETUP_CMD == 'test --coverage' ]]; then pep8 sncosmo --exclude=version.py; fi
+   - $CMD
 
 after_success:
-   - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='sncosmo/tests/coveragerc'; fi
+   - if [[ $COVERAGE == Y ]]; then coveralls --rcfile='sncosmo/tests/coveragerc'; fi
