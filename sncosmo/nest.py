@@ -207,7 +207,7 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
 
     # Nested sampling loop.
     ndecl = 0
-    logwt_old = None
+    logwt_old = -float('inf')
     time0 = time.time()
     it = 0
     while it < maxiter and loglcalls < maxcall:

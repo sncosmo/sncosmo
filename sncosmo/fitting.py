@@ -558,8 +558,8 @@ def _nest_lc(data, model, vparam_names, modelcov,
                 f = Interp1D(0., 1., np.array([a, b]))
             ppfs[key] = f
 
-    iparam_names = ppfs.keys()
-    ppflist = [ppfs[n] for n in iparam_names]
+    iparam_names = list(ppfs.keys())
+    ppflist = list(ppfs.values())
     nipar = len(iparam_names)  # length of u
     npar = len(vparam_names)  # length of v
 
