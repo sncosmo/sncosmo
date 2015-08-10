@@ -107,7 +107,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     --------
 
     >>> import sncosmo
-    >>> import matplotlib.pyplot as plt
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
 
     Load some example data:
 
@@ -115,7 +115,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
 
     Plot the data, displaying to the screen:
 
-    >>> fig = plot_lc(data)
+    >>> fig = plot_lc(data)  # doctest: +SKIP
     >>> plt.show()  # doctest: +SKIP
 
     Plot a model along with the data:
@@ -476,7 +476,7 @@ def animate_source(source, label=None, fps=30, length=20.,
     --------
     Compare the salt2 and hsiao sources:
 
-    >>> import matplotlib.pyplot as plt
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     >>> ani = animate_source(['salt2', 'hsiao'],  phase_range=(None, 30.),
     ...                      wave_range=(2000., 9200.))  # doctest: +SKIP
     >>> plt.show()  # doctest: +SKIP

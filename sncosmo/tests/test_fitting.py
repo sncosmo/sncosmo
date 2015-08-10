@@ -16,7 +16,7 @@ except:
     HAS_IMINUIT = False
 
 
-@pytest.mark.skipif(not HAS_IMINUIT, reason="no iminuit")
+@pytest.mark.skipif('not HAS_IMINUIT')
 class TestFitting:
     def setup_class(self):
         model = sncosmo.Model(source='hsiao-subsampled')
