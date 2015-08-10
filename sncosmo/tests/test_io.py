@@ -66,7 +66,7 @@ def test_griddata_fits():
     x1 = np.array([0., 1., 2.])
     y = np.zeros((2, 3))
 
-    f = six.StringIO()
+    f = six.BytesIO()
     sncosmo.write_griddata_fits(x0, x1, y, f)
 
     # Read it back

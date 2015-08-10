@@ -372,8 +372,10 @@ def _read_salt2_old(dirname, **kwargs):
 
         # Add the instrument/band to the file data, in anticipation of
         # aggregating it with other files.
-        firstkey = filedata.keys()[0]
-        data_length = len(filedata[firstkey])
+
+        # PY3: next(iter(filedata.vlues()))
+        firstcol = six.next(six.itervalues(filedata))
+        data_length = len(firstcol)
         filter_name = '{0}::{1}'.format(filemeta.pop('INSTRUMENT'),
                                         filemeta.pop('BAND'))
         filedata['Filter'] = data_length * [filter_name]
@@ -399,13 +401,13 @@ def _read_salt2_old(dirname, **kwargs):
 # -----------------------------------------------------------------------------
 # Reader: json
 def _read_json(f, **kwargs):
-    t = json.load(f, encoding=sys.getdefaultencoding())
+    t = json.load(f)
 
     # Encode data keys as ascii rather than UTF-8 so that they can be
     # used as numpy structured array names later.
     d = {}
     for key, value in t['data'].items():
-        d[key.encode('ascii')] = value
+        d[key] = value
     return t['meta'], d
 
 
@@ -659,7 +661,7 @@ def _write_json(f, data, meta, **kwargs):
                     ('data', odict())])
     for key in data.dtype.names:
         output['data'][key] = data[key].tolist()
-    json.dump(output, f, encoding=sys.getdefaultencoding())
+    json.dump(output, f)
     del output
 
 
