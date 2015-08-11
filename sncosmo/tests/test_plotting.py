@@ -1,11 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
 import numpy as np
-from matplotlib.figure import Figure
-
+import pytest
 import sncosmo
+try:
+    from matplotlib.figure import Figure
+    HAS_MATPLOTLIB = True
+except:
+    HAS_MATPLOTLIB = False
 
 
+@pytest.mark.skipif('not HAS_MATPLOTLIB')
 class TestPlotLC:
     def setup_class(self):
         # Create a TimeSeriesSource with a flat spectrum at all times.

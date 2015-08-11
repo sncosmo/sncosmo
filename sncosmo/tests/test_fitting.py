@@ -16,7 +16,6 @@ except:
     HAS_IMINUIT = False
 
 
-@pytest.mark.skipif(not HAS_IMINUIT, reason="no iminuit")
 class TestFitting:
     def setup_class(self):
         model = sncosmo.Model(source='hsiao-subsampled')
@@ -45,6 +44,7 @@ class TestFitting:
         self.data = data
         self.params = params
 
+    @pytest.mark.skipif('not HAS_IMINUIT')
     def test_fit_lc(self):
         """Ensure that fit results match input model parameters (data are
         noise-free).
@@ -59,6 +59,7 @@ class TestFitting:
         self.model.set(**self.params)
         assert_allclose(res.parameters, self.model.parameters, rtol=1.e-3)
 
+    @pytest.mark.skipif('not HAS_IMINUIT')
     def test_wrong_param_names(self):
         """Supplying parameter names that are not part of the model should
         raise an error."""

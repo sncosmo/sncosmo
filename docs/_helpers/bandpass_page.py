@@ -2,11 +2,11 @@
 and save it to this module's docstring for the purpose of including in
 sphinx documentation via the automodule directive."""
 
-import string
-
 from astropy.extern import six
 from sncosmo import registry, Bandpass, get_bandpass
 
+# string.ascii_letters in py3
+ASCII_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 bandpass_meta = registry.get_loaders_metadata(Bandpass)
 table_delim = "  ".join([11 * '=', 80 * '=', 14 * '=', 8 * '=', 12 * '='])
@@ -44,7 +44,7 @@ def bandpass_table(setname):
                     urlnums[dataurl] = 0
                 else:
                     urlnums[dataurl] = max(urlnums.values()) + 1
-            urllink = '`{0}`_'.format(string.letters[urlnums[dataurl]])
+            urllink = '`{0}`_'.format(ASCII_LETTERS[urlnums[dataurl]])
 
         if 'retrieved' in m:
             retrieved = m['retrieved']
@@ -87,7 +87,7 @@ for setname in setnames:
 
 # URL links accumulated from all the tables.
 for url, urlnum in urlnums.items():
-    lines.append(".. _`{0}`: {1}".format(string.letters[urlnum], url))
+    lines.append(".. _`{0}`: {1}".format(ASCII_LETTERS[urlnum], url))
 lines.append("")
 
 __doc__ = "\n".join(lines)

@@ -6,6 +6,8 @@
 
 **Bugfixes**
 
+- Fixed bug that caused non-reproducible behavior in `nest_lc()` even when
+  `np.random.seed()` was called directly beforehand.
 - Fixed file I/O problems on Python 3 related to string encoding [#83, #85]
 
 

@@ -558,8 +558,13 @@ def _nest_lc(data, model, vparam_names, modelcov,
                 f = Interp1D(0., 1., np.array([a, b]))
             ppfs[key] = f
 
-    iparam_names = ppfs.keys()
-    ppflist = [ppfs[n] for n in iparam_names]
+    # NOTE: It is important that iparam_names is in the same order
+    # every time, otherwise results will not be reproducible, even
+    # with same random seed.  This is because iparam_names[i] is
+    # matched to u[i] below and u will be in a reproducible order,
+    # so iparam_names must also be.
+    iparam_names = [key for key in vparam_names if key in ppfs]
+    ppflist = [ppfs[key] for key in iparam_names]
     nipar = len(iparam_names)  # length of u
     npar = len(vparam_names)  # length of v
 
@@ -579,9 +584,9 @@ def _nest_lc(data, model, vparam_names, modelcov,
         v = np.empty(npar, dtype=np.float)
         for i in range(npar):
             key = vparam_names[i]
-            try:
+            if key in d:
                 v[i] = d[key]
-            except KeyError:
+            else:
                 v[i] = tied[key](d)
         return v
 
@@ -590,7 +595,7 @@ def _nest_lc(data, model, vparam_names, modelcov,
 
     def loglikelihood(parameters):
         model.parameters[idx] = parameters
-        return - _chisq(data, model, modelcov=modelcov) / 2.0
+        return -0.5 * _chisq(data, model, modelcov=modelcov)
 
     res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
                     maxiter=maxiter, maxcall=maxcall, verbose=verbose)
@@ -715,7 +720,8 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     if guess_amplitude_bound:
         if model.param_names[2] in bounds:
             raise ValueError("cannot supply bounds for parameter {0!r}"
-                             " when guess_amplitude_bound=True")
+                             " when guess_amplitude_bound=True"
+                             .format(model.param_names[2]))
 
         # If redshift is bounded, set model redshift to midpoint of bounds
         # when doing the guess.
