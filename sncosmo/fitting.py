@@ -714,9 +714,10 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     if guess_amplitude_bound:
-        if 'x0' not in vparam_names and 'amplitude' not in vparam_names:
-            warn("Trying to guess the amplitude bounds but neither 'amplitude'"
-                 "nor 'x0' are in vparam_names.", RuntimeWarning)
+        if model.param_names[2] not in vparam_names:
+            raise ValueError("Amplitude bounds guessing enabled but "
+                             "amplitude parameter {0!r} is not varied"
+                             .format(model.param_names[2]))
         if model.param_names[2] in bounds:
             raise ValueError("cannot supply bounds for parameter {0!r}"
                              " when guess_amplitude_bound=True")
