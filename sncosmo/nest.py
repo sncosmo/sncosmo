@@ -2,7 +2,7 @@
 """Simple implementation of nested sampling routine to evaluate Bayesian
 evidence."""
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import math
 import time
@@ -270,7 +270,7 @@ def nest(loglikelihood, prior, npar, nipar, nobj=50, maxiter=10000,
             ndecl += 1
         else:
             ndecl = 0
-        if ndecl > nobj * 2 and ndecl > it / 6:
+        if ndecl > nobj * 2 and ndecl > it // 6:
             break
         logwt_old = logwt
 
