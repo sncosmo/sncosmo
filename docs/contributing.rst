@@ -160,3 +160,48 @@ you can delete it by doing ``git branch -D simulation-enhancements``.
 
 Obviously this isn't a complete guide to git, but hopefully it
 jump-starts the git learning process.
+
+
+Developer's documetation: release procedure
+===========================================
+
+These are notes mainly for the one person that manages releases.
+Yes, this could be more automated, but it isn't done very often,
+and involves some human verification.
+
+- Ensure that ``CHANGES.md`` is up-to-date and add version date.
+- Update ``docs/whatsnew.rst`` by copying text from ``CHANGES.md``,
+  then altering formatting and adding text as needed.
+- Bump version in ``setup.py``.
+- Check copyright year in ``docs/conf.py``.
+- Build package and docs and check that docs look good.
+- Commit.
+- ``git clean -dfx``
+- ``setup.py build``
+- ``setup.py sdist``
+- Check that the tarball in ``dist/`` can be unpacked and
+  that ``setup.py test`` succeeds. Bonus: create a fresh conda
+  environment (or virtual environment) with minimal requirements and
+  install and test in that.
+- ``setup.py register``
+- ``setup.py sdist upload``
+
+**Post-release steps:**
+
+- If not a bugfix release, create a feature branch. For example,
+  ``git branch v1.1.x``.
+- Tag the release. For example, ``git tag v1.1.0``.
+- On master, bump version in ``setup.py`` to the next development
+  version and add the next development version to CHANGES.md.
+- Commit.
+- Push repo changes to GitHub. For example:
+  ``git push upstream master v1.1.x v1.1.0``.
+
+**Docs and conda**
+
+- On readthedocs.org, set the new feature branch to "active".
+- To trigger new conda build, edit version number in requirements.txt
+  in https://github.com/astropy/conda-builder-affiliated and submit
+  a pull request.
+- Once conda build succeeds, make the new feature branch the default
+  on readthedocs.org.
