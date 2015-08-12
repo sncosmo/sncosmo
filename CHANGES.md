@@ -1,15 +1,26 @@
-1.1.0 (unreleased)
+1.1.0 (2015-08-12)
 ------------------
+
+**API changes**
 
 - Remove `loglmax` from result of `nest_lc()`, which was not
   officially documented or supported. Use `np.max(res.logl)` instead.
 
+**Enhancements**
+
+- Add `Model.color()` method. [#88]
+
 **Bugfixes**
 
 - Fixed bug that caused non-reproducible behavior in `nest_lc()` even when
-  `np.random.seed()` was called directly beforehand.
-- Fixed file I/O problems on Python 3 related to string encoding [#83, #85]
-
+  `np.random.seed()` was called directly beforehand. [#102]
+- Fixed file I/O problems on Python 3 related to string encoding.
+  [#83, #85, #102]
+- Fixed problem with SDSS bandpasses being stored as integers internally,
+  preventing them from being used with models with dust. [#100, #101]
+- Fix problem where built-in source name and version strings were being
+  dropped. [#82]
+- Minor doc fixes.
 
 1.0.0 (2015-02-23)
 ------------------

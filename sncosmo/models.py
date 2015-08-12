@@ -239,11 +239,18 @@ class Source(_ModelBase):
     """An abstract base class for transient models.
 
     A "transient model" in this case is the spectral time evolution
-    of a source as a function of an arbitrary number of parameters.
+    of a source, as defined in the rest-frame of the transient: ``Source``
+    subclass instances define a spectral flux density
+    (in, e.g., erg / s / cm^2 / Angstrom) as a function of phase and
+    wavelength, where phase and wavelength are in the source's rest-frame.
+    (The ``Model`` class wraps a ``Source`` instance and takes care of
+    redshift and time dilation.) This two-dimensional spectral surface
+    can be a function of any number of parameters that alter its amplitude
+    or shape. Different subclasses will have different parameters.
 
     This is an abstract base class -- You can't create instances of
     this class. Instead, you must work with subclasses such as
-    `TimeSeriesSource`. Subclasses must define (at minimum):
+    ``TimeSeriesSource``. Subclasses must define (at minimum):
 
     * `__init__()`
     * `_param_names` (list of str)
@@ -442,12 +449,15 @@ class TimeSeriesSource(Source):
 
        F(t, \lambda) = A \\times M(t, \lambda)
 
-    where _M_ is the flux defined on a grid in phase and wavelength and _A_
-    (amplitude) is the single free parameter of the model. It should be noted
-    that while t and \lambda are in the rest frame of the object, the flux
-    density is defined at redshift zero. This means that for objects with the
-    same intrinsic luminosity, the amplitude will be smaller for objects at
-    larger luminosity distances.
+    where _M_ is the flux defined on a grid in phase and wavelength
+    and _A_ (amplitude) is the single free parameter of the model. The
+    amplitude _A_ is a simple unitless scaling factor applied to
+    whatever flux values are used to initialize the
+    ``TimeSeriesSource``. Therefore, the _A_ parameter has no
+    intrinsic meaning. It can only be interpreted in conjunction with
+    the model values. Thus, it is meaningless to compare the _A_
+    parameter between two different ``TimeSeriesSource`` instances with
+    different model data.
 
     Parameters
     ----------
@@ -466,6 +476,7 @@ class TimeSeriesSource(Source):
         Name of the model. Default is `None`.
     version : str, optional
         Version of the model. Default is `None`.
+
     """
 
     _param_names = ['amplitude']

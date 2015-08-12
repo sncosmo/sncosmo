@@ -27,7 +27,7 @@ possible. It is built on NumPy, SciPy and AstroPy.
 .. toctree::
    :maxdepth: 1
 
-   whatsnew/1.0
+   whatsnew
    about
    install
    contributing

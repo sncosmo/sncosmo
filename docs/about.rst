@@ -63,20 +63,6 @@ supernova *cosmology*, as it doesn't cover other types of supernova
 science (radiative transfer simulations for instance).  Hence
 "sncosmo".
 
-Version History
-===============
-
-.. toctree::
-   :maxdepth: 1
-
-   whatsnew/1.0
-   whatsnew/0.4
-   whatsnew/0.3
-   whatsnew/0.2
-
-This package uses `Semantic Versioning`_.
-
-.. _`Semantic Versioning`: http://semver.org
 
 Contributors
 ============
@@ -89,3 +75,5 @@ Contributors
 * Rollin C. Thomas
 * Danny Goldstein
 * Michael Wood-Vasey
+* Brian Friesen
+* Matt Craig

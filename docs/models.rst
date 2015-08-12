@@ -106,28 +106,29 @@ source. In this case, the source is a simple spectral timeseries that
 can only be scaled up and down. Other sources could have other
 parameters that affect the shape of the spectrum at each phase.
 
-For a given model, you can set the `amplitude` (or `x0` in case you
+For a given model, you can set the ``amplitude`` (or ``x0`` in case you
 are using a SALT model) according to a desired absolute magnitude in a
 specific band by using the method
-`model.set_source_peakabsmag()`. Note that the redshift `z` affects
+`~sncosmo.Model.set_source_peakabsmag()`. Note that the redshift ``z`` affects
 your result. Therefore, you could specify:
 
      >>> model.set(z=1.6)
      >>> model.set_source_peakabsmag(-19.0, 'bessellb', 'ab')
 
 Specifically, for SALT models, it is recommended to call
-`model.set_source_peakabsmag()` after setting the other model
-parameters, such as `x1` and `c`. It probably won't make a difference
-if you are using `'bessellb'`, but if you were setting the absolute
-magnitude in another band, it would make a small difference.
+`~sncosmo.Model.set_source_peakabsmag()` after setting the other model
+parameters, such as ``x1`` and ``c``. It probably won't make a
+difference if you are using the ``'bessellb'`` bandpass, but if you
+were setting the absolute magnitude in another band, it would make a
+small difference.
 
 The reason for this peculiarity is that "absolute magnitude" is not a
-parameter in the SALT2 model, per se. The parameters are `x0`, `x1`,
-`c`, `t0` and `z`. `x0` is a simple multiplicative scaling factor on
-the whole spectral timeseries. The set_source_peakabsmag() method is a
-convenience for setting `x0` such that the integrated flux through a
+parameter in the SALT2 model, per se. The parameters are ``x0``, ``x1``,
+``c``, ``t0``, and ``z``. ``x0`` is a simple multiplicative scaling factor on
+the whole spectral timeseries. The ``set_source_peakabsmag()`` method is a
+convenience for setting ``x0`` such that the integrated flux through a
 given bandpass is as desired. Since the integrated flux depends on the
-spectral shape, it will depend on `x1` and `c`.
+spectral shape, it will depend on ``x1`` and ``c``.
 
 Creating a model with a source and effect(s)
 ============================================
