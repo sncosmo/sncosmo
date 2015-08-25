@@ -109,7 +109,7 @@ def zdist(zmin, zmax, time=365.25, area=1.,
 
 
 def realize_lcs(observations, model, params, thresh=None,
-                trim_observations=False):
+                trim_observations=False, scatter=True):
     """Realize data for a set of SNe given a set of observations.
 
     Parameters
@@ -128,6 +128,11 @@ def realize_lcs(observations, model, params, thresh=None,
         If True, only observations with times between
         ``model.mintime()`` and ``model.maxtime()`` are included in
         result table for each SN. Default is False.
+    scatter : bool, optional, defaults to True
+        If True, the ``flux`` value of the realized data is calculated by adding
+        a random number drawn from a Normal Distribution with a standard
+        deviation equal to the ``fluxerror`` of the observation to the bandflux
+        value of the observation calculated from model.
 
     Returns
     -------
@@ -193,7 +198,8 @@ def realize_lcs(observations, model, params, thresh=None,
         # np.atleast_1d is necessary here because of an apparent bug in
         # np.random.normal: when the inputs are both length 1 arrays,
         # the output is a Python float!
-        flux = np.atleast_1d(np.random.normal(flux, fluxerr))
+        if scatter:
+            flux = np.atleast_1d(np.random.normal(flux, fluxerr))
 
         # Check if any of the fluxes are significant
         if thresh is not None and not np.any(flux/fluxerr > thresh):
