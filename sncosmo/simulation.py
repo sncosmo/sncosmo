@@ -129,10 +129,11 @@ def realize_lcs(observations, model, params, thresh=None,
         ``model.mintime()`` and ``model.maxtime()`` are included in
         result table for each SN. Default is False.
     scatter : bool, optional
-        If True, the ``flux`` value of the realized data is calculated by adding
-        a random number drawn from a Normal Distribution with a standard
-        deviation equal to the ``fluxerror`` of the observation to the bandflux
-        value of the observation calculated from model. Default is True.
+        If True, the ``flux`` value of the realized data is calculated by
+        adding  a random number drawn from a Normal Distribution with a
+        standard deviation equal to the ``fluxerror`` of the observation to
+        the bandflux value of the observation calculated from model. Default
+        is True.
 
     Returns
     -------
