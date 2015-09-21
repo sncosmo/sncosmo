@@ -121,8 +121,10 @@ install:
     - if [[ $DOCS == Y ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy-helpers sphinx; fi
 
     # PEP8 / COVERAGE DEPENDENCIES
+    # TODO: Can allow coverage to be latest version once astropy/astropy#4175
+    # is addressed in release astropy version.
     - if [[ $PEP8 == Y ]]; then $CONDA_INSTALL pep8; fi
-    - if [[ $COVERAGE == Y ]]; then $PIP_INSTALL coverage coveralls; fi
+    - if [[ $COVERAGE == Y ]]; then $PIP_INSTALL coverage==3.7.1 coveralls; fi
 
 script:
    - $CMD
