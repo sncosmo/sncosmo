@@ -2,6 +2,7 @@
 from __future__ import division, print_function
 from warnings import warn
 import copy
+import time
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
@@ -9,8 +10,7 @@ from astropy.utils import OrderedDict as odict
 from astropy.extern import six
 
 from .photdata import standardize_data, normalize_data
-from . import nest
-from .utils import Result, Interp1D, ppf, weightedcov
+from .utils import Result, Interp1D, ppf
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
@@ -487,126 +487,18 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
     # TODO remove this in a future release.
     if "flatten" in kwargs:
-        warnings.warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
-                      "and will be removed in v1.1. Use the flatten_result() "
-                      "function instead.")
+        warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
+             "and will be removed in v1.1. Use the flatten_result() "
+             "function instead.")
         if kwargs["flatten"]:
             res = flatten_result(res)
     return res, model
 
 
-# ---------------------------------------------------------------------
-# This is the code for adding tied parameters to results of nest_lc
-# before returning
-
-#    # Add tied parameters to results. This is inelegant, but, eh.
-#    nsamples = len(res['samples_parvals'])
-#    res['nsamples'] = nsamples
-#    if tied is not None:
-#        tiedparnames = tied.keys()
-#        ntiedpar = len(tiedparnames)
-#        tiedparvals = np.empty((nsamples, ntiedpar), dtype=np.float)
-#        for i in range(nsamples):
-#            d = dict(zip(parnames, res['samples_parvals'][i, :]))
-#            for j, parname in enumerate(tiedparnames):
-#                tiedparvals[i, j] = tied[parname](d)
-#
-#        res['samples_parvals'] = np.hstack((res['samples_parvals'],
-#                                            tiedparvals))
-#        parnames = parnames + tiedparnames
-#
-#    # Sample averages and their standard deviations.
-#    res['parvals'] = np.average(res['samples_parvals'],
-#                                weights=res['samples_wt'], axis=0)
-#    res['parerrs'] = np.sqrt(np.sum(res['samples_wt'][:, np.newaxis] *
-#                             res['samples_parvals']**2, axis=0) -
-#                             res['parvals']**2)
-#
-#    # Add some more to results
-#    res['parnames'] = parnames
-#    res['dof'] = len(data) - npar
-#
-#    return res
-
-
-def _nest_lc(data, model, vparam_names, modelcov,
-             bounds=None, priors=None, ppfs=None, tied=None,
-             nobj=100, maxiter=10000, maxcall=1000000, verbose=False):
-    """Assumes that data has already been standardized.
-    (do `data = standardize_data(data)`).  Output samples and parameter
-    names are not reordered (order wil be the same as input parameter list).
-    """
-
-    if ppfs is None:
-        ppfs = {}
-    if tied is None:
-        tied = {}
-
-    # Convert bounds/priors combinations into ppfs
-    if bounds is not None:
-        for key, val in six.iteritems(bounds):
-            if key in ppfs:
-                continue  # ppfs take priority over bounds/priors
-            a, b = val
-            if priors is not None and key in priors:
-                # solve ppf at discrete points and return interpolating
-                # function
-                x_samples = np.linspace(0., 1., 101)
-                ppf_samples = ppf(priors[key], x_samples, a, b)
-                f = Interp1D(0., 1., ppf_samples)
-            else:
-                f = Interp1D(0., 1., np.array([a, b]))
-            ppfs[key] = f
-
-    # NOTE: It is important that iparam_names is in the same order
-    # every time, otherwise results will not be reproducible, even
-    # with same random seed.  This is because iparam_names[i] is
-    # matched to u[i] below and u will be in a reproducible order,
-    # so iparam_names must also be.
-    iparam_names = [key for key in vparam_names if key in ppfs]
-    ppflist = [ppfs[key] for key in iparam_names]
-    nipar = len(iparam_names)  # length of u
-    npar = len(vparam_names)  # length of v
-
-    # Check that all param_names either have a direct prior or are tied.
-    for name in vparam_names:
-        if name in iparam_names:
-            continue
-        if name in tied:
-            continue
-        raise ValueError("Must supply ppf or bounds or tied for parameter '{}'"
-                         .format(name))
-
-    def prior(u):
-        d = {}
-        for i in range(nipar):
-            d[iparam_names[i]] = ppflist[i](u[i])
-        v = np.empty(npar, dtype=np.float)
-        for i in range(npar):
-            key = vparam_names[i]
-            if key in d:
-                v[i] = d[key]
-            else:
-                v[i] = tied[key](d)
-        return v
-
-    # Indicies of the model parameters in vparam_names
-    idx = np.array([model.param_names.index(name) for name in vparam_names])
-
-    def loglikelihood(parameters):
-        model.parameters[idx] = parameters
-        return -0.5 * _chisq(data, model, modelcov=modelcov)
-
-    res = nest.nest(loglikelihood, prior, npar, nipar, nobj=nobj,
-                    maxiter=maxiter, maxcall=maxcall, verbose=verbose)
-    res.vparam_names = copy.copy(vparam_names)
-    res.ndof = len(data) - len(vparam_names)
-    return res
-
-
 def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
-            minsnr=5., priors=None, ppfs=None, nobj=100, maxiter=10000,
-            maxcall=1000000, modelcov=False, verbose=False):
+            minsnr=5., priors=None, ppfs=None, npoints=100, method='single',
+            maxiter=None, modelcov=False, verbose=False, rstate=None,
+            **kwargs):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -644,17 +536,24 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
         Prior percent point function (inverse of the cumulative distribution
         function) for each parameter. If a parameter is in this dictionary,
         the ppf takes precedence over a prior pdf specified in ``priors``.
-    nobj : int, optional
-        Number of objects (e.g., concurrent sample points) to use. Increasing
-        nobj increases the accuracy (due to denser sampling) and also the time
+    npoints : int, optional
+        Number of active samples to use. Increasing this value increases
+        the accuracy (due to denser sampling) and also the time
         to solution.
+    method : {'classic', 'single', 'multi'}, optional
+        Method used to select new points. Choices are 'classic',
+        single-ellipsoidal ('single'), multi-ellipsoidal ('multi'). Default
+        is 'single'.
     maxiter : int, optional
-        Maximum number of iterations. Default is 10000.
-    maxcall : int, optional
-        Maximum number of likelihood evaluations. Default is 1000000.
+        Maximum number of iterations. Iteration may stop earlier if
+        termination condition is reached. Default is no limit.
     modelcov : bool, optional
         Include model covariance when calculating chisq. Default is False.
+    rstate : `~numpy.random.RandomState`, optional
+        RandomState instance. If not given, the global random state of the
+        ``numpy.random`` module will be used.
     verbose : bool, optional
+        Print running evidence sum on a single line.
 
     Returns
     -------
@@ -694,22 +593,29 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     estimated_model : `~sncosmo.Model`
         A copy of the model with parameters set to the values in
         ``res.parameters``.
-
-    Notes
-    -----
-
-    The algorithm uses the numpy random number generator to generate samples,
-    and is therefore non-deterministic in default use. To get reproducible
-    results, simply seed the random number generator before calling `nest_lc`:
-
-    >>> import numpy as np
-    >>> np.random.seed(0)
-
     """
+
+    try:
+        import nestle
+    except ImportError:
+        raise ImportError("nest_lc() requires the nestle package.")
+
+    # deprecation warnings
+    if "maxcall" in kwargs:
+        warn("The maxcall parameter is now ignored and will be removed in a "
+             "future sncosmo release.")
+        kwargs.pop("maxcall")
+    if "nobj" in kwargs:
+        warn("The nobj keyword is deprecated and will be removed in a future "
+             "sncosmo release. Use `npoints` instead.")
+        npoints = kwargs.pop("nobj")
+
+    # experimental parameters
+    tied = kwargs.get("tied", None)
 
     data = standardize_data(data)
     model = copy.copy(model)
-    bounds = copy.copy(bounds)  # need to copy this dict b/c we modify it below
+    bounds = copy.copy(bounds)  # need to copy this b/c we modify it below
 
     # Order vparam_names the same way it is ordered in the model:
     vparam_names = [s for s in model.param_names if s in vparam_names]
@@ -738,25 +644,108 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     if 't0' in vparam_names and 't0' not in bounds:
         bounds['t0'] = t0_bounds(data, model)
 
-    res = _nest_lc(data, model, vparam_names, modelcov=modelcov,
-                   bounds=bounds, priors=priors, ppfs=ppfs, nobj=nobj,
-                   maxiter=maxiter, maxcall=maxcall, verbose=verbose)
+    if ppfs is None:
+        ppfs = {}
+    if tied is None:
+        tied = {}
 
-    res.bounds = bounds
+    # Convert bounds/priors combinations into ppfs
+    if bounds is not None:
+        for key, val in six.iteritems(bounds):
+            if key in ppfs:
+                continue  # ppfs take priority over bounds/priors
+            a, b = val
+            if priors is not None and key in priors:
+                # solve ppf at discrete points and return interpolating
+                # function
+                x_samples = np.linspace(0., 1., 101)
+                ppf_samples = ppf(priors[key], x_samples, a, b)
+                f = Interp1D(0., 1., ppf_samples)
+            else:
+                f = Interp1D(0., 1., np.array([a, b]))
+            ppfs[key] = f
 
-    # calculate weighted average and weighted covariance matrix of samples
-    vparameters, cov = weightedcov(res['samples'], res['weights'])
+    # NOTE: It is important that iparam_names is in the same order
+    # every time, otherwise results will not be reproducible, even
+    # with same random seed.  This is because iparam_names[i] is
+    # matched to u[i] below and u will be in a reproducible order,
+    # so iparam_names must also be.
+    iparam_names = [key for key in vparam_names if key in ppfs]
+    ppflist = [ppfs[key] for key in iparam_names]
+    npdim = len(iparam_names)  # length of u
+    ndim = len(vparam_names)  # length of v
 
+    # Check that all param_names either have a direct prior or are tied.
+    for name in vparam_names:
+        if name in iparam_names:
+            continue
+        if name in tied:
+            continue
+        raise ValueError("Must supply ppf or bounds or tied for parameter '{}'"
+                         .format(name))
+
+    def prior_transform(u):
+        d = {}
+        for i in range(npdim):
+            d[iparam_names[i]] = ppflist[i](u[i])
+        v = np.empty(ndim, dtype=np.float)
+        for i in range(ndim):
+            key = vparam_names[i]
+            if key in d:
+                v[i] = d[key]
+            else:
+                v[i] = tied[key](d)
+        return v
+
+    # Indicies of the model parameters in vparam_names
+    idx = np.array([model.param_names.index(name) for name in vparam_names])
+
+    def loglike(parameters):
+        model.parameters[idx] = parameters
+        return -0.5 * _chisq(data, model, modelcov=modelcov)
+
+    t0 = time.time()
+    res = nestle.sample(loglike, prior_transform, ndim, npdim=npdim,
+                        npoints=npoints, maxiter=maxiter, rstate=rstate,
+                        callback=(nestle.print_progress if verbose else None))
+    elapsed = time.time() - t0
+
+    # estimate parameters and covariance from samples
+    vparameters, cov = nestle.mean_and_cov(res.samples, res.weights)
+
+    # update model parameters to estimated ones.
     model.set(**dict(zip(vparam_names, vparameters)))
-    res.parameters = model.parameters.copy()
-    res.covariance = cov
-    res.errors = odict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
-    res.param_dict = odict(zip(model.param_names, model.parameters))
 
-    # TODO remove/change in a future release.
+    # `res` is a nestle.Result object. Collect result into a sncosmo.Result
+    # object for consistency, and add more fields.
+    res = Result(niter=res.niter,
+                 ncall=res.ncall,
+                 logz=res.logz,
+                 logzerr=res.logzerr,
+                 h=res.h,
+                 samples=res.samples,
+                 weights=res.weights,
+                 logvol=res.logvol,
+                 logl=res.logl,
+                 vparam_names=copy.copy(vparam_names),
+                 ndof=len(data) - len(vparam_names),
+                 bounds=bounds,
+                 time=elapsed,
+                 parameters=model.parameters.copy(),
+                 covariance=cov,
+                 errors=odict(zip(vparam_names, np.sqrt(np.diagonal(cov)))),
+                 param_dict=odict(zip(model.param_names, model.parameters)))
+
+    # Deprecated result fields.
     depmsg = ("The `param_names` attribute is deprecated in sncosmo v1.0 "
-              "and will be changed in v1.1. Use `vparam_names` instead.")
+              "and will be removed in a future release. "
+              "Use `vparam_names` instead.")
     res.__dict__['deprecated']['param_names'] = (res.vparam_names, depmsg)
+
+    depmsg = ("The `logprior` attribute is deprecated in sncosmo v1.2 "
+              "and will be changed in a future release. "
+              "Use `logvol` instead.")
+    res.__dict__['deprecated']['logprior'] = (res.logvol, depmsg)
 
     return res, model
 
@@ -856,7 +845,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
 
     try:
         import emcee
-    except:
+    except ImportError:
         raise ImportError("mcmc_lc() requires the emcee package.")
 
     # Standardize and normalize data.

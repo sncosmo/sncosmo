@@ -183,39 +183,6 @@ class Interp1D(object):
         return (1.-w) * self._y[i] + w * self._y[i+1]
 
 
-def weightedcov(x, w):
-    """Estimate a covariance matrix, given data with weights.
-
-    Implements formula described here:
-    https://en.wikipedia.org/wiki/Sample_mean_and_sample_covariance
-    (see "weighted samples" section)
-
-    Parameters
-    ----------
-    x : `~numpy.ndarray`
-        2-D array containing data samples. Shape is (M, N) where N is the
-        number of variables and M is the number of samples or observations.
-    w : `~numpy.ndarray`
-        1-D array of sample weights. Shape is (M,).
-
-    Returns
-    -------
-    mean : `~numpy.ndarray`
-        Weighted mean of samples.
-    cov : `~numpy.ndarray`
-        Weighted covariance matrix.
-    """
-
-    xmean = np.average(x, weights=w, axis=0)
-    xd = x - xmean
-    wsum = np.sum(w)
-    w2sum = np.sum(w**2)
-
-    cov = wsum / (wsum**2 - w2sum) * np.einsum('i,ij,ik', w, xd, xd)
-
-    return xmean, cov
-
-
 def _download_file(remote_url, target):
     """
     Accepts a URL, downloads the file to a given open file object.

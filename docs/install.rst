@@ -76,12 +76,13 @@ functionality in SNCosmo.
   functions.
 - `iminuit <http://iminuit.github.io/iminuit/>`_ for light curve
   fitting using the Minuit minimizer in `sncosmo.fit_lc`.
-- `emcee <http://dan.iel.fm/emcee/>`_ for Monte Carlo parameter
+- `emcee <http://dan.iel.fm/emcee/>`_ for MCMC light curve parameter
   estimation in `sncosmo.mcmc_lc`.
+- `nestle <http://kbarbary.github.io/nestle/>`_ for nested sampling
+  light curve parameter estimation in `sncosmo.nest_lc`.
 
-iminuit and emcee are only available via pip, not conda.
+iminuit, emcee and nestle can be installed using pip.
 
-The `triangle <https://github.com/dfm/triangle.py>`_ package is also
+The `corner <https://github.com/dfm/corner.py>`_ package is also
 recommended for plotting results from the samplers `sncosmo.mcmc_lc`
-and `sncosmo.nest_lc`, but triangle is not used by any part of
-sncosmo.
+and `sncosmo.nest_lc`, but is not used by any part of sncosmo.

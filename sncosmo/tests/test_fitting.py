@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import pytest
 import numpy as np
+from numpy.random import RandomState
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy.table import Table
 
@@ -12,8 +13,14 @@ import sncosmo
 try:
     import iminuit
     HAS_IMINUIT = True
-except:
+except ImportError:
     HAS_IMINUIT = False
+
+try:
+    import nestle
+    HAS_NESTLE = True
+except ImportError:
+    HAS_NESTLE = False
 
 
 class TestFitting:
@@ -73,6 +80,7 @@ class TestFitting:
         with pytest.raises(ValueError):
             res, fitmodel = sncosmo.fit_lc(self.data, self.model, [])
 
+    @pytest.mark.skipif('not HAS_NESTLE')
     def test_nest_lc(self):
         """Ensure that nested sampling runs.
 
@@ -80,12 +88,13 @@ class TestFitting:
         model; tests parameter re-ordering.
         """
 
-        np.random.seed(0)  # seed the RNG for reproducible results.
+        rstate = RandomState(0)
 
         self.model.set(**self.params)
 
         res, fitmodel = sncosmo.nest_lc(
             self.data, self.model, ['amplitude', 'z', 't0'],
-            bounds={'z': (0., 1.0)}, guess_amplitude_bound=True, nobj=50)
+            bounds={'z': (0., 1.0)}, guess_amplitude_bound=True, npoints=50,
+            rstate=rstate)
 
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
