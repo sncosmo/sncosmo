@@ -22,6 +22,7 @@ try:
 except ImportError:
     HAS_NESTLE = False
 
+
 class TestFitting:
     def setup_class(self):
         model = sncosmo.Model(source='hsiao-subsampled')
