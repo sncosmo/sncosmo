@@ -497,8 +497,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
 def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
             minsnr=5., priors=None, ppfs=None, npoints=100, method='single',
-            maxiter=None, modelcov=False, verbose=False, rstate=None,
-            **kwargs):
+            maxiter=None, maxcall=None, modelcov=False, rstate=None,
+            verbose=False, **kwargs):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -600,11 +600,6 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     except ImportError:
         raise ImportError("nest_lc() requires the nestle package.")
 
-    # deprecation warnings
-    if "maxcall" in kwargs:
-        warn("The maxcall parameter is now ignored and will be removed in a "
-             "future sncosmo release.")
-        kwargs.pop("maxcall")
     if "nobj" in kwargs:
         warn("The nobj keyword is deprecated and will be removed in a future "
              "sncosmo release. Use `npoints` instead.")
@@ -706,7 +701,8 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
 
     t0 = time.time()
     res = nestle.sample(loglike, prior_transform, ndim, npdim=npdim,
-                        npoints=npoints, maxiter=maxiter, rstate=rstate,
+                        npoints=npoints, method=method, maxiter=maxiter,
+                        maxcall=maxcall, rstate=rstate,
                         callback=(nestle.print_progress if verbose else None))
     elapsed = time.time() - t0
 
