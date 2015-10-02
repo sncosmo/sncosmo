@@ -19,7 +19,8 @@ from astropy.extern import six
 from .photdata import dict_to_array
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
-           'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
+           'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits',
+           'read_3dgriddata_fits']
 
 
 def _stripcomment(line, char='#'):
@@ -101,6 +102,56 @@ def read_griddata_ascii(name_or_obj):
 
     f.close()
     return np.array(x0), np.array(x1), np.array(y)
+
+
+def read_3dgriddata_fits(name_or_obj, ext=0):
+    """Read a 3-d grid of data from a FITS file, where the grid coordinates
+    are encoded in the FITS-WCS header keywords.
+
+    Parameters
+    ----------
+    name_or_obj : str or file-like object
+
+    Returns
+    -------
+    x0 : numpy.ndarray
+        1-d array.
+    x1 : numpy.ndarray
+        1-d array.
+    x2 : numpy.ndarray
+        1-d array.
+    y : numpy.ndarray
+        3-d array of shape (len(x0), len(x1), len(x2)).
+    """
+
+    hdulist = fits.open(name_or_obj)
+    w = wcs.WCS(hdulist[ext].header)
+    # take the transpose to match the FITS order
+    y = hdulist[ext].data.T.copy()
+    nx0, nx1, nx2 = y.shape
+
+    # get x0 values
+    coords = np.empty((nx0, 3), dtype=np.float32)
+    coords[:, 1:3] = 0.
+    coords[:, 0] = np.arange(nx0)  # x0 = FITS AXIS3 ("x" coordinates)
+    x0 = w.wcs_pix2world(coords, 0)[:, 0]
+
+    # get x1 values
+    coords = np.empty((nx1, 3), dtype=np.float32)
+    coords[:, 0] = 0.
+    coords[:, 1] = np.arange(nx1)  # x1 = FITS AXIS2 ("y" coordinates)
+    coords[:, 2] = 0.
+    x1 = w.wcs_pix2world(coords, 0)[:, 1]
+
+    # get x2 values
+    coords = np.empty((nx2, 3), dtype=np.float32)
+    coords[:, 2] = np.arange(nx2)  # x2 = FITS AXIS1 ("z" coordinates)
+    coords[:, 0:2] = 0.
+    x2 = w.wcs_pix2world(coords, 0)[:, 2]
+    
+    hdulist.close()
+
+    return x0, x1, x2, y
 
 
 def read_griddata_fits(name_or_obj, ext=0):
