@@ -1015,7 +1015,7 @@ class MLCS2k2Source(Source):
     _param_names = ['amplitude', 'delta']
     param_names_latex = ['A', '\Delta']
 
-    def __init__(self, modeldir=None, 
+    def __init__(self,
                  fluxfile='mlcs2k2.modelflux.fits', 
                  covarfile=None, 
                  name=None, version=None):
@@ -1036,7 +1036,8 @@ class MLCS2k2Source(Source):
         self._phase = phase
         self._wave = wave
         self._delta = delta
-        self._3d_model_flux = RegularGridInterpolator((delta,phase,wave),values)
+        self._3d_model_flux = RegularGridInterpolator((delta,phase,wave),values, 
+                                                      bounds_error=False, fill_value=0.)
 
     def _flux(self, phase, wave):
         # "outer cartesian product" code from fast cartesian_product2 from 
