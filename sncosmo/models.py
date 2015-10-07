@@ -1015,10 +1015,7 @@ class MLCS2k2Source(Source):
     _param_names = ['amplitude', 'delta']
     param_names_latex = ['A', '\Delta']
 
-    def __init__(self,
-                 fluxfile='mlcs2k2.modelflux.fits',
-                 covarfile=None,
-                 name=None, version=None):
+    def __init__(self, fluxfile, covarfile=None, name=None, version=None):
         self.name = name
         self.version = version
         self._parameters = np.array([1., 0.])
