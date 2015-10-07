@@ -148,7 +148,7 @@ def read_3dgriddata_fits(name_or_obj, ext=0):
     coords[:, 2] = np.arange(nx2)  # x2 = FITS AXIS1 ("z" coordinates)
     coords[:, 0:2] = 0.
     x2 = w.wcs_pix2world(coords, 0)[:, 2]
-    
+
     hdulist.close()
 
     return x0, x1, x2, y
