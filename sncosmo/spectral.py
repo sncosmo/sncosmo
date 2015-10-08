@@ -17,6 +17,8 @@ from . import registry
 __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
            'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
 
+HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
+
 
 def get_bandpass(name):
     """Get a Bandpass from the registry by name."""
@@ -28,15 +30,39 @@ def get_magsystem(name):
     return registry.retrieve(MagSystem, name)
 
 
-def read_bandpass(fname, fmt='ascii', wave_unit=u.AA, name=None):
-    """Read two-column bandpass. First column is assumed to be wavelength
-    in Angstroms."""
+def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
+                  trans_unit=u.dimensionless_unscaled, name=None):
+    """Read bandpass from two-column ASCII file containing wavelength and
+    transmission in each line.
+
+    Parameters
+    ----------
+    fname : str
+        File name.
+    fmt : {'ascii'}
+        File format of file. Currently only ASCII file supported.
+    wave_unit : `~astropy.units.Unit` or str, optional
+        Wavelength unit. Default is Angstroms.
+    trans_unit : `~astropy.units.Unit`, optional
+        Transmission unit. Can be `~astropy.units.dimensionless_unscaled`,
+        indicating a ratio of transmitted to incident photons, or units
+        proportional to inverse energy, indicating a ratio of transmitted
+        photons to incident energy. Default is ratio of transmitted to
+        incident photons.
+    name : str, optional
+        Identifier. Default is `None`.
+
+    Returns
+    -------
+    band : `~sncosmo.Bandpass`
+    """
 
     if fmt != 'ascii':
         raise ValueError("format {0} not supported. Supported formats: 'ascii'"
                          .format(fmt))
     t = ascii.read(fname, names=['wave', 'trans'])
-    return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit, name=name)
+    return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit,
+                    trans_unit=trans_unit, name=name)
 
 
 class Bandpass(object):
@@ -50,6 +76,12 @@ class Bandpass(object):
         Transmission fraction.
     wave_unit : `~astropy.units.Unit` or str, optional
         Wavelength unit. Default is Angstroms.
+    trans_unit : `~astropy.units.Unit`, optional
+        Transmission unit. Can be `~astropy.units.dimensionless_unscaled`,
+        indicating a ratio of transmitted to incident photons, or units
+        proportional to inverse energy, indicating a ratio of transmitted
+        photons to incident energy. Default is ratio of transmitted to
+        incident photons.
     name : str, optional
         Identifier. Default is `None`.
 
@@ -67,7 +99,8 @@ class Bandpass(object):
 
     """
 
-    def __init__(self, wave, trans, wave_unit=u.AA, name=None):
+    def __init__(self, wave, trans, wave_unit=u.AA,
+                 trans_unit=u.dimensionless_unscaled, name=None):
         wave = np.asarray(wave, dtype=np.float64)
         trans = np.asarray(trans, dtype=np.float64)
         if wave.shape != trans.shape:
@@ -75,9 +108,23 @@ class Bandpass(object):
         if wave.ndim != 1:
             raise ValueError('only 1-d arrays supported')
 
-        if wave_unit is not u.AA:
-            wave_unit = u.Unit(wave_unit)
+        # Ensure that units are actually units and not quantities, so that
+        # `to` method returns a float and not a Quantity.
+        wave_unit = u.Unit(wave_unit)
+        trans_unit = u.Unit(trans_unit)
+
+        if wave_unit != u.AA:
             wave = wave_unit.to(u.AA, wave, u.spectral())
+
+        # If transmission is in units of inverse energy, convert to
+        # unitless transmission:
+        #
+        # (transmitted photons / incident photons) =
+        #      (photon energy) * (transmitted photons / incident energy)
+        #
+        # where photon energy = h * c / lambda
+        if trans_unit != u.dimensionless_unscaled:
+            trans = (HC_ERG_AA / wave) * trans_unit.to(u.erg**-1, trans)
 
         # Check that values are monotonically increasing.
         # We could sort them, but if this happens, it is more likely a user

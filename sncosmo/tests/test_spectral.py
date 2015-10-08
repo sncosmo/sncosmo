@@ -49,3 +49,22 @@ def test_bandpass_type():
 
         # Ensure that it works with cython-based propagation effect.
         dust.propagate(band.wave, np.ones_like(wave))
+
+
+# issue 111
+def test_bandpass_bessell():
+    """Check that Bessell bandpass definitions are scaled by inverse
+    wavelength."""
+
+    band = sncosmo.get_bandpass('bessellb')
+    trans = band.trans[[4, 9, 14]]  # transmission at 4000, 4500, 5000
+
+    # copied from file
+    orig_wave = np.array([4000., 4500., 5000.])
+    orig_trans = np.array([0.920, 0.853, 0.325])
+
+    scaled_trans = orig_trans / orig_wave
+
+    # scaled_trans should be proportional to trans
+    factor = scaled_trans[0] / trans[0]
+    assert_allclose(scaled_trans, factor * trans)
