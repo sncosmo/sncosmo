@@ -125,6 +125,20 @@ def load_bandpass_microns(pkg_data_name, name=None):
     return read_bandpass(fname, wave_unit=u.micron, name=name)
 
 
+def load_bandpass_bessell(pkg_data_name, name=None):
+    """Bessell bandpasses have (1/energy) transmission units."""
+    fname = get_pkg_data_filename(pkg_data_name)
+    band = read_bandpass(fname, wave_unit=u.AA, trans_unit=u.erg**-1,
+                         name=name)
+
+    # We happen to know that Bessell bandpasses in file are arbitrarily
+    # scaled to have a peak of 1 photon / erg. Rescale here to a peak of
+    # 1 (unitless transmission) to be more similar to other bandpasses.
+    band.trans /= np.max(band.trans)
+
+    return band
+
+
 def tophat_bandpass(ctr, width, name=None):
     """Create a tophat Bandpass centered at `ctr` with width `width` (both
     in microns) sampled at 100 intervals."""
@@ -288,12 +302,18 @@ kepler_meta = {
     'description': 'Bandpass for the Kepler spacecraft',
     'dataurl': 'http://keplergo.arc.nasa.gov/CalibrationResponse.shtml'}
 
+# Bessell bandpasses have transmission in units of (photons / erg)
 bands = [('bessellux', 'bessell/bessell_ux.dat', bessell_meta),
          ('bessellb', 'bessell/bessell_b.dat', bessell_meta),
          ('bessellv', 'bessell/bessell_v.dat', bessell_meta),
          ('bessellr', 'bessell/bessell_r.dat', bessell_meta),
-         ('besselli', 'bessell/bessell_i.dat', bessell_meta),
-         ('desg', 'des/des_g.dat', des_meta),
+         ('besselli', 'bessell/bessell_i.dat', bessell_meta)]
+for name, fname, meta in bands:
+    registry.register_loader(Bandpass, name, load_bandpass_bessell,
+                             args=['data/bandpasses/' + fname],
+                             meta=meta)
+
+bands = [('desg', 'des/des_g.dat', des_meta),
          ('desr', 'des/des_r.dat', des_meta),
          ('desi', 'des/des_i.dat', des_meta),
          ('desz', 'des/des_z.dat', des_meta),

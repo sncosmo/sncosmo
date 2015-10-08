@@ -19,7 +19,7 @@ from astropy.extern import six
 
 from .io import read_griddata_ascii
 from . import registry
-from .spectral import get_bandpass, get_magsystem, Bandpass
+from .spectral import get_bandpass, get_magsystem, Bandpass, HC_ERG_AA
 try:
     # Not guaranteed available at setup time
     from ._extinction import ccm89, od94, f99kknots, f99uv
@@ -30,8 +30,6 @@ except ImportError:
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'Model',
            'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
-
-HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
 
 def _check_for_fitpack_error(e, a, name):
