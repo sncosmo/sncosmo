@@ -4,6 +4,7 @@ import os
 import sys
 import math
 import warnings
+import socket
 
 import numpy as np
 from scipy import integrate, optimize
