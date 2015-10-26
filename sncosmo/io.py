@@ -126,15 +126,14 @@ def read_3dgriddata_fits(name_or_obj, ext=0):
 
     hdulist = fits.open(name_or_obj)
     w = wcs.WCS(hdulist[ext].header)
-    # take the transpose to match the FITS order
-    y = hdulist[ext].data.T.copy()
+    y = hdulist[ext].data
     nx0, nx1, nx2 = y.shape
 
     # get x0 values
-    coords = np.empty((nx0, 3), dtype=np.float32)
+    coords = np.empty((nx2, 3), dtype=np.float32)
     coords[:, 1:3] = 0.
-    coords[:, 0] = np.arange(nx0)  # x0 = FITS AXIS3 ("x" coordinates)
-    x0 = w.wcs_pix2world(coords, 0)[:, 0]
+    coords[:, 0] = np.arange(nx2)  # x2 = FITS AXIS1 ("z" coordinates)
+    x2 = w.wcs_pix2world(coords, 0)[:, 0]
 
     # get x1 values
     coords = np.empty((nx1, 3), dtype=np.float32)
@@ -144,10 +143,10 @@ def read_3dgriddata_fits(name_or_obj, ext=0):
     x1 = w.wcs_pix2world(coords, 0)[:, 1]
 
     # get x2 values
-    coords = np.empty((nx2, 3), dtype=np.float32)
-    coords[:, 2] = np.arange(nx2)  # x2 = FITS AXIS1 ("z" coordinates)
+    coords = np.empty((nx0, 3), dtype=np.float32)
+    coords[:, 2] = np.arange(nx0)  # x0 = FITS AXIS3 ("x" coordinates)
     coords[:, 0:2] = 0.
-    x2 = w.wcs_pix2world(coords, 0)[:, 2]
+    x0 = w.wcs_pix2world(coords, 0)[:, 2]
 
     hdulist.close()
 
