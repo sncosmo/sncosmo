@@ -5,6 +5,16 @@ What's New
 *Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
 numbers.
 
+What's new in v1.1.1 (2015-10-28)
+=================================
+
+This is a bugfix release for the following issue:
+
+- Fix built-in Bessell bandpass definitions, which were wrong by a term
+  proportional to inverse wavelength. This was due to misinterpretation
+  of the trasmission units.
+
+
 What's new in v1.1.0 (2015-08-12)
 =================================
 
