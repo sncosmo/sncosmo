@@ -1,6 +1,15 @@
 1.2.0 (unreleased)
 ------------------
 
+1.1.1 (2015-10-28)
+------------------
+
+**Bugfixes**
+
+- Fix built-in Bessell bandpass definitions, which were wrong by a term
+  proportional to inverse wavelength. This was due to misinterpretation
+  of the trasmission units. [#111]
+
 
 1.1.0 (2015-08-12)
 ------------------
