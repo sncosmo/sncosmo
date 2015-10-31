@@ -163,34 +163,35 @@ def read_griddata_fits(name_or_obj, ext=0):
 
     Returns
     -------
-    x0 : numpy.ndarray
-        1-d array.
-    x1 : numpy.ndarray
-        1-d array.
-    y : numpy.ndarray
-        2-d array of shape (len(x0), len(x1)).
+    x0, x1, ... : `~numpy.ndarray`s
+        1-d arrays giving coordinates of grid. The number of these arrays will
+        depend on the dimension of the data array. For example, if the data have
+        two dimensions, a total of three arrays will be returned: ``x0, x1, y``,
+        with ``x0`` giving the coordinates of the first axis of ``y``. If the
+        data have three dimensions, a total of four arrays will be returned:
+        ``x0, x1, x2, y``, and so on with higher dimensions.
+    y : `~numpy.ndarray`
+        n-d array of shape ``(len(x0), len(x1), ...)``. For three dimensions
+        for example, the value at ``y[i, j, k]`` corresponds to coordinates
+        ``(x0[i], x1[j], x2[k])``.
     """
 
     hdulist = fits.open(name_or_obj)
     w = wcs.WCS(hdulist[ext].header)
     y = hdulist[ext].data
-    nx0, nx1 = y.shape
 
-    # get x0 values
-    coords = np.empty((nx0, 2), dtype=np.float32)
-    coords[:, 0] = 0.
-    coords[:, 1] = np.arange(nx0)  # x0 = FITS AXIS2 ("y" coordinates)
-    x0 = w.wcs_pix2world(coords, 0)[:, 1]
-
-    # get x1 values
-    coords = np.empty((nx1, 2), dtype=np.float32)
-    coords[:, 0] = np.arange(nx1)  # x1 = FITS AXIS1 ("x" coordinates)
-    coords[:, 1] = 0.
-    x1 = w.wcs_pix2world(coords, 0)[:, 0]
+    # get abcissa values (coordinates at grid values)
+    xs = []
+    for i in range(y.ndim):
+        j = y.ndim - i  # The i-th axis (in Python) corresponds to FITS AXISj
+        coords = np.zeros((y.shape[i], y.ndim), dtype=np.float32)
+        coords[:, j-1] = np.arange(nx)
+        x = w.wcs_pix2world(coords, 0)[:, j-1]
+        xs.append(x)
 
     hdulist.close()
 
-    return x0, x1, y
+    return tuple(xs) + (y,)
 
 
 def write_griddata_ascii(x0, x1, y, name_or_obj):
