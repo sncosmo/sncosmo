@@ -185,7 +185,7 @@ def read_griddata_fits(name_or_obj, ext=0):
     for i in range(y.ndim):
         j = y.ndim - i  # The i-th axis (in Python) corresponds to FITS AXISj
         coords = np.zeros((y.shape[i], y.ndim), dtype=np.float32)
-        coords[:, j-1] = np.arange(nx)
+        coords[:, j-1] = np.arange(y.shape[i])
         x = w.wcs_pix2world(coords, 0)[:, j-1]
         xs.append(x)
 
