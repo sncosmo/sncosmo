@@ -12,14 +12,13 @@ import itertools
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
                                RectBivariateSpline as Spline2d,
-                               splmake, spleval,
-                               RegularGridInterpolator)
+                               splmake, spleval)
 from astropy.utils import OrderedDict as odict
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six
 
-from .io import read_griddata_ascii, read_3dgriddata_fits
+from .io import read_griddata_ascii, read_griddata_fits
 
 from . import registry
 from .spectral import get_bandpass, get_magsystem, Bandpass
@@ -1003,24 +1002,32 @@ class MLCS2k2Source(Source):
 
     Parameters
     ----------
-    phase : `~numpy.ndarray`
-        Phases in days.
-    wave : `~numpy.ndarray`
-        Wavelengths in Angstroms.
-    flux : `~numpy.ndarray`
-        Model spectral flux density in erg / s / cm^2 / Angstrom.
-        Must have shape `(num_phases, num_disp)`.
+    fluxfile : str or obj
+        Filename (or open file-like object) of a FITS file containing 3-d
+        array of spectral flux density values for a grid of delta, phase
+        and wavelength values.
     """
 
     _param_names = ['amplitude', 'delta']
     param_names_latex = ['A', '\Delta']
 
-    def __init__(self, fluxfile, covarfile=None, name=None, version=None):
+    def __init__(self, fluxfile, name=None, version=None):
+
+        # RegularGridInterpolator is only available in recent scipy
+        # versions.
+        try:
+            from scipy.interpolate import RegularGridInterpolator
+        except ImportError:
+            import scipy  # to get scipy version
+            raise ImportError("scipy version 0.14 or greater required for "
+                              "MLCS2k2Source. Installed version: " +
+                              scipy.__version__)
+
         self.name = name
         self.version = version
         self._parameters = np.array([1., 0.])
 
-        delta, phase, wave, values = read_3dgriddata_fits(fluxfile)
+        delta, phase, wave, values = read_griddata_fits(fluxfile)
 
         self._phase = phase
         self._wave = wave
