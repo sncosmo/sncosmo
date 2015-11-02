@@ -591,7 +591,9 @@ meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.MLCS2k2Source`',
         'reference': ('Jha07',
                       'Jha, Riess and Kirshner 2007 '
-                      '<http://adsabs.harvard.edu/abs/2007ApJ...659..122J>')}
+                      '<http://adsabs.harvard.edu/abs/2007ApJ...659..122J>'),
+        'note': 'In MLCS2k2 language, this version corresponds to '
+        '"MLCS2k2 v0.07 rv19-early-smix vectors"'}
 registry.register_loader(Source, 'mlcs2k2', load_mlcs2k2,
                          args=['models/mlcs2k2/mlcs2k2.modelflux.fits'],
                          version='1.0', meta=meta)

@@ -1000,6 +1000,8 @@ class MLCS2k2Source(Source):
     where _A_ is the amplitude and _Delta_ is the MLCS2k2 light curve shape
     parameter.
 
+    .. note:: Requires scipy version 0.14 or higher.
+
     Parameters
     ----------
     fluxfile : str or obj
