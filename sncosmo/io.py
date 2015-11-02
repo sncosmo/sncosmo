@@ -104,8 +104,8 @@ def read_griddata_ascii(name_or_obj):
 
 
 def read_griddata_fits(name_or_obj, ext=0):
-    """Read a 2-d grid of data from a FITS file, where the grid coordinates
-    are encoded in the FITS-WCS header keywords.
+    """Read a multi-dimensional grid of data from a FITS file, where the
+    grid coordinates are encoded in the FITS-WCS header keywords.
 
     Parameters
     ----------
