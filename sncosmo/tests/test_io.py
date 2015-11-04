@@ -9,7 +9,8 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy.table import Table
 from astropy.extern import six
-
+from astropy import wcs
+from astropy.io import fits
 import sncosmo
 
 # Dummy data used for read_lc/write_lc round-tripping tests
@@ -74,6 +75,29 @@ def test_griddata_fits():
     x0_in, x1_in, y_in = sncosmo.read_griddata_fits(f)
     assert_allclose(x0_in, x0)
     assert_allclose(x1_in, x1)
+    assert_allclose(y_in, y)
+    f.close()
+
+    # Test reading 3-d grid data. We don't have a writer for
+    # this, so we write a temporary FITS file by hand.
+    x2 = np.array([3., 5., 7., 9])
+    y = np.zeros((len(x0), len(x1), len(x2)))
+
+    # write a FITS file that represents x0, x1, x2, y
+    w = wcs.WCS(naxis=3)
+    w.wcs.crpix = [1, 1, 1]
+    w.wcs.crval = [x2[0], x1[0], x0[0]]
+    w.wcs.cdelt = [2., 1., 1.]
+    hdu = fits.PrimaryHDU(y, header=w.to_header())
+    f = six.BytesIO()
+    hdu.writeto(f)
+
+    # Read it back
+    f.seek(0)
+    x0_in, x1_in, x2_in, y_in = sncosmo.read_griddata_fits(f)
+    assert_allclose(x0_in, x0)
+    assert_allclose(x1_in, x1)
+    assert_allclose(x2_in, x2)
     assert_allclose(y_in, y)
 
 
