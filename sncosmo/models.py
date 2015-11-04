@@ -7,6 +7,7 @@ import os
 from copy import copy as cp
 from textwrap import dedent
 from math import ceil
+import itertools
 
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
@@ -17,7 +18,8 @@ from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six
 
-from .io import read_griddata_ascii
+from .io import read_griddata_ascii, read_griddata_fits
+
 from . import registry
 from .spectral import get_bandpass, get_magsystem, Bandpass, HC_ERG_AA
 try:
@@ -28,7 +30,7 @@ except ImportError:
         raise
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SALT2Source', 'Model',
+           'SALT2Source', 'MLCS2k2Source', 'Model',
            'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 
@@ -980,6 +982,74 @@ class SALT2Source(Source):
             return self._colorlaw(np.ravel(wave))[0]
         else:
             return self._colorlaw(wave)
+
+
+class MLCS2k2Source(Source):
+    """A spectral time series model based on the MLCS2k2 model light curves,
+    using the Hsiao template at each phase, mangled to match the model
+    photometry.
+
+    The spectral flux density of this model is given by
+
+    .. math::
+
+       F(t, \lambda) = A \\times M(\Delta, t, \lambda)
+
+    where _A_ is the amplitude and _Delta_ is the MLCS2k2 light curve shape
+    parameter.
+
+    .. note:: Requires scipy version 0.14 or higher.
+
+    Parameters
+    ----------
+    fluxfile : str or obj
+        Filename (or open file-like object) of a FITS file containing 3-d
+        array of spectral flux density values for a grid of delta, phase
+        and wavelength values.
+    """
+
+    _param_names = ['amplitude', 'delta']
+    param_names_latex = ['A', '\Delta']
+
+    def __init__(self, fluxfile, name=None, version=None):
+
+        # RegularGridInterpolator is only available in recent scipy
+        # versions.
+        try:
+            from scipy.interpolate import RegularGridInterpolator
+        except ImportError:
+            import scipy  # to get scipy version
+            raise ImportError("scipy version 0.14 or greater required for "
+                              "MLCS2k2Source. Installed version: " +
+                              scipy.__version__)
+
+        self.name = name
+        self.version = version
+        self._parameters = np.array([1., 0.])
+
+        delta, phase, wave, values = read_griddata_fits(fluxfile)
+
+        self._phase = phase
+        self._wave = wave
+        self._delta = delta
+        self._3d_model_flux = RegularGridInterpolator((delta, phase, wave),
+                                                      values,
+                                                      bounds_error=False,
+                                                      fill_value=0.)
+
+    def _flux(self, phase, wave):
+        # "outer cartesian product" code from fast cartesian_product2 from
+        # http://stackoverflow.com/questions/11144513/numpy-cartesian-product-
+        #     of-x-and-y-array-points-into-single-array-of-2d-points
+        arrays = [[self.parameters[1]], phase, wave]
+        lp = len(phase)
+        lw = len(wave)
+        arr = np.empty((1, lp, lw, 3), dtype=np.float64)
+        for i, a in enumerate(np.ix_(*arrays)):
+            arr[..., i] = a
+        points = arr.reshape((-1, 3))
+        return (self._parameters[0] *
+                self._3d_model_flux(points).reshape(lp, lw))
 
 
 class Model(_ModelBase):

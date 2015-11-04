@@ -24,7 +24,7 @@ from astropy.utils.data import get_pkg_data_filename
 from . import registry
 from . import io
 from .utils import download_file, download_dir
-from .models import Source, TimeSeriesSource, SALT2Source
+from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
                        SpectralMagSystem, ABMagSystem)
 from . import conf
@@ -601,6 +601,22 @@ for name, fn in [('whalen-z15b', 'popIII-z15B.sed.restframe10pc.dat'),
     registry.register_loader(Source, name, load_timeseries_ascii,
                              args=[relpath, True], version='1.0', meta=meta)
 
+
+# MLCS2k2
+def load_mlcs2k2(relpath, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    return MLCS2k2Source(abspath, name=name, version=version)
+
+meta = {'type': 'SN Ia',
+        'subclass': '`~sncosmo.MLCS2k2Source`',
+        'reference': ('Jha07',
+                      'Jha, Riess and Kirshner 2007 '
+                      '<http://adsabs.harvard.edu/abs/2007ApJ...659..122J>'),
+        'note': 'In MLCS2k2 language, this version corresponds to '
+        '"MLCS2k2 v0.07 rv19-early-smix vectors"'}
+registry.register_loader(Source, 'mlcs2k2', load_mlcs2k2,
+                         args=['models/mlcs2k2/mlcs2k2.modelflux.fits'],
+                         version='1.0', meta=meta)
 
 # =============================================================================
 # MagSystems
