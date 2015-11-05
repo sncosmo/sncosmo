@@ -1,11 +1,18 @@
-language: python
+# This is a modified copy of astropy's .travis.yml
+
+# We set the language to c because python isn't supported on the MacOS X nodes
+# on Travis. However, the language ends up being irrelevant anyway, since we
+# install Python ourselves using conda.
+language: c
+
+os:
+    - linux
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
 
 # The apt packages below are needed for sphinx builds, which can no longer
-# be installed with sudo apt-get.
-# (need g++ for iminuit install)
+# be installed with sudo apt-get. (need g++ for iminuit install)
 addons:
     apt:
         packages:
@@ -14,120 +21,74 @@ addons:
             - dvipng
             - g++
 
-python:
-    - 2.6
-    - 2.7
-    - 3.3
-    - 3.4
-    # This is just for "egg_info".  All other builds are explicitly given in the matrix
 env:
     global:
-        # The following versions are the 'default' for tests, unless
-        # overidden underneath. They are defined here in order to save having
-        # to repeat them for all configurations.
+        # Set defaults to avoid repeating in most cases.
         - NUMPY_VERSION=1.9
-        - ASTROPY_VERSION=stable
-        - CONDA_INSTALL='conda install -c astropy-ci-extras --yes'
-        - PIP_INSTALL='pip install'
-        - COVERAGE=N
-        - PEP8=N
-        - DOCS=N
-        - DEPS=N
+        - ASTROPY_VERSION=1.0
+        - OPTIONAL_DEPS=true
+        - MAIN_CMD='python setup.py'
+
     matrix:
-        - CMD='python setup.py egg_info'
+        - PYTHON_VERSION=2.6 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.3 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.4 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
 
 matrix:
+
+    # Don't wait for allowed failures
+    fast_finish: true
+
     include:
 
-        # Do a coverage test in Python 2. 
-        - python: 2.7
-          env: CMD='python setup.py test --coverage' COVERAGE=Y DEPS=Y
+        # Try Mac OS X
+        - os: osx
+          env: PYTHON_VERSION=2.7 SETUP_CMD='test'
 
         # Check for sphinx doc build warnings
-        # Currently skipping until sphinx is updated. Also, astropy-helpers seems to have
-        # problems installing with conda on travis, though it works locally.
-        #- python: 2.7
-        #  env: CMD='python setup.py install; cd docs; sphinx-build . _build/html -W' DOCS=Y DEPS=Y
+        - os: linux
+          env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx -w'
 
-        # Try Astropy development version
-        - python: 2.7
-          env: ASTROPY_VERSION=development CMD='python setup.py test' DEPS=Y
-        - python: 3.4
-          env: ASTROPY_VERSION=development CMD='python setup.py test' DEPS=Y
+        # Try all python versions
+        - os: linux
+          env: PYTHON_VERSION=2.6 SETUP_CMD='test'
+        - os: linux
+          env: PYTHON_VERSION=2.7 SETUP_CMD='test'
+        - os: linux
+          env: PYTHON_VERSION=3.3 SETUP_CMD='test'
+        - os: linux
+          env: PYTHON_VERSION=3.4 SETUP_CMD='test'
 
-        # Try all python versions with the latest numpy
-        - python: 2.6
-          env: CMD='python setup.py test' DEPS=Y
-        - python: 2.7
-          env: CMD='python setup.py test' DEPS=Y
-        - python: 3.3
-          env: CMD='python setup.py test' DEPS=Y
-        - python: 3.4
-          env: CMD='python setup.py test' DEPS=Y
+        # Try astropy dev version
+        - os: linux
+          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=dev SETUP_CMD='test'
+        - os: linux
+          env: PYTHON_VERSION=3.4 ASTROPY_VERSION=dev SETUP_CMD='test'
 
-        # Try older numpy versions
-        - python: 2.7
-          env: NUMPY_VERSION=1.8 CMD='python setup.py test' DEPS=Y
-        - python: 2.7
-          env: NUMPY_VERSION=1.7 CMD='python setup.py test' DEPS=Y
-        - python: 2.7
-          env: NUMPY_VERSION=1.6 CMD='python setup.py test' DEPS=Y
+        # Try disabling optional dependencies
+        - os: linux
+          env: PYTHON_VERSION=2.7 OPTIONAL_DEPS=false SETUP_CMD='test'
+        - os: linux
+          env: PYTHON_VERSION=3.4 OPTIONAL_DEPS=false SETUP_CMD='test'
 
-        # pep8 checker
-        - python: 2.7
-          env: CMD='pep8 sncosmo --exclude=version.py' PEP8=Y
+        # Try older numpy versions & astropy versions
+        # (conda only has builds for np18 and later for astropy 1.0) 
+        - os: linux
+          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.8 ASTROPY_VERSION=0.4 SETUP_CMD='test'
 
-before_install:
-
-    # Use utf8 encoding. Should be default, but this is insurance against
-    # future changes
-    - export PYTHONIOENCODING=UTF8
-    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-    - chmod +x miniconda.sh
-    - ./miniconda.sh -b
-    - export PATH=/home/travis/miniconda/bin:$PATH
-    - conda update --yes conda
-
-    # Make sure that interactive matplotlib backends work
-    - export DISPLAY=:99.0
-    - sh -e /etc/init.d/xvfb start
+        # Do a PEP8 test
+        - os: linux
+          env: PYTHON_VERSION=2.7 MAIN_CMD='pep8 sncosmo --count' SETUP_CMD=''
 
 install:
-
-    # CONDA
-    - conda create --yes -n test -c astropy-ci-extras python=$TRAVIS_PYTHON_VERSION
-    - source activate test
-
-    # DEPENDENCIES
-    # Leave the `numpy=$NUMPY_VERSION` in the `conda`
-    # install since this ensures Numpy does not get automatically upgraded.
-    - if [[ $DEPS == Y ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION pytest pip Cython jinja2 scipy matplotlib; fi
-    - if [[ $DEPS == Y ]]; then $PIP_INSTALL pytest-xdist nestle; fi
-
-    # ASTROPY
-    - if [[ $DEPS == Y ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
-    - if [[ $DEPS == Y ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy; fi
-
-    # IMINUIT
-    # Currently need the dev version of iminuit for Python 3
-    # TODO: remove ipython once https://github.com/iminuit/iminuit/issues/166 is fixed
-    - if [[ $DEPS == Y && $TRAVIS_PYTHON_VERSION < 3 ]]; then $PIP_INSTALL iminuit; fi
-    - if [[ $DEPS == Y && $TRAVIS_PYTHON_VERSION > 3 ]]; then $PIP_INSTALL git+http://github.com/iminuit/iminuit.git#egg=iminuit; fi
-    - if [[ $DEPS == Y && $TRAVIS_PYTHON_VERSION > 3 ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION ipython; fi
-
-    # DOCUMENTATION DEPENDENCIES
-    # Note that this matplotlib will *not* work with py 3.x, but our sphinx build is
-    # currently 2.7, so that's fine
-    - if [[ $DOCS == Y ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy-helpers sphinx; fi
-
-    # PEP8 / COVERAGE DEPENDENCIES
-    # TODO: Can allow coverage to be latest version once astropy/astropy#4175
-    # is addressed in release astropy version.
-    - if [[ $PEP8 == Y ]]; then $CONDA_INSTALL pep8; fi
-    - if [[ $COVERAGE == Y ]]; then $PIP_INSTALL coverage==3.7.1 coveralls; fi
+    - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh
 
 script:
-   - $CMD
+    - $MAIN_CMD $SETUP_CMD
 
 after_success:
-   - if [[ $COVERAGE == Y ]]; then coveralls --rcfile='sncosmo/tests/coveragerc'; fi
+    - if [[ $SETUP_CMD == 'test --coverage' ]]; then
+        coveralls --rcfile='sncosmo/tests/coveragerc';
+      fi
