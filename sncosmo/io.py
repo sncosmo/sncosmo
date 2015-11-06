@@ -113,7 +113,7 @@ def read_griddata_fits(name_or_obj, ext=0):
 
     Returns
     -------
-    x0, x1, ... : `~numpy.ndarray`s
+    x0, x1, ... : `~numpy.ndarray`
         1-d arrays giving coordinates of grid. The number of these arrays will
         depend on the dimension of the data array. For example, if the data
         have two dimensions, a total of three arrays will be returned:
