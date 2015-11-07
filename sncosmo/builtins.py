@@ -302,6 +302,13 @@ kepler_meta = {
     'description': 'Bandpass for the Kepler spacecraft',
     'dataurl': 'http://keplergo.arc.nasa.gov/CalibrationResponse.shtml'}
 
+csp_meta = {
+    'filterset': 'csp',
+    'retrieved': '6 Nov 2015',
+    'description': 'Carnegie Supernova Proj. filts (Swope+DuPont Telescopes)',
+    'dataurl': 'http://csp.obs.carnegiescience.edu/data/filters'}
+
+
 # Bessell bandpasses have transmission in units of (photons / erg)
 bands = [('bessellux', 'bessell/bessell_ux.dat', bessell_meta),
          ('bessellb', 'bessell/bessell_b.dat', bessell_meta),
@@ -360,7 +367,23 @@ bands = [('desg', 'des/des_g.dat', des_meta),
          ('f775w', 'hst/hst_acs_wfc_f775w.dat', acs_meta),
          ('f814w', 'hst/hst_acs_wfc_f814w.dat', acs_meta),
          ('f850lp', 'hst/hst_acs_wfc_f850lp.dat', acs_meta),
-         ('kepler', 'kepler/kepler.dat', kepler_meta)]
+         ('kepler', 'kepler/kepler.dat', kepler_meta),
+         ('cspB',     'csp/B_texas_WLcorr_atm.txt',        csp_meta),
+         ('cspHS',    'csp/H_SWO_TAM_scan_atm.dat',        csp_meta),
+         ('cspHD',    'csp/H_texas_DUP_atm.dat',           csp_meta),
+         ('cspJS',    'csp/J_SWO_TAM_atm.dat',             csp_meta),
+         ('cspJD',    'csp/J_texas_DUP_atm.dat',           csp_meta),
+         ('cspV3099', 'csp/V_LC3009_texas_WLcorr_atm.txt', csp_meta),
+         ('cspV3014', 'csp/V_LC3014_texas_WLcorr_atm.txt', csp_meta),
+         ('cspV9844', 'csp/V_LC9844_texax_WLcorr_atm.txt', csp_meta),
+         ('cspYS',    'csp/Y_SWO_TAM_scan_atm.dat',        csp_meta),
+         ('cspYD',    'csp/Y_texas_DUP_atm.dat',           csp_meta),
+         ('cspg',     'csp/g_texas_WLcorr_atm.txt',        csp_meta),
+         ('cspi',     'csp/i_texas_WLcorr_atm.txt',        csp_meta),
+         ('cspK',     'csp/kfilter',                       csp_meta),
+         ('cspr',     'csp/r_texas_WLcorr_atm.txt',        csp_meta),
+         ('cspu',     'csp/u_texas_WLcorr_atm.txt',        csp_meta)]
+
 
 for name, fname, meta in bands:
     registry.register_loader(Bandpass, name, load_bandpass_angstroms,
