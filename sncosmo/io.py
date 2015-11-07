@@ -14,6 +14,7 @@ from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 from astropy.io import fits
 from astropy import wcs
+from astropy.coordinates import SkyCoord
 from astropy.extern import six
 
 from .photdata import dict_to_array
@@ -413,11 +414,67 @@ def _read_json(f, **kwargs):
 
 
 # -----------------------------------------------------------------------------
+# Reader: csp
+
+def _read_csp(f, **kwargs):
+
+    meta        = odict()
+    data        = []
+    colnames    = ['mjd', 'filter', 'mag', 'magerr']
+    readingdata = False
+
+    def _which_V(mjd):
+        # return the CSP V band that was in use on mjd.
+        if mjd < 53748:
+            return 'V_LC3014'
+        elif mjd > 53761:
+            return 'V_LC9844'
+        else:
+            return 'V_LC3099'
+
+    for j, line in enumerate(f):
+        if not readingdata:
+            if j == 4:
+                filts = [n for n in line[1:].strip().split()[1:] if n != '+/-']
+                readingdata = True
+                
+            if j == 2:
+                sline = line[1:].split()
+                meta['zcmb'] = float(sline[2])
+                ra  = (sline[5].replace(':', '%s') + '%s') % ('d','m','s')
+                dec = (sline[8].replace(':', '%s') + '%s') % ('d','m','s')
+
+                # convert from dms to degrees
+                coord = SkyCoord(ra, dec)
+
+                meta['ra']  = coord.ra.value
+                meta['dec'] = coord.dec.value
+
+            if j == 0:
+                meta['name'] = line.split()[-1]
+                
+        else:
+            d = line.split()
+            mjd = float(d[0])
+            for i in range(1, len(d), 2):
+                if d[i] != '99.900':
+                    if filts[i / 2] == 'V':
+                        # figure out which V
+                        filt = _which_V(mjd)
+                    else:
+                        filt = filts[i / 2]
+
+                    data.append((mjd, filt, float(d[i]), float(d[i + 1])))
+    data = dict(zip(colnames, zip(*data)))
+    return meta, data
+
+# -----------------------------------------------------------------------------
 # All readers
 READERS = {'ascii': _read_ascii,
            'json': _read_json,
            'salt2': _read_salt2,
-           'salt2-old': _read_salt2_old}
+           'salt2-old': _read_salt2_old,
+           'csp'  : _read_csp}
 
 
 def read_lc(file_or_dir, format='ascii', **kwargs):
