@@ -430,21 +430,12 @@ class MagSystem(object):
 
     def __init__(self, name=None):
         self._zpbandflux = {}
-        self._name = name
+        self.name = name
 
     @abc.abstractmethod
     def _refspectrum_bandflux(self, band):
         """Flux of the fundamental spectrophotometric standard."""
         pass
-
-    @property
-    def name(self):
-        """Name of magnitude system."""
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
 
     def zpbandflux(self, band):
         """Flux of an object with magnitude zero in the given bandpass.
