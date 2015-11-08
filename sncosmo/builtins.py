@@ -235,13 +235,26 @@ def load_2011fe(relpath, name=None, version=None):
 def load_ab(name=None):
     return ABMagSystem(name=name)
 
-
-def load_spectral_magsys_fits(relpath, name=None):
+def load_hst_calspec_std_spectrum(relpath):
     abspath = get_abspath(relpath, name)
     hdulist = fits.open(abspath)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
+    return dispersion, flux_density
+
+def load_csp(vega_path, bd17_path, name=None):
+    bd17_wave, bd17_spec = load_hst_calspec_std_spectrum(bd17_path)
+    vega_wave, vega_spec = load_hst_calspec_std_spectrum(vega_path)
+    filters = ('cspB','cspHS','cspHD',
+               'cspJS','cspJD','cspV3009',
+               'cspV3014','cspV9844','cspYS',
+               'cspYD','cspg','cspi','cspK',
+               'cspr','cspu')
+    zeropoints = (
+
+def load_spectral_magsys_fits(relpath, name=None):
+    dispersion, flux_density = load_hst_calspec_std_spectrum(relpath)
     refspectrum = Spectrum(dispersion, flux_density,
                            unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return SpectralMagSystem(refspectrum, name=name)
@@ -655,9 +668,22 @@ website = 'ftp://ftp.stsci.edu/cdbs/calspec/'
 subclass = '`~sncosmo.SpectralMagSystem`'
 vega_desc = 'Vega (alpha lyrae) has magnitude 0 in all bands.'
 bd17_desc = 'BD+17d4708 has magnitude 0 in all bands.'
-for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
-                       ('bd17', 'bd_17d4708_stisnic_005.fits', bd17_desc)]:
+vega_path = 'alpha_lyr_stis_007.fits'
+bd17_path = 'bd_17d4708_stisnic_005.fits'
+
+for name, fn, desc in [('vega', vega_path, vega_desc),
+                       ('bd17', bd17_path, bd17_desc)]:
     registry.register_loader(MagSystem, name, load_spectral_magsys_fits,
                              args=['spectra/' + fn],
                              meta={'subclass': subclass, 'url': website,
                                    'description': desc})
+
+# CSP
+csp_standards = [vega_path, bd17_path]
+registry.register_loader(
+    MagSystem, 'csp', load_csp,
+    args=map(lambda x: 'spectra/' + x, csp_standards),
+    meta={'subclass'    : '~sncosmo.NaturalMagSystem',
+          'url'         : 'http://csp.obs.carnegiescience.edu/data/filters',
+          'description' : 'CSP Natural Magnitude System.'})
+
