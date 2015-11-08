@@ -1,0 +1,20 @@
+# created by danny goldstein <dgold@berkeley.edu> based on
+# http://csp.obs.carnegiescience.edu/data/filters (accessed 8 nov
+# 2015)
+
+# name      zeropoint        reference_sed
+  cspu       13.044             bd17
+  cspg       15.135             bd17
+  cspr       14.915             bd17
+  cspi       14.781             bd17
+  cspB       14.344             vega
+  cspV3014   14.540             vega
+  cspV3099   14.493             vega
+  cspV9844   14.540             vega
+  cspYS      13.921             vega
+  cspJS      13.836             vega
+  cspHS      13.510             vega
+  cspK       11.967             vega
+  cspYD      13.770             vega
+  cspJD      13.866             vega
+  cspHD      13.502             vega
