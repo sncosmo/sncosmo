@@ -426,11 +426,12 @@ def _read_csp(f, **kwargs):
     def _which_V(mjd):
         # return the CSP V band that was in use on mjd.
         if mjd < 53748:
-            return 'V_LC3014'
+            ans = '3014'
         elif mjd > 53761:
-            return 'V_LC9844'
+            ans = '9844'
         else:
-            return 'V_LC3099'
+            ans = '3099'
+        return 'cspV' + ans
 
     for j, line in enumerate(f):
         if not readingdata:
@@ -462,8 +463,17 @@ def _read_csp(f, **kwargs):
                         # figure out which V
                         filt = _which_V(mjd)
                     else:
-                        filt = filts[i / 2]
+                        filt = 'csp' + filts[i / 2]
+                    for b in ['Y', 'J', 'H']:
+                        if b in filt:
 
+                            # TODO:: figure out how to tell if an
+                            # observation came from Swope or DuPont. 
+
+                            # Until then just use swope. 
+                            
+                            filt += 'S'
+                            break
                     data.append((mjd, filt, float(d[i]), float(d[i + 1])))
     data = dict(zip(colnames, zip(*data)))
     return meta, data
