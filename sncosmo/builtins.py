@@ -26,7 +26,7 @@ from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
-                       SpectralMagSystem, ABMagSystem)
+                       SpectralMagSystem, ABMagSystem, NaturalMagSystem)
 from . import conf
 
 # This module is only imported for its side effects.
@@ -241,22 +241,38 @@ def load_hst_calspec_std_spectrum(relpath):
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
-    return dispersion, flux_density
+    spectrum = Spectrum(dispersion, flux_density,
+                        unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+    return spectrum
 
 def load_csp(vega_path, bd17_path, name=None):
-    bd17_wave, bd17_spec = load_hst_calspec_std_spectrum(bd17_path)
-    vega_wave, vega_spec = load_hst_calspec_std_spectrum(vega_path)
-    filters = ('cspB','cspHS','cspHD',
-               'cspJS','cspJD','cspV3009',
-               'cspV3014','cspV9844','cspYS',
-               'cspYD','cspg','cspi','cspK',
-               'cspr','cspu')
-    zeropoints = (
+    bd17_spectrum = load_hst_calspec_std_spectrum(bd17_path)
+    vega_spectrum = load_hst_calspec_std_spectrum(vega_path)
+
+    # this file contains the csp zeropoints and standards
+    csp_info_path = get_pkg_data_filename('data/csp/csp_filter_info.dat')
+
+    # read it into a numpy array
+    csp_filter_data = np.genfromtxt(csp_info_path, names=True, dtype=None,
+                                    skip_header=3)
+    
+    filters    = csp_filter_data['name']
+    zeropoints = csp_filter_data['zeropoint']
+    
+    standards = []
+
+    for name in csp_filter_data['reference_sed']:
+        if name == 'bd17':
+            standards.append(bd17_spectrum)
+        else:
+            standards.append(vega_spectrum)
+
+    return NaturalMagSystem(filters, zeropoints, standards, name='csp')
+    
+    
 
 def load_spectral_magsys_fits(relpath, name=None):
     dispersion, flux_density = load_hst_calspec_std_spectrum(relpath)
-    refspectrum = Spectrum(dispersion, flux_density,
-                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return SpectralMagSystem(refspectrum, name=name)
 
 # =============================================================================
