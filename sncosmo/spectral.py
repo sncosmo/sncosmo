@@ -529,7 +529,7 @@ class NaturalMagSystem(MagSystem):
                 'zeropoints (%d).' % (len(standards),      
                                       len(zeropoints))
 
-        bandnames = [b.name for b in bands]
+        bandnames = [get_bandpass(b).name for b in bands]
         self._bands = bandnames
         self._zeropoints = dict(zip(bandnames, zeropoints))
         self._standards = dict(zip(bandnames, standards))
