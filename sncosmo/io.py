@@ -430,8 +430,8 @@ def _read_csp(f, **kwargs):
         elif mjd > 53761:
             ans = '9844'
         else:
-            ans = '3099'
-        return 'cspV' + ans
+            ans = '3009'
+        return 'cspv' + ans
 
     for j, line in enumerate(f):
         if not readingdata:
@@ -459,12 +459,12 @@ def _read_csp(f, **kwargs):
             mjd = float(d[0])
             for i in range(1, len(d), 2):
                 if d[i] != '99.900':
-                    if filts[i / 2] == 'V':
+                    if filts[i / 2] == 'v':
                         # figure out which V
                         filt = _which_V(mjd)
                     else:
                         filt = 'csp' + filts[i / 2]
-                    for b in ['Y', 'J', 'H']:
+                    for b in ['y', 'j', 'h']:
                         if b in filt:
 
                             # TODO:: figure out how to tell if an
@@ -472,7 +472,7 @@ def _read_csp(f, **kwargs):
 
                             # Until then just use swope. 
                             
-                            filt += 'S'
+                            filt += 's'
                             break
                     data.append((mjd, filt, float(d[i]), float(d[i + 1])))
     data = dict(zip(colnames, zip(*data)))
