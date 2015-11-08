@@ -250,7 +250,7 @@ def load_csp(vega_path, bd17_path, name=None):
     vega_spectrum = load_hst_calspec_std_spectrum(vega_path)
 
     # this file contains the csp zeropoints and standards
-    csp_info_path = get_pkg_data_filename('data/csp/csp_filter_info.dat')
+    csp_info_path = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
 
     # read it into a numpy array
     csp_filter_data = np.genfromtxt(csp_info_path, names=True, dtype=None,
