@@ -18,6 +18,7 @@ from astropy.coordinates import SkyCoord
 from astropy.extern import six
 
 from .photdata import dict_to_array
+from .spectral import get_magsystem
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
            'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
@@ -420,8 +421,9 @@ def _read_csp(f, **kwargs):
 
     meta        = odict()
     data        = []
-    colnames    = ['mjd', 'filter', 'mag', 'magerr']
+    colnames    = ['mjd', 'filter', 'flux', 'fluxerr', 'zp', 'magsys']
     readingdata = False
+    magsys      = get_magsystem('csp')
 
     def _which_V(mjd):
         # return the CSP V band that was in use on mjd.
@@ -436,7 +438,7 @@ def _read_csp(f, **kwargs):
     for j, line in enumerate(f):
         if not readingdata:
             if j == 4:
-                filts = [n for n in line[1:].strip().split()[1:] if n != '+/-']
+                filts = [n.lower() for n in line[1:].strip().split()[1:] if n != '+/-']
                 readingdata = True
                 
             if j == 2:
@@ -474,7 +476,14 @@ def _read_csp(f, **kwargs):
                             
                             filt += 's'
                             break
-                    data.append((mjd, filt, float(d[i]), float(d[i + 1])))
+
+                    mag     = float(d[i])
+                    magerr  = float(d[i + 1])
+                    flux    = magsys.band_mag_to_flux(mag, filt)
+                    fluxerr = magerr * flux / 1.086 
+                    zp      = magsys.zeropoints[filt]
+                    data.append((mjd, filt, flux, fluxerr, zp, magsys.name))
+
     data = dict(zip(colnames, zip(*data)))
     return meta, data
 
