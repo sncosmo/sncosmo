@@ -2,11 +2,12 @@
 import sncosmo
 from numpy.testing import assert_allclose
 from astropy.utils.data import get_pkg_data_filename
+import numpy as np
 
 def test_csp_magsys_calibration():
     
     csp = sncosmo.get_magsystem('csp')
-    csp_info_path = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
+    csp_info_path = get_pkg_data_filename('data/csp_filter_info.dat')
 
     # read it into a numpy array
     csp_filter_data = np.genfromtxt(csp_info_path, names=True, dtype=None,
@@ -16,7 +17,7 @@ def test_csp_magsys_calibration():
     bands   = csp_filter_data['name']
     
     for band, answer in zip(bands, answers):
-        assert_allclose(csp.band_mag_to_flux(csp.standard_mag(band)), answer)
+        assert_allclose(csp.standard_mag(band), answer)
         
 
         
