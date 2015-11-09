@@ -579,7 +579,7 @@ class NaturalMagSystem(MagSystem):
 
     @_verify_band(0)
     def standard_mag(self, band):
-        return self.band_flux_to_mag(self._refspectrum_bandflux(band))
+        return self.band_flux_to_mag(self._refspectrum_bandflux(band), band)
     
 
 class SpectralMagSystem(StandardMagSystem):
