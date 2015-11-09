@@ -237,7 +237,6 @@ def load_ab(name=None):
 
 def load_hst_calspec_std_spectrum(relpath, name):
     abspath = get_abspath(relpath, name)
-    print abspath
     hdulist = fits.open(abspath)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
