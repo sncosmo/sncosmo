@@ -567,11 +567,11 @@ class NaturalMagSystem(MagSystem):
     
     @_verify_band(1)
     def band_flux_to_mag(self, flux, band):
-        super(NaturalMagSystem, self).band_flux_to_mag(flux, band)
+        return super(NaturalMagSystem, self).band_flux_to_mag(flux, band)
         
     @_verify_band(1)
     def band_mag_to_flux(self, mag, band):
-        super(NaturalMagSystem, self).band_mag_to_flux(mag,  band)
+        return super(NaturalMagSystem, self).band_mag_to_flux(mag,  band)
         
     @_verify_band(0)
     def standard_name(self, band):
