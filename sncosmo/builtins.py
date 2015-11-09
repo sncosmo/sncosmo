@@ -235,8 +235,9 @@ def load_2011fe(relpath, name=None, version=None):
 def load_ab(name=None):
     return ABMagSystem(name=name)
 
-def load_hst_calspec_std_spectrum(relpath):
+def load_hst_calspec_std_spectrum(relpath, name):
     abspath = get_abspath(relpath, name)
+    print abspath
     hdulist = fits.open(abspath)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
@@ -245,12 +246,15 @@ def load_hst_calspec_std_spectrum(relpath):
                         unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return spectrum
 
-def load_csp(vega_path, bd17_path, name=None):
-    bd17_spectrum = load_hst_calspec_std_spectrum(bd17_path)
-    vega_spectrum = load_hst_calspec_std_spectrum(vega_path)
+def load_csp(vega_path, bd17_path, **kwargs):
+    bd17_spectrum = load_hst_calspec_std_spectrum(bd17_path, 'bd17')
+    bd17_spectrum.meta['name'] = 'bd17'
+    vega_spectrum = load_hst_calspec_std_spectrum(vega_path, 'vega')
+    vega_spectrum.meta['name'] = 'vega'
 
     # this file contains the csp zeropoints and standards
-    csp_info_path = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
+    csp_info_path = get_pkg_data_filename(
+            'data/bandpasses/csp/csp_filter_info.dat')
 
     # read it into a numpy array
     csp_filter_data = np.genfromtxt(csp_info_path, names=True, dtype=None,
@@ -272,7 +276,7 @@ def load_csp(vega_path, bd17_path, name=None):
     
 
 def load_spectral_magsys_fits(relpath, name=None):
-    dispersion, flux_density = load_hst_calspec_std_spectrum(relpath)
+    refspectrum = load_hst_calspec_std_spectrum(relpath, name)
     return SpectralMagSystem(refspectrum, name=name)
 
 # =============================================================================
@@ -701,5 +705,5 @@ registry.register_loader(
     args=map(lambda x: 'spectra/' + x, csp_standards),
     meta={'subclass'    : '~sncosmo.NaturalMagSystem',
           'url'         : 'http://csp.obs.carnegiescience.edu/data/filters',
-          'description' : 'CSP Natural Magnitude System.'})
-
+          'description' : 'CSP Natural Magnitude System.'},
+    version='1.0.0')
