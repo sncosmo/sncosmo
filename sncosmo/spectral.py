@@ -77,7 +77,7 @@ def _verify_band(band_arg_index):
                 raise ValueError, 'Invalid band %s for natural magnitude '    \
                     'system %s. Band must be '                                \
                     'one of %s.' % (band, 
-                                    magsysinst.__class__.name,
+                                    magsysinst.name,
                                     magsysinst.zeropoints.keys())
 
             else:
