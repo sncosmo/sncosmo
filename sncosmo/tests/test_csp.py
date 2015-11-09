@@ -17,7 +17,7 @@ def test_csp_magsys_calibration():
     bands   = csp_filter_data['name']
     
     for band, answer in zip(bands, answers):
-        assert_allclose(csp.standard_mag(band), answer)
+        assert_allclose(csp.standard_mag(band), answer, atol=.015)
         
 
         
