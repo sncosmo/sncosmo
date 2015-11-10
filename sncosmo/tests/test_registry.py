@@ -8,13 +8,16 @@ import sncosmo
 def test_register():
     disp = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
     trans = np.array([0., 1., 1., 1., 1., 0.])
+
+    # create a band, register it, make sure we can get it back.
     band = sncosmo.Bandpass(disp, trans, name='tophatg')
+    sncosmo.register(band)
+    assert sncosmo.get_bandpass('tophatg') is band
+
+    # test deprecated path to registry
+    band = sncosmo.Bandpass(disp, trans, name='tophatg2')
     sncosmo.registry.register(band)
-
-    band2 = sncosmo.get_bandpass('tophatg')
-
-    # make sure we can get back the band we put it.
-    assert band2 is band
+    assert sncosmo.get_bandpass('tophatg2') is band
 
 
 def test_retrieve_cases():

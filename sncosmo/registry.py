@@ -5,7 +5,7 @@ based on string identifiers."""
 from astropy.utils import OrderedDict
 from astropy.extern import six
 
-__all__ = ['register_loader', 'register', 'retrieve', 'get_loaders_metadata']
+__all__ = ['register_loader', 'register']
 
 _loaders = OrderedDict()
 _instances = OrderedDict()
@@ -14,6 +14,9 @@ _instances = OrderedDict()
 def register_loader(data_class, name, func, args=None,
                     version=None, meta=None, force=False):
     """Register a data reading function.
+
+    .. note:: Formerly accessed as ``sncosmo.registry.register_loader`` prior
+              to v1.2.
 
     Parameters
     ----------
@@ -64,6 +67,9 @@ def register_loader(data_class, name, func, args=None,
 
 def register(instance, name=None, data_class=None, force=False):
     """Register a class instance.
+
+    .. note:: Formerly accessed as ``sncosmo.registry.register`` prior
+              to v1.2.
 
     Parameters
     ----------

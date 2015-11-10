@@ -152,8 +152,7 @@ if not _ASTROPY_SETUP_:
     # clean up namespace
     del os, ConfigItem, ConfigNamespace, update_default_config
 
-    # Do all the necessary imports: everything except registry goes in the
-    # top-level namespace.
+    # Do all the necessary imports.
     from .dustmap import *
     from .spectral import *
     from .models import *
@@ -162,6 +161,9 @@ if not _ASTROPY_SETUP_:
     from .fitting import *
     from .simulation import *
     from .plotting import *
-    from . import registry
+    from .registry import *
 
+    from . import registry  # deprecated in v1.2; use previous import.
+
+    # Register all the built-ins.
     from .builtins import *
