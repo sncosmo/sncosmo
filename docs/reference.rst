@@ -15,23 +15,25 @@ Built-ins
 
 .. currentmodule:: sncosmo
 
-Model & Sources
-===============
+Model & Components
+==================
 
 .. autosummary::
    :toctree: api
 
-   get_source
+   Model
+
+*Source component of Model*
+
+.. autosummary::
+   :toctree: api
+
    Source
    TimeSeriesSource
    StretchSource
    SALT2Source
-   Model
 
-PropagationEffects
-==================
-
-*Adding interstellar dust extinction to models*
+*Effect components of Model: interstellar dust extinction*
 
 .. autosummary::
    :toctree: api
@@ -41,22 +43,13 @@ PropagationEffects
    OD94Dust
    F99Dust
 
-Bandpasses
-==========
+Bandpass & Magnitude Systems
+============================
 
 .. autosummary::
    :toctree: api
 
-   get_bandpass
    Bandpass
-
-Magnitude Systems
-=================
-
-.. autosummary::
-   :toctree: api
-
-   get_magsystem
    MagSystem
    ABMagSystem
    SpectralMagSystem
@@ -89,7 +82,7 @@ maps, and more.*
 Fitting Photometric Data
 ========================
 
-*Fit model parameters to photometric data*
+*Estimate model parameters from photometric data*
 
 .. autosummary::
    :toctree: api
@@ -97,8 +90,15 @@ Fitting Photometric Data
    fit_lc
    mcmc_lc
    nest_lc
+
+*Convenience functions*
+
+.. autosummary::
+   :toctree: api
+
    chisq
    flatten_result
+
 
 Plotting
 ========
@@ -123,14 +123,17 @@ Simulation
 Registry
 ========
 
-*Connecting strings to models, bandpasses, and magnitude systems*
+*Register and retrieve custom built-in sources, bandpasses, and
+magnitude systems*
 
 .. autosummary::
    :toctree: api
 
-   registry.register_loader
-   registry.register
-   registry.retrieve
+   register
+   register_loader
+   get_source
+   get_bandpass
+   get_magsystem
 
 Class Inheritance Diagrams
 ==========================
@@ -143,4 +146,3 @@ Class Inheritance Diagrams
 
 .. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
    :parts: 1
-
