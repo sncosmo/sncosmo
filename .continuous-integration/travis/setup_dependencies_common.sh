@@ -46,14 +46,7 @@ fi
 if $OPTIONAL_DEPS
 then
   $CONDA_INSTALL matplotlib
-  $PIP_INSTALL emcee nestle
-  if [[ $PYTHON_VERSION < 3 ]]
-  then
-      $PIP_INSTALL iminuit
-  else
-      # need dev version of iminuit on Python 3
-      $PIP_INSTALL git+http://github.com/iminuit/iminuit.git#egg=iminuit
-  fi
+  $PIP_INSTALL emcee nestle iminuit
 fi
 
 # DOCUMENTATION DEPENDENCIES
