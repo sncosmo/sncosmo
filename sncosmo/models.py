@@ -1578,7 +1578,7 @@ class CCM89Dust(PropagationEffect):
     """Cardelli, Clayton, Mathis (1989) extinction model dust."""
     _param_names = ['ebv', 'r_v']
     param_names_latex = ['E(B-V)', 'R_V']
-    _minwave = 909.09
+    _minwave = 1000.
     _maxwave = 33333.33
 
     def __init__(self):
