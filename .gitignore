@@ -50,4 +50,3 @@ sncosmo/cython_version.py
 
 # ipython notebooks
 *.ipynb
-.cache/
