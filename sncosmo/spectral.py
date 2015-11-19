@@ -501,14 +501,15 @@ class NaturalMagSystem(MagSystem):
     def __init__(self, bands, zeropoints, standards, name=None):
         super(NaturalMagSystem, self).__init__(name)
         if len(bands) != len(zeropoints):
-            raise ValueError, 'Number of passed bands (%d) does not equal '  \
-                'the number of passed zeropoints (%d).'  % (len(bands),      
-                                                            len(zeropoints))
+            raise ValueError('Number of passed bands (%d) does not equal '
+                             'the number of passed zeropoints (%d).'
+                             .format(len(bands), len(zeropoints)))
+        
         if len(standards) != len(zeropoints):
-            raise ValueError, 'Number of passed stanadards (%d) does '       \
-                ' not equal the number of passed '                           \
-                'zeropoints (%d).' % (len(standards),      
-                                      len(zeropoints))
+            raise ValueError('Number of passed stanadards (%d) does '
+                             ' not equal the number of passed '
+                             'zeropoints (%d).'.format(len(standards),      
+                                                       len(zeropoints)))
 
         bandnames = [get_bandpass(b).name for b in bands]
         self._bands = bandnames
