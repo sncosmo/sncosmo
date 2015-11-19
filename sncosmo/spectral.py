@@ -65,25 +65,6 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit,
                     trans_unit=trans_unit, name=name)
 
-def _verify_band(band_arg_index):
-    """Ensure that the band passed to `func` is within the natural
-    system of the NaturalMagSys instance `magsysinst`."""
-    def inner(func):
-        def wrapped_func(magsysinst, *args, **kwargs):
-            args = list(args)
-            band = get_bandpass(args[band_arg_index]).name
-            args[band_arg_index] = band
-            if band not in magsysinst.zeropoints:
-                raise ValueError, 'Invalid band %s for natural magnitude '    \
-                    'system %s. Band must be '                                \
-                    'one of %s.' % (band, 
-                                    magsysinst.name,
-                                    magsysinst.zeropoints.keys())
-
-            else:
-                return func(magsysinst, *args, **kwargs)
-        return wrapped_func
-    return inner
 
 class Bandpass(object):
     """Transmission as a function of spectral wavelength.
@@ -534,7 +515,22 @@ class NaturalMagSystem(MagSystem):
         self._zeropoints = dict(zip(bandnames, zeropoints))
         self._standards = dict(zip(bandnames, standards))
 
-    @_verify_band(0)
+    def _verify_band(self, band):
+        """Ensure that band is within the natural system of the NaturalMagSys
+        instance `magsysinst`.
+        
+        """
+        
+        band = get_bandpass(band)
+        
+        if band not in self.zeropoints:
+            raise ValueError('Invalid band %s for natural magnitude '
+                             'system %s. Band must be '
+                             'one of %s.'
+                             .format(band, self.name,
+                                     self.zeropoints.keys()))
+        return band.name
+        
     def zpbandflux(self, band):
         """Flux of an object with magnitude zero in the given bandpass.
 
@@ -547,6 +543,8 @@ class NaturalMagSystem(MagSystem):
         bandflux : float
             Flux in photons / s / cm^2.
         """
+
+        band = self._verify_band(band)
         return 10**(0.4 * self.zeropoints[band])
     
     @property
@@ -561,24 +559,24 @@ class NaturalMagSystem(MagSystem):
     def standards(self):
         return self._standards
 
-    @_verify_band(0)
     def _refspectrum_bandflux(self, band):
+        band = self._verify_band(band)
         return self.standards[band].bandflux(band)
     
-    @_verify_band(1)
     def band_flux_to_mag(self, flux, band):
+        band = self._verify_band(band)
         return super(NaturalMagSystem, self).band_flux_to_mag(flux, band)
         
-    @_verify_band(1)
     def band_mag_to_flux(self, mag, band):
+        band = self._verify_band(band)
         return super(NaturalMagSystem, self).band_mag_to_flux(mag,  band)
-        
-    @_verify_band(0)
+    
     def standard_name(self, band):
+        band = self._verify_band(band)
         return self.standards[band].meta['name']
 
-    @_verify_band(0)
     def standard_mag(self, band):
+        band = self._verify_band(band)
         return self.band_flux_to_mag(self._refspectrum_bandflux(band), band)
     
 
