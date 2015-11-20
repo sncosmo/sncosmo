@@ -26,7 +26,7 @@ from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
-                       SpectralMagSystem, ABMagSystem, NaturalMagSystem)
+                       SpectralMagSystem, ABMagSystem, LocalMagSystem)
 from . import conf
 
 # This module is only imported for its side effects.
@@ -270,7 +270,7 @@ def load_csp(vega_path, bd17_path, **kwargs):
         else:
             standards.append(vega_spectrum)
 
-    return NaturalMagSystem(filters, zeropoints, standards, name='csp')
+    return LocalMagSystem(filters, zeropoints, standards, name='csp')
     
     
 
@@ -702,7 +702,7 @@ csp_standards = [vega_path, bd17_path]
 registry.register_loader(
     MagSystem, 'csp', load_csp,
     args=map(lambda x: 'spectra/' + x, csp_standards),
-    meta={'subclass'    : '~sncosmo.NaturalMagSystem',
+    meta={'subclass'    : '~sncosmo.LocalMagSystem',
           'url'         : 'http://csp.obs.carnegiescience.edu/data/filters',
           'description' : 'CSP Natural Magnitude System.'},
     version='1.0.0')
