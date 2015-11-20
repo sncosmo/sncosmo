@@ -435,11 +435,7 @@ class MagSystem(object):
     def _refspectrum_bandflux(self, band):
         """Flux of the fundamental spectrophotometric standard."""
         pass
-
-    @abc.abstractmethod
-    def zpbandflux(self, band):
-        pass
-
+    
     def band_flux_to_mag(self, flux, band):
         """Convert flux (photons / s / cm^2) to magnitude."""
         return -2.5 * math.log10(flux / self.zpbandflux(band))
