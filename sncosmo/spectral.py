@@ -227,19 +227,52 @@ class RadialBandpass(NonUniformBandpass):
 
     def __init__(self, radius, wave, trans, wave_unit=u.AA,
                  trans_unit=u.dimensionless_unscaled, radius_unit=u.cm,
-                 name=None):
+                 name=None, resolution=10.):
 
         _setup_bandpass(self, wave, trans, wave_unit, trans_unit, name)
         _setup_radial_bandpass(self, radius, radius_unit)
 
+        unique_radii = np.unique(radius)
+        wave_min = []
+        wave_max = []
+
+        for rad in unique_radii:
+            inds = np.isclose(radius, rad)
+            wave_min.append(wave[inds].min())
+            wave_max.append(wave[inds].max())
+
+        # create the smallest possible interval
+            
+        self.wave_min = np.max(wave_min)
+        self.wave_max = np.min(wave_max)
+
+    @property
+    def wave_grid(self):
+        wdiff = self.wave_max - self.wave_min
+        return np.linspace(self.wave_min, self.wave_max,
+                           wdiff / self.resolution)
+        
+
     def at(self, r):
+        
+        wg    = np.atleast_2d(self.wave_grid).T # column 
+        reval = np.atleast_2d(np.ones_like(wg) * r).T # column
+        xeval = np.hstack((reval, wg))
+        
         try: 
-            return self._atfunc(r)
+            trans = self._atfunc(xeval)
         except AttributeError:
-            self._atfunc = LinearNDInterpolator(
-                np.hstack((self.radius,self.wave)),
-                self.trans)
-            return self._atfunc(r)
+            radius = np.atleast_2d(self.radius).T # column
+            wave   = np.atleast_2d(self.wave  ).T # column
+            x      = np.hstack((radius, wave))
+            self._atfunc = LinearNDInterpolator(x, self.trans)
+            trans = self._atfunc(xeval)
+
+        name = self.name + '@%.2f%s' % (r, self.radius_unit)
+
+        bpass = Bandpass(wg, trans, wave_unit=self.wave_unit,
+                         trans_unit=self.trans_unit, name=name)
+        return bpass
 
         
 class Spectrum(object):
