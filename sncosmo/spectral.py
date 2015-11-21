@@ -158,15 +158,11 @@ class Bandpass(object):
                  trans_unit=u.dimensionless_unscaled, name=None):
         _setup_bandpass(self, wave, trans, wave_unit, trans_unit, name)
 
-    @property
+    @lazyproperty
     def dwave(self):
         """Gradient of wavelengths, numpy.gradient(wave)."""
-        try:
-            return self._dwave
-        except AttributeError:
-            self._dwave = np.gradient(wave)
-        return self._dwave
-
+        return np.gradient(self.wave)
+    
     @lazyproperty
     def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
