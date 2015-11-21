@@ -241,34 +241,25 @@ class RadialBandpass(NonUniformBandpass):
             
         self.wave_min = np.max(wave_min)
         self.wave_max = np.min(wave_max)
-
+        
+        r = np.atleast_2d(self.radius).T  # column
+        w = np.atleast_2d(self.wave).T  # column
+        x = np.hstack((r, w))
+        self._atfunc = LinearNDInterpolator(x, self.trans)
+        
     @property
     def wave_grid(self):
         wdiff = self.wave_max - self.wave_min
         return np.linspace(self.wave_min, self.wave_max,
                            wdiff / self.resolution)
-        
 
     def at(self, r):
-        
-        wg    = np.atleast_2d(self.wave_grid).T # column 
-        reval = np.atleast_2d(np.ones_like(wg) * r).T # column
+        wg    = np.atleast_2d(self.wave_grid).T  # column 
+        reval = np.atleast_2d(np.ones_like(wg) * r).T  # column
         xeval = np.hstack((reval, wg))
-        
-        try: 
-            trans = self._atfunc(xeval)
-        except AttributeError:
-            radius = np.atleast_2d(self.radius).T # column
-            wave   = np.atleast_2d(self.wave  ).T # column
-            x      = np.hstack((radius, wave))
-            self._atfunc = LinearNDInterpolator(x, self.trans)
-            trans = self._atfunc(xeval)
-
         name = self.name + '@%.2f%s' % (r, self.radius_unit)
-
-        bpass = Bandpass(wg, trans, wave_unit=self.wave_unit,
+        return Bandpass(wg, trans, wave_unit=self.wave_unit,
                          trans_unit=self.trans_unit, name=name)
-        return bpass
 
         
 class Spectrum(object):
