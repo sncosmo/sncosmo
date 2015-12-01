@@ -5,28 +5,25 @@ About SNCosmo
 Package Features
 ================
 
-- **SN models:** Synthesize supernova spectra and photometry from SN models.
+- **SN models:** Synthesize supernova spectra and photometry from SN
+  models.
 
 - **Fitting and sampling:** Functions for fitting and sampling SN
   model parameters given photometric light curve data.
 
 - **Dust laws:** Fast implementations of several commonly used
-  extinction laws; can be used to construct SN models including dust.
+  extinction laws; can be used to construct SN models that include dust.
 
-- **I/O:** Convenience functions for reading and writing peculiar data formats
-  used in other packages and getting dust values from SFD (1998) maps.
+- **I/O:** Convenience functions for reading and writing peculiar data
+  formats used in other packages and getting dust values from
+  SFD (1998) maps.
 
-- **Built-in supernova models** such as the Hsiao, Nugent, PSNID,
-  SNANA and Whalen models, as well as a variety of built-in bandpasses
-  and magnitude systems.
+- **Built-in supernova models** such as SALT2, MLCS2k2, Hsiao, Nugent,
+  PSNID, SNANA and Whalen models, as well as a variety of built-in
+  bandpasses and magnitude systems.
 
-- **Extensible:** New models, bandpasses, and
-  magnitude systems can be defined, using an object-oriented interface.
-
-- **Fast:** Fully NumPy-ified and profiled. Generating
-  synthetic photometry for 100 observations spread between four
-  bandpasses takes on the order of 2 milliseconds (depends on model
-  and bandpass sampling).
+- **Extensible:** New models, bandpasses, and magnitude systems can be
+  defined, using an object-oriented interface.
 
 
 Relation to other SN cosmology software
@@ -46,8 +43,10 @@ supernova cosmology. These include (but are not limited to) `snfit`_
   aspects of SN analyses.
 
 * `SNooPy`_ (or snpy) is also a Python library for SN analysis, but
-  with a (mostly) different feature set. The current maintenance and
-  development status of the package is unclear.
+  with a (mostly) different feature set. SNCosmo is based on spectral
+  timeseries models whereas SNooPy is more focussed on models of light
+  curves in given bands.
+
 
 .. _`snfit`: http://supernovae.in2p3.fr/salt
 .. _`SNANA`: http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/
@@ -67,13 +66,17 @@ science (radiative transfer simulations for instance).  Hence
 Contributors
 ============
 
+Alphabetical by last name:
+
 * Kyle Barbary
+* Tom Barclay
 * Rahul Biswas
+* Matt Craig
+* Ulrich Feindt
+* Brian Friesen
+* Danny Goldstein
+* Saurabh Jha
 * Steve Rodney
 * Caroline Sofiatti
-* Tom Barclay
 * Rollin C. Thomas
-* Danny Goldstein
 * Michael Wood-Vasey
-* Brian Friesen
-* Matt Craig

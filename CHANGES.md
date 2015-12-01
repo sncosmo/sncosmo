@@ -1,5 +1,4 @@
-1.2.0 (unreleased)
-------------------
+THIS FILE NO LONGER MAINTAINED. See docs/whatsnew.rst instead.
 
 1.1.1 (2015-10-28)
 ------------------

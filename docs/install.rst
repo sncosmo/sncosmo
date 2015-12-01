@@ -11,9 +11,14 @@ AstroPy_.
 Install using conda
 ===================
 
-SNCosmo is available on the astropy channel::
+SNCosmo is available on the `astropy channel <https://anaconda.org/astropy/>`_::
 
     conda install -c astropy sncosmo
+
+The release of the conda version may lag behind the pip release, so
+you may want to check the available conda version. You can do this
+at the link above, or by running ``conda search -c astropy sncosmo``.
+
 
 Install using pip
 =================

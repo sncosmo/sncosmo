@@ -35,7 +35,6 @@ possible. It is built on NumPy, SciPy and AstroPy.
 * Check out the source code: https://github.com/sncosmo/sncosmo
 * Report bugs, request features: https://github.com/sncosmo/sncosmo/issues
 * User & developer mailing list: https://groups.google.com/forum/#!forum/sncosmo
-* Contact the main author directly: Use kylebarbary [at] gmail [dot] com
 
 Usage
 =====

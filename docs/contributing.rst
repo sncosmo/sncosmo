@@ -169,15 +169,12 @@ These are notes mainly for the one person that manages releases.
 Yes, this could be more automated, but it isn't done very often,
 and involves some human verification.
 
-- Ensure that ``CHANGES.md`` is up-to-date and add version date.
-- Update ``docs/whatsnew.rst`` by copying text from ``CHANGES.md``,
-  then altering formatting and adding text as needed.
+- Update ``docs/whatsnew.rst`` with a summary of the new version's changes.
 - Bump version in ``setup.py``.
 - Check copyright year in ``docs/conf.py``.
 - Build package and docs and check that docs look good.
 - Commit.
 - ``git clean -dfx``
-- ``setup.py build``
 - ``setup.py sdist``
 - Check that the tarball in ``dist/`` can be unpacked and
   that ``setup.py test`` succeeds. Bonus: create a fresh conda

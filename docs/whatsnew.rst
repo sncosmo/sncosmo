@@ -5,6 +5,37 @@ What's New
 *Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
 numbers.
 
+What's new in v1.2.0 (2015-12-01)
+=================================
+
+API Changes
+-----------
+
+- Registry functions moved to the top-level namespace:
+
+  - ``sncosmo.registry.register()`` -> ``sncosmo.register()``
+  - ``sncosmo.registry.register_loader()`` -> ``sncosmo.register_loader()``
+  - ``sncosmo.registry.retrieve()`` -> deprecated, use class-specific functions such as ``sncosmo.get_bandpass()``.
+
+  The old import paths will still work, so this is backwards compatible.
+
+Enhancements
+------------
+
+- ``nest_lc()`` now uses the ``nestle`` module under the hood. A new
+  keyword ``method`` is available which selects different sampling
+  methods implemented by ``nestle``. The new methods provide potential
+  efficiency gains.
+- The MLCS2k2 model is now available as a built-in Source, with the
+  name ``'mlcs2k2'``.
+- Bandpasses from the Carnegie Supernova Project added to built-ins.
+- In ``realize_lcs()``, a new ``scatter`` keyword makes adding noise
+  optional.
+
+In addition, there have been several minor bug fixes and
+documentation improvements.
+
+
 What's new in v1.1.1 (2015-10-28)
 =================================
 
