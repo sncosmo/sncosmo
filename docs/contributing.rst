@@ -189,7 +189,8 @@ and involves some human verification.
   ``git branch v1.1.x``.
 - Tag the release. For example, ``git tag v1.1.0``.
 - On master, bump version in ``setup.py`` to the next development
-  version and add the next development version to CHANGES.md.
+  version and add the next development version to
+  ``docs/whatsnew.rst``.
 - Commit.
 - Push repo changes to GitHub. For example:
   ``git push upstream master v1.1.x v1.1.0``.
