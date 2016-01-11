@@ -226,10 +226,17 @@ First, load the dust map (do this only once)::
 .. note::
 
    This supposes that you've downloaded the full resolution E(B-V)
-   maps from `this website
-   <http://www.astro.princeton.edu/~schlegel/dust/data/data.html>`_
-   and placed them in the given directory
-   ``"/path/to/dust/maps"``. The directory can also be set in the
+   maps from and placed them in the given directory ``"/path/to/dust/maps"``:
+   
+   - `SFD_dust_4096_ngp.fits <http://sncosmo.github.io/data/dust/SFD_dust_4096_ngp.fit>`_
+   
+   - `SFD_mask_4096_ngp.fits <http://sncosmo.github.io/data/dust/SFD_mask_4096_ngp.fit>`_
+   
+   - `SFD_dust_4096_sgp.fits <http://sncosmo.github.io/data/dust/SFD_dust_4096_sgp.fit>`_
+   
+   - `SFD_mask_4096_sgp.fits <http://sncosmo.github.io/data/dust/SFD_mask_4096_sgp.fit>`_
+
+   The directory can also be set in the
    sncosmo configuration file, in which case you can just do
    ``sncosmo.SFD98Map()``. See `~sncosmo.SFD98Map` for more details.
 
