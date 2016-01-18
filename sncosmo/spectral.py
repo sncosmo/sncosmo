@@ -15,7 +15,8 @@ from astropy import cosmology
 from . import registry
 
 __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
-           'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
+           'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem',
+           'LocalMagSystem']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
@@ -292,8 +293,8 @@ class Spectrum(object):
         Returns
         -------
         bandflux : float
-            Total flux in ph/s/cm^2. If part of bandpass falls
-            outside the spectrum, `None` is returned instead.
+            Total flux in ph/s/cm^2. If part of bandpass falls outside
+            the spectrum, `None` is returned instead.
         bandfluxerr : float
             Error on flux. Only returned if the `error` attribute is not
             `None`.
@@ -422,29 +423,26 @@ class Spectrum(object):
         return Spectrum(d, f, error=e, z=z, dist=dist, meta=self.meta,
                         unit=self._unit, wave_unit=self._wunit)
 
-
 class MagSystem(object):
     """An abstract base class for magnitude systems."""
 
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, name=None):
-        self._zpbandflux = {}
-        self._name = name
+        self.name = name
 
     @abc.abstractmethod
     def _refspectrum_bandflux(self, band):
         """Flux of the fundamental spectrophotometric standard."""
         pass
+    
+    def band_flux_to_mag(self, flux, band):
+        """Convert flux (photons / s / cm^2) to magnitude."""
+        return -2.5 * math.log10(flux / self.zpbandflux(band))
 
-    @property
-    def name(self):
-        """Name of magnitude system."""
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
+    def band_mag_to_flux(self, mag, band):
+        """Convert magnitude to flux in photons / s / cm^2"""
+        return self.zpbandflux(band) * 10.**(-0.4 * mag)
 
     def zpbandflux(self, band):
         """Flux of an object with magnitude zero in the given bandpass.
@@ -468,14 +466,78 @@ class MagSystem(object):
 
         return bandflux
 
-    def band_flux_to_mag(self, flux, band):
-        """Convert flux (photons / s / cm^2) to magnitude."""
-        return -2.5 * math.log10(flux / self.zpbandflux(band))
+class LocalMagSystem(MagSystem):
 
-    def band_mag_to_flux(self, mag, band):
-        """Convert magnitude to flux in photons / s / cm^2"""
-        return self.zpbandflux(band) * 10.**(-0.4 * mag)
+    """A magnitude system in which the magnitudes / fluxes are
+    calibrated such that they represent what is measured through the
+    filters attached to a specific telescope (not standard filters). 
 
+    Parameters
+    ----------
+    
+    bands: iterable of `~sncosmo.Bandpass` or str
+        The filters in the magnitude system.
+    zeropoints: `~numpy.ndarray`
+        The zeropoints of the filters, in the same order as `bands`. 
+    standards: iterable of `~sncosmo.Spectrum`,
+        The spectrophotmetric flux standards for each band, in the
+        same order as `bands`.
+    """
+
+    def __init__(self, bands, zeropoints, standards, name=None):
+        super(LocalMagSystem, self).__init__(name)
+        if len(bands) != len(zeropoints):
+            raise ValueError('Number of passed bands (%d) does not equal '
+                             'the number of passed zeropoints (%d).'
+                             .format(len(bands), len(zeropoints)))
+        
+        if len(standards) != len(zeropoints):
+            raise ValueError('Number of passed stanadards (%d) does '
+                             ' not equal the number of passed '
+                             'zeropoints (%d).'.format(len(standards),      
+                                                       len(zeropoints)))
+
+        self._bands = [get_bandpass(band) for band in bands]
+        self._zeropoints = zeropoints
+        self._standards = standards 
+
+    def _verify_band(self, band):
+        """Ensure that band is within the natural system of the NaturalMagSys
+        instance `magsysinst`.
+        
+        """
+        
+        band = get_bandpass(band)
+        
+        if band not in self.zeropoints:
+            raise ValueError('Invalid band %s for natural magnitude '
+                             'system %s. Band must be '
+                             'one of %s.'
+                             .format(band, self.name,
+                                     self.zeropoints.keys()))
+            
+    @property
+    def zeropoints(self):
+        return self._zeropoints
+
+    @property
+    def bands(self):
+        return self._bands
+    
+    @property
+    def standards(self):
+        return self._standards
+
+    def _refspectrum_bandflux(self, band):
+        self._verify_band(band)
+        return self.standards[band].bandflux(band)
+    
+    def standard_name(self, band):
+        return self.standards[band].meta['name']
+
+    def standard_mag(self, band):
+        return self.band_flux_to_mag(self._refspectrum_bandflux(band), band)
+    
 
 class SpectralMagSystem(MagSystem):
     """A magnitude system defined by a fundamental spectrophotometric
@@ -509,3 +571,4 @@ class ABMagSystem(MagSystem):
 
         binw = np.gradient(bwave)
         return np.sum(f * btrans * binw)
+

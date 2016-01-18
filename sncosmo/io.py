@@ -14,9 +14,11 @@ from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 from astropy.io import fits
 from astropy import wcs
+from astropy.coordinates import SkyCoord
 from astropy.extern import six
 
 from .photdata import dict_to_array
+from .spectral import get_magsystem
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
            'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
@@ -413,11 +415,85 @@ def _read_json(f, **kwargs):
 
 
 # -----------------------------------------------------------------------------
+# Reader: csp
+
+def _read_csp(f, **kwargs):
+
+    meta        = odict()
+    data        = []
+    colnames    = ['mjd', 'filter', 'flux', 'fluxerr', 'zp', 'magsys']
+    readingdata = False
+    magsys      = get_magsystem('csp')
+
+    def _which_V(mjd):
+        # return the CSP V band that was in use on mjd.
+        if mjd < 53748:
+            ans = '3014'
+        elif mjd > 53761:
+            ans = '9844'
+        else:
+            ans = '3009'
+        return 'cspv' + ans
+
+    for j, line in enumerate(f):
+        if not readingdata:
+            if j == 4:
+                filts = [n.lower() for n in line[1:].strip().split()[1:] if n != '+/-']
+                readingdata = True
+                
+            if j == 2:
+                sline = line[1:].split()
+                meta['zcmb'] = float(sline[2])
+                ra  = (sline[5].replace(':', '%s') + '%s') % ('d','m','s')
+                dec = (sline[8].replace(':', '%s') + '%s') % ('d','m','s')
+
+                # convert from dms to degrees
+                coord = SkyCoord(ra, dec)
+
+                meta['ra']  = coord.ra.value
+                meta['dec'] = coord.dec.value
+
+            if j == 0:
+                meta['name'] = line.split()[-1]
+                
+        else:
+            d = line.split()
+            mjd = float(d[0])
+            for i in range(1, len(d), 2):
+                if d[i] != '99.900':
+                    if filts[i / 2] == 'v':
+                        # figure out which V
+                        filt = _which_V(mjd)
+                    else:
+                        filt = 'csp' + filts[i / 2]
+                    for b in ['y', 'j', 'h']:
+                        if b in filt:
+
+                            # TODO:: figure out how to tell if an
+                            # observation came from Swope or DuPont. 
+
+                            # Until then just use swope. 
+                            
+                            filt += 's'
+                            break
+
+                    mag     = float(d[i])
+                    magerr  = float(d[i + 1])
+                    flux    = magsys.band_mag_to_flux(mag, filt)
+                    fluxerr = magerr * flux / 1.086 
+                    zp      = magsys.zeropoints[filt]
+                    data.append((mjd, filt, flux, fluxerr, zp, magsys.name))
+
+    data = dict(zip(colnames, zip(*data)))
+    return meta, data
+
+# -----------------------------------------------------------------------------
 # All readers
 READERS = {'ascii': _read_ascii,
            'json': _read_json,
            'salt2': _read_salt2,
-           'salt2-old': _read_salt2_old}
+           'salt2-old': _read_salt2_old,
+           'csp'  : _read_csp}
 
 
 def read_lc(file_or_dir, format='ascii', **kwargs):

@@ -26,7 +26,7 @@ from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
-                       SpectralMagSystem, ABMagSystem)
+                       SpectralMagSystem, ABMagSystem, LocalMagSystem)
 from . import conf
 
 # This module is only imported for its side effects.
@@ -235,15 +235,47 @@ def load_2011fe(relpath, name=None, version=None):
 def load_ab(name=None):
     return ABMagSystem(name=name)
 
-
-def load_spectral_magsys_fits(relpath, name=None):
+def load_hst_calspec_std_spectrum(relpath, name):
     abspath = get_abspath(relpath, name)
     hdulist = fits.open(abspath)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
-    refspectrum = Spectrum(dispersion, flux_density,
-                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+    spectrum = Spectrum(dispersion, flux_density,
+                        unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+    return spectrum
+
+def load_csp(vega_path, bd17_path, **kwargs):
+    bd17_spectrum = load_hst_calspec_std_spectrum(bd17_path, 'bd17')
+    bd17_spectrum.meta['name'] = 'bd17'
+    vega_spectrum = load_hst_calspec_std_spectrum(vega_path, 'vega')
+    vega_spectrum.meta['name'] = 'vega'
+
+    # this file contains the csp zeropoints and standards
+    csp_info_path = get_pkg_data_filename(
+            'data/bandpasses/csp/csp_filter_info.dat')
+
+    # read it into a numpy array
+    csp_filter_data = np.genfromtxt(csp_info_path, names=True, dtype=None,
+                                    skip_header=3)
+    
+    filters    = csp_filter_data['name']
+    zeropoints = csp_filter_data['zeropoint']
+    
+    standards = []
+
+    for name in csp_filter_data['reference_sed']:
+        if name == 'bd17':
+            standards.append(bd17_spectrum)
+        else:
+            standards.append(vega_spectrum)
+
+    return LocalMagSystem(filters, zeropoints, standards, name='csp')
+    
+    
+
+def load_spectral_magsys_fits(relpath, name=None):
+    refspectrum = load_hst_calspec_std_spectrum(relpath, name)
     return SpectralMagSystem(refspectrum, name=name)
 
 # =============================================================================
@@ -655,9 +687,22 @@ website = 'ftp://ftp.stsci.edu/cdbs/calspec/'
 subclass = '`~sncosmo.SpectralMagSystem`'
 vega_desc = 'Vega (alpha lyrae) has magnitude 0 in all bands.'
 bd17_desc = 'BD+17d4708 has magnitude 0 in all bands.'
-for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
-                       ('bd17', 'bd_17d4708_stisnic_005.fits', bd17_desc)]:
+vega_path = 'alpha_lyr_stis_007.fits'
+bd17_path = 'bd_17d4708_stisnic_005.fits'
+
+for name, fn, desc in [('vega', vega_path, vega_desc),
+                       ('bd17', bd17_path, bd17_desc)]:
     registry.register_loader(MagSystem, name, load_spectral_magsys_fits,
                              args=['spectra/' + fn],
                              meta={'subclass': subclass, 'url': website,
                                    'description': desc})
+
+# CSP
+csp_standards = [vega_path, bd17_path]
+registry.register_loader(
+    MagSystem, 'csp', load_csp,
+    args=map(lambda x: 'spectra/' + x, csp_standards),
+    meta={'subclass'    : '~sncosmo.LocalMagSystem',
+          'url'         : 'http://csp.obs.carnegiescience.edu/data/filters',
+          'description' : 'CSP Natural Magnitude System.'},
+    version='1.0.0')

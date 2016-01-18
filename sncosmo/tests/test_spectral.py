@@ -3,9 +3,9 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy import units as u
-
+from astropy.utils.data import get_pkg_data_filename
+from astropy.tests.helper import remote_data
 import sncosmo
-
 
 def test_abmagsystem():
     magsys = sncosmo.ABMagSystem()
@@ -68,3 +68,30 @@ def test_bandpass_bessell():
     # scaled_trans should be proportional to trans
     factor = scaled_trans[0] / trans[0]
     assert_allclose(scaled_trans, factor * trans)
+
+@remote_data
+def test_csp_magsys_calibration():
+    
+    csp = sncosmo.get_magsystem('csp')
+    csp_info_path = get_pkg_data_filename('data/csp_filter_info.dat')
+
+    # read it into a numpy array
+    csp_filter_data = np.genfromtxt(csp_info_path, names=True, dtype=None,
+                                    skip_header=3)
+
+    answers = csp_filter_data['natural_mag']
+    bands   = csp_filter_data['name']
+    
+    for band, answer in zip(bands, answers):
+        assert_allclose(csp.standard_mag(band), answer, atol=.015)
+        
+@remote_data
+def test_natmag_bandfail():
+    
+    csp = sncosmo.get_magsystem('csp')
+    try:
+        csp.zpbandflux('desi')
+    except ValueError:
+        assert True
+    else:
+        assert False
