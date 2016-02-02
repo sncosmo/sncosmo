@@ -89,10 +89,42 @@ def get_source(name, version=None, copy=False):
         return cp(registry.retrieve(Source, name, version=version))
 
 
+def _bandflux_single(model, band, time_or_phase):
+    """Synthetic photometry of model through a single bandpass.
+
+    Parameters
+    ----------
+    model : Source or Model
+    band : Bandpass
+    time_or_phase : `~numpy.ndarray` (1-d)
+    """
+
+    # Check that bandpass wavelength range is fully contained in model
+    # wavelength range.
+    if (band.wave[0] < model.minwave() or band.wave[-1] > model.maxwave()):
+        raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                         'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                         .format(band.name, band.wave[0], band.wave[-1],
+                                 model.minwave(), model.maxwave()))
+
+    # Set up wavelength grid. Spacing (dwave) evenly divides the bandpass,
+    # closest to 5 angstroms without going over.
+    waverange = band.wave[-1] - band.wave[0]
+    dwave = waverange / int(ceil(waverange / 5.))
+    wave = np.arange(band.wave[0] + 0.5 * dwave, band.wave[-1], dwave)
+
+    trans = band(wave)
+    f = model._flux(time_or_phase, wave)
+
+    return np.sum(wave * trans * f, axis=1) * dwave / HC_ERG_AA
+
+
 def _bandflux(model, band, time_or_phase, zp, zpsys):
     """Support function for bandflux in Source and Model.
+
     This is necessary to have outside because ``phase`` is used in Source
-    and ``time`` is used in Model.
+    and ``time`` is used in Model, and we want the method signatures to
+    have the right variable name.
     """
 
     if zp is not None and zpsys is None:
@@ -121,17 +153,7 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
         mask = band == b
         b = get_bandpass(b)
 
-        # Raise an exception if bandpass is out of model range.
-        if (b.wave[0] < model.minwave() or b.wave[-1] > model.maxwave()):
-            raise ValueError(
-                'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-                'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                .format(b.name, b.wave[0], b.wave[-1],
-                        model.minwave(), model.maxwave()))
-
-        # Get the flux
-        f = model._flux(time_or_phase[mask], b.wave)
-        fsum = np.sum(f * b.trans * b.wave * b.dwave, axis=1) / HC_ERG_AA
+        fsum = _bandflux_single(model, b, time_or_phase[mask])
 
         if zp is not None:
             zpnorm = 10.**(0.4 * zp[mask])
