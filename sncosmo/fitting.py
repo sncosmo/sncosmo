@@ -3,10 +3,10 @@ from __future__ import division, print_function
 from warnings import warn
 import copy
 import time
+from collections import OrderedDict as odict
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from astropy.utils import OrderedDict as odict
 from astropy.extern import six
 
 from .photdata import standardize_data, normalize_data

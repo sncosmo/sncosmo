@@ -4,6 +4,7 @@
 
 import abc
 import os
+from collections import OrderedDict as odict
 from copy import copy as cp
 from textwrap import dedent
 from math import ceil
@@ -13,7 +14,6 @@ import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
                                RectBivariateSpline as Spline2d,
                                splmake, spleval)
-from astropy.utils import OrderedDict as odict
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six

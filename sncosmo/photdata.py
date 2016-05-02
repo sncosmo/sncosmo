@@ -3,9 +3,9 @@
 from __future__ import division
 
 import math
+from collections import OrderedDict as odict
 
 import numpy as np
-from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 from astropy.extern import six
 

@@ -8,9 +8,9 @@ import os
 import sys
 import re
 import json
+from collections import OrderedDict as odict
 
 import numpy as np
-from astropy.utils import OrderedDict as odict
 from astropy.table import Table
 from astropy.io import fits
 from astropy import wcs
