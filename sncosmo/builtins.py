@@ -26,7 +26,7 @@ from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
-                       SpectralMagSystem, ABMagSystem, LocalMagSystem)
+                       SpectralMagSystem, ABMagSystem, CompositeMagSystem)
 from . import conf
 
 # This module is only imported for its side effects.
@@ -262,7 +262,7 @@ def load_csp(**kwargs):
         bands = np.char.decode(bands)
         refsystems = np.char.decode(refsystems)
 
-    return LocalMagSystem(bands, refsystems, offsets, name='csp')
+    return CompositeMagSystem(bands, refsystems, offsets, name='csp')
 
 
 # =============================================================================
@@ -684,6 +684,6 @@ for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
 # CSP
 registry.register_loader(
     MagSystem, 'csp', load_csp,
-    meta={'subclass': '`~sncosmo.LocalMagSystem`',
+    meta={'subclass': '`~sncosmo.CompositeMagSystem`',
           'url': 'http://csp.obs.carnegiescience.edu/data/filters',
           'description': 'Carnegie Supernova Project magnitude system.'})

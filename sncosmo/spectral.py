@@ -17,7 +17,7 @@ from . import registry
 
 __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
            'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem',
-           'LocalMagSystem']
+           'CompositeMagSystem']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
@@ -479,7 +479,7 @@ class MagSystem(object):
         return self.zpbandflux(band) * 10.**(-0.4 * mag)
 
 
-class LocalMagSystem(MagSystem):
+class CompositeMagSystem(MagSystem):
     """A magnitude system defined in a specific set of bands.
 
     In each band, there is a fundamental standard with a known
@@ -497,7 +497,7 @@ class LocalMagSystem(MagSystem):
     """
 
     def __init__(self, bands, standards, offsets, name=None):
-        super(LocalMagSystem, self).__init__(name=name)
+        super(CompositeMagSystem, self).__init__(name=name)
 
         if not len(bands) == len(offsets) == len(standards):
             raise ValueError('Lengths of bands, standards, and offsets '
@@ -529,7 +529,7 @@ class LocalMagSystem(MagSystem):
         return 10.**(0.4 * offset) * standard.zpbandflux(band)
 
     def __str__(self):
-        s = "LocalMagSystem {!r}:\n".format(self.name)
+        s = "CompositeMagSystem {!r}:\n".format(self.name)
 
         for i in range(len(self._bands)):
             s += "  {!r}: system={!r}  offset={}\n".format(
