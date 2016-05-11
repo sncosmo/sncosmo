@@ -2,7 +2,7 @@
 """The sncosmo registry is used to load and return instances in memory
 based on string identifiers."""
 
-from astropy.utils import OrderedDict
+from collections import OrderedDict
 from astropy.extern import six
 
 __all__ = ['register_loader', 'register']

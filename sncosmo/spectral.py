@@ -3,10 +3,11 @@
 import abc
 import math
 from copy import deepcopy
+from collections import OrderedDict
 
 import numpy as np
 
-from astropy.utils import OrderedDict, lazyproperty
+from astropy.utils import lazyproperty
 from astropy.io import ascii
 import astropy.units as u
 import astropy.constants as const
