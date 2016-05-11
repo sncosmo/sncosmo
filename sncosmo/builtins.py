@@ -26,7 +26,7 @@ from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
 from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
-                       SpectralMagSystem, ABMagSystem)
+                       SpectralMagSystem, ABMagSystem, CompositeMagSystem)
 from . import conf
 
 # This module is only imported for its side effects.
@@ -244,7 +244,26 @@ def load_spectral_magsys_fits(relpath, name=None):
     hdulist.close()
     refspectrum = Spectrum(dispersion, flux_density,
                            unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+
     return SpectralMagSystem(refspectrum, name=name)
+
+
+def load_csp(**kwargs):
+
+    # this file contains the csp zeropoints and standards
+    fname = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
+    data = np.genfromtxt(fname, names=True, dtype=None, skip_header=3)
+    bands = data['name']
+    refsystems = data['reference_sed']
+    offsets = data['natural_mag']
+
+    # In Python 3, convert to native strings (Unicode)
+    if six.PY3:
+        bands = np.char.decode(bands)
+        refsystems = np.char.decode(refsystems)
+
+    return CompositeMagSystem(bands, refsystems, offsets, name='csp')
+
 
 # =============================================================================
 # Bandpasses
@@ -661,3 +680,10 @@ for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
                              args=['spectra/' + fn],
                              meta={'subclass': subclass, 'url': website,
                                    'description': desc})
+
+# CSP
+registry.register_loader(
+    MagSystem, 'csp', load_csp,
+    meta={'subclass': '`~sncosmo.CompositeMagSystem`',
+          'url': 'http://csp.obs.carnegiescience.edu/data/filters',
+          'description': 'Carnegie Supernova Project magnitude system.'})

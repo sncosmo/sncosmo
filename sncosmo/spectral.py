@@ -16,7 +16,8 @@ from astropy import cosmology
 from . import registry
 
 __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
-           'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem']
+           'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem',
+           'CompositeMagSystem']
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
@@ -476,6 +477,66 @@ class MagSystem(object):
     def band_mag_to_flux(self, mag, band):
         """Convert magnitude to flux in photons / s / cm^2"""
         return self.zpbandflux(band) * 10.**(-0.4 * mag)
+
+
+class CompositeMagSystem(MagSystem):
+    """A magnitude system defined in a specific set of bands.
+
+    In each band, there is a fundamental standard with a known
+    (generally non-zero) magnitude.
+
+    Parameters
+    ----------
+    bands: iterable of `~sncosmo.Bandpass` or str
+        The filters in the magnitude system.
+    standards: iterable of `~sncosmo.MagSystem` or str,
+        The spectrophotmetric flux standards for each band, in the
+        same order as `bands`.
+    offsets: list_like
+        The magnitude of standard in the given band.
+    """
+
+    def __init__(self, bands, standards, offsets, name=None):
+        super(CompositeMagSystem, self).__init__(name=name)
+
+        if not len(bands) == len(offsets) == len(standards):
+            raise ValueError('Lengths of bands, standards, and offsets '
+                             'must match.')
+
+        self._bands = [get_bandpass(band) for band in bands]
+        self._standards = [get_magsystem(s) for s in standards]
+        self._offsets = offsets
+
+    @property
+    def bands(self):
+        return self._bands
+
+    @property
+    def standards(self):
+        return self._standards
+
+    @property
+    def offsets(self):
+        return self._offsets
+
+    def _refspectrum_bandflux(self, band):
+        if band not in self._bands:
+            raise ValueError('band not in local magnitude system')
+        i = self._bands.index(band)
+        standard = self._standards[i]
+        offset = self._offsets[i]
+
+        return 10.**(0.4 * offset) * standard.zpbandflux(band)
+
+    def __str__(self):
+        s = "CompositeMagSystem {!r}:\n".format(self.name)
+
+        for i in range(len(self._bands)):
+            s += "  {!r}: system={!r}  offset={}\n".format(
+                self._bands[i].name,
+                self._standards[i].name,
+                self._offsets[i])
+        return s
 
 
 class SpectralMagSystem(MagSystem):

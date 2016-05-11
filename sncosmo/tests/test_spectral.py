@@ -1,8 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
+import math
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy import units as u
+from astropy.utils.data import get_pkg_data_filename
+from astropy.tests.helper import remote_data
+import pytest
 
 import sncosmo
 
@@ -68,3 +73,38 @@ def test_bandpass_bessell():
     # scaled_trans should be proportional to trans
     factor = scaled_trans[0] / trans[0]
     assert_allclose(scaled_trans, factor * trans)
+
+
+@remote_data
+def test_csp_magsystem():
+    csp = sncosmo.get_magsystem('csp')
+
+    # filter zeropoints (copied from file)
+    zps = {"cspu": 13.044,
+           "cspg": 15.135,
+           "cspr": 14.915,
+           "cspi": 14.781,
+           "cspb": 14.344,
+           "cspv3014": 14.540,
+           "cspv3009": 14.493,
+           "cspv9844": 14.450,
+           "cspys": 13.921,
+           "cspjs": 13.836,
+           "csphs": 13.510,
+           "cspk": 11.967,
+           "cspyd": 13.770,
+           "cspjd": 13.866,
+           "csphd": 13.502}
+
+    # The "zero point bandflux" should be the flux that corresponds to
+    # magnitude zero. So, 0 = zp - 2.5 log(F)
+    for band, zp in zps.items():
+        assert abs(2.5 * math.log10(csp.zpbandflux(band)) - zp) < 0.015
+
+
+@remote_data
+def test_localmagsystem_band_error():
+    """Test that LocalMagSystem raises an error when band is not in system."""
+    csp = sncosmo.get_magsystem('csp')
+    with pytest.raises(ValueError):
+        csp.zpbandflux('desi')
