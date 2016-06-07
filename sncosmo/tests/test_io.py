@@ -38,6 +38,7 @@ def test_read_griddata_ascii():
     f.seek(0)
 
     x0, x1, y = sncosmo.read_griddata_ascii(f)
+    f.close()
 
     assert_allclose(x0, np.array([0., 1.]))
     assert_allclose(x1, np.array([0., 1., 2.]))
@@ -55,6 +56,7 @@ def test_write_griddata_ascii():
     # Read it back
     f.seek(0)
     x0_in, x1_in, y_in = sncosmo.read_griddata_ascii(f)
+    f.close()
     assert_allclose(x0_in, x0)
     assert_allclose(x1_in, x1)
     assert_allclose(y_in, y)
@@ -95,6 +97,8 @@ def test_griddata_fits():
     # Read it back
     f.seek(0)
     x0_in, x1_in, x2_in, y_in = sncosmo.read_griddata_fits(f)
+    f.close()
+
     assert_allclose(x0_in, x0)
     assert_allclose(x1_in, x1)
     assert_allclose(x2_in, x2)

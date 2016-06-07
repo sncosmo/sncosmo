@@ -103,6 +103,12 @@ class TestSALT2Source:
                                           lcrv01file=files[5],
                                           cdfile=cdfile)
 
+        for f in files:
+            f.close()
+        cdfile.close()
+        clfile.close()
+
+
         def test_bandflux_rcov(self):
 
             # component 1:
