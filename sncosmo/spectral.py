@@ -13,7 +13,7 @@ import astropy.units as u
 import astropy.constants as const
 from astropy import cosmology
 
-from . import registry
+from ._registry import Registry
 
 __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
            'Spectrum', 'MagSystem', 'SpectralMagSystem', 'ABMagSystem',
@@ -21,15 +21,22 @@ __all__ = ['get_bandpass', 'get_magsystem', 'read_bandpass', 'Bandpass',
 
 HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 
+_BANDPASSES = Registry()
+_MAGSYSTEMS = Registry()
+
 
 def get_bandpass(name):
     """Get a Bandpass from the registry by name."""
-    return registry.retrieve(Bandpass, name)
+    if isinstance(name, Bandpass):
+        return name
+    return _BANDPASSES.retrieve(name)
 
 
 def get_magsystem(name):
-    """Get a MagSystem from the registery by name."""
-    return registry.retrieve(MagSystem, name)
+    """Get a MagSystem from the registry by name."""
+    if isinstance(name, MagSystem):
+        return name
+    return _MAGSYSTEMS.retrieve(name)
 
 
 def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,

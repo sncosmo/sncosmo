@@ -5,7 +5,7 @@ sphinx documentation via the automodule directive."""
 import string
 
 from astropy.extern import six
-from sncosmo import registry, MagSystem
+from sncosmo.spectral import _MAGSYSTEMS
 
 
 lines = ['',
@@ -15,7 +15,7 @@ lines = ['',
 lines.append(lines[1])
 
 urlnums = {}
-for m in registry.get_loaders_metadata(MagSystem):
+for m in _MAGSYSTEMS.get_loaders_metadata():
 
     urllink = ''
     description = ''

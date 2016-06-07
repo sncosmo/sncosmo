@@ -26,6 +26,7 @@ env:
         # Set defaults to avoid repeating in most cases.
         - NUMPY_VERSION=1.10
         - ASTROPY_VERSION=1.1
+        - SCIPY_VERSION=0.17
         - OPTIONAL_DEPS=true
         - MAIN_CMD='python setup.py'
 
@@ -72,7 +73,7 @@ matrix:
         # Try older numpy versions & astropy versions
         # (conda only has builds for np18 and later for astropy 1.0) 
         - os: linux
-          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.9 ASTROPY_VERSION=0.4 SETUP_CMD='test'
+          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.9 SCIPY_VERSION=0.14 ASTROPY_VERSION=0.4 SETUP_CMD='test'
 
         # Do a PEP8 test
         - os: linux

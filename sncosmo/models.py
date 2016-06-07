@@ -20,7 +20,7 @@ from astropy.extern import six
 
 from .io import read_griddata_ascii, read_griddata_fits
 
-from . import registry
+from ._registry import Registry
 from .spectral import get_bandpass, get_magsystem, Bandpass, HC_ERG_AA
 try:
     # Not guaranteed available at setup time
@@ -32,6 +32,8 @@ except ImportError:
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'MLCS2k2Source', 'Model',
            'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
+
+_SOURCES = Registry()
 
 
 def _check_for_fitpack_error(e, a, name):
@@ -86,7 +88,7 @@ def get_source(name, version=None, copy=False):
         else:
             return name
     else:
-        return cp(registry.retrieve(Source, name, version=version))
+        return cp(_SOURCES.retrieve(name, version=version))
 
 
 def _bandflux(model, band, time_or_phase, zp, zpsys):

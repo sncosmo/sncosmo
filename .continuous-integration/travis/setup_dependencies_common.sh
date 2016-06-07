@@ -16,7 +16,7 @@ export PIP_INSTALL="pip install --no-deps --no-use-wheel"
 
 # Now set up shortcut to conda install command to make sure the Python and Numpy
 # versions are always explicitly specified.
-export CONDA_INSTALL="conda install --yes python=$PYTHON_VERSION numpy=$NUMPY_VERSION"
+export CONDA_INSTALL="conda install --yes python=$PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION"
 
 # EGG_INFO
 if [[ $SETUP_CMD == egg_info ]]
@@ -32,7 +32,7 @@ then
 fi
 
 # CORE DEPENDENCIES (besides astropy)
-$CONDA_INSTALL pip pytest Cython jinja2 psutil scipy
+$CONDA_INSTALL pip pytest Cython jinja2 psutil
 
 # ASTROPY
 if [[ $ASTROPY_VERSION == dev ]]
