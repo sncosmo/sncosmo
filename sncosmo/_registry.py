@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from astropy.extern import six
 
+
 class Registry(object):
     """Connect strings to instances and loaders."""
 
@@ -79,7 +80,7 @@ class Registry(object):
         key = (name, None)
 
         # check if key is already in instances or loaders:
-        if (key in self._instances or key in self._loaders) and not force: 
+        if (key in self._instances or key in self._loaders) and not force:
             raise Exception("{0:s} already in registry. Use force=True"
                             " to override.".format(name))
 

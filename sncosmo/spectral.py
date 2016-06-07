@@ -24,6 +24,7 @@ HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
 _BANDPASSES = Registry()
 _MAGSYSTEMS = Registry()
 
+
 def get_bandpass(name):
     """Get a Bandpass from the registry by name."""
     if isinstance(name, Bandpass):

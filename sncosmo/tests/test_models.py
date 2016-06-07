@@ -108,7 +108,6 @@ class TestSALT2Source:
         cdfile.close()
         clfile.close()
 
-
         def test_bandflux_rcov(self):
 
             # component 1:
