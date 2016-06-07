@@ -5,7 +5,7 @@ sphinx documentation via the automodule directive."""
 import string
 
 from astropy.extern import six
-from sncosmo import registry, Source
+from sncosmo.models import _SOURCES
 
 
 lines = [
@@ -19,7 +19,7 @@ lines.append(lines[1])
 urlnums = {}
 allnotes = []
 allrefs = []
-for m in registry.get_loaders_metadata(Source):
+for m in _SOURCES.get_loaders_metadata():
 
     reflink = ''
     urllink = ''

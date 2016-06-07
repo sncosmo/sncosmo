@@ -3,12 +3,12 @@ and save it to this module's docstring for the purpose of including in
 sphinx documentation via the automodule directive."""
 
 from astropy.extern import six
-from sncosmo import registry, Bandpass, get_bandpass
+from sncosmo.spectral import _BANDPASSES
 
 # string.ascii_letters in py3
 ASCII_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-bandpass_meta = registry.get_loaders_metadata(Bandpass)
+bandpass_meta = _BANDPASSES.get_loaders_metadata()
 table_delim = "  ".join([11 * '=', 80 * '=', 14 * '=', 8 * '=', 12 * '='])
 table_colnames = ("{0:11}  {1:80}  {2:14}  {3:8}  {4:12}"
                   .format('Name', 'Description', 'Reference', 'Data URL',

@@ -1,7 +1,7 @@
 """Helper function to plot a set of bandpasses in sphinx docs."""
 from __future__ import division
 
-from sncosmo import registry, Bandpass, get_bandpass
+import sncosmo
 from matplotlib import rc
 from matplotlib import pyplot as plt
 
@@ -11,7 +11,7 @@ def plot_bandpass_set(setname):
 
     rc("font", family="serif")
 
-    bandpass_meta = registry.get_loaders_metadata(Bandpass)
+    bandpass_meta = sncosmo.spectral._BANDPASSES.get_loaders_metadata()
 
     fig = plt.figure(figsize=(9, 3))
     ax = plt.axes()
@@ -20,7 +20,7 @@ def plot_bandpass_set(setname):
     for m in bandpass_meta:
         if m['filterset'] != setname:
             continue
-        b = get_bandpass(m['name'])
+        b = sncosmo.get_bandpass(m['name'])
         ax.plot(b.wave, b.trans, label=m['name'])
         nbands += 1
 
