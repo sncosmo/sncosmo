@@ -822,7 +822,7 @@ class SALT2Source(Source):
         """
 
         try:
-            return _bandflux_rcov(self, band, phase)
+            return self._bandflux_rcov(band, phase)
         except ValueError as e:
             _check_for_fitpack_error(e, phase, 'phase')
             raise e
@@ -843,7 +843,7 @@ class SALT2Source(Source):
 
         # Read file
         if isinstance(name_or_obj, six.string_types):
-            f = open(name_or_obj, 'rb')
+            f = open(name_or_obj, 'r')
         else:
             f = name_or_obj
         words = f.read().split()
@@ -853,16 +853,19 @@ class SALT2Source(Source):
         npoly = int(words[0])
         self._colorlaw_coeffs = [float(word) for word in words[1: 1 + npoly]]
 
-        # Look for keywords in the rest of the file.
+        # If there are more than 1+npoly words in the file, we expect them to
+        # be of the form `keyword value`.
         version = 0
         colorlaw_range = [3000., 7000.]
-        for i in range(1+npoly, len(words)):
+        for i in range(1+npoly, len(words), 2):
             if words[i] == 'Salt2ExtinctionLaw.version':
                 version = int(words[i+1])
-            if words[i] == 'Salt2ExtinctionLaw.min_lambda':
+            elif words[i] == 'Salt2ExtinctionLaw.min_lambda':
                 colorlaw_range[0] = float(words[i+1])
-            if words[i] == 'Salt2ExtinctionLaw.max_lambda':
+            elif words[i] == 'Salt2ExtinctionLaw.max_lambda':
                 colorlaw_range[1] = float(words[i+1])
+            else:
+                raise RuntimeError("Unexpected keyword: {}".format(words[i]))
 
         # Set extinction function to use.
         if version == 0:
