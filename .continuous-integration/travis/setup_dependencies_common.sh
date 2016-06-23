@@ -56,7 +56,7 @@ fi
 if [[ $SETUP_CMD == build_sphinx* ]]
 then
   $PIP_INSTALL astropy-helpers
-  $CONDA_INSTALL sphinx=1.2.2 pygments matplotlib
+  $CONDA_INSTALL sphinx pygments matplotlib
 fi
 
 # COVERAGE DEPENDENCIES

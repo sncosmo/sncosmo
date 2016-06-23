@@ -73,7 +73,7 @@ matrix:
         # Try older numpy versions & astropy versions
         # (conda only has builds for np18 and later for astropy 1.0) 
         - os: linux
-          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.9 SCIPY_VERSION=0.14 ASTROPY_VERSION=0.4 SETUP_CMD='test'
+          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.8 SCIPY_VERSION=0.12 ASTROPY_VERSION=0.4 SETUP_CMD='test'
 
         # Do a PEP8 test
         - os: linux
