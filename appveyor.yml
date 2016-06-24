@@ -6,39 +6,54 @@ environment:
   global:
       PYTHON: "C:\\conda"
       MINICONDA_VERSION: "latest"
+      CONDA_DEPENDENCIES: "scipy cython"
       CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\.continuous-integration\\appveyor\\windows_sdk.cmd"
       PYTHON_ARCH: "64" # needs to be set for CMD_IN_ENV to succeed. If a mix
                         # of 32 bit and 64 bit builds are needed, move this
                         # to the matrix section.
 
   matrix:
-
       - PYTHON_VERSION: "2.7"
-        NUMPY_VERSION: "1.10.4"
+        NUMPY_VERSION: "stable"
+        ASTROPY_VERSION: "stable"
+
+      - PYTHON_VERSION: "3.4"
+        NUMPY_VERSION: "1.9"
+        ASTROPY_VERSION: "stable"
+
+        # We deliberately test with Numpy 1.9 to check that installing Astropy
+        # dev doesn't upgrade Numpy.
       - PYTHON_VERSION: "3.5"
-        NUMPY_VERSION: "1.10.4"
+        NUMPY_VERSION: "1.9"
+        ASTROPY_VERSION: "development"
+
+      - PYTHON_VERSION: "3.5"
+        NUMPY_VERSION: "1.10"
+        ASTROPY_VERSION: "lts"
+
+      - PYTHON_VERSION: "3.5"
+        NUMPY_VERSION: "stable"
+        ASTROPY_VERSION: "stable"
+        CONDA_DEPENDENCIES: "scipy cython matplotlib"
+
 
 platform:
     -x64
 
 install:
-    # Install miniconda using a powershell script.
-    - "powershell .continuous-integration/appveyor/install-miniconda.ps1"
-    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
-    # Install the build and runtime dependencies of the project.
-    - "conda update --yes conda"
-    # Create a conda environment using the astropy bonus packages
-    - "conda create -q --yes -n test -c astropy-ci-extras python=%PYTHON_VERSION%"
+    # Install Miniconda
+    - "powershell .continuous-integration/appveyor/install-miniconda.ps1"
+
+    # Set path again, need to find a way to avoid doing this again
+    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
     - "activate test"
 
-    # Check that we have the expected version of Python
+    # Test that PATH is set correctly
+    - "conda --version"
     - "python --version"
 
-    # Install specified version of numpy and dependencies
-    - "conda install -q --yes numpy=%NUMPY_VERSION% pytest cython scipy matplotlib astropy"
-
-# Not a .NET project, we build SunPy in the install step instead
+# Not a .NET project, we build ci-helpers in the install step instead
 build: false
 
 test_script:
