@@ -5,6 +5,12 @@ What's New
 *Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
 numbers.
 
+What's new in v1.4.0 (unreleased)
+=================================
+
+Nothing yet.
+
+
 What's new in v1.3.0 (2016-06-30)
 =================================
 
