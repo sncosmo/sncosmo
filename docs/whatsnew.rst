@@ -5,9 +5,30 @@ What's New
 *Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
 numbers.
 
-What's new in v1.3.0 (unreleased)
+What's new in v1.3.0 (2016-06-30)
 =================================
 
+This is mostly a bugfix release, but it also **drops support for Python 2.6.**
+Python 2.7 is now the minimum supported Python version.
+
+Bugfixes
+--------
+
+- Updates for compatibility with AstroPy 1.2.
+
+- The registry is now handles subclasses more robustly. For example,
+  if ``magsys`` is an instance of ``SpectralMagSystem``, the following
+  used to fail::
+
+      sncosmo.register(magsys, 'name')
+      sncosmo.get_magsystem('name')
+
+  Now this works.  [`#132 <https://github.com/sncosmo/sncosmo/issues/132>`_]
+
+
+- ``SALT2Source`` had a bug under Python 3 (only) yielding drastically
+  wrong fluxes. Python 2 was not affected. [`#138
+  <https://github.com/sncosmo/sncosmo/issues/138>`_]
 
 What's new in v1.2.0 (2015-12-01)
 =================================
