@@ -3,6 +3,7 @@ from __future__ import division, print_function
 from warnings import warn
 import copy
 import time
+import math
 from collections import OrderedDict as odict
 
 import numpy as np
