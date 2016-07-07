@@ -17,17 +17,12 @@ from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six
+import extinction
 
 from .io import read_griddata_ascii, read_griddata_fits
-
 from ._registry import Registry
 from .spectral import get_bandpass, get_magsystem, Bandpass, HC_ERG_AA
-try:
-    # Not guaranteed available at setup time
-    from ._extinction import ccm89, od94, f99kknots, f99uv
-except ImportError:
-    if not _ASTROPY_SETUP_:
-        raise
+
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'MLCS2k2Source', 'Model',
@@ -1591,9 +1586,8 @@ class CCM89Dust(PropagationEffect):
 
     def propagate(self, wave, flux):
         """Propagate the flux."""
-        a_v = self._parameters[0] * self._parameters[1]
-        trans = 10.**(-0.4 * ccm89(wave, a_v, self._parameters[1]))
-        return trans * flux
+        ebv, r_v = self._parameters
+        return extinction.apply(extinction.ccm89(wave, ebv * r_v, r_v), flux)
 
 
 class OD94Dust(PropagationEffect):
@@ -1608,42 +1602,23 @@ class OD94Dust(PropagationEffect):
 
     def propagate(self, wave, flux):
         """Propagate the flux."""
-        a_v = self._parameters[0] * self._parameters[1]
-        trans = 10.**(-0.4 * od94(wave, a_v, self._parameters[1]))
-        return trans * flux
-
+        ebv, r_v = self._parameters
+        return extinction.apply(extinction.odonnell94(wave, ebv * r_v, r_v),
+                                flux)
 
 class F99Dust(PropagationEffect):
     """Fitzpatrick (1999) extinction model dust with fixed R_V."""
     _minwave = 909.09
     _maxwave = 60000.
-    _XKNOTS = 1.e4 / np.array([np.inf, 26500., 12200., 6000., 5470.,
-                               4670., 4110., 2700., 2600.])
 
     def __init__(self, r_v=3.1):
         self._param_names = ['ebv']
         self.param_names_latex = ['E(B-V)']
         self._parameters = np.array([0.])
         self._r_v = r_v
-
-        kknots = f99kknots(self._XKNOTS, r_v)
-        self._spline = splmake(self._XKNOTS, kknots, order=3)
+        self._f = extinction.Fitzpatrick99(r_v=r_v)
 
     def propagate(self, wave, flux):
-
-        ext = np.empty(len(wave), dtype=np.float)
-
-        # Analytic function in the UV.
-        uvmask = wave < 2700.
-        if np.any(uvmask):
-            a_v = self._parameters[0] * self._r_v
-            ext[uvmask] = f99uv(wave[uvmask], a_v, self._r_v)
-
-        # Spline in the Optical/IR
-        oirmask = ~uvmask
-        if np.any(oirmask):
-            k = spleval(self._spline, 1.e4 / wave[oirmask])
-            ext[oirmask] = self._parameters[0] * (k + self._r_v)
-
-        trans = 10.**(-0.4 * ext)
-        return trans * flux
+        """Propagate the flux."""
+        ebv = self._parameters[0]
+        return extinction.apply(self._f(wave, ebv * self._r_v), flux)

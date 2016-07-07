@@ -69,10 +69,6 @@ cmdclassd = register_commands(PACKAGENAME, VERSION, RELEASE)
 generate_version_py(PACKAGENAME, VERSION, RELEASE,
                     get_debug_option(PACKAGENAME))
 
-# The current scripts in sncosmo are for developer use, not intended to
-# be installed.
-scripts = []
-
 # Get configuration information from all of the various subpackages.
 # See the docstring for setup_helpers.update_package_files for more
 # details.
@@ -93,9 +89,7 @@ package_info['package_data'][PACKAGENAME] = data_files
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
-      scripts=scripts,
-      requires=['numpy', 'scipy', 'astropy'],
-      install_requires=['numpy', 'scipy', 'astropy'],
+      install_requires=['numpy', 'scipy', 'extinction>=0.2', 'astropy'],
       provides=[PACKAGENAME],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
