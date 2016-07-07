@@ -51,4 +51,5 @@ Usage
    simulation
    registry
    configuration
+   examples/index
    reference

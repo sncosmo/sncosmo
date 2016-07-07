@@ -5,7 +5,7 @@ Installation
 SNCosmo works on Python 2.7 and Python 3.3+ and requires the
 following standard scientific python packages: `NumPy
 <http://www.numpy.org/>`_, `SciPy <http://www.scipy.org/>`_ and
-AstroPy_.
+`AstroPy <http://www.astropy.org>`_.
 
 
 Install using conda

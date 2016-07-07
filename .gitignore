@@ -36,6 +36,8 @@ htmlcov
 #  Documentation
 docs/_build
 docs/api
+docs/examples
+docs/modules
 
 # Other generated files
 MANIFEST
