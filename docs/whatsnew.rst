@@ -5,6 +5,11 @@ What's New
 *Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
 numbers.
 
+What's new in v1.3.1 (2016-07-06)
+=================================
+
+- Bugfix for missing ``math`` import in ``mcmc_lc`` function.
+
 What's new in v1.3.0 (2016-06-30)
 =================================
 

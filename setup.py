@@ -52,7 +52,7 @@ URL = 'http://sncosmo.readthedocs.org'
 builtins._ASTROPY_PACKAGE_NAME_ = PACKAGENAME
 
 # VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-VERSION = '1.3.0'
+VERSION = '1.3.1'
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in VERSION
