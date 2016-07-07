@@ -1606,6 +1606,7 @@ class OD94Dust(PropagationEffect):
         return extinction.apply(extinction.odonnell94(wave, ebv * r_v, r_v),
                                 flux)
 
+
 class F99Dust(PropagationEffect):
     """Fitzpatrick (1999) extinction model dust with fixed R_V."""
     _minwave = 909.09

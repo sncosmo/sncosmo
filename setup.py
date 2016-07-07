@@ -89,7 +89,7 @@ package_info['package_data'][PACKAGENAME] = data_files
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
-      install_requires=['numpy', 'scipy', 'extinction>=0.2', 'astropy'],
+      install_requires=['numpy', 'scipy', 'extinction>=0.2.1', 'astropy'],
       provides=[PACKAGENAME],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
