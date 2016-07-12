@@ -68,6 +68,7 @@ Contributors
 
 Alphabetical by last name:
 
+* Stephen Bailey
 * Kyle Barbary
 * Tom Barclay
 * Rahul Biswas
