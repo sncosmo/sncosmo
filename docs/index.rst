@@ -46,10 +46,17 @@ Usage
    bandpasses
    magsystems
    photdata
-   fitting
    cuts
    simulation
    registry
    configuration
-   examples/index
+
+.. include:: examples/index.rst
+
+.. toctree::
+   :hidden:
+
    reference
+
+:doc:`reference`
+================
