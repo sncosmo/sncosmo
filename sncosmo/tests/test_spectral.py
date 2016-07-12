@@ -53,7 +53,8 @@ def test_bandpass_type():
         assert band.wave.dtype == np.float64
 
         # Ensure that it works with cython-based propagation effect.
-        dust.propagate(band.wave, np.ones_like(wave))
+        # (flux, the second argument, should always be doubles)
+        dust.propagate(band.wave, np.ones_like(wave, dtype=np.float64))
 
 
 # issue 111
