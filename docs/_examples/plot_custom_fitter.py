@@ -5,62 +5,54 @@ Using a custom fitter or sampler
 
 How to use your own minimizer or MCMC sampler for fitting light curves.
 
-Besides `sncosmo.fit_lc`, sncosmo also provides two sampling methods
-for estimating light curve parameters: `sncosmo.mcmc_lc` and
-`sncosmo.nest_lc`. However, one may wish to experiment with a custom
-fitting or sampling method. SNCosmo has been designed with this in
-mind. In fact, the three supplied methods are fairly thin wrappers
-around external python packages (respectively: iminuit, emcee, and
-nestle).
+SNCosmo has three functions for model parameter estimation based on
+photometric data: `sncosmo.fit_lc`, `sncosmo.mcmc_lc` and
+`sncosmo.nest_lc`. These are wrappers around external minimizers or
+samplers (respectively: iminuit, emcee and nestle). However, one may
+wish to experiment with a custom fitting or sampling method.
 
-For users wishing to use a custom fitting or sampling method, it can
-be instructive to look at the source code for the built-in wrapper
-functions. However, the basic idea is just that one can define a
-likelihood for a set of light curve data given any sncosmo model, and
-then that likelihood can be fed to any fitter or sampler.
-
-How do you define the likelihood? Different fitters or samplers have
-different requirements for the interface for the likelihood (or
-posterior) function, so it will vary a bit. In the case where the
-function must accept an array of parameter values, it can be defined
-like this:
+Here, we give a minimal example of using the L-BFGS-B minimizer from scipy.
 """
 
+from __future__ import print_function
+
+import numpy as np
+from scipy.optimize import fmin_l_bfgs_b
 import sncosmo
 
 model = sncosmo.Model(source='salt2')
+data = sncosmo.load_example_data()
 
-def loglikelihood(parameters):
+# Define an objective function that we will pass to the minimizer.
+# The function arguments must comply with the expectations of the specfic
+# minimizer you are using.
+def objective(parameters):
     model.parameters[:] = parameters  # set model parameters
-    return -0.5 * sncosmo.chisq(data, model)
 
-##########################################################################
-# What does the `sncosmo.chisq` function do? The definition is basically::
-#
-#    mflux = model.bandflux(data['band'], data['time'],
-#                           zp=data['zp'], zpsys=data['zpsys'])
-#    return np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
-#
-# In other words, "use the model to predict the flux in the given
-# bandpasses and times (scaled with the appropriate zeropoint), then use
-# those values to calculate the chisq." So really `Model.bandflux` is
-# the key method that makes this all possible.
-#
-# You might notice that our ``loglikelihood`` function above will vary *all*
-# the parameters in the model, which might not be what you want. To only vary
-# select parameters, you could do something like this:
+    # evaluate model fluxes at times/bandpasses of data
+    model_flux = model.bandflux(data['band'], data['time'],
+                                zp=data['zp'], zpsys=data['zpsys'])
 
-# Indicies of the model parameters that should be varied
-# idx = np.array([model.param_names.index(name)
-#                 for name in param_names_to_vary])
+    # calculate and return chi^2
+    return np.sum(((data['flux'] - model_flux) / data['fluxerr'])**2)
 
-def loglikelihood(parameters):
-    model.parameters[idx] = parameters
-    return -0.5 * sncosmo.chisq(data, model)
+# starting parameter values in same order as `model.param_names`:
+start_parameters = [0.4, 55098., 1e-5, 0., 0.]  # z, t0, x0, x1, c
+
+# parameter bounds in same order as `model.param_names`:
+bounds = [(0.2, 0.7), (55080., 55120.), (None, None), (None, None),
+          (None, None)]
+
+parameters, val, info = fmin_l_bfgs_b(objective, start_parameters,
+                                      bounds=bounds, approx_grad=True)
+
+print(parameters)
+
 
 #####################################################################
-# The built-in wrapper functions in sncosmo don't do anything much
-# more complex than this. They take care of setting up the likelihood
-# function in the way that the underlying fitter or sampler
-# expects. They set guesses and bounds and package results up in a way
-# that is as consistent as possible across the three functions.
+# The built-in parameter estimation functions in sncosmo take care of
+# setting up the likelihood function in the way that the underlying
+# fitter or sampler expects. Additionally, they set guesses and bounds
+# and package results up in a way that is as consistent as
+# possible. For users wishing use a custom minimizer or sampler, it
+# can be instructive to look at the source code for these functions.

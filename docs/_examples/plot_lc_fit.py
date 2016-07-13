@@ -15,7 +15,7 @@ import sncosmo
 
 data = sncosmo.load_example_data()
 
-sncosmo.plot_lc(data)
+print(data)
 
 #####################################################################
 # An important additional note: a table of photometric data has a
@@ -54,9 +54,6 @@ print("The result contains the following attributes:\n", result.keys())
 sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
 
 #######################################################################
-# Fixing parameters (e.g., redshift)
-# ----------------------------------
-#
 # Suppose we already know the redshift of the supernova we're trying to
 # fit.  We want to set the model's redshift to the known value, and then
 # make sure not to vary `z` in the fit.

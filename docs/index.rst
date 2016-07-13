@@ -26,6 +26,7 @@ possible. It is built on NumPy, SciPy and AstroPy.
 
 .. toctree::
    :maxdepth: 1
+   :titlesonly:
 
    whatsnew
    about
@@ -41,6 +42,7 @@ Usage
 
 .. toctree::
    :maxdepth: 1
+   :titlesonly:
 
    models
    bandpasses
@@ -50,12 +52,14 @@ Usage
    simulation
    registry
    configuration
-
+   
 .. include:: examples/index.rst
 
 .. toctree::
    :hidden:
+   :titlesonly:
 
+   examples/index
    reference
 
 :doc:`reference`
