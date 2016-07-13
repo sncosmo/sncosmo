@@ -1,6 +1,6 @@
-==========
-What's New
-==========
+===============
+Version History
+===============
 
 *Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
 numbers.
