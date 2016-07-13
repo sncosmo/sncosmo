@@ -98,11 +98,6 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
         define a fill between region, and the middle percentile
         defines a line that will be plotted over the fill between
         region.
-
-the percentiles of the light curve confidence
-        interval to plot. The first argument sets the lower
-    
-    
     kwargs : optional
         Any additional keyword args are passed to `~matplotlib.pyplot.savefig`.
         Popular options include ``dpi``, ``format``, ``transparent``. See
