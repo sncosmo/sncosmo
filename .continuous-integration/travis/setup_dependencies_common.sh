@@ -56,8 +56,8 @@ fi
 # build is currently 2.7, so that's fine
 if [[ $SETUP_CMD == build_sphinx* ]]
 then
-  $PIP_INSTALL astropy-helpers
-  $CONDA_INSTALL sphinx pygments matplotlib
+  $PIP_INSTALL sphinx-gallery astropy-helpers
+  $CONDA_INSTALL sphinx pygments matplotlib pillow sphinx_rtd_theme
 fi
 
 # COVERAGE DEPENDENCIES

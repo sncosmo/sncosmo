@@ -25,29 +25,64 @@
 # Thus, any C-extensions that are needed to build the documentation will *not*
 # be accessible, and the documentation will not build correctly.
 
-# Load all of the global Astropy configuration
-from astropy_helpers.sphinx.conf import *
-
-# testing
 import sys
 import os
-sys.path.insert(0, os.path.abspath("_helpers"))
+import sphinx_rtd_theme
+import sphinx_gallery
+import matplotlib.sphinxext.plot_directive
 
-intersphinx_mapping['emcee'] = ('http://dan.iel.fm/emcee/current/', None)
+sys.path.insert(0, os.path.abspath("_helpers"))
 
 # -- General configuration ----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.1'
+needs_sphinx = '1.3'
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-exclude_patterns.append('_templates')
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/3/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'astropy': ('http://docs.astropy.org/en/stable/', None),
+    'emcee': ('http://dan.iel.fm/emcee/current/', None)
+    }
 
-# This is added to the end of RST files - a good place to put substitutions to
-# be used globally.
-rst_epilog += """
-"""
+# Add any Sphinx extension module names here, as strings. They can be
+# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
+# ones.
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.inheritance_diagram',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx_gallery.gen_gallery',
+    matplotlib.sphinxext.plot_directive.__name__
+]
+
+#numpydoc_show_class_members = False
+autosummary_generate = True
+autoclass_content = "class"
+autodoc_default_flags = ["members", "no-special-members"]
+sphinx_gallery_conf = {
+    'examples_dirs' : '_examples',  # path to examples scripts
+    'gallery_dirs'  : 'examples',   # path to gallery generated examples
+    'mod_example_dir'     : 'modules/generated',  # path to store the module
+                                                  # using example template
+    'doc_module'          : ('sncosmo',),  # documented module(s)
+    #'default_thumb_file': '_logo/spectral.png',
+}
+
+    
+# The suffix of source filenames.
+source_suffix = '.rst'
+
+# The encoding of source files.
+#source_encoding = 'utf-8-sig'
+
+# The master toctree document.
+master_doc = 'index'
+
 
 # -- Project information ------------------------------------------------------
 
@@ -66,41 +101,27 @@ version = sncosmo.__version__.split('-', 1)[0]
 # The full version, including alpha/beta/rc tags.
 release = sncosmo.__version__
 
-# For the astropy_helpers.sphinx.ext.changelog_links extension.
-github_issues_url = 'https://github.com/sncosmo/sncosmo/issues/'
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+exclude_patterns = ['_build']
+
+# The reST default role (used for this markup: `text`) to use for all
+# documents.
+default_role = 'obj'
+
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = 'sphinx'
+
 
 # -- Options for HTML output ---------------------------------------------------
 
-# A NOTE ON HTML THEMES
-# The global astropy configuration uses a custom theme, 'bootstrap-astropy',
-# which is installed along with astropy. A different theme can be used or
-# the options for this theme can be modified by overriding some of the
-# variables set in the global configuration. The variables set in the
-# global configuration are listed below, commented out.
+html_theme = "sphinx_rtd_theme"
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
-html_theme_options = {
-    'logotext1': 'sn',     # white,  semi-bold
-    'logotext2': 'cosmo',  # orange, light
-    'logotext3': ''        # white,  light
-    }
-
-# Add any paths that contain custom themes here, relative to this directory.
-# To use a different custom theme, add the directory containing the theme.
-#html_theme_path = []
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes. To override the custom theme, set this to the
-# name of a builtin theme or the name of a custom theme in html_theme_path.
-#html_theme = None
-
-# Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
-html_sidebars = {
-    '**': ['globaltoc.html'],
-#    'search': [],
-#    'genindex': [],
-#    'py-modindex': [],
-}
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = [sphinx_gallery.glr_path_static()]
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -120,11 +141,11 @@ html_title = '{0} v{1}'.format(project, release)
 htmlhelp_basename = project + 'doc'
 
 # Add local templates path to modify autosummary templates
-templates_path = ['_templates']
+#templates_path = ['_templates']
 
 # Static files to copy after template files
 html_static_path = ['_static']
-html_style = 'sncosmo.css'
+#html_style = 'sncosmo.css'
 
 # -- Options for LaTeX output --------------------------------------------------
 

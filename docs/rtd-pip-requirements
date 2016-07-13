@@ -1,6 +1,8 @@
 numpy
 matplotlib
 scipy
-Cython
+extinction
 astropy
 astropy_helpers
+sphinx_gallery
+pillow

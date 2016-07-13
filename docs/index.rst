@@ -15,40 +15,47 @@ SNCosmo
     :width: 409px
     :height: 96px
 
-
-
-SNCosmo at a glance
-===================
-
-SNCosmo is a Python library for high-level supernova cosmology
+SNCosmo is a Python library for supernova cosmology
 analysis. It aims to make such analysis both as flexible and clear as
-possible. It is built on NumPy, SciPy and AstroPy.
+possible.
 
 .. toctree::
    :maxdepth: 1
+   :titlesonly:
 
-   whatsnew
-   about
    install
+   models
+   bandpasses
+   magsystems
+   photdata
+   cuts
+   simulation
+   registry
+   configuration
+   
+.. include:: examples/index.rst
+
+.. toctree::
+   :hidden:
+   :titlesonly:
+
+   examples/index
+   reference
+
+:doc:`reference`
+================
+
+More...
+=======
+
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+
+   history
+   about
    contributing
 
 * Check out the source code: https://github.com/sncosmo/sncosmo
 * Report bugs, request features: https://github.com/sncosmo/sncosmo/issues
 * User & developer mailing list: https://groups.google.com/forum/#!forum/sncosmo
-
-Usage
-=====
-
-.. toctree::
-   :maxdepth: 1
-
-   models
-   bandpasses
-   magsystems
-   photdata
-   fitting
-   cuts
-   simulation
-   registry
-   configuration
-   reference
