@@ -324,7 +324,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
         mflux_ranges = []
         mfluxes = []
         plotci = len(models) > 1 and fill_percentiles is not None
-        
+
         for i, model in enumerate(models):
             if model.bandoverlap(band):
                 mflux = model.bandflux(band, tgrid, zp=zp, zpsys=zpsys)
