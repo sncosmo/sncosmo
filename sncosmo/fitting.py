@@ -750,13 +750,14 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
 def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
             guess_amplitude=True, guess_t0=True, guess_z=True,
             minsnr=5., modelcov=False, nwalkers=10, nburn=200,
-            nsamples=1000, thin=1, a=2.0):
+            nsamples=1000, ntemps=None, thin=1, a=2.0):
     """Run an MCMC chain to get model parameter samples.
 
-    This is a convenience function around `emcee.EnsembleSampler`.
-    It defines the likelihood function and makes a heuristic guess at a
-    good set of starting points for the walkers. It then runs the sampler,
-    starting with a burn-in run.
+    This is a convenience function around `emcee.EnsembleSampler` or
+    `emcee.PTSampler` if `ntemps` > 1. It defines the likelihood
+    function and makes a heuristic guess at a good set of starting
+    points for the walkers. It then runs the sampler, starting with a
+    burn-in run.
 
     If you're not getting good results, you might want to try
     increasing the burn-in, increasing the walkers, or specifying a
@@ -808,11 +809,14 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
         Number of samples in burn-in phase.
     nsamples : int, optional
         Number of samples in production run.
+    ntemps : int, optional
+        The number of temperatures to use. If `ntemps` > 1, uses an
+        `emcee.PTSampler`. Else uses an `emcee.EnsembleSampler`.
     thin : int, optional
         Factor by which to thin samples in production run. Output samples
         array will have (nsamples/thin) samples.
     a : float, optional
-        Proposal scale parameter passed to the EnsembleSampler.
+        Proposal scale parameter passed to the sampler.
 
     Returns
     -------
@@ -941,11 +945,14 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     pos = ctr + scale * np.random.normal(size=(nwalkers, ndim))
 
     # Run the sampler.
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, a=a)
+    if ntemps > 1:
+        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnprob, a=a)
+    else:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, a=a)
     pos, prob, state = sampler.run_mcmc(pos, nburn)  # burn-in
     sampler.reset()
     sampler.run_mcmc(pos, nsamples, thin=thin)  # production run
-    samples = sampler.flatchain
+    samples = sampler.flatchain.reshape(-1, ndim)
 
     # Summary statistics.
     vparameters = np.mean(samples, axis=0)
