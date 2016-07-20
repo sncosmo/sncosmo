@@ -784,9 +784,9 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
         the maximum bound is such that the earliest phase of the model
         lines up with the latest data point.
     priors : `dict`, optional
-        Prior probability functions. Keys are parameter names, values are
-        functions that return probability given the parameter value.
-        The default prior is a flat distribution.
+        Prior probability functions. Keys are parameter names, values
+        are functions that return the log probability given the
+        parameter value.  The default prior is a flat distribution.
     guess_amplitude : bool, optional
         Whether or not to guess the amplitude from the data. If false, the
         current model amplitude is taken as the initial value. Only has an
@@ -922,7 +922,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
         logp = -0.5 * _chisq(data, model, modelcov=modelcov)
 
         for i, func in idxpriors:
-            logp += math.log(func(parameters[i]))
+            logp += func(parameters[i])
 
         return logp
 
