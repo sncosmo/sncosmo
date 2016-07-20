@@ -917,18 +917,23 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     idxpriors = [(vparam_names.index(k), priors[k]) for k in priors]
 
     # Posterior function.
-    def lnprob(parameters):
+    def lnlike(parameters):
         for i, low, high in idxbounds:
             if not low < parameters[i] < high:
                 return -np.inf
 
         model.parameters[modelidx] = parameters
         logp = -0.5 * _chisq(data, model, modelcov=modelcov)
+        return logp
 
+    def lnprior(parameters):
+        logp = 0
         for i, func in idxpriors:
             logp += math.log(func(parameters[i]))
-
         return logp
+
+    def lnprob(parameters):
+        return lnprior(parameters) + lnlike(parameters)
 
     # Heuristic determination of walker initial positions: distribute
     # walkers uniformly over parameter space. If no bounds are
@@ -948,7 +953,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                 pos[i] = np.random.uniform(low=ctr-scale, high=ctr+scale,
                                            size=(nwalkers, ntemps))
         pos = np.swapaxes(pos, 0, 2)
-        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnprob, a=a)
+        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnlike, lnprob, a=a)
 
     # Heuristic determination of walker initial positions: distribute
     # walkers in a symmetric gaussian ball, with heuristically
