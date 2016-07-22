@@ -750,14 +750,14 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
 def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
             guess_amplitude=True, guess_t0=True, guess_z=True,
             minsnr=5., modelcov=False, nwalkers=10, nburn=200,
-            nsamples=1000, ntemps=None, thin=1, a=2.0):
+            nsamples=1000, sampler='ensemble', ntemps=4, thin=1,
+            a=2.0):
     """Run an MCMC chain to get model parameter samples.
 
-    This is a convenience function around `emcee.EnsembleSampler` or
-    `emcee.PTSampler` if `ntemps` > 1. It defines the likelihood
-    function and makes a heuristic guess at a good set of starting
-    points for the walkers. It then runs the sampler, starting with a
-    burn-in run.
+    This is a convenience function around `emcee.EnsembleSampler` andx
+    `emcee.PTSampler`. It defines the likelihood function and makes a
+    heuristic guess at a good set of starting points for the
+    walkers. It then runs the sampler, starting with a burn-in run.
 
     If you're not getting good results, you might want to try
     increasing the burn-in, increasing the walkers, or specifying a
@@ -804,14 +804,18 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     modelcov : bool, optional
         Include model covariance when calculating chisq. Default is False.
     nwalkers : int, optional
-        Number of walkers in the EnsembleSampler
+        Number of walkers in the sampler.
     nburn : int, optional
         Number of samples in burn-in phase.
     nsamples : int, optional
         Number of samples in production run.
+    sampler: str, optional
+        The kind of sampler to use. Currently 'ensemble' for
+        `emcee.EnsembleSampler` and 'pt' for `emcee.PTSampler` are
+        supported.
     ntemps : int, optional
-        The number of temperatures to use. If `ntemps` > 1, uses an
-        `emcee.PTSampler`. Else uses an `emcee.EnsembleSampler`.
+        If `sampler == 'pt'` the number of temperatures to use for the
+        parallel tempered sampler.
     thin : int, optional
         Factor by which to thin samples in production run. Output samples
         array will have (nsamples/thin) samples.
@@ -940,7 +944,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     # supplied for a given parameter, use a heuristically determined
     # scale.
 
-    if ntemps > 1:
+    if sampler == 'pt':
         pos = np.empty((ndim, nwalkers, ntemps))
         for i, name in enumerate(vparam_names):
             if name in bounds:
@@ -959,7 +963,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     # walkers in a symmetric gaussian ball, with heuristically
     # determined scale.
 
-    else:
+    elif sampler == 'ensemble':
         ctr = model.parameters[modelidx]
         scale = np.ones(ndim)
         for i, name in enumerate(vparam_names):
@@ -971,6 +975,10 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                 scale[i] = 0.1
         pos = ctr + scale * np.random.normal(size=(nwalkers, ndim))
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, a=a)
+
+    else:
+        raise ValueError('Invalid sampler type. Currently "pt" '
+                         'and "ensemble" are supported.')
 
     # Run the sampler.
     pos, prob, state = sampler.run_mcmc(pos, nburn)  # burn-in
