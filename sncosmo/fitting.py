@@ -548,6 +548,9 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     maxiter : int, optional
         Maximum number of iterations. Iteration may stop earlier if
         termination condition is reached. Default is no limit.
+    maxcall : int, optional
+        Maximum number of likelihood evaluations. Iteration may stop earlier
+        if termination condition is reached. Default is no limit.
     modelcov : bool, optional
         Include model covariance when calculating chisq. Default is False.
     rstate : `~numpy.random.RandomState`, optional
