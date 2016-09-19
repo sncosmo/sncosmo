@@ -72,8 +72,63 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
     t = ascii.read(fname, names=['wave', 'trans'])
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit,
                     trans_unit=trans_unit, name=name)
+    
+def _setup_bandpass(bpinst, wave, trans, wave_unit, trans_unit, name):
+    
+    wave = np.asarray(wave, dtype=np.float64)
+    trans = np.asarray(trans, dtype=np.float64)
 
+    if wave.shape != trans.shape:
+        raise ValueError('shape of wave and trans must match')
+    if wave.ndim != 1:
+        raise ValueError('only 1-d arrays supported')
 
+    # Ensure that units are actually units and not quantities, so that
+    # `to` method returns a float and not a Quantity.
+    wave_unit = u.Unit(wave_unit)
+    trans_unit = u.Unit(trans_unit)
+
+    if wave_unit != u.AA:
+        wave = wave_unit.to(u.AA, wave, u.spectral())
+
+    # If transmission is in units of inverse energy, convert to
+    # unitless transmission:
+    #
+    # (transmitted photons / incident photons) =
+    #      (photon energy) * (transmitted photons / incident energy)
+    #
+    # where photon energy = h * c / lambda
+    if trans_unit != u.dimensionless_unscaled:
+        trans = (HC_ERG_AA / wave) * trans_unit.to(u.erg**-1, trans)
+
+    # Check that values are monotonically increasing.
+    # We could sort them, but if this happens, it is more likely a user
+    # error or faulty bandpass definition. So we leave it to the user to
+    # sort them.
+    if not np.all(np.ediff1d(wave) > 0.):
+        raise ValueError('bandpass wavelength values must be monotonically'
+                         ' increasing when supplied in wavelength or '
+                         'decreasing when supplied in energy/frequency.')
+    bpinst.wave = wave
+    bpinst.trans = trans
+    bpinst.name = name
+
+def _setup_radial_bandpass(bpinst, radius, radius_unit):
+
+    radius = np.asarray(radius, dtype=np.float64)
+
+    if radius.shape != bpinst.trans.shape:
+        raise ValueError('shape of radius and trans must match')
+
+    if radius_unit != u.cm:
+        radius = radius_unit.to(u.cm, radius)
+
+    if not np.all(np.ediff1d(wave) > 0.):
+        raise ValueError('bandpass radius values must be monotonically'
+                         ' increasing.')
+
+    bpinst.radius = radius
+    
 class Bandpass(object):
     """Transmission as a function of spectral wavelength.
 
@@ -110,49 +165,13 @@ class Bandpass(object):
 
     def __init__(self, wave, trans, wave_unit=u.AA,
                  trans_unit=u.dimensionless_unscaled, name=None):
-        wave = np.asarray(wave, dtype=np.float64)
-        trans = np.asarray(trans, dtype=np.float64)
-        if wave.shape != trans.shape:
-            raise ValueError('shape of wave and trans must match')
-        if wave.ndim != 1:
-            raise ValueError('only 1-d arrays supported')
+        _setup_bandpass(self, wave, trans, wave_unit, trans_unit, name)
 
-        # Ensure that units are actually units and not quantities, so that
-        # `to` method returns a float and not a Quantity.
-        wave_unit = u.Unit(wave_unit)
-        trans_unit = u.Unit(trans_unit)
-
-        if wave_unit != u.AA:
-            wave = wave_unit.to(u.AA, wave, u.spectral())
-
-        # If transmission is in units of inverse energy, convert to
-        # unitless transmission:
-        #
-        # (transmitted photons / incident photons) =
-        #      (photon energy) * (transmitted photons / incident energy)
-        #
-        # where photon energy = h * c / lambda
-        if trans_unit != u.dimensionless_unscaled:
-            trans = (HC_ERG_AA / wave) * trans_unit.to(u.erg**-1, trans)
-
-        # Check that values are monotonically increasing.
-        # We could sort them, but if this happens, it is more likely a user
-        # error or faulty bandpass definition. So we leave it to the user to
-        # sort them.
-        if not np.all(np.ediff1d(wave) > 0.):
-            raise ValueError('bandpass wavelength values must be monotonically'
-                             ' increasing when supplied in wavelength or '
-                             'decreasing when supplied in energy/frequency.')
-        self.wave = wave
-        self._dwave = np.gradient(wave)
-        self.trans = trans
-        self.name = name
-
-    @property
+    @lazyproperty
     def dwave(self):
         """Gradient of wavelengths, numpy.gradient(wave)."""
-        return self._dwave
-
+        return np.gradient(self.wave)
+    
     @lazyproperty
     def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
@@ -192,7 +211,66 @@ class Bandpass(object):
             name = ' {0!r:s}'.format(self.name)
         return "<Bandpass{0:s} at 0x{1:x}>".format(name, id(self))
 
+    
+class NonUniformBandpass(object):
 
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def at(self, value):
+        pass
+    
+    def __repr__(self):
+        name = ''
+        if self.name is not None:
+            name = ' {0!r:s}'.format(self.name)
+        return "<{0:s}{1:s} at 0x{2:x}>".format(self.__class__.__name__,
+                                                name, id(self))
+
+    
+class RadialBandpass(NonUniformBandpass):
+
+    def __init__(self, radius, wave, trans, wave_unit=u.AA,
+                 trans_unit=u.dimensionless_unscaled, radius_unit=u.cm,
+                 name=None, resolution=10.):
+
+        _setup_bandpass(self, wave, trans, wave_unit, trans_unit, name)
+        _setup_radial_bandpass(self, radius, radius_unit)
+
+        unique_radii = np.unique(radius)
+        wave_min = []
+        wave_max = []
+
+        for rad in unique_radii:
+            inds = np.isclose(radius, rad)
+            wave_min.append(wave[inds].min())
+            wave_max.append(wave[inds].max())
+
+        # create the smallest possible interval
+            
+        self.wave_min = np.max(wave_min)
+        self.wave_max = np.min(wave_max)
+        
+        r = np.atleast_2d(self.radius).T  # column
+        w = np.atleast_2d(self.wave).T  # column
+        x = np.hstack((r, w))
+        self._atfunc = LinearNDInterpolator(x, self.trans)
+        
+    @property
+    def wave_grid(self):
+        wdiff = self.wave_max - self.wave_min
+        return np.linspace(self.wave_min, self.wave_max,
+                           wdiff / self.resolution)
+
+    def at(self, r):
+        wg    = np.atleast_2d(self.wave_grid).T  # column 
+        reval = np.atleast_2d(np.ones_like(wg) * r).T  # column
+        xeval = np.hstack((reval, wg))
+        name = self.name + '@%.2f%s' % (r, self.radius_unit)
+        return Bandpass(wg, trans, wave_unit=self.wave_unit,
+                         trans_unit=self.trans_unit, name=name)
+
+        
 class Spectrum(object):
     """A spectrum, representing wavelength and spectral density values.
 
