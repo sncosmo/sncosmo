@@ -74,8 +74,6 @@ maps, and more.*
    read_griddata_fits
    write_griddata_ascii
    write_griddata_fits
-   get_ebv_from_map
-   SFD98Map
 
 .. _fitting-api:
 
