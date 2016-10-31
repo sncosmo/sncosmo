@@ -6,3 +6,5 @@ astropy
 astropy_helpers
 sphinx_gallery
 pillow
+iminuit
+emcee
