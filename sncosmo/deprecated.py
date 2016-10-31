@@ -2,6 +2,7 @@
 """Extinction functions."""
 
 import os
+from warnings import warn
 
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -14,6 +15,16 @@ from astropy.utils import isiterable
 from sncosmo import conf
 
 __all__ = ['SFD98Map', 'get_ebv_from_map']
+
+
+warned = []
+
+
+def warn_once(name, msg):
+    global warned
+    if name not in warned:
+        warn(msg)
+        warned.append(name)
 
 
 class SFD98Map(object):
@@ -57,6 +68,12 @@ class SFD98Map(object):
     """
 
     def __init__(self, mapdir=None):
+
+        warn_once("SFD98Map",
+                  "`SFD98Map` and `get_ebv_from_map` are deprecated in "
+                  "sncosmo v1.4 and will be removed in sncosmo v2.0. "
+                  "Instead, use `SFDMap` and `ebv` from the sfdmap package; "
+                  "see http://github.com/kbarbary/sfdmap.")
 
         # Get mapdir
         if mapdir is None:

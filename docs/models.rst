@@ -218,34 +218,22 @@ frame) and ``'obs'`` (observer frame).
 A typical use pattern is to get an estimate of the amount of Milky Way
 dust at the location of the supernova from a dust map, and then to fix
 that amount of dust in the model.  The following example illustrates
-how to do this using the Schlegel, Finkbeiner and Davis (1998) dust map.
+how to do this using the Schlegel, Finkbeiner and Davis (1998) dust map
+with the `sfdmap <http://github.com/kbarbary/sfdmap>`_ package.
 First, load the dust map (do this only once)::
 
-    >>> dustmap = sncosmo.SFD98Map("/path/to/dust/maps")
-
-.. note::
-
-   This supposes that you've downloaded the full resolution E(B-V)
-   maps from and placed them in the given directory ``"/path/to/dust/maps"``:
-   
-   - `SFD_dust_4096_ngp.fits <http://sncosmo.github.io/data/dust/SFD_dust_4096_ngp.fits>`_
-   
-   - `SFD_mask_4096_ngp.fits <http://sncosmo.github.io/data/dust/SFD_mask_4096_ngp.fits>`_
-   
-   - `SFD_dust_4096_sgp.fits <http://sncosmo.github.io/data/dust/SFD_dust_4096_sgp.fits>`_
-   
-   - `SFD_mask_4096_sgp.fits <http://sncosmo.github.io/data/dust/SFD_mask_4096_sgp.fits>`_
-
-   The directory can also be set in the
-   sncosmo configuration file, in which case you can just do
-   ``sncosmo.SFD98Map()``. See `~sncosmo.SFD98Map` for more details.
+    >>> import sfdmap
+  
+    >>> dustmap = sfdmap.SFDMap("/path/to/dust/maps")
 
 Now, for each SN you wish to fit, get the amount of dust at the SN location
 and set the ``mwebv`` model parameter appropriately. For example, if the SN is
 located at RA=42.8 degrees, Dec=0 degrees::
 
-  >>> ebv = dustmap.get_ebv((42.8, 0.))
+  >>> ebv = dustmap.ebv(42.8, 0.0)
+  
   >>> model.set(mwebv=ebv)
+
   >>> # proceed with fitting the other model parameters to the data.
 
 Note that we wish to *fix* the ``mwebv`` model parameter rather than

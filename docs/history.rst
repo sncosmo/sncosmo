@@ -8,6 +8,11 @@ numbers.
 v1.4.0 (unreleased)
 ===================
 
+- ``SFD98Map`` and ``get_ebv_from_map`` deprecated in favor of separate package
+  `sfdmap <http://github.com/kbarbary/sfdmap>`_ which has vastly improved
+  performance (200x faster) for the typical case of scalar coordinates in
+  ICRS frame.
+
 - Cython implementation of extinction functions has been factored out into
   a separate Python module called ``extinction``, which is now a dependency.
 

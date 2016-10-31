@@ -153,7 +153,6 @@ if not _ASTROPY_SETUP_:
     del os, ConfigItem, ConfigNamespace, update_default_config
 
     # Do all the necessary imports.
-    from .dustmap import *
     from .spectral import *
     from .models import *
     from .io import *
@@ -164,6 +163,7 @@ if not _ASTROPY_SETUP_:
     from .registry import *
 
     from . import registry  # deprecated in v1.2; use previous import.
+    from .deprecated import *
 
     # Register all the built-ins.
     from .builtins import *
