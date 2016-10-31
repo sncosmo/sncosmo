@@ -40,7 +40,7 @@ def objective(parameters):
 start_parameters = [0.4, 55098., 1e-5, 0., 0.]  # z, t0, x0, x1, c
 
 # parameter bounds in same order as `model.param_names`:
-bounds = [(0.2, 0.7), (55080., 55120.), (None, None), (None, None),
+bounds = [(0.3, 0.7), (55080., 55120.), (None, None), (None, None),
           (None, None)]
 
 parameters, val, info = fmin_l_bfgs_b(objective, start_parameters,
