@@ -163,7 +163,7 @@ if not _ASTROPY_SETUP_:
     from .registry import *
 
     from . import registry  # deprecated in v1.2; use previous import.
-    from .deprecated import *
+    from ._deprecated import *
 
     # Register all the built-ins.
     from .builtins import *
