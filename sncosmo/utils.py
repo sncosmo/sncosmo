@@ -11,6 +11,7 @@ import numpy as np
 from scipy import integrate, optimize
 from astropy.extern import six
 
+
 def dict_to_array(d):
     """Convert a dictionary of lists (or single values) to a structured
     numpy.ndarray."""

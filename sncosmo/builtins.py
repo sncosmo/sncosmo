@@ -130,15 +130,8 @@ def load_bandpass_microns(pkg_data_name, name=None):
 def load_bandpass_bessell(pkg_data_name, name=None):
     """Bessell bandpasses have (1/energy) transmission units."""
     fname = get_pkg_data_filename(pkg_data_name)
-    band = read_bandpass(fname, wave_unit=u.AA, trans_unit=u.erg**-1,
-                         name=name)
-
-    # We happen to know that Bessell bandpasses in file are arbitrarily
-    # scaled to have a peak of 1 photon / erg. Rescale here to a peak of
-    # 1 (unitless transmission) to be more similar to other bandpasses.
-    band.trans /= np.max(band.trans)
-
-    return band
+    return read_bandpass(fname, wave_unit=u.AA, trans_unit=u.erg**-1,
+                         normalize=True, name=name)
 
 
 def tophat_bandpass(ctr, width, name=None):

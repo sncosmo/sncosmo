@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import numpy as np
+from scipy.interpolate import splrep, splev
 
 from astropy.utils import lazyproperty
 from astropy.io import ascii
@@ -8,6 +9,7 @@ import astropy.units as u
 import astropy.constants as const
 
 from ._registry import Registry
+from ._deprecated import warn_once
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass']
 
@@ -24,7 +26,8 @@ def get_bandpass(name):
 
 
 def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
-                  trans_unit=u.dimensionless_unscaled, name=None):
+                  trans_unit=u.dimensionless_unscaled,
+                  normalize=False, name=None):
     """Read bandpass from two-column ASCII file containing wavelength and
     transmission in each line.
 
@@ -42,6 +45,12 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
         proportional to inverse energy, indicating a ratio of transmitted
         photons to incident energy. Default is ratio of transmitted to
         incident photons.
+    normalize : bool, optional
+        If True, normalize fractional transmission to be 1.0 at peak.
+        It is recommended to set to True if transmission is in units
+        of inverse energy. (When transmission is given in these units, the
+        absolute value is usually not significant; normalizing gives more
+        reasonable transmission values.) Default is False.
     name : str, optional
         Identifier. Default is `None`.
 
@@ -55,7 +64,8 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
                          .format(fmt))
     t = ascii.read(fname, names=['wave', 'trans'])
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit,
-                    trans_unit=trans_unit, name=name)
+                    trans_unit=trans_unit, normalize=normalize,
+                    name=name)
 
 
 class Bandpass(object):
@@ -75,25 +85,40 @@ class Bandpass(object):
         proportional to inverse energy, indicating a ratio of transmitted
         photons to incident energy. Default is ratio of transmitted to
         incident photons.
+    normalize : bool, optional
+        If True, normalize fractional transmission to be 1.0 at peak.
+        It is recommended to set normalize=True if transmission is in units
+        of inverse energy. (When transmission is given in these units, the
+        absolute value is usually not significant; normalizing gives more
+        reasonable transmission values.) Default is False.
     name : str, optional
         Identifier. Default is `None`.
 
     Examples
     --------
+    Construct a Bandpass and access the input arrays:
+
     >>> b = Bandpass([4000., 4200., 4400.], [0.5, 1.0, 0.5])
     >>> b.wave
     array([ 4000.,  4200.,  4400.])
     >>> b.trans
     array([ 0.5,  1. ,  0.5])
-    >>> b.dwave
-    array([ 200.,  200.,  200.])
+
+    Bandpasses act like continuous 1-d functions (linear interpolation is
+    used):
+
+    >>> b([4100., 4300.])
+    array([ 0.75,  0.75])
+
+    The effective (transmission-weighted) wavelength is a property:
+
     >>> b.wave_eff
     4200.0
-
     """
 
     def __init__(self, wave, trans, wave_unit=u.AA,
-                 trans_unit=u.dimensionless_unscaled, name=None):
+                 trans_unit=u.dimensionless_unscaled, normalize=False,
+                 name=None):
         wave = np.asarray(wave, dtype=np.float64)
         trans = np.asarray(trans, dtype=np.float64)
         if wave.shape != trans.shape:
@@ -127,15 +152,33 @@ class Bandpass(object):
             raise ValueError('bandpass wavelength values must be monotonically'
                              ' increasing when supplied in wavelength or '
                              'decreasing when supplied in energy/frequency.')
+
+        if normalize:
+            trans = trans / np.max(trans)
+
         self.wave = wave
-        self._dwave = np.gradient(wave)
         self.trans = trans
+
+        # Set up interpolation.
+        # This appears to be the fastest-evaluating interpolant in
+        # scipy.interpolate.
+        self._tck = splrep(self.wave, self.trans, k=1)
+
         self.name = name
 
-    @property
+    def minwave(self):
+        return self.wave[0]
+
+    def maxwave(self):
+        return self.wave[-1]
+
+    @lazyproperty
     def dwave(self):
-        """Gradient of wavelengths, numpy.gradient(wave)."""
-        return self._dwave
+        warn_once("Bandpass.dwave",
+                  "Bandpass.dwave is deprecated in sncosmo v1.4 and will be "
+                  "removed in sncosmo v2.0. Use numpy.gradient(wave) with "
+                  "your own wavelength array.")
+        return np.gradient(self.wave)
 
     @lazyproperty
     def wave_eff(self):
@@ -169,6 +212,9 @@ class Bandpass(object):
             d = np.flipud(d)
             t = np.flipud(t)
         return d, t
+
+    def __call__(self, wave):
+        return splev(wave, self._tck, ext=1)
 
     def __repr__(self):
         name = ''
