@@ -1,5 +1,6 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
+from collections import OrderedDict
 import os
 import sys
 import math
@@ -8,6 +9,29 @@ import socket
 
 import numpy as np
 from scipy import integrate, optimize
+from astropy.extern import six
+
+def dict_to_array(d):
+    """Convert a dictionary of lists (or single values) to a structured
+    numpy.ndarray."""
+
+    # Convert all lists/values to 1-d arrays, in order to let numpy
+    # figure out the necessary size of the string arrays.
+    new_d = OrderedDict()
+    for key in d:
+        new_d[key] = np.atleast_1d(d[key])
+
+    # Determine dtype of output array.
+    dtype = [(key, arr.dtype)
+             for key, arr in six.iteritems(new_d)]
+
+    # Initialize ndarray and then fill it.
+    col_len = max([len(v) for v in new_d.values()])
+    result = np.empty(col_len, dtype=dtype)
+    for key in new_d:
+        result[key] = new_d[key]
+
+    return result
 
 
 def format_value(value, error=None, latex=False):

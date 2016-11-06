@@ -7,10 +7,10 @@ from collections import OrderedDict as odict
 
 import numpy as np
 from astropy.table import Table
-from astropy.extern import six
 
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
+from .utils import dict_to_array
 
 _photdata_aliases = odict([
     ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs', 'mjd_obs'])),
@@ -38,29 +38,6 @@ _photdata_types = {
     'zp': 'float',
     'zpsys': 'str'
     }
-
-
-def dict_to_array(d):
-    """Convert a dictionary of lists (or single values) to a structured
-    numpy.ndarray."""
-
-    # Convert all lists/values to 1-d arrays, in order to let numpy
-    # figure out the necessary size of the string arrays.
-    new_d = odict()
-    for key in d:
-        new_d[key] = np.atleast_1d(d[key])
-
-    # Determine dtype of output array.
-    dtype = [(key, arr.dtype)
-             for key, arr in six.iteritems(new_d)]
-
-    # Initialize ndarray and then fill it.
-    col_len = max([len(v) for v in new_d.values()])
-    result = np.empty(col_len, dtype=dtype)
-    for key in new_d:
-        result[key] = new_d[key]
-
-    return result
 
 
 def standardize_data(data):
