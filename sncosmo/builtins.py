@@ -25,8 +25,10 @@ from . import registry
 from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
-from .spectral import (Bandpass, read_bandpass, Spectrum, MagSystem,
-                       SpectralMagSystem, ABMagSystem, CompositeMagSystem)
+from .bandpasses import Bandpass, read_bandpass
+from .spectrum import Spectrum
+from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
+                         CompositeMagSystem)
 from . import conf
 
 # This module is only imported for its side effects.

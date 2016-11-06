@@ -2,16 +2,17 @@
 """Public interface functions for registering and retrieving from registries"""
 
 from . import models
-from . import spectral
+from . import bandpasses
+from . import magsystems
 
 __all__ = ['register_loader', 'register']
 
 
 def _get_registry(data_class):
-    if issubclass(data_class, spectral.Bandpass):
-        return spectral._BANDPASSES
-    elif issubclass(data_class, spectral.MagSystem):
-        return spectral._MAGSYSTEMS
+    if issubclass(data_class, bandpasses.Bandpass):
+        return bandpasses._BANDPASSES
+    elif issubclass(data_class, magsystems.MagSystem):
+        return magsystems._MAGSYSTEMS
     elif issubclass(data_class, models.Source):
         return models._SOURCES
 

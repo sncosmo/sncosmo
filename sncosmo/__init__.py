@@ -153,7 +153,9 @@ if not _ASTROPY_SETUP_:
     del os, ConfigItem, ConfigNamespace, update_default_config
 
     # Do all the necessary imports.
-    from .spectral import *
+    from .bandpasses import *
+    from .magsystems import *
+    from .spectrum import *
     from .models import *
     from .io import *
     from .snanaio import *

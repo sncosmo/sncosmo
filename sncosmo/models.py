@@ -21,7 +21,8 @@ import extinction
 
 from .io import read_griddata_ascii, read_griddata_fits
 from ._registry import Registry
-from .spectral import get_bandpass, get_magsystem, Bandpass, HC_ERG_AA
+from .bandpasses import get_bandpass, Bandpass, HC_ERG_AA
+from .magsystems import get_magsystem
 
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',

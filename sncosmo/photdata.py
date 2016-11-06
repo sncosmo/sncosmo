@@ -9,7 +9,8 @@ import numpy as np
 from astropy.table import Table
 from astropy.extern import six
 
-from .spectral import get_magsystem, get_bandpass
+from .bandpasses import get_bandpass
+from .magsystems import get_magsystem
 
 _photdata_aliases = odict([
     ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs', 'mjd_obs'])),
