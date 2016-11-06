@@ -10,7 +10,8 @@ from astropy.extern import six
 from astropy.extern.six.moves import range
 
 from .models import Source, Model, get_source
-from .spectral import get_bandpass, get_magsystem
+from .bandpasses import get_bandpass
+from .magsystems import get_magsystem
 from .photdata import standardize_data, normalize_data
 from .utils import format_value
 
