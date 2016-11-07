@@ -162,8 +162,8 @@ Obviously this isn't a complete guide to git, but hopefully it
 jump-starts the git learning process.
 
 
-Developer's documetation: release procedure
-===========================================
+Developer's documentation: release procedure
+============================================
 
 These are notes mainly for the one person that manages releases.
 Yes, this could be more automated, but it isn't done very often,
