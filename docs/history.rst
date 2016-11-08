@@ -30,6 +30,9 @@ v1.4.0 (unreleased)
   this makes the integration of models and zeropoints spectra more
   consistent.
 
+- ``Bandflux.trimmed()`` method added for removing low-level transmission
+  wings.
+
 - **[Bugfix]** Fixed missing import of ``math`` module in ``mcmc_lc()``
   when using the ``priors`` keyword. [Backported to v1.3.1]
   [`#143 <https://github.com/sncosmo/sncosmo/issues/143>`_]

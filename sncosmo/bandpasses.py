@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
+import copy
+
 import numpy as np
 from scipy.interpolate import splrep, splev
 
@@ -210,6 +212,68 @@ class Bandpass(object):
             d = np.flipud(d)
             t = np.flipud(t)
         return d, t
+
+    def trimmed(self, level):
+        """Return a new Bandpass with "out-of-band" transmission removed.
+
+        Parameters
+        ----------
+        level : float
+            Contiguous wavelength regions on the edges of the bandpass
+            having transmission less than ``band.trans.max() * level``
+            will be removed.
+
+        Returns
+        -------
+        trimmed_band : Bandpass
+            A new bandpass with a (possibly) reduced wavelength range.
+
+        Examples
+        --------
+        Construct a Bandpass and then trim it at a level of 1% of maximum
+        transmission:
+
+        >>> band = Bandpass([4000., 4100., 4200., 4300., 4400., 4500.],
+        ...                 [0.001, 0.002,   0.5,   0.6, 0.003, 0.001])
+
+        >>> newband = band.trimmed(0.01)
+
+        >>> newband.wave
+        array([ 4100.,  4200.,  4300.,  4400.])
+
+        >>> newband.trans
+        array([ 0.002,  0.5  ,  0.6  ,  0.003])
+
+
+
+        """
+
+        mintrans = self.trans.max() * level
+
+        i0 = 0
+        while self.trans[i0] < mintrans:
+            i0 += 1
+
+        # leave 1 point with lower transmission.
+        if i0 > 0:
+            i0 -= 1
+
+        i1 = len(self.trans) - 1
+        while self.trans[i1] < mintrans:
+            i1 -= 1
+
+        # leave 1 point with lower transmission
+        if i1 < len(self.trans) - 1:
+            i1 += 1
+
+        # just shallow copy to avoid going though the constructor
+        # (we know self.wave, self.trans have right units).
+        newband = copy.copy(self)
+        newband.wave = np.copy(self.wave[i0:i1+1])
+        newband.trans = np.copy(self.trans[i0:i1+1])
+        newband._tck = splrep(newband.wave, newband.trans, k=1)
+
+        return newband
 
     def __call__(self, wave):
         return splev(wave, self._tck, ext=1)
