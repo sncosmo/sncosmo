@@ -20,9 +20,13 @@ __all__ = ['SFD98Map', 'get_ebv_from_map']
 warned = []
 
 
-def warn_once(name, msg):
+def warn_once(name, depver, rmver, extra=None):
     global warned
     if name not in warned:
+        msg = ("{} is deprecated in sncosmo {} "
+               "and will be removed in sncosmo {}".format(name, depver, rmver))
+        if extra is not None:
+            msg += " " + extra
         warn(msg)
         warned.append(name)
 
@@ -69,11 +73,9 @@ class SFD98Map(object):
 
     def __init__(self, mapdir=None):
 
-        warn_once("SFD98Map",
-                  "`SFD98Map` and `get_ebv_from_map` are deprecated in "
-                  "sncosmo v1.4 and will be removed in sncosmo v2.0. "
-                  "Instead, use `SFDMap` and `ebv` from the sfdmap package; "
-                  "see http://github.com/kbarbary/sfdmap.")
+        warn_once("SFD98Map and get_ebv_from_map", "1.4", "2.0",
+                  "Instead, use `SFDMap` and `ebv` from the sfdmap package: "
+                  "http://github.com/kbarbary/sfdmap.")
 
         # Get mapdir
         if mapdir is None:

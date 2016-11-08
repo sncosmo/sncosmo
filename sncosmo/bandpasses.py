@@ -174,10 +174,8 @@ class Bandpass(object):
 
     @lazyproperty
     def dwave(self):
-        warn_once("Bandpass.dwave",
-                  "Bandpass.dwave is deprecated in sncosmo v1.4 and will be "
-                  "removed in sncosmo v2.0. Use numpy.gradient(wave) with "
-                  "your own wavelength array.")
+        warn_once("Bandpass.dwave", "1.4", "2.0",
+                  "Use numpy.gradient(wave) with your own wavelength array.")
         return np.gradient(self.wave)
 
     @lazyproperty

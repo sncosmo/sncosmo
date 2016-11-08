@@ -7,10 +7,16 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as const
 from astropy import cosmology
+from scipy.interpolate import splrep, splev
 
-from .bandpasses import get_bandpass
+from .bandpasses import get_bandpass, HC_ERG_AA
+from .models import _integration_grid
+from ._deprecated import warn_once
 
 __all__ = ['Spectrum']
+
+SPECTRUM_BANDFLUX_SPACING = 1.0
+FLAMBDA_UNIT = u.erg / u.s / u.cm**2 / u.AA
 
 
 class Spectrum(object):
@@ -22,10 +28,8 @@ class Spectrum(object):
         Wavelength values.
     flux : list_like
         Spectral flux density values.
-    error : list_like, optional
-        1 standard deviation uncertainty on flux density values.
     wave_unit : `~astropy.units.Unit`
-        Units.
+        Unit on wavelength.
     unit : `~astropy.units.BaseUnit`
         For now, only units with flux density in energy (not photon counts).
     z : float, optional
@@ -40,16 +44,43 @@ class Spectrum(object):
     def __init__(self, wave, flux, error=None,
                  unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA,
                  z=None, dist=None, meta=None):
-        self._wave = np.asarray(wave)
-        self._flux = np.asarray(flux)
-        self._wunit = wave_unit
-        self._unit = unit
+        self.wave = np.asarray(wave, dtype=np.float64)
+        self.flux = np.asarray(flux, dtype=np.float64)
+        if self.wave.shape != self.flux.shape:
+            raise ValueError('shape of wavelength and flux must match')
+        if self.wave.ndim != 1:
+            raise ValueError('only 1-d arrays supported')
+
+        # internally, wavelength is in Angstroms:
+        if wave_unit != u.AA:
+            self.wave = wave_unit.to(u.AA, self.wave, u.spectral())
+        self._wave_unit = u.AA
+
+        # internally, flux is in F_lambda:
+        if unit != FLAMBDA_UNIT:
+            self.flux = unit.to(FLAMBDA_UNIT, self.flux,
+                                u.spectral_density(u.AA, self.wave))
+        self._unit = FLAMBDA_UNIT
+
+        # Set up interpolation.
+        # This appears to be the fastest-evaluating interpolant in
+        # scipy.interpolate.
+        self._tck = splrep(self.wave, self.flux, k=1)
+
+        # following are deprecated attributes:
+
+        if z is not None:
+            warn_once("z keyword in Spectrum", "1.4", "2.0")
         self._z = z
+
+        if dist is not None:
+            warn_once("dist keyword in Spectrum", "1.4", "2.0")
         self._dist = dist
 
         if error is not None:
+            warn_once("error keyword in Spectrum", "1.4", "2.0")
             self._error = np.asarray(error)
-            if self._wave.shape != self._error.shape:
+            if self.wave.shape != self._error.shape:
                 raise ValueError('shape of wavelength and variance must match')
         else:
             self._error = None
@@ -57,54 +88,47 @@ class Spectrum(object):
         if meta is None:
             self.meta = OrderedDict()
         else:
+            warn_once("meta keyword in Spectrum", "1.4", "2.0")
             self.meta = deepcopy(meta)
-
-        if self._wave.shape != self._flux.shape:
-            raise ValueError('shape of wavelength and flux must match')
-        if self._wave.ndim != 1:
-            raise ValueError('only 1-d arrays supported')
-
-    @property
-    def wave(self):
-        """Wavelength values."""
-        return self._wave
-
-    @property
-    def flux(self):
-        """Spectral flux density values"""
-        return self._flux
 
     @property
     def error(self):
         """Uncertainty on flux density."""
+        warn_once("Spectrum.error", "1.4", "2.0")
         return self._error
 
     @property
     def wave_unit(self):
         """Units of wavelength."""
-        return self._wunit
+        warn_once("Spectrum.wave_unit", "1.4", "2.0")
+        return self._wave_unit
 
     @property
     def unit(self):
         """Units of flux density."""
+        warn_once("Spectrum.unit", "1.4", "2.0")
         return self._unit
 
     @property
     def z(self):
         """Redshift of spectrum."""
+        warn_once("Spectrum.z", "1.4", "2.0")
         return self._z
 
     @z.setter
     def z(self, value):
+        warn_once("Spectrum.z", "1.4", "2.0")
         self._z = value
 
     @property
     def dist(self):
         """Distance to object in Mpc."""
+        warn_once("Spectrum.dist", "1.4", "2.0")
         return self._dist
 
     @dist.setter
     def dist(self, value):
+        warn_once("Spectrum.dist", "1.4", "2.0")
         self._dist = value
 
     def bandflux(self, band):
@@ -128,44 +152,29 @@ class Spectrum(object):
             `None`.
         """
 
+        # TODO: There is some duplication between this method and
+        # models._bandflux_single.
+
         band = get_bandpass(band)
-        bwave, btrans = band.to_unit(self._wunit)
 
-        if (bwave[0] < self._wave[0] or bwave[-1] > self._wave[-1]):
-            return None
+        # Check that bandpass wavelength range is fully contained in spectrum
+        # wavelength range.
+        if (band.minwave() < self.wave[0] or band.maxwave() > self.wave[-1]):
+            raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                             'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                             .format(band.name, band.minwave(), band.maxwave(),
+                                     self.wave[0], self.wave[-1]))
 
-        mask = ((self._wave > bwave[0]) & (self._wave < bwave[-1]))
-        d = self._wave[mask]
-        f = self._flux[mask]
+        # Set up wavelength grid. Spacing (dwave) evenly divides the bandpass,
+        # closest to 5 angstroms without going over.
+        wave, dwave = _integration_grid(band.minwave(), band.maxwave(),
+                                        SPECTRUM_BANDFLUX_SPACING)
+        trans = band(wave)
+        f = splev(wave, self._tck, ext=1)
 
-        # First convert to ergs/s/cm^2/(wavelength unit)...
-        target_unit = u.erg / u.s / u.cm**2 / self._wunit
-        if self._unit != target_unit:
-            f = self._unit.to(target_unit, f,
-                              u.spectral_density(self._wunit, d))
+        return np.sum(wave * trans * f) * dwave / HC_ERG_AA
 
-        # Then convert ergs to photons: photons = Energy / (h * nu).
-        f = f / const.h.cgs.value / self._wunit.to(u.Hz, d, u.spectral())
-
-        trans = np.interp(d, bwave, btrans)
-        binw = np.gradient(d)
-        ftot = np.sum(f * trans * binw)
-
-        if self._error is None:
-            return ftot
-
-        else:
-            e = self._error[mask]
-
-            # Do the same conversion as above
-            if self._unit != target_unit:
-                e = self._unit.to(target_unit, e,
-                                  u.spectral_density(self._wunit, d))
-            e = e / const.h.cgs.value / self._wunit.to(u.Hz, d, u.spectral())
-            etot = np.sqrt(np.sum((e * binw) ** 2 * trans))
-            return ftot, etot
-
-    def redshifted_to(self, z, adjust_flux=False, dist=None, cosmo=None):
+    def redshifted_to(self, z, adjustflux=False, dist=None, cosmo=None):
         """Return a new Spectrum object at a new redshift.
 
         The current redshift must be defined (self.z cannot be `None`).
@@ -202,19 +211,21 @@ class Spectrum(object):
             A new spectrum object at redshift z.
         """
 
+        warn_once("Spectrum.redshifted_to", "1.4", "2.0")
+
         if self._z is None:
             raise ValueError('Must set current redshift in order to redshift'
                              ' spectrum')
 
-        if self._wunit.physical_type == u.m.physical_type:
+        if self._wave_unit.physical_type == u.m.physical_type:
             factor = (1. + z) / (1. + self._z)
-        elif self._wunit.physical_type == u.Hz.physical_type:
+        elif self._wave_unit.physical_type == u.Hz.physical_type:
             factor = (1. + self._z) / (1. + z)
         else:
             raise ValueError('wavelength must be in wavelength or frequency')
 
-        d = self._wave * factor
-        f = self._flux / factor
+        d = self.wave * factor
+        f = self.flux / factor
         if self._error is not None:
             e = self._error / factor
         else:
@@ -249,4 +260,4 @@ class Spectrum(object):
                 e *= factor
 
         return Spectrum(d, f, error=e, z=z, dist=dist, meta=self.meta,
-                        unit=self._unit, wave_unit=self._wunit)
+                        unit=self._unit, wave_unit=self._wave_unit)
