@@ -2,8 +2,11 @@
 Version History
 ===============
 
-*Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for its version
-numbers.
+*Note:* SNCosmo uses `Semantic Versioning <http://semver.org>`_ for
+its version numbers. Specifically, this means that code written for
+sncosmo v1.0 will continue to work with any v1.x version. However,
+exact results may differ between versions in the 1.x series. (For
+example, due to changes in integration method.)
 
 v1.4.0 (unreleased)
 ===================
@@ -15,6 +18,17 @@ v1.4.0 (unreleased)
 
 - Cython implementation of extinction functions has been factored out into
   a separate Python module called ``extinction``, which is now a dependency.
+
+- ``Model.bandflux()`` and ``Source.bandflux()`` now integrate on a
+  fixed wavelength grid of 5 angstroms regardless of the wavelength
+  grid of the bandpass. This will result in small differences in
+  results from previous sncosmo versions.
+
+- The internal (publicly undocumented) ``Spectrum`` class now acts
+  more like ``Model``; in particular, its ``bandflux()`` method now
+  behaves the same way.  As ``Spectrum`` backs ``SpectralMagSystem``,
+  this makes the integration of models and zeropoints spectra more
+  consistent.
 
 - **[Bugfix]** Fixed missing import of ``math`` module in ``mcmc_lc()``
   when using the ``priors`` keyword. [Backported to v1.3.1]
