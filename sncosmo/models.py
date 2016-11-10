@@ -1658,6 +1658,9 @@ class Model(_ModelBase):
         new._parameters[0:2] = self._parameters[0:2]
         return new
 
+    def __deepcopy__(self, memo):
+        return cp(self)
+
 
 class PropagationEffect(_ModelBase):
     """Abstract base class for propagation effects.
