@@ -29,9 +29,13 @@ v1.4.0 (unreleased)
   behaves the same way.  As ``Spectrum`` backs ``SpectralMagSystem``,
   this makes the integration of models and zeropoints spectra more
   consistent.
-
+  
 - ``Bandflux.trimmed()`` method added for removing low-level transmission
   wings.
+
+- ``Model.source_peakmag()`` and ``Model.set_source_peakmag()`` added
+  as convenience functions for ``Model.source.peakmag()`` and
+  ``Model.source.set_peakmag()`` respectively.
 
 - **[Bugfix]** Fixed missing import of ``math`` module in ``mcmc_lc()``
   when using the ``priors`` keyword. [Backported to v1.3.1]

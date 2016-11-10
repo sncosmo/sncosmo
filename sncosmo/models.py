@@ -237,6 +237,7 @@ class _ModelBase(object):
             self._parameters[i] = val
 
     def get(self, name):
+        """Get parameter of the model by name."""
         try:
             i = self._param_names.index(name)
         except ValueError:
@@ -433,13 +434,13 @@ class Source(_ModelBase):
         a, b, c = np.linalg.solve(A, y)
         return -b / (2 * a)
 
-    def peakmag(self, band, magsys, sampling=1.):
-        """Calculate peak apparent magnitude in rest-frame bandpass."""
+    def peakmag(self, band, magsys, sampling=1.0):
+        """Peak apparent magnitude in rest-frame bandpass."""
 
         peakphase = self.peakphase(band, sampling=sampling)
         return self.bandmag(band, magsys, peakphase)
 
-    def set_peakmag(self, m, band, magsys, sampling=1.):
+    def set_peakmag(self, m, band, magsys, sampling=1.0):
         """Set peak apparent magnitude in rest-frame bandpass."""
 
         m_current = self.peakmag(band, magsys, sampling=sampling)
@@ -1536,29 +1537,106 @@ class Model(_ModelBase):
         return (self.bandmag(band1, magsys, time) -
                 self.bandmag(band2, magsys, time))
 
-    def source_peakabsmag(self, band, magsys, cosmo=cosmology.WMAP9):
-        return (self._source.peakmag(band, magsys) -
+    def source_peakmag(self, band, magsys, sampling=1.0):
+        """Peak apparent magnitude of source in a rest-frame bandpass.
+
+        Note that this is the peak magnitude of just the *source* component
+        of the model, not including effects such as dust.
+
+        Parameters
+        ----------
+        band : str or `~sncosmo.Bandpass`
+            Bandpass or name of bandpass in registry.
+        magsys : str or `~sncosmo.MagSystem`
+            Magnitude system or name of magnitude system in registry.
+        sampling : float, optional
+            Sampling in rest-frame days used to find the peak of the light
+            curve.
+
+        Returns
+        -------
+        float
+            Peak apparent magnitude of just the source component of the model.
+        """
+
+        return self._source.peakmag(band, magsys, sampling=sampling)
+
+    def set_source_peakmag(self, m, band, magsys, sampling=1.0):
+        """Set the amplitude of the source component of the model according to
+        a peak apparent magnitude.
+
+        Note that this is the peak magnitude of just the *source* component
+        of the model, not including effects such as dust.
+
+        Parameters
+        ----------
+        m : float
+            Desired apparent magnitude.
+        band : str or `~sncosmo.Bandpass`
+            Bandpass or name of bandpass in registry.
+        magsys : str or `~sncosmo.MagSystem`
+            Magnitude system or name of magnitude system in registry.
+        sampling : float, optional
+            Sampling in rest-frame days used to find the peak of the light
+            curve. Default is 1.0.
+        """
+        self._source.set_peakmag(m, band, magsys, sampling=sampling)
+
+    def source_peakabsmag(self, band, magsys, sampling=1.0,
+                          cosmo=cosmology.WMAP9):
+        """Peak absolute magnitude of the source in rest-frame bandpass.
+
+        Note that this is the peak absolute magnitude of just the *source*
+        component of the model, not including effects such as dust.
+
+        Parameters
+        ----------
+        band : str or `~sncosmo.Bandpass`
+            Bandpass or name of bandpass in registry.
+        magsys : str or `~sncosmo.MagSystem`
+            Magnitude system or name of magnitude system in registry.
+        sampling : float, optional
+            Sampling in rest-frame days used to find the peak of the light
+            curve. Default is 1.0.
+        cosmo : astropy Cosmology, optional
+            Instance of a cosmology from ``astropy.cosmology``, used to
+            calculate distance modulus, given the model's redshift. Default
+            is WMAP9.
+
+        Returns
+        -------
+        float
+            Peak absolute magnitude of just the source component of the model.
+        """
+        return (self._source.peakmag(band, magsys, sampling=sampling) -
                 cosmo.distmod(self._parameters[0]).value)
 
-    def set_source_peakabsmag(self, absmag, band, magsys,
+    def set_source_peakabsmag(self, absmag, band, magsys, sampling=1.0,
                               cosmo=cosmology.WMAP9):
         """Set the amplitude of the source component of the model according to
-        the desired absolute magnitude(s) in the specified band(s).
+        the desired absolute magnitude in the specified band.
 
         Parameters
         ----------
         absmag : float
             Desired absolute magnitude.
-        band : str or list_like
-            Name(s) of bandpass in registry.
-        magsys : str or list_like
-            Name(s) of `~sncosmo.MagSystem` in registry.
+        band : str or `~sncosmo.Bandpass`
+            Bandpass or name of bandpass in registry.
+        magsys : str or `~sncosmo.MagSystem`
+            Magnitude system or name of magnitude system in registry.
+        sampling : float, optional
+            Sampling in rest-frame days used to find the peak of the light
+            curve. Default is 1.0.
+        cosmo : astropy Cosmology, optional
+            Instance of a cosmology from ``astropy.cosmology``, used to
+            calculate distance modulus, given the model's redshift. Default
+            is WMAP9.
         """
 
         if self._parameters[0] <= 0.:
             raise ValueError('absolute magnitude undefined when z<=0.')
         m = absmag + cosmo.distmod(self._parameters[0]).value
-        self._source.set_peakmag(m, band, magsys)
+        self._source.set_peakmag(m, band, magsys, sampling=sampling)
 
     def _headsummary(self):
         head = "<{0:s} at 0x{1:x}>".format(self.__class__.__name__, id(self))
