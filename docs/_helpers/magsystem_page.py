@@ -5,7 +5,7 @@ sphinx documentation via the automodule directive."""
 import string
 
 from astropy.extern import six
-from sncosmo.spectral import _MAGSYSTEMS
+from sncosmo.magsystems import _MAGSYSTEMS
 
 
 lines = ['',

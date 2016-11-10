@@ -3,7 +3,7 @@ and save it to this module's docstring for the purpose of including in
 sphinx documentation via the automodule directive."""
 
 from astropy.extern import six
-from sncosmo.spectral import _BANDPASSES
+from sncosmo.bandpasses import _BANDPASSES
 
 # string.ascii_letters in py3
 ASCII_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'

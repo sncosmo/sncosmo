@@ -11,7 +11,7 @@ def plot_bandpass_set(setname):
 
     rc("font", family="serif")
 
-    bandpass_meta = sncosmo.spectral._BANDPASSES.get_loaders_metadata()
+    bandpass_meta = sncosmo.bandpasses._BANDPASSES.get_loaders_metadata()
 
     fig = plt.figure(figsize=(9, 3))
     ax = plt.axes()
