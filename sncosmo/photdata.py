@@ -87,7 +87,7 @@ def standardize_data(data):
 
     if isinstance(data, np.ndarray):
         new_data = data[orig_colnames_to_use].copy()
-        new_data.dtype.names = _photdata_aliases.keys()
+        new_data.dtype.names = list(_photdata_aliases.keys())
 
     else:
         new_data = odict()
