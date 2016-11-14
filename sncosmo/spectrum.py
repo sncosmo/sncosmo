@@ -11,7 +11,7 @@ from scipy.interpolate import splrep, splev
 
 from .bandpasses import get_bandpass, HC_ERG_AA
 from .models import _integration_grid
-from ._deprecated import warn_once
+from .utils import warn_once
 
 __all__ = ['Spectrum']
 

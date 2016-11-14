@@ -350,3 +350,17 @@ def download_dir(remote_url, dirname):
     tf.extractall(path=dirname)
     tf.close()
     buf.close()  # buf not closed when tf is closed.
+
+
+warned = []  # global used in warn_once
+
+
+def warn_once(name, depver, rmver, extra=None):
+    global warned
+    if name not in warned:
+        msg = ("{} is deprecated in sncosmo {} "
+               "and will be removed in sncosmo {}".format(name, depver, rmver))
+        if extra is not None:
+            msg += " " + extra
+        warnings.warn(msg)
+        warned.append(name)

@@ -11,7 +11,7 @@ import astropy.units as u
 import astropy.constants as const
 
 from ._registry import Registry
-from ._deprecated import warn_once
+from .utils import warn_once
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass']
 

@@ -11,10 +11,16 @@ example, due to changes in integration method.)
 v1.4.0 (unreleased)
 ===================
 
+Deprecations
+------------
+
 - ``SFD98Map`` and ``get_ebv_from_map`` deprecated in favor of separate package
   `sfdmap <http://github.com/kbarbary/sfdmap>`_ which has vastly improved
   performance (200x faster) for the typical case of scalar coordinates in
   ICRS frame.
+
+- ``animate_source()`` deprecated. This is a "fun extra" that is difficult
+  to test and no longer seems to work.
 
 - Cython implementation of extinction functions has been factored out into
   a separate Python module called ``extinction``, which is now a dependency.
