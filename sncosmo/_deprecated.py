@@ -281,7 +281,7 @@ def animate_source(source, label=None, fps=30, length=20.,
     from matplotlib import animation
 
     warn_once('animate_source', '1.4', '2.0')
-    
+
     # Convert input to a list (if it isn't already).
     if (not isiterable(source)) or isinstance(source, six.string_types):
         sources = [source]

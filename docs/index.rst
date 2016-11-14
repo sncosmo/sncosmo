@@ -41,6 +41,9 @@ possible.
 
    examples/index
    reference
+   source-list
+   bandpass-list
+   magsystem-list
 
 :doc:`reference`
 ================

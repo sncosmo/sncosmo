@@ -33,7 +33,7 @@ Deprecations
 - The internal (publicly undocumented) ``Spectrum`` class now acts
   more like ``Model``; in particular, its ``bandflux()`` method now
   behaves the same way.  As ``Spectrum`` backs ``SpectralMagSystem``,
-  this makes the integration of models and zeropoints spectra more
+  this makes the integration of models and zeropoint spectra more
   consistent.
   
 - ``Bandflux.trimmed()`` method added for removing low-level transmission
@@ -80,7 +80,7 @@ v1.2.0 (2015-12-01)
   - ``sncosmo.registry.retrieve()`` -> deprecated, use class-specific
     functions such as ``sncosmo.get_bandpass()``.
 
-  The old import paths will still work for backwards backwards compatible.
+  The old import paths will still work for backwards compatibility.
 
 - ``nest_lc()`` now uses the ``nestle`` module under the hood. A new
   keyword ``method`` is available which selects different sampling

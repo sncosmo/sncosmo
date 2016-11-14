@@ -3,16 +3,6 @@
 Reference / API
 ***************
 
-Built-ins
-=========
-
-.. toctree::
-   :maxdepth: 1
-
-   builtins/sources
-   builtins/bandpasses
-   builtins/magsystems
-
 .. currentmodule:: sncosmo
 
 Model & Components
