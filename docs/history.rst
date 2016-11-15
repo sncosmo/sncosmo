@@ -11,9 +11,6 @@ example, due to changes in integration method.)
 v1.4.0 (unreleased)
 ===================
 
-Deprecations
-------------
-
 - ``SFD98Map`` and ``get_ebv_from_map`` deprecated in favor of separate package
   `sfdmap <http://github.com/kbarbary/sfdmap>`_ which has vastly improved
   performance (200x faster) for the typical case of scalar coordinates in
@@ -35,6 +32,11 @@ Deprecations
   behaves the same way.  As ``Spectrum`` backs ``SpectralMagSystem``,
   this makes the integration of models and zeropoint spectra more
   consistent.
+
+- Experimental (non-public) support for aliases for bandpasses,
+  such as ``'SDSS::g'`` for ``'sdssg'``.
+
+- Sources now use cubic rather than quadratic spline interpolation internally.
   
 - ``Model.source_peakmag()`` and ``Model.set_source_peakmag()`` added
   as convenience functions for ``Model.source.peakmag()`` and
