@@ -36,9 +36,6 @@ Deprecations
   this makes the integration of models and zeropoint spectra more
   consistent.
   
-- ``Bandflux.trimmed()`` method added for removing low-level transmission
-  wings.
-
 - ``Model.source_peakmag()`` and ``Model.set_source_peakmag()`` added
   as convenience functions for ``Model.source.peakmag()`` and
   ``Model.source.set_peakmag()`` respectively.

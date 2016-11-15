@@ -213,7 +213,7 @@ class Bandpass(object):
             t = np.flipud(t)
         return d, t
 
-    def trimmed(self, level):
+    def _trimmed(self, level):
         """Return a new Bandpass with "out-of-band" transmission removed.
 
         Parameters
