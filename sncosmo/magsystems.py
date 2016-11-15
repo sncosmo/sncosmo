@@ -91,7 +91,9 @@ class CompositeMagSystem(MagSystem):
         The spectrophotmetric flux standards for each band, in the
         same order as `bands`.
     offsets: list_like
-        The magnitude of standard in the given band.
+        The magnitude of standard in the given band. A positive offset
+        means that the composite magsystem zeropoint flux is brighter
+        than the standard.
     """
 
     def __init__(self, bands, standards, offsets, name=None):

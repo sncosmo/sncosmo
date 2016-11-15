@@ -25,10 +25,10 @@ from . import registry
 from . import io
 from .utils import download_file, download_dir
 from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
-from .bandpasses import Bandpass, read_bandpass
+from .bandpasses import Bandpass, read_bandpass, _BANDPASSES
 from .spectrum import Spectrum
 from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
-                         CompositeMagSystem)
+                         CompositeMagSystem, _MAGSYSTEMS)
 from . import conf
 
 # This module is only imported for its side effects.
@@ -260,6 +260,15 @@ def load_csp(**kwargs):
     return CompositeMagSystem(bands, refsystems, offsets, name='csp')
 
 
+def load_ab_b12(**kwargs):
+    # offsets are in the sense (mag_SDSS - mag_AB) = offset
+    # -> for example: a source with AB mag = 0. will have SDSS mag = 0.06791
+    bands = ['sdssu', 'sdssg', 'sdssr', 'sdssi', 'sdssz',
+             'sdss::u', 'sdss::g', 'sdss::r', 'sdss::i', 'sdss::z']
+    standards = 10 * ['ab']
+    offsets = 2 * [0.06791, -0.02028, -0.00493, -0.01780, -0.01015]
+    return CompositeMagSystem(bands, standards, offsets)
+    
 # =============================================================================
 # Bandpasses
 
@@ -403,6 +412,13 @@ for name, fname, meta in bands:
     registry.register_loader(Bandpass, name, load_bandpass_angstroms,
                              args=['data/bandpasses/' + fname],
                              meta=meta)
+
+# aliases for sdss
+_BANDPASSES.alias('sdss::u', 'sdssu')
+_BANDPASSES.alias('sdss::g', 'sdssg')
+_BANDPASSES.alias('sdss::r', 'sdssr')
+_BANDPASSES.alias('sdss::i', 'sdssi')
+_BANDPASSES.alias('sdss::z', 'sdssz')
 
 bands = [('f070w', 'jwst/jwst_nircam_f070w.dat', jwst_nircam_meta),
          ('f090w', 'jwst/jwst_nircam_f090w.dat', jwst_nircam_meta),
@@ -682,3 +698,13 @@ registry.register_loader(
     meta={'subclass': '`~sncosmo.CompositeMagSystem`',
           'url': 'http://csp.obs.carnegiescience.edu/data/filters',
           'description': 'Carnegie Supernova Project magnitude system.'})
+
+
+# ab_b12
+registry.register_loader(
+    MagSystem, 'ab-b12', load_ab_b12,
+    meta={'subclass': '`~sncosmo.CompositeMagSystem`',
+          'url': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
+          'description': 'Betoule et al (2012) calibration of SDSS system.'})
+
+_MAGSYSTEMS.alias('ab_b12', 'ab-b12')

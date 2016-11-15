@@ -11,6 +11,7 @@ class Registry(object):
     def __init__(self):
         self._loaders = OrderedDict()
         self._instances = OrderedDict()
+        self._primary_loaders = []  # keys of _loaders not including aliases
 
     def register_loader(self, name, func, args=None, version=None, meta=None,
                         force=False):
@@ -51,6 +52,7 @@ class Registry(object):
                             .format(data_class.__name__, name, versionstr))
 
         self._loaders[key] = func, args, meta
+        self._primary_loaders.append(key)
 
     def register(self, instance, name=None, force=False):
         """Register a class instance.
@@ -85,6 +87,27 @@ class Registry(object):
                             " to override.".format(name))
 
         self._instances[key] = instance
+
+    def alias(self, new_name, existing_name, new_version=None,
+              existing_version=None):
+        """Alias a new name to an existing name."""
+
+        found = False
+
+        new_key = (new_name, new_version)
+        existing_key = (existing_name, existing_version)
+
+        if existing_key in self._loaders:
+            found = True
+            self._loaders[new_key] = self._loaders[existing_key]
+
+        if existing_key in self._instances:
+            found = True
+            self._instances[new_key] = self._instances[existing_key]
+
+        if not found:
+            raise Exception("{0!r} not found in registry"
+                            .format(existing_name))
 
     def retrieve(self, name, version=None):
         """Retrieve an instance from a registered identifier.
@@ -190,7 +213,8 @@ class Registry(object):
         """
 
         result = []
-        for key, loader in six.iteritems(self._loaders):
+        for key in self._primary_loaders:
+            loader = self._loaders[key]
             name, version = key
             m = {'name': name}
             if version is not None:
