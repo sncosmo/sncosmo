@@ -520,7 +520,7 @@ class TimeSeriesSource(Source):
         self._phase = phase
         self._wave = wave
         self._parameters = np.array([1.])
-        self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
+        self._model_flux = Spline2d(phase, wave, flux, kx=3, ky=3)
         self._zero_before = zero_before
 
     def _flux(self, phase, wave):
@@ -563,7 +563,7 @@ class StretchSource(Source):
         self._phase = phase
         self._wave = wave
         self._parameters = np.array([1., 1.])
-        self._model_flux = Spline2d(phase, wave, flux, kx=2, ky=2)
+        self._model_flux = Spline2d(phase, wave, flux, kx=3, ky=3)
 
     def minphase(self):
         return self._parameters[1] * self._phase[0]
@@ -667,7 +667,7 @@ class SALT2Source(Source):
         for key in ['M0', 'M1']:
             phase, wave, values = read_griddata_ascii(names_or_objs[key])
             values *= self._SCALE_FACTOR
-            self._model[key] = Spline2d(phase, wave, values, kx=2, ky=2)
+            self._model[key] = Spline2d(phase, wave, values, kx=3, ky=3)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.

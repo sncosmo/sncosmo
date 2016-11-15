@@ -236,7 +236,7 @@ class Bandpass(object):
         >>> band = Bandpass([4000., 4100., 4200., 4300., 4400., 4500.],
         ...                 [0.001, 0.002,   0.5,   0.6, 0.003, 0.001])
 
-        >>> newband = band.trimmed(0.01)
+        >>> newband = band._trimmed(0.01)
 
         >>> newband.wave
         array([ 4100.,  4200.,  4300.,  4400.])

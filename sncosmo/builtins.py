@@ -268,7 +268,8 @@ def load_ab_b12(**kwargs):
     standards = 10 * ['ab']
     offsets = 2 * [0.06791, -0.02028, -0.00493, -0.01780, -0.01015]
     return CompositeMagSystem(bands, standards, offsets)
-    
+
+
 # =============================================================================
 # Bandpasses
 
