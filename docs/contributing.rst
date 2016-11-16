@@ -169,7 +169,7 @@ These are notes mainly for the one person that manages releases.
 Yes, this could be more automated, but it isn't done very often,
 and involves some human verification.
 
-- Update ``docs/whatsnew.rst`` with a summary of the new version's changes.
+- Update ``docs/history.rst`` with a summary of the new version's changes.
 - Bump version in ``setup.py``.
 - Check copyright year in ``docs/conf.py``.
 - Build package and docs and check that docs look good.
