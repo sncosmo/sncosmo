@@ -898,7 +898,7 @@ class SALT2Source(Source):
 
         # Set extinction function to use.
         if version == 0:
-            self._colorlaw = self._colorlaw_v0
+            raise Exception("Salt2ExtinctionLaw.version 0 not supported.")
         elif version == 1:
             self._colorlaw = self._colorlaw_v1
             self._colorlaw_range = colorlaw_range
@@ -906,37 +906,10 @@ class SALT2Source(Source):
             raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
                             version)
 
-    def _colorlaw_v0(self, wave):
-        """Return the extinction in magnitudes as a function of wavelength,
-        for c=1. This is the version 0 extinction law used in SALT2 1.0 and
-        1.1 (SALT2-1-1).
-
-        Notes
-        -----
-        From SALT2 code comments:
-
-            ext = exp(color * constant *
-                      (l + params(0)*l^2 + params(1)*l^3 + ... ) /
-                      (1 + params(0) + params(1) + ... ) )
-                = exp(color * constant *  numerator / denominator )
-                = exp(color * expo_term )
-        """
-
-        l = ((wave - self._B_WAVELENGTH) /
-             (self._V_WAVELENGTH - self._B_WAVELENGTH))
-
-        coeffs = [0., 1.]
-        coeffs.extend(self._colorlaw_coeffs)
-        coeffs = np.flipud(coeffs)
-        numerator = np.polyval(coeffs, l)  # 0 + 1 * l + p[0] * l^2 + ...
-        denominator = coeffs.sum()         # 0 + 1 + p[0] + p[1] + ...
-
-        return -numerator / denominator
-
     def _colorlaw_v1(self, wave):
         """Return the  extinction in magnitudes as a function of wavelength,
         for c=1. This is the version 1 extinction law used in SALT2 2.0
-        (SALT2-2-0).
+        (SALT2-2-0) and later.
 
         Notes
         -----

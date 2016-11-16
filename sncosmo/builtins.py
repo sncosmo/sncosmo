@@ -543,15 +543,11 @@ registry.register_loader(Source, 'hsiao-subsampled',
 
 # SALT2 models
 website = 'http://supernovae.in2p3.fr/salt/doku.php?id=salt_templates'
-g07ref = ('G07', 'Guy et al. 2007 '
-          '<http://adsabs.harvard.edu/abs/2007A%26A...466...11G>')
 g10ref = ('G10', 'Guy et al. 2010 '
           '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
 b14ref = ('B14', 'Betoule et al. 2014 '
           '<http://arxiv.org/abs/1401.4064>')
-for topdir, ver, ref in [('salt2', '1.0', g07ref),
-                         ('salt2-1-1', '1.1', g07ref),
-                         ('salt2-2-0', '2.0', g10ref),
+for topdir, ver, ref in [('salt2-2-0', '2.0', g10ref),
                          ('salt2-4', '2.4', b14ref)]:
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
             'url': website, 'reference': ref}
