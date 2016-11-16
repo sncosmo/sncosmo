@@ -117,6 +117,9 @@ def get_abspath(relpath, name, version=None):
     return abspath
 
 
+# =============================================================================
+# Bandpasses
+
 def load_bandpass_angstroms(pkg_data_name, name=None):
     fname = get_pkg_data_filename(pkg_data_name)
     return read_bandpass(fname, wave_unit=u.AA, name=name)
@@ -147,131 +150,6 @@ def tophat_bandpass(ctr, width, name=None):
     trans[[0, -1]] = 0.
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
 
-
-def load_timeseries_ascii(relpath, zero_before=False, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
-    phase, wave, flux = io.read_griddata_ascii(abspath)
-    return TimeSeriesSource(phase, wave, flux, name=name, version=version,
-                            zero_before=zero_before)
-
-
-def load_timeseries_fits(relpath, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
-    phase, wave, flux = io.read_griddata_fits(abspath)
-    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
-
-
-def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
-    fname = get_pkg_data_filename(pkg_data_name)
-    phase, wave, flux = io.read_griddata_fits(fname)
-    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
-
-
-def load_salt2model(relpath, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
-    return SALT2Source(modeldir=abspath, name=name, version=version)
-
-
-def load_2011fe(relpath, name=None, version=None):
-
-    # filter warnings about RADESYS keyword in files
-    warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
-                            append=True)
-
-    abspath = get_abspath(relpath, name, version=version)
-
-    phasestrs = []
-    spectra = []
-    disp = None
-    for fname in os.listdir(abspath):
-        if fname[-4:] == '.fit':
-            hdulist = fits.open(join(abspath, fname))
-            flux_density = hdulist[0].data
-            phasestrs.append(fname[-8:-4])  # like 'P167' or 'M167'
-            spectra.append(flux_density)
-
-            # Get dispersion values if we haven't yet
-            # (dispersion should be the same for all)
-            if disp is None:
-                w = wcs.WCS(hdulist[0].header)
-                nflux = len(flux_density)
-                idx = np.arange(nflux)  # pixel coords
-                idx.shape = (nflux, 1)  # make it 2-d
-                disp = w.wcs_pix2world(idx, 0)[:, 0]
-
-            hdulist.close()
-
-    # get phases in floats
-    phases = []
-    for phasestr in phasestrs:
-        phase = 0.1 * float(phasestr[1:])
-        if phasestr[0] == 'M':
-            phase = -phase
-        phases.append(phase)
-
-    # Add a point at explosion.
-    # The phase of explosion is given in the paper as
-    # t_expl - t_bmax = 55796.696 - 55814.51 = -17.814
-    # where t_expl is from Nugent et al (2012)
-    phases.append(-17.814)
-    spectra.append(np.zeros_like(spectra[0]))
-
-    # order spectra and put them all together
-    spectra = sorted(zip(phases, spectra), key=lambda x: x[0])
-    flux = np.array([s[1] for s in spectra])
-
-    phases = np.array(phases)
-    phases.sort()
-
-    return TimeSeriesSource(phases, disp, flux,
-                            name=name, version=version)
-
-
-def load_ab(name=None):
-    return ABMagSystem(name=name)
-
-
-def load_spectral_magsys_fits(relpath, name=None):
-    abspath = get_abspath(relpath, name)
-    hdulist = fits.open(abspath)
-    dispersion = hdulist[1].data['WAVELENGTH']
-    flux_density = hdulist[1].data['FLUX']
-    hdulist.close()
-    refspectrum = Spectrum(dispersion, flux_density,
-                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
-
-    return SpectralMagSystem(refspectrum, name=name)
-
-
-def load_csp(**kwargs):
-
-    # this file contains the csp zeropoints and standards
-    fname = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
-    data = np.genfromtxt(fname, names=True, dtype=None, skip_header=3)
-    bands = data['name']
-    refsystems = data['reference_sed']
-    offsets = data['natural_mag']
-
-    # In Python 3, convert to native strings (Unicode)
-    if six.PY3:
-        bands = np.char.decode(bands)
-        refsystems = np.char.decode(refsystems)
-
-    return CompositeMagSystem(bands, refsystems, offsets, name='csp')
-
-
-def load_ab_b12(**kwargs):
-    # offsets are in the sense (mag_SDSS - mag_AB) = offset
-    # -> for example: a source with AB mag = 0. will have SDSS mag = 0.06791
-    bands = ['sdssu', 'sdssg', 'sdssr', 'sdssi', 'sdssz',
-             'sdss::u', 'sdss::g', 'sdss::r', 'sdss::i', 'sdss::z']
-    standards = 10 * ['ab']
-    offsets = 2 * [0.06791, -0.02028, -0.00493, -0.01780, -0.01015]
-    return CompositeMagSystem(bands, standards, offsets)
-
-
-# =============================================================================
-# Bandpasses
 
 bessell_meta = {
     'filterset': 'bessell',
@@ -473,6 +351,86 @@ for name, ctr, width in [('f560w', 5.6, 1.2),
 # =============================================================================
 # Sources
 
+
+def load_timeseries_ascii(relpath, zero_before=False, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    phase, wave, flux = io.read_griddata_ascii(abspath)
+    return TimeSeriesSource(phase, wave, flux, name=name, version=version,
+                            zero_before=zero_before)
+
+
+def load_timeseries_fits(relpath, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    phase, wave, flux = io.read_griddata_fits(abspath)
+    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
+
+
+def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
+    fname = get_pkg_data_filename(pkg_data_name)
+    phase, wave, flux = io.read_griddata_fits(fname)
+    return TimeSeriesSource(phase, wave, flux, name=name, version=version)
+
+
+def load_salt2model(relpath, name=None, version=None):
+    abspath = get_abspath(relpath, name, version=version)
+    return SALT2Source(modeldir=abspath, name=name, version=version)
+
+
+def load_2011fe(relpath, name=None, version=None):
+
+    # filter warnings about RADESYS keyword in files
+    warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
+                            append=True)
+
+    abspath = get_abspath(relpath, name, version=version)
+
+    phasestrs = []
+    spectra = []
+    disp = None
+    for fname in os.listdir(abspath):
+        if fname[-4:] == '.fit':
+            hdulist = fits.open(join(abspath, fname))
+            flux_density = hdulist[0].data
+            phasestrs.append(fname[-8:-4])  # like 'P167' or 'M167'
+            spectra.append(flux_density)
+
+            # Get dispersion values if we haven't yet
+            # (dispersion should be the same for all)
+            if disp is None:
+                w = wcs.WCS(hdulist[0].header)
+                nflux = len(flux_density)
+                idx = np.arange(nflux)  # pixel coords
+                idx.shape = (nflux, 1)  # make it 2-d
+                disp = w.wcs_pix2world(idx, 0)[:, 0]
+
+            hdulist.close()
+
+    # get phases in floats
+    phases = []
+    for phasestr in phasestrs:
+        phase = 0.1 * float(phasestr[1:])
+        if phasestr[0] == 'M':
+            phase = -phase
+        phases.append(phase)
+
+    # Add a point at explosion.
+    # The phase of explosion is given in the paper as
+    # t_expl - t_bmax = 55796.696 - 55814.51 = -17.814
+    # where t_expl is from Nugent et al (2012)
+    phases.append(-17.814)
+    spectra.append(np.zeros_like(spectra[0]))
+
+    # order spectra and put them all together
+    spectra = sorted(zip(phases, spectra), key=lambda x: x[0])
+    flux = np.array([s[1] for s in spectra])
+
+    phases = np.array(phases)
+    phases.sort()
+
+    return TimeSeriesSource(phases, disp, flux,
+                            name=name, version=version)
+
+
 # Nugent models
 website = 'https://c3.lbl.gov/nugent/nugent_templates.html'
 subclass = '`~sncosmo.TimeSeriesSource`'
@@ -670,6 +628,50 @@ registry.register_loader(Source, 'mlcs2k2', load_mlcs2k2,
 
 # =============================================================================
 # MagSystems
+
+
+def load_ab(name=None):
+    return ABMagSystem(name=name)
+
+
+def load_spectral_magsys_fits(relpath, name=None):
+    abspath = get_abspath(relpath, name)
+    hdulist = fits.open(abspath)
+    dispersion = hdulist[1].data['WAVELENGTH']
+    flux_density = hdulist[1].data['FLUX']
+    hdulist.close()
+    refspectrum = Spectrum(dispersion, flux_density,
+                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+
+    return SpectralMagSystem(refspectrum, name=name)
+
+
+def load_csp(**kwargs):
+
+    # this file contains the csp zeropoints and standards
+    fname = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
+    data = np.genfromtxt(fname, names=True, dtype=None, skip_header=3)
+    bands = data['name']
+    refsystems = data['reference_sed']
+    offsets = data['natural_mag']
+
+    # In Python 3, convert to native strings (Unicode)
+    if six.PY3:
+        bands = np.char.decode(bands)
+        refsystems = np.char.decode(refsystems)
+
+    return CompositeMagSystem(bands, refsystems, offsets, name='csp')
+
+
+def load_ab_b12(**kwargs):
+    # offsets are in the sense (mag_SDSS - mag_AB) = offset
+    # -> for example: a source with AB mag = 0. will have SDSS mag = 0.06791
+    bands = ['sdssu', 'sdssg', 'sdssr', 'sdssi', 'sdssz',
+             'sdss::u', 'sdss::g', 'sdss::r', 'sdss::i', 'sdss::z']
+    standards = 10 * ['ab']
+    offsets = 2 * [0.06791, -0.02028, -0.00493, -0.01780, -0.01015]
+    return CompositeMagSystem(bands, standards, offsets)
+
 
 # AB
 registry.register_loader(
