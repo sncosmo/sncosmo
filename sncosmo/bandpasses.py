@@ -156,7 +156,29 @@ class Bandpass(object):
                              'decreasing when supplied in energy/frequency.')
 
         if normalize:
-            trans = trans / np.max(trans)
+            trans /= np.max(trans)
+
+        # if more than one leading or trailing transmissions are zero, we
+        # can remove them.
+        if ((trans[0] == 0.0 and trans[1] == 0.0) or
+            (trans[-1] == 0.0 and trans[-2] == 0.0)):
+            i = 0
+            while i < len(trans) and trans[i] == 0.0:
+                i += 1
+            if i == len(trans):
+                raise ValueError('all zero transmission')
+            j = len(trans) - 1
+            while j >= 0 and trans[j] == 0.0:
+                j -= 1
+                
+            # back out to include a single zero
+            if i > 0:
+                i -= 1
+            if j < len(trans) - 1:
+                j += 1
+
+            wave = wave[i:j+1]
+            trans = trans[i:j+1]
 
         self.wave = wave
         self.trans = trans
