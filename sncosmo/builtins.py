@@ -136,9 +136,11 @@ def load_bandpass_bessell(pkg_data_name, name=None):
     return read_bandpass(fname, wave_unit=u.AA, trans_unit=u.erg**-1,
                          normalize=True, name=name)
 
+
 def load_bandpass_remote_nm(relpath, name=None, version=None):
     abspath = get_abspath(relpath, name, version=version)
     return read_bandpass(abspath, wave_unit=u.nm, name=name)
+
 
 def tophat_bandpass(ctr, width, name=None):
     """Create a tophat Bandpass centered at `ctr` with width `width` (both
@@ -352,7 +354,8 @@ for name, ctr, width in [('f560w', 5.6, 1.2),
 
 
 lsst_meta = {'filterset': 'lsst',
-             'dataurl': 'https://github.com/lsst/throughputs/tree/7632edaa9e93d06576e34a065ea4622de8cc48d0/baseline',
+             'dataurl': ('https://github.com/lsst/throughputs/tree/'
+                         '7632edaa9e93d06576e34a065ea4622de8cc48d0/baseline'),
              'retrieved': '16 Nov 2016',
              'description': 'LSST baseline total throughputs, v1.1.'}
 

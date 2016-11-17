@@ -160,8 +160,8 @@ class Bandpass(object):
 
         # if more than one leading or trailing transmissions are zero, we
         # can remove them.
-        if ((trans[0] == 0.0 and trans[1] == 0.0) or
-            (trans[-1] == 0.0 and trans[-2] == 0.0)):
+        if ((trans[0] == 0.0 and trans[1] == 0.0) or (trans[-1] == 0.0 and
+                                                      trans[-2] == 0.0)):
             i = 0
             while i < len(trans) and trans[i] == 0.0:
                 i += 1
@@ -170,7 +170,7 @@ class Bandpass(object):
             j = len(trans) - 1
             while j >= 0 and trans[j] == 0.0:
                 j -= 1
-                
+
             # back out to include a single zero
             if i > 0:
                 i -= 1
