@@ -105,6 +105,26 @@ def test_griddata_fits():
     assert_allclose(y_in, y)
 
 
+def test_read_lc():
+    from astropy.extern.six import StringIO
+    f = StringIO("""
+@id 1
+@RA 36.0
+@description good
+time band flux fluxerr zp zpsys
+50000. g 1. 0.1 25. ab
+50000.1 r 2. 0.1 25. ab
+""")
+    t = sncosmo.read_lc(f, format='ascii')
+    assert str(t) == ("  time  band flux fluxerr  zp  zpsys\n"
+                      "------- ---- ---- ------- ---- -----\n"
+                      "50000.0    g  1.0     0.1 25.0    ab\n"
+                      "50000.1    r  2.0     0.1 25.0    ab")
+    assert t.meta['id'] == 1
+    assert t.meta['RA'] == 36.0
+    assert t.meta['description'] == 'good'
+
+
 def test_read_salt2():
     fname = join(dirname(__file__), "data", "salt2_example.dat")
     data = sncosmo.read_lc(fname, format="salt2")
@@ -171,3 +191,7 @@ def test_write_lc_snana():
     f.close()  # close to ensure that we can open it in write_lc()
     sncosmo.write_lc(lcdata, f.name, format='snana', pedantic=False)
     os.unlink(f.name)
+
+
+def test_load_example_data():
+    data = sncosmo.load_example_data()

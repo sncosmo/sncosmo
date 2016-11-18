@@ -51,8 +51,8 @@ def zdist(zmin, zmax, time=365.25, area=1.,
 
     Loop over the generator:
 
-    >>> for z in zdist(0.0, 0.25):  # doctest: +SKIP
-    ...     print(z)                # doctest: +SKIP
+    >>> for z in zdist(0.0, 0.25):
+    ...     print(z)
     ...
     0.151285827576
     0.204078030595

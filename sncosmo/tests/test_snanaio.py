@@ -3,12 +3,19 @@ from __future__ import print_function
 
 from os.path import join, dirname
 
+from numpy.testing import assert_allclose
+
 import sncosmo
 
 
 def test_read_snana_ascii():
     fname = join(dirname(__file__), "data", "snana_ascii_example.dat")
     meta, tables = sncosmo.read_snana_ascii(fname, default_tablename="OBS")
+
+    # test a few different types of metadata
+    assert meta['SURVEY'] == 'DES'
+    assert meta['FAKE'] == 0
+    assert_allclose(meta['REDSHIFT_HELIO'], 0.3614)
 
     # only 1 table
     assert len(tables) == 1

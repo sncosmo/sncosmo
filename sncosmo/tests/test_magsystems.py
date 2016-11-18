@@ -38,44 +38,6 @@ def test_spectralmagsystem():
                     magsys2.zpbandflux('bessellb'), rtol=1e-3)
 
 
-# issue 100
-def test_bandpass_type():
-    """Check that bandpass wavelength type is always float64,
-    and that color laws work with them."""
-
-    dust = sncosmo.CCM89Dust()
-
-    for dt in [np.int32, np.int64, np.float32]:
-        wave = np.arange(4000., 5000., 20., dtype=dt)
-        trans = np.ones_like(wave)
-        band = sncosmo.Bandpass(wave, trans)
-
-        assert band.wave.dtype == np.float64
-
-        # Ensure that it works with cython-based propagation effect.
-        # (flux, the second argument, should always be doubles)
-        dust.propagate(band.wave, np.ones_like(wave, dtype=np.float64))
-
-
-# issue 111
-def test_bandpass_bessell():
-    """Check that Bessell bandpass definitions are scaled by inverse
-    wavelength."""
-
-    band = sncosmo.get_bandpass('bessellb')
-    trans = band.trans[[4, 9, 14]]  # transmission at 4000, 4500, 5000
-
-    # copied from file
-    orig_wave = np.array([4000., 4500., 5000.])
-    orig_trans = np.array([0.920, 0.853, 0.325])
-
-    scaled_trans = orig_trans / orig_wave
-
-    # scaled_trans should be proportional to trans
-    factor = scaled_trans[0] / trans[0]
-    assert_allclose(scaled_trans, factor * trans)
-
-
 @remote_data
 def test_csp_magsystem():
     csp = sncosmo.get_magsystem('csp')
@@ -104,8 +66,10 @@ def test_csp_magsystem():
 
 
 @remote_data
-def test_localmagsystem_band_error():
-    """Test that LocalMagSystem raises an error when band is not in system."""
+def test_compositemagsystem_band_error():
+    """Test that CompositeMagSystem raises an error when band is
+    not in system."""
+
     csp = sncosmo.get_magsystem('csp')
     with pytest.raises(ValueError):
         csp.zpbandflux('desi')

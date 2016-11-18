@@ -41,25 +41,6 @@ class SFD98Map(object):
         default, this is ``'.'``.  The value of ``SFD_MAP_DIR`` can be set
         in the configuration file, typically located in
         ``$HOME/.astropy/config/sncosmo.cfg``.
-
-    See Also
-    --------
-    get_ebv_from_map
-
-    Examples
-    --------
-
-    >>> m = SFD98Map(mapdir='/path/to/SFD98/images')    # doctest: +SKIP
-
-    Get E(B-V) value at RA, Dec = 0., 0.:
-
-    >>> m.get_ebv((0., 0.))   # doctest: +SKIP
-    0.031814847141504288
-
-    Get E(B-V) at RA, Dec = (0., 0.) and (1., 0.):
-
-    >>> m.get_ebv(([0., 1.], [0., 0.]))   # doctest: +SKIP
-    array([ 0.03181485,  0.03275469])
     """
 
     def __init__(self, mapdir=None):
@@ -185,20 +166,6 @@ def get_ebv_from_map(coordinates, mapdir=None, interpolate=True, order=1):
     -------
     ebv : float or `~numpy.ndarray`
         Specific extinction E(B-V) at the given locations.
-
-    Examples
-    --------
-
-    Get E(B-V) value at RA, Dec = (0., 0.):
-
-    >>> get_ebv_from_map((0., 0.), mapdir='/path/to/dir')  # doctest: +SKIP
-    0.031814847141504288
-
-    Get E(B-V) at RA, Dec = (0., 0.) and (1., 0.):
-
-    >>> get_ebv_from_map(([0., 1.], [0., 0.]), mapdir='/path/to/dir')
-    ...                                                    # doctest: +SKIP
-    array([ 0.03181485,  0.03275469])
     """
 
     m = SFD98Map(mapdir=mapdir)
@@ -256,25 +223,6 @@ def animate_source(source, label=None, fps=30, length=20.,
     -------
     ani : `~matplotlib.animation.FuncAnimation`
         Animation object that can be shown or saved.
-
-    Examples
-    --------
-    Compare the salt2 and hsiao sources:
-
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    >>> ani = animate_source(['salt2', 'hsiao'],  phase_range=(None, 30.),
-    ...                      wave_range=(2000., 9200.))  # doctest: +SKIP
-    >>> plt.show()  # doctest: +SKIP
-
-    Compare the salt2 source with ``x1=1`` to the same source with ``x1=0.``:
-
-    >>> m1 = sncosmo.get_source('salt2')  # doctest: +SKIP
-    >>> m1.set(x1=1.)                     # doctest: +SKIP
-    >>> m2 = sncosmo.get_source('salt2')  # doctest: +SKIP
-    >>> m2.set(x1=0.)                     # doctest: +SKIP
-    >>> ani = animate_source([m1, m2], label=['salt2, x1=1', 'salt2, x1=0'])
-    ... # doctest: +SKIP
-    >>> plt.show()                        # doctest: +SKIP
     """
 
     from matplotlib import pyplot as plt

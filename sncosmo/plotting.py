@@ -114,7 +114,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     --------
 
     >>> import sncosmo
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    >>> import matplotlib.pyplot as plt
 
     Load some example data:
 
@@ -122,32 +122,32 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
 
     Plot the data, displaying to the screen:
 
-    >>> fig = plot_lc(data)  # doctest: +SKIP
-    >>> plt.show()  # doctest: +SKIP
+    >>> fig = plot_lc(data)
+    >>> plt.show()
 
     Plot a model along with the data:
 
-    >>> model = sncosmo.Model('salt2')                # doctest: +SKIP
-    >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5)  # doctest: +SKIP
-    >>> sncosmo.plot_lc(data, model=model)               # doctest: +SKIP
+    >>> model = sncosmo.Model('salt2')
+    >>> model.set(z=0.5, c=0.2, t0=55100., x0=1.547e-5)
+    >>> sncosmo.plot_lc(data, model=model)
 
     .. image:: /pyplots/plotlc_example.png
 
     Plot just the model, for selected bands:
 
-    >>> sncosmo.plot_lc(model=model,                     # doctest: +SKIP
-    ...                 bands=['sdssg', 'sdssr'])        # doctest: +SKIP
+    >>> sncosmo.plot_lc(model=model,
+    ...                 bands=['sdssg', 'sdssr'])
 
     Plot figures on a multipage pdf:
 
-    >>> from matplotlib.backends.backend_pdf import PdfPages  # doctest: +SKIP
-    >>> pp = PdfPages('output.pdf')                           # doctest: +SKIP
-    ...
+    >>> from matplotlib.backends.backend_pdf import PdfPages
+    >>> pp = PdfPages('output.pdf')
+
     >>> # Do the following as many times as you like:
-    >>> sncosmo.plot_lc(data, fname=pp, format='pdf')    # doctest: +SKIP
-    ...
+    >>> sncosmo.plot_lc(data, fname=pp, format='pdf')
+
     >>> # Don't forget to close at the end:
-    >>> pp.close()                                       # doctest: +SKIP
+    >>> pp.close()
 
     """
 

@@ -301,13 +301,13 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     The `~sncosmo.flatten_result` function can be used to make the result
     a dictionary suitable for appending as rows of a table:
 
-    >>> from astropy.table import Table               # doctest: +SKIP
-    >>> table_rows = []                               # doctest: +SKIP
-    >>> for sn in sne:                                # doctest: +SKIP
-    ...     res, fitmodel = sncosmo.fit_lc(           # doctest: +SKIP
-    ...          sn, model, ['t0', 'x0', 'x1', 'c'])  # doctest: +SKIP
-    ...     table_rows.append(flatten_result(res))    # doctest: +SKIP
-    >>> t = Table(table_rows)                         # doctest: +SKIP
+    >>> from astropy.table import Table
+    >>> table_rows = []
+    >>> for sn in sne:
+    ...     res, fitmodel = sncosmo.fit_lc(
+    ...          sn, model, ['t0', 'x0', 'x1', 'c'])
+    ...     table_rows.append(flatten_result(res))
+    >>> t = Table(table_rows)
 
     """
 

@@ -3,8 +3,27 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_approx_equal
 from scipy.stats import norm
+import pytest
 
 from sncosmo import utils
+
+
+def test_result():
+    res = utils.Result(a=1, b=2)
+    assert res.a == 1
+    assert res.b == 2
+
+    # test deprecating result attributes
+    res.__dict__['deprecated']['c'] = (2, "Use b instead")
+
+    with pytest.warns(UserWarning) as record:
+        assert res.c == 2
+
+    # check that only one warning was raised
+    assert len(record) == 1
+
+    # check that the message matches
+    assert record[0].message.args[0] == "Use b instead"
 
 
 def test_format_value():

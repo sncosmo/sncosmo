@@ -39,10 +39,10 @@ def read_snana_fits(head_file, phot_file, snids=None, n=None):
 
     Examples
     --------
-    >>> sne = read_snana_fits('HEAD.fits', 'PHOT.fits')  # doctest: +SKIP
-    >>> for sn in sne:                                   # doctest: +SKIP
-    ...     sn.meta  # Metadata in an OrderedDict.       # doctest: +SKIP
-    ...     sn['MJD']  # MJD column                      # doctest: +SKIP
+    >>> sne = read_snana_fits('HEAD.fits', 'PHOT.fits')
+    >>> for sn in sne:
+    ...     sn.meta  # Metadata in an OrderedDict.
+    ...     sn['MJD']  # MJD column
 
     """
 
@@ -169,7 +169,7 @@ def read_snana_ascii(fname, default_tablename=None):
 
     The second is a dictionary of all the tables in the file:
 
-    >>> tables['SN']                                          # doctest: +SKIP
+    >>> tables['SN']
     <Table rows=2 names=('A','B','C')>
     array([(1, 2.0, 'x'), (4, 5.0, 'y')],
           dtype=[('A', '<i8'), ('B', '<f8'), ('C', 'S1')])
@@ -186,7 +186,6 @@ def read_snana_ascii(fname, default_tablename=None):
     it can be read by supplying a default table name:
 
     >>> meta, tables = read_snana_ascii(f, default_tablename='SN')
-    ...     # doctest: +SKIP
 
     """
 
@@ -302,7 +301,6 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
     Examples
     --------
     >>> tables = read_snana_ascii_multi(['data1.txt', 'data1.txt'])
-    ... # doctest: +SKIP
 
     """
 
@@ -393,22 +391,22 @@ def read_snana_simlib(fname):
 
     Examples
     --------
-    >>> meta, obs_sets = read_snana_simlib('filename') # doctest: +SKIP
+    >>> meta, obs_sets = read_snana_simlib('filename')
 
     The second object is a dictionary of astropy Tables indexed by LIBID:
 
-    >>> obs_sets.keys()  # doctest: +SKIP
+    >>> obs_sets.keys()
     [0, 1, 2, 3, 4]
 
     Each table (libid) has metadata:
 
-    >>> obs_sets[0].meta  # doctest: +SKIP
+    >>> obs_sets[0].meta
     OrderedDict([('LIBID', 0), ('RA', 52.5), ('DECL', -27.5), ('NOBS', 161),
                  ('MWEBV', 0.0), ('PIXSIZE', 0.27)])
 
     Each table has the following columns:
 
-    >>> obs_sets[0].colnames  # doctest: +SKIP
+    >>> obs_sets[0].colnames
     ['SEARCH', 'MJD', 'IDEXPT', 'FLT', 'CCD_GAIN', 'CCD_NOISE', 'SKYSIG',
      'PSF1', 'PSF2', 'PSFRATIO', 'ZPTAVG', 'ZPTSIG', 'MAG']
 

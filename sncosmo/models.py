@@ -1083,7 +1083,7 @@ class Model(_ModelBase):
 
     Examples
     --------
-    >>> model = sncosmo.Model(source='hsiao')  # doctest: +SKIP
+    >>> model = sncosmo.Model(source='hsiao')
 
     """
 
