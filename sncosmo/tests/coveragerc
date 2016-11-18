@@ -6,6 +6,7 @@ omit =
    sncosmo/__init__.py
    sncosmo/version.py
    sncosmo/cython_version.py
+   sncosmo/_deprecated.py
 
 [report]
 exclude_lines =
