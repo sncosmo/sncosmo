@@ -32,7 +32,7 @@ then
 fi
 
 # CORE DEPENDENCIES (besides astropy)
-$CONDA_INSTALL pip pytest jinja2 psutil
+$CONDA_INSTALL pip jinja2 psutil
 $PIP_INSTALL extinction
 
 # ASTROPY
