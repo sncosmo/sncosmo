@@ -58,7 +58,7 @@ matrix:
         - os: linux
           env: PYTHON_VERSION=3.4 SETUP_CMD='test'
         - os: linux
-          env: PYTHON_VERSION=3.5 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.5 SETUP_CMD='test --coverage'
 
         # Try astropy 1.0 version
         - os: linux
