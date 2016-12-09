@@ -11,7 +11,7 @@ from astropy.extern.six.moves import range
 from .models import Model
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
-from .photdata import standardize_data, normalize_data
+from .photdata import photometric_data
 from .utils import format_value
 
 __all__ = ['plot_lc']
@@ -189,8 +189,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
 
     # Standardize and normalize data.
     if data is not None:
-        data = standardize_data(data)
-        data = normalize_data(data, zp=zp, zpsys=zpsys)
+        data = photometric_data(data).normalized(zp=zp, zpsys=zpsys)
 
     # Bands to plot
     if data is None:

@@ -4,13 +4,13 @@ from warnings import warn
 import copy
 import time
 import math
-from collections import OrderedDict as odict
+from collections import OrderedDict
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.extern import six
 
-from .photdata import standardize_data, normalize_data
+from .photdata import photometric_data
 from .utils import Result, Interp1D, ppf
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
@@ -18,29 +18,6 @@ __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
 class DataQualityError(Exception):
     pass
-
-
-def _chisq(data, model, modelcov):
-    """Like chisq but assumes data is already standardized.
-
-    The purpose of having this as a separate function is for the benefit
-    of fitting functions that standardize data once and call chisq many
-    times. Such functions explicitly call standardize_data and then this
-    function.
-    """
-
-    if modelcov:
-        mflux, mcov = model.bandfluxcov(data['band'], data['time'],
-                                        zp=data['zp'], zpsys=data['zpsys'])
-        diff = (data['flux'] - mflux)
-        totcov = mcov + np.diag(data['fluxerr']**2)
-        invtotcov = np.linalg.inv(totcov)
-        return np.dot(np.dot(diff[np.newaxis, :], invtotcov),
-                      diff[:, np.newaxis])[0, 0]
-    else:
-        mflux = model.bandflux(data['band'], data['time'],
-                               zp=data['zp'], zpsys=data['zpsys'])
-        return np.sum(((data['flux'] - mflux) / data['fluxerr'])**2)
 
 
 def chisq(data, model, modelcov=False):
@@ -62,8 +39,20 @@ def chisq(data, model, modelcov=False):
     -------
     chisq : float
     """
-    data = standardize_data(data)
-    return _chisq(data, model, modelcov=modelcov)
+    data = photometric_data(data)
+
+    if modelcov:
+        mflux, mcov = model.bandfluxcov(data.band, data.time,
+                                        zp=data.zp, zpsys=data.zpsys)
+        diff = (data.flux - mflux)
+        totcov = mcov + np.diag(data.fluxerr**2)
+        invtotcov = np.linalg.inv(totcov)
+        return np.dot(np.dot(diff[np.newaxis, :], invtotcov),
+                      diff[:, np.newaxis])[0, 0]
+    else:
+        mflux = model.bandflux(data.band, data.time,
+                               zp=data.zp, zpsys=data.zpsys)
+        return np.sum(((data.flux - mflux) / data.fluxerr)**2)
 
 
 def flatten_result(res):
@@ -117,9 +106,9 @@ def flatten_result(res):
 def cut_bands(data, model, z_bounds=None):
 
     if z_bounds is None:
-        valid = model.bandoverlap(data['band'])
+        valid = model.bandoverlap(data.band)
     else:
-        valid = model.bandoverlap(data['band'], z=z_bounds)
+        valid = model.bandoverlap(data.band, z=z_bounds)
         valid = np.all(valid, axis=1)
 
     if not np.all(valid):
@@ -128,7 +117,7 @@ def cut_bands(data, model, z_bounds=None):
             raise RuntimeError('No bands in data overlap the model.')
 
         # Otherwise, warn that we are dropping some bands from the data:
-        drop_bands = [repr(b) for b in set(data['band'][np.invert(valid)])]
+        drop_bands = [repr(b) for b in set(data.band[np.invert(valid)])]
         warn("Dropping following bands from data: " + ", ".join(drop_bands) +
              "(out of model wavelength range)", RuntimeWarning)
         data = data[valid]
@@ -141,37 +130,35 @@ def t0_bounds(data, model):
 
     The lower bound is such that the latest model time is equal to the
     earliest data time. The upper bound is such that the earliest
-    model time is equal to the latest data time.
+    model time is equal to the latest data time."""
 
-    Assumes the data has been standardized."""
-
-    return (model.get('t0') + np.min(data['time']) - model.maxtime(),
-            model.get('t0') + np.max(data['time']) - model.mintime())
+    return (model.get('t0') + np.min(data.time) - model.maxtime(),
+            model.get('t0') + np.max(data.time) - model.mintime())
 
 
 def guess_t0_and_amplitude(data, model, minsnr):
     """Guess t0 and amplitude of the model based on the data.
 
-    Assumes the data has been standardized."""
+    Assumes the data has been normalized."""
 
     timegrid = np.linspace(model.mintime(), model.maxtime(),
                            int(model.maxtime() - model.mintime() + 1))
 
-    snr = data['flux'] / data['fluxerr']
+    snr = data.flux / data.fluxerr
     significant_data = data[snr > minsnr]
     modelflux = {}
     dataflux = {}
     datatime = {}
-    zp = data['zp'][0]  # Same for all entries in "standardized" data.
-    zpsys = data['zpsys'][0]  # Same for all entries in "standardized" data.
-    for band in set(data['band']):
-        mask = significant_data['band'] == band
+    zp = data.zp[0]  # Same for all entries in normalized data.
+    zpsys = data.zpsys[0]  # Same for all entries in normalized data.
+    for band in set(data.band):
+        mask = significant_data.band == band
         if np.any(mask):
             modelflux[band] = (
                 model.bandflux(band, timegrid, zp=zp, zpsys=zpsys) /
                 model.parameters[2])
-            dataflux[band] = significant_data['flux'][mask]
-            datatime[band] = significant_data['time'][mask]
+            dataflux[band] = significant_data.flux[mask]
+            datatime[band] = significant_data.time[mask]
 
     if len(modelflux) == 0:
         raise DataQualityError('No data points with S/N > {0}. Initial '
@@ -312,8 +299,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     """
 
     # Standardize and normalize data.
-    data = standardize_data(data)
-    data = normalize_data(data)
+    data = photometric_data(data).normalized()
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -346,7 +332,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     data = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     # Unique set of bands in data
-    bands = set(data['band'].tolist())
+    bands = set(data.band.tolist())
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in vparam_names and 't0' not in bounds:
@@ -384,7 +370,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         # argument for each parameter.
         def fitchisq(*parameters):
             model.parameters = parameters
-            return _chisq(data, model, modelcov=modelcov)
+            return chisq(data, model, modelcov=modelcov)
 
         # Set up keyword arguments to pass to Minuit initializer.
         kwargs = {}
@@ -464,7 +450,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         if m.errors is None:
             errors = None
         else:
-            errors = odict([(name, m.errors[name]) for name in vparam_names])
+            errors = OrderedDict((name, m.errors[name])
+                                 for name in vparam_names)
 
         # Compile results
         res = Result(success=d.is_valid,
@@ -612,7 +599,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     # experimental parameters
     tied = kwargs.get("tied", None)
 
-    data = standardize_data(data)
+    data = photometric_data(data).normalized()
     model = copy.copy(model)
     bounds = copy.copy(bounds)  # need to copy this b/c we modify it below
 
@@ -701,7 +688,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
 
     def loglike(parameters):
         model.parameters[idx] = parameters
-        return -0.5 * _chisq(data, model, modelcov=modelcov)
+        return -0.5 * chisq(data, model, modelcov=modelcov)
 
     t0 = time.time()
     res = nestle.sample(loglike, prior_transform, ndim, npdim=npdim,
@@ -733,8 +720,10 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
                  time=elapsed,
                  parameters=model.parameters.copy(),
                  covariance=cov,
-                 errors=odict(zip(vparam_names, np.sqrt(np.diagonal(cov)))),
-                 param_dict=odict(zip(model.param_names, model.parameters)))
+                 errors=OrderedDict(zip(vparam_names,
+                                        np.sqrt(np.diagonal(cov)))),
+                 param_dict=OrderedDict(zip(model.param_names,
+                                            model.parameters)))
 
     # Deprecated result fields.
     depmsg = ("The `param_names` attribute is deprecated in sncosmo v1.0 "
@@ -857,8 +846,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
         raise ImportError("mcmc_lc() requires the emcee package.")
 
     # Standardize and normalize data.
-    data = standardize_data(data)
-    data = normalize_data(data)
+    data = photometric_data(data).normalized()
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -930,7 +918,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                 return -np.inf
 
         model.parameters[modelidx] = parameters
-        logp = -0.5 * _chisq(data, model, modelcov=modelcov)
+        logp = -0.5 * chisq(data, model, modelcov=modelcov)
         return logp
 
     def lnprior(parameters):
@@ -993,7 +981,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     vparameters = np.mean(samples, axis=0)
     cov = np.cov(samples, rowvar=0)
     model.set(**dict(zip(vparam_names, vparameters)))
-    errors = odict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
+    errors = OrderedDict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
     mean_acceptance_fraction = np.mean(sampler.acceptance_fraction)
 
     res = Result(param_names=copy.copy(model.param_names),
