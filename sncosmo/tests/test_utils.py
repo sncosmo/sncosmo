@@ -45,3 +45,9 @@ def test_ppf():
     x = np.linspace(0.05, 0.95, 5.)
     y = utils.ppf(priordist.pdf, x, -np.inf, np.inf)
     assert_allclose(y, priordist.ppf(x), atol=1.e-10)
+
+
+def test_alias_map():
+    mapping = utils.alias_map(['A', 'B_', 'foo'],
+                              {'a': set(['a', 'a_']), 'b': set(['b', 'b_'])})
+    assert mapping == {'a': 'A', 'b': 'B_'}

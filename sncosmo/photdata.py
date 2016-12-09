@@ -9,6 +9,7 @@ import math
 import numpy as np
 from astropy.table import Table
 
+from .utils import alias_map
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
 
@@ -24,34 +25,6 @@ PHOTDATA_ALIASES = OrderedDict([
     ('zp', set(['zp', 'zpt', 'zeropoint', 'zero_point'])),
     ('zpsys', set(['zpsys', 'zpmagsys', 'magsys']))
     ])
-
-
-def alias_map(aliased, aliases):
-    """For each key in ``aliases``, find the item in ``aliased`` matching
-    exactly one of the corresponding items in ``aliases``. For example::
-
-        >>> aliases = {'a':set(['a', 'a_']), 'b':set(['b', 'b_'])}
-        >>> alias_map(['A', 'B_', 'foo'], aliases)
-        {'A': 'a', 'B_': 'b'}
-
-    """
-    lowered_to_orig = {key.lower(): key for key in aliased}
-    lowered = set(lowered_to_orig.keys())
-    mapping = {}
-    for key, key_aliases in aliases.items():
-        common = lowered & key_aliases
-        if len(common) == 0:
-            raise ValueError('no alias found for {!r} (possible '
-                             'case-independent aliases: {})'.format(
-                                 key,
-                                 ', '.join(repr(ka) for ka in key_aliases)))
-        if len(common) > 1:
-            raise ValueError('multiple aliases found for {!r}: {}'
-                             .format(key, ', '.join(repr(a) for a in common)))
-
-        mapping[lowered_to_orig[common.pop()]] = key
-
-    return mapping
 
 
 class PhotometricData(object):

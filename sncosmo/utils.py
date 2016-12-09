@@ -352,6 +352,34 @@ def download_dir(remote_url, dirname):
     buf.close()  # buf not closed when tf is closed.
 
 
+def alias_map(aliased, aliases):
+    """For each key in ``aliases``, find the item in ``aliased`` matching
+    exactly one of the corresponding items in ``aliases``. For example::
+
+        >>> aliases = {'a':set(['a', 'a_']), 'b':set(['b', 'b_'])}
+        >>> alias_map(['A', 'B_', 'foo'], aliases)
+        {'A': 'a', 'B_': 'b'}
+
+    """
+    lowered_to_orig = {key.lower(): key for key in aliased}
+    lowered = set(lowered_to_orig.keys())
+    mapping = {}
+    for key, key_aliases in aliases.items():
+        common = lowered & key_aliases
+        if len(common) == 0:
+            raise ValueError('no alias found for {!r} (possible '
+                             'case-independent aliases: {})'.format(
+                                 key,
+                                 ', '.join(repr(ka) for ka in key_aliases)))
+        if len(common) > 1:
+            raise ValueError('multiple aliases found for {!r}: {}'
+                             .format(key, ', '.join(repr(a) for a in common)))
+
+        mapping[key] = lowered_to_orig[common.pop()]
+
+    return mapping
+
+
 warned = []  # global used in warn_once
 
 
