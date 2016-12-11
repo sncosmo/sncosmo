@@ -195,9 +195,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     if data is None:
         bands = set(bands)
     elif bands is None:
-        bands = set(data['band'])
+        bands = set(data.band)
     else:
-        bands = set(data['band']) & set(bands)
+        bands = set(data.band) & set(bands)
 
     # Build figtext (including model parameters, if there is exactly 1 model).
     if errors is None:
@@ -275,8 +275,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     # Global min and max of time axis.
     tmin, tmax = [], []
     if data is not None:
-        tmin.append(np.min(data['time']) - 10.)
-        tmax.append(np.max(data['time']) + 10.)
+        tmin.append(np.min(data.time) - 10.)
+        tmax.append(np.max(data.time) + 10.)
     for model in models:
         tmin.append(model.mintime())
         tmax.append(model.maxtime())
@@ -310,10 +310,10 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
 
         # Plot data if there are any.
         if data is not None:
-            mask = data['band'] == band
-            time = data['time'][mask]
-            flux = data['flux'][mask]
-            fluxerr = data['fluxerr'][mask]
+            mask = data.band == band
+            time = data.time[mask]
+            flux = data.flux[mask]
+            fluxerr = data.fluxerr[mask]
             ax.errorbar(time - toff, flux, fluxerr, ls='None',
                         color=bandcolor, marker='.', markersize=3.)
 
