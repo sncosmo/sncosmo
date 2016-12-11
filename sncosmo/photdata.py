@@ -2,17 +2,22 @@
 """Convenience functions for photometric data."""
 from __future__ import division
 
+from collections import OrderedDict
+import copy
 import math
-from collections import OrderedDict as odict
 
 import numpy as np
 from astropy.table import Table
 
+from .utils import alias_map
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
-from .utils import dict_to_array
 
-_photdata_aliases = odict([
+# deprecated (private!) functions: make them available where they used to be
+from ._deprecated import standardize_data, normalize_data
+
+
+PHOTDATA_ALIASES = OrderedDict([
     ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs', 'mjd_obs'])),
     ('band', set(['band', 'bandpass', 'filter', 'flt'])),
     ('flux', set(['flux', 'f'])),
@@ -20,6 +25,110 @@ _photdata_aliases = odict([
     ('zp', set(['zp', 'zpt', 'zeropoint', 'zero_point'])),
     ('zpsys', set(['zpsys', 'zpmagsys', 'magsys']))
     ])
+
+
+class PhotometricData(object):
+    """Internal standardized representation of photometric data table.
+
+    Has attributes ``time``, ``band``, ``flux``, ``fluxerr``, ``zp`` and
+    ``zpsys``, which are all numpy arrays of the same length sorted by
+    ``time``. This is intended for use within sncosmo; its implementation
+    may change without warning in future versions.
+
+    Parameters
+    ----------
+    data : `~astropy.table.Table`, dict, `~numpy.ndarray`
+        Astropy Table, dictionary of arrays or structured numpy array
+        containing the "correct" column names.
+    """
+
+    def __init__(self, data):
+        # get column names in input data
+        if isinstance(data, Table):
+            colnames = data.colnames
+        elif isinstance(data, np.ndarray):
+            colnames = data.dtype.names
+        elif isinstance(data, dict):
+            colnames = data.keys()
+        else:
+            raise ValueError('unrecognized data type')
+
+        mapping = alias_map(colnames, PHOTDATA_ALIASES)
+
+        self.time = np.asarray(data[mapping['time']])
+        self.band = np.asarray(data[mapping['band']])
+        self.flux = np.asarray(data[mapping['flux']])
+        self.fluxerr = np.asarray(data[mapping['fluxerr']])
+        self.zp = np.asarray(data[mapping['zp']])
+        self.zpsys = np.asarray(data[mapping['zpsys']])
+
+        # ensure columns are equal length
+        if isinstance(data, dict):
+            if not (len(self.time) == len(self.band) == len(self.flux) ==
+                    len(self.fluxerr) == len(self.zp) == len(self.zpsys)):
+                raise ValueError("unequal column lengths")
+
+        # Sort by time, if necessary.
+        if not np.all(np.ediff1d(self.time) >= 0.0):
+            idx = np.argsort(self.time)
+            self.time = self.time[idx]
+            self.band = self.band[idx]
+            self.flux = self.flux[idx]
+            self.fluxerr = self.fluxerr[idx]
+            self.zp = self.zp[idx]
+            self.zpsys = self.zpsys[idx]
+
+    def __len__(self):
+        return len(self.time)
+
+    def __getitem__(self, key):
+        newdata = copy.copy(self)  # avoid going through __init__
+        newdata.time = self.time[key]
+        newdata.band = self.band[key]
+        newdata.flux = self.flux[key]
+        newdata.fluxerr = self.fluxerr[key]
+        newdata.zp = self.zp[key]
+        newdata.zpsys = self.zpsys[key]
+        return newdata
+
+    def normalized(self, zp=25., zpsys='ab'):
+        """Return a copy of the data with all flux and fluxerr values
+        normalized to the given zeropoint.
+        """
+
+        normmagsys = get_magsystem(zpsys)
+        factor = np.empty(len(self), dtype=np.float)
+
+        for b in set(self.band.tolist()):
+            idx = self.band == b
+            b = get_bandpass(b)
+
+            bandfactor = 10.**(0.4 * (zp - self.zp[idx]))
+            bandzpsys = self.zpsys[idx]
+            for ms in set(bandzpsys):
+                idx2 = bandzpsys == ms
+                ms = get_magsystem(ms)
+                bandfactor[idx2] *= (ms.zpbandflux(b) /
+                                     normmagsys.zpbandflux(b))
+            factor[idx] = bandfactor
+
+        newdata = copy.copy(self)
+        newdata.flux = factor * self.flux
+        newdata.fluxerr = factor * self.fluxerr
+        newdata.zp = np.full(len(self), zp, dtype=np.float64)
+        newdata.zpsys = np.full(len(self), zpsys, dtype=np.array(zpsys).dtype)
+
+        return newdata
+
+
+def photometric_data(data):
+    if isinstance(data, PhotometricData):
+        return data
+    else:
+        return PhotometricData(data)
+
+
+# Generate docstring: table of aliases
 
 # Descriptions for docstring only.
 _photdata_descriptions = {
@@ -30,6 +139,7 @@ _photdata_descriptions = {
     'zp': 'Zeropoint corresponding to flux',
     'zpsys': 'Magnitude system for zeropoint'
     }
+
 _photdata_types = {
     'time': 'float',
     'band': 'str',
@@ -39,112 +149,6 @@ _photdata_types = {
     'zpsys': 'str'
     }
 
-
-def standardize_data(data):
-    """Standardize photometric data by converting to a structured numpy array
-    with standard column names (if necessary) and sorting entries in order of
-    increasing time.
-
-    Parameters
-    ----------
-    data : `~astropy.table.Table`, `~numpy.ndarray` or dict
-
-    Returns
-    -------
-    standardized_data : `~numpy.ndarray`
-    """
-    if isinstance(data, Table):
-        data = np.asarray(data)
-
-    if isinstance(data, np.ndarray):
-        colnames = data.dtype.names
-
-        # Check if the data already complies with what we want
-        # (correct column names & ordered by date)
-        if (set(colnames) == set(_photdata_aliases.keys()) and
-                np.all(np.ediff1d(data['time']) >= 0.)):
-            return data
-
-    elif isinstance(data, dict):
-        colnames = data.keys()
-
-    else:
-        raise ValueError('Unrecognized data type')
-
-    # Create mapping from lowercased column names to originals
-    lower_to_orig = dict([(colname.lower(), colname) for colname in colnames])
-
-    # Set of lowercase column names
-    lower_colnames = set(lower_to_orig.keys())
-
-    orig_colnames_to_use = []
-    for aliases in _photdata_aliases.values():
-        i = lower_colnames & aliases
-        if len(i) != 1:
-            raise ValueError('Data must include exactly one column from {0} '
-                             '(case independent)'.format(', '.join(aliases)))
-        orig_colnames_to_use.append(lower_to_orig[i.pop()])
-
-    if isinstance(data, np.ndarray):
-        new_data = data[orig_colnames_to_use].copy()
-        new_data.dtype.names = list(_photdata_aliases.keys())
-
-    else:
-        new_data = odict()
-        for newkey, oldkey in zip(_photdata_aliases.keys(),
-                                  orig_colnames_to_use):
-            new_data[newkey] = data[oldkey]
-
-        new_data = dict_to_array(new_data)
-
-    # Sort by time, if necessary.
-    if not np.all(np.ediff1d(new_data['time']) >= 0.):
-        new_data.sort(order=['time'])
-
-    return new_data
-
-
-def normalize_data(data, zp=25., zpsys='ab'):
-    """Return a copy of the data with all flux and fluxerr values normalized
-    to the given zeropoint. Assumes data has already been standardized.
-
-    Parameters
-    ----------
-    data : `~numpy.ndarray`
-        Structured array.
-    zp : float
-    zpsys : str
-
-    Returns
-    -------
-    normalized_data : `~numpy.ndarray`
-    """
-
-    normmagsys = get_magsystem(zpsys)
-    factor = np.empty(len(data), dtype=np.float)
-
-    for b in set(data['band'].tolist()):
-        idx = data['band'] == b
-        b = get_bandpass(b)
-
-        bandfactor = 10.**(0.4 * (zp - data['zp'][idx]))
-        bandzpsys = data['zpsys'][idx]
-        for ms in set(bandzpsys):
-            idx2 = bandzpsys == ms
-            ms = get_magsystem(ms)
-            bandfactor[idx2] *= (ms.zpbandflux(b) / normmagsys.zpbandflux(b))
-
-        factor[idx] = bandfactor
-
-    normalized_data = odict([('time', data['time']),
-                             ('band', data['band']),
-                             ('flux', data['flux'] * factor),
-                             ('fluxerr', data['fluxerr'] * factor),
-                             ('zp', zp),
-                             ('zpsys', zpsys)])
-    return dict_to_array(normalized_data)
-
-# Generate docstring: table of aliases
 lines = [
     '',
     '  '.join([10 * '=', 60 * '=', 50 * '=', 50 * '=']),
@@ -153,8 +157,8 @@ lines = [
             'Description', 'Type')
     ]
 lines.append(lines[1])
-for colname in _photdata_aliases:
-    alias_list = ', '.join([repr(a) for a in _photdata_aliases[colname]])
+for colname in PHOTDATA_ALIASES:
+    alias_list = ', '.join([repr(a) for a in PHOTDATA_ALIASES[colname]])
     line = '{0:10}  {1:60}  {2:50}  {3:50}'.format(
         colname,
         alias_list,

@@ -28,30 +28,40 @@ def test_zdist():
 def test_realize_lcs():
 
     # here's some completely made-up data:
-    obs = Table({'time': [10., 60., 110.],
-                 'band': ['desg', 'desr', 'desi'],
-                 'gain': [1., 1., 1.],
-                 'skynoise': [100., 100., 100.],
-                 'zp': [30., 30., 30.],
-                 'zpsys': ['ab', 'ab', 'ab']})
+    obs1 = Table({'time': [10., 60., 110.],
+                  'band': ['desg', 'desr', 'desi'],
+                  'gain': [1., 1., 1.],
+                  'skynoise': [100., 100., 100.],
+                  'zp': [30., 30., 30.],
+                  'zpsys': ['ab', 'ab', 'ab']})
 
-    # A model with a flat spectrum between 0 and 100 days.
-    model = sncosmo.Model(source=flatsource())
+    # same made up data with aliased column names:
+    obs2 = Table({'MJD': [10., 60., 110.],
+                  'filter': ['desg', 'desr', 'desi'],
+                  'GAIN': [1., 1., 1.],
+                  'skynoise': [100., 100., 100.],
+                  'ZPT': [30., 30., 30.],
+                  'zpmagsys': ['ab', 'ab', 'ab']})
 
-    # parameters to run
-    params = [{'amplitude': 1., 't0': 0., 'z': 0.},
-              {'amplitude': 1., 't0': 100., 'z': 0.},
-              {'amplitude': 1., 't0': 200., 'z': 0.}]
+    for obs in (obs1, obs2):
 
-    # By default, realize_lcs should return all observations for all SNe
-    lcs = sncosmo.realize_lcs(obs, model, params)
-    assert len(lcs[0]) == 3
-    assert len(lcs[1]) == 3
-    assert len(lcs[2]) == 3
+        # A model with a flat spectrum between 0 and 100 days.
+        model = sncosmo.Model(source=flatsource())
 
-    # For trim_obervations=True, only certain observations will be
-    # returned.
-    lcs = sncosmo.realize_lcs(obs, model, params, trim_observations=True)
-    assert len(lcs[0]) == 2
-    assert len(lcs[1]) == 1
-    assert len(lcs[2]) == 0
+        # parameters to run
+        params = [{'amplitude': 1., 't0': 0., 'z': 0.},
+                  {'amplitude': 1., 't0': 100., 'z': 0.},
+                  {'amplitude': 1., 't0': 200., 'z': 0.}]
+
+        # By default, realize_lcs should return all observations for all SNe
+        lcs = sncosmo.realize_lcs(obs, model, params)
+        assert len(lcs[0]) == 3
+        assert len(lcs[1]) == 3
+        assert len(lcs[2]) == 3
+
+        # For trim_obervations=True, only certain observations will be
+        # returned.
+        lcs = sncosmo.realize_lcs(obs, model, params, trim_observations=True)
+        assert len(lcs[0]) == 2
+        assert len(lcs[1]) == 1
+        assert len(lcs[2]) == 0

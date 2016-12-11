@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 import math
 import copy
-from collections import OrderedDict as odict
+from collections import OrderedDict
 
 import numpy as np
 from numpy import random
@@ -13,6 +13,8 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
 from astropy.extern.six.moves import range
+
+from .utils import alias_map
 
 __all__ = ['zdist', 'realize_lcs']
 
@@ -108,6 +110,16 @@ def zdist(zmin, zmax, time=365.25, area=1.,
         yield float(snrate_ppf(random.random()))
 
 
+OBSERVATIONS_ALIASES = OrderedDict([
+    ('time', set(['time', 'date', 'jd', 'mjd', 'mjdobs', 'mjd_obs'])),
+    ('band', set(['band', 'bandpass', 'filter', 'flt'])),
+    ('zp', set(['zp', 'zpt', 'zeropoint', 'zero_point'])),
+    ('zpsys', set(['zpsys', 'zpmagsys', 'magsys'])),
+    ('gain', set(['gain'])),
+    ('skynoise', set(['skynoise']))
+])
+
+
 def realize_lcs(observations, model, params, thresh=None,
                 trim_observations=False, scatter=True):
     """Realize data for a set of SNe given a set of observations.
@@ -162,11 +174,19 @@ def realize_lcs(observations, model, params, thresh=None,
     # Copy model so we don't mess up the user's model.
     model = copy.copy(model)
 
-    # get underlying numpy structured array (if astropy.Table)
-    observations = np.asarray(observations)
+    # get observations as a Table
+    if not isinstance(observations, Table):
+        if isinstance(observations, np.ndarray):
+            observations = Table(observations)
+        else:
+            raise ValueError("observations not understood")
 
-    band_dtype = observations.dtype['band']
-    zpsys_dtype = observations.dtype['zpsys']
+    # map column name aliases
+    colname = alias_map(observations.colnames, OBSERVATIONS_ALIASES)
+
+    # result dtype used when there are no observations
+    band_dtype = observations[colname['band']].dtype
+    zpsys_dtype = observations[colname['zpsys']].dtype
     result_dtype = ('f8', band_dtype, 'f8', 'f8', 'f8', zpsys_dtype)
 
     for p in params:
@@ -174,8 +194,8 @@ def realize_lcs(observations, model, params, thresh=None,
 
         # Select times for output that fall within tmin amd tmax of the model
         if trim_observations:
-            mask = ((observations['time'] > model.mintime()) &
-                    (observations['time'] < model.maxtime()))
+            mask = ((observations[colname['time']] > model.mintime()) &
+                    (observations[colname['time']] < model.maxtime()))
             snobs = observations[mask]
         else:
             snobs = observations
@@ -187,13 +207,13 @@ def realize_lcs(observations, model, params, thresh=None,
                                  dtype=result_dtype, meta=p))
             continue
 
-        flux = model.bandflux(snobs['band'],
-                              snobs['time'],
-                              zp=snobs['zp'],
-                              zpsys=snobs['zpsys'])
+        flux = model.bandflux(snobs[colname['band']],
+                              snobs[colname['time']],
+                              zp=snobs[colname['zp']],
+                              zpsys=snobs[colname['zpsys']])
 
-        fluxerr = np.sqrt(snobs['skynoise']**2 +
-                          np.abs(flux) / snobs['gain'])
+        fluxerr = np.sqrt(snobs[colname['skynoise']]**2 +
+                          np.abs(flux) / snobs[colname['gain']])
 
         # Scatter fluxes by the fluxerr
         # np.atleast_1d is necessary here because of an apparent bug in
@@ -206,8 +226,8 @@ def realize_lcs(observations, model, params, thresh=None,
         if thresh is not None and not np.any(flux/fluxerr > thresh):
             continue
 
-        data = [snobs['time'], snobs['band'], flux, fluxerr,
-                snobs['zp'], snobs['zpsys']]
+        data = [snobs[colname['time']], snobs[colname['band']], flux, fluxerr,
+                snobs[colname['zp']], snobs[colname['zpsys']]]
 
         lcs.append(Table(data, names=RESULT_COLNAMES, meta=p))
 

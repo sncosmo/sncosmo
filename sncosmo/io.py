@@ -16,7 +16,7 @@ from astropy.io import fits
 from astropy import wcs
 from astropy.extern import six
 
-from .photdata import dict_to_array
+from .utils import dict_to_array
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
            'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
