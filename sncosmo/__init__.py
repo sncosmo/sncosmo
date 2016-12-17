@@ -162,6 +162,7 @@ if not _ASTROPY_SETUP_:
     from .fitting import *
     from .simulation import *
     from .plotting import *
+    from .photdata import *
     from .registry import *
 
     from . import registry  # deprecated in v1.2; use previous import.

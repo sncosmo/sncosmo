@@ -126,20 +126,31 @@ time band flux fluxerr zp zpsys
 
 
 def test_read_salt2():
-    fname = join(dirname(__file__), "data", "salt2_example.dat")
+    fname = join(dirname(__file__), "data", "lc-03D4ag.list")
     data = sncosmo.read_lc(fname, format="salt2")
 
     # Test a few columns
-    assert_allclose(data["Date"], [52816.54, 52824.59, 52795.59, 52796.59])
-    assert_allclose(data["ZP"], [27.091335, 27.091335, 25.913054, 25.913054])
-    assert np.all(data["Filter"] == np.array(["MEGACAM::g", "MEGACAM::g",
-                                              "MEGACAM::i", "MEGACAM::i"]))
-    assert np.all(data["MagSys"] == "VEGA")
+    assert_allclose(data["Date"][0:4],
+                    [52816.54, 52824.59, 52851.53, 52873.4])
+    assert_allclose(data["ZP"][0:4], 27.036167)
+
+    assert np.all(data["Filter"][0:4] == "MEGACAMPSF::g")
+    assert np.all(data["MagSys"] == "AB_B12")
 
     # Test a bit of metadata
     assert_allclose(data.meta["Z_HELIO"], 0.285)
     assert_allclose(data.meta["RA"], 333.690959)
     assert data.meta["z_source"] == "H"
+
+
+def test_read_salt2_cov():
+    fname = join(dirname(__file__), "data", "lc-03D4ag.list")
+    data = sncosmo.read_lc(fname, format="salt2", read_covmat=True)
+    assert data["Fluxcov"].shape == (len(data), len(data))
+    assert_allclose(data["Fluxcov"][0:3, 0:3],
+                    [[0.867712297284, 0.01139998771, 0.01119398747],
+                     [0.01139998771, 2.03512047975, 0.01190299234],
+                     [0.01119398747, 0.01190299234, 1.3663344852]])
 
 
 def test_read_salt2_old():

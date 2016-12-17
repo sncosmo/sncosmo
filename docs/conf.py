@@ -55,12 +55,12 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
     'sphinx_gallery.gen_gallery',
+    'numpydoc',
     matplotlib.sphinxext.plot_directive.__name__
 ]
 
-#numpydoc_show_class_members = False
+numpydoc_show_class_members = False
 autosummary_generate = True
 autoclass_content = "class"
 autodoc_default_flags = ["members", "no-special-members"]

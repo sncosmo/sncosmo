@@ -84,6 +84,7 @@ Fitting Photometric Data
 .. autosummary::
    :toctree: api
 
+   select_data
    chisq
    flatten_result
 
