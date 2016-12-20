@@ -119,6 +119,9 @@ OBSERVATIONS_ALIASES = OrderedDict([
     ('skynoise', set(['skynoise']))
 ])
 
+OBSERVATIONS_REQUIRED_ALIASES = ('time', 'band', 'zp', 'zpsys', 'gain',
+                                 'skynoise')
+
 
 def realize_lcs(observations, model, params, thresh=None,
                 trim_observations=False, scatter=True):
@@ -182,7 +185,8 @@ def realize_lcs(observations, model, params, thresh=None,
             raise ValueError("observations not understood")
 
     # map column name aliases
-    colname = alias_map(observations.colnames, OBSERVATIONS_ALIASES)
+    colname = alias_map(observations.colnames, OBSERVATIONS_ALIASES,
+                        required=OBSERVATIONS_REQUIRED_ALIASES)
 
     # result dtype used when there are no observations
     band_dtype = observations[colname['band']].dtype

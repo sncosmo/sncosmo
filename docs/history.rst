@@ -11,6 +11,16 @@ example, due to changes in integration method.)
 v1.5.0 (unreleased)
 ===================
 
+- Added support for covariance in photometric data measurements. Covariance
+  is stored as a ``'fluxcov'`` column in the table of measurements.
+
+- Added support for reading snfit-format "covmat" files into a table of
+  photometry::
+
+    >>> data = read_lc('filename', format='salt2', read_covmat=True)
+    >>> data['Fluxcov'].shape == (len(data), len(data))
+    True
+
 v1.4.0 (2016-11-16)
 ===================
 

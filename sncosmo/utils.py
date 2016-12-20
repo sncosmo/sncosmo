@@ -352,13 +352,32 @@ def download_dir(remote_url, dirname):
     buf.close()  # buf not closed when tf is closed.
 
 
-def alias_map(aliased, aliases):
+def alias_map(aliased, aliases, required=()):
     """For each key in ``aliases``, find the item in ``aliased`` matching
-    exactly one of the corresponding items in ``aliases``. For example::
+    exactly one of the corresponding items in ``aliases``.
+
+    Parameters
+    ----------
+    aliased : list of str
+        Input keys, will be values in output map.
+    aliases : dict of sets
+        Dictionary where keys are "canonical name" and values are sets of
+        possible aliases.
+    required : list_like
+        Keys in ``aliases`` that are considered required. An error is raised
+        if no alias is found in ``aliased``.
+
+
+    Returns
+    -------
+
+    Example::
 
         >>> aliases = {'a':set(['a', 'a_']), 'b':set(['b', 'b_'])}
         >>> alias_map(['A', 'B_', 'foo'], aliases)
-        {'A': 'a', 'B_': 'b'}
+        {'a': 'A', 'b': 'B_'}
+
+
 
     """
     lowered_to_orig = {key.lower(): key for key in aliased}
@@ -366,16 +385,17 @@ def alias_map(aliased, aliases):
     mapping = {}
     for key, key_aliases in aliases.items():
         common = lowered & key_aliases
-        if len(common) == 0:
+        if len(common) == 1:
+            mapping[key] = lowered_to_orig[common.pop()]
+
+        elif len(common) == 0 and key in required:
             raise ValueError('no alias found for {!r} (possible '
                              'case-independent aliases: {})'.format(
                                  key,
                                  ', '.join(repr(ka) for ka in key_aliases)))
-        if len(common) > 1:
+        elif len(common) > 1:
             raise ValueError('multiple aliases found for {!r}: {}'
                              .format(key, ', '.join(repr(a) for a in common)))
-
-        mapping[key] = lowered_to_orig[common.pop()]
 
     return mapping
 
