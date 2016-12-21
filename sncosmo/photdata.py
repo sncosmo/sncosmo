@@ -126,21 +126,7 @@ class PhotometricData(object):
         normalized to the given zeropoint.
         """
 
-        normmagsys = get_magsystem(zpsys)
-        factor = np.empty(len(self), dtype=np.float)
-
-        for b in set(self.band.tolist()):
-            idx = self.band == b
-            b = get_bandpass(b)
-
-            bandfactor = 10.**(0.4 * (zp - self.zp[idx]))
-            bandzpsys = self.zpsys[idx]
-            for ms in set(bandzpsys):
-                idx2 = bandzpsys == ms
-                ms = get_magsystem(ms)
-                bandfactor[idx2] *= (ms.zpbandflux(b) /
-                                     normmagsys.zpbandflux(b))
-            factor[idx] = bandfactor
+        factor = self._normalization_factor(zp, zpsys)
 
         newdata = copy.copy(self)
         newdata.flux = factor * self.flux
@@ -151,6 +137,31 @@ class PhotometricData(object):
             newdata.fluxcov = factor * factor[:, None] * self.fluxcov
 
         return newdata
+
+    def normalized_flux(self, zp=25., zpsys='ab'):
+        return self._normalization_factor(zp, zpsys) * self.flux
+
+    def _normalization_factor(self, zp, zpsys):
+        """Factor such that multiplying by this amount brings all fluxes onto
+        the given zeropoint and zeropoint system."""
+
+        normmagsys = get_magsystem(zpsys)
+        factor = np.empty(len(self), dtype=np.float)
+
+        for b in set(self.band.tolist()):
+            mask = self.band == b
+            b = get_bandpass(b)
+
+            bandfactor = 10.**(0.4 * (zp - self.zp[mask]))
+            bandzpsys = self.zpsys[mask]
+            for ms in set(bandzpsys):
+                mask2 = bandzpsys == ms
+                ms = get_magsystem(ms)
+                bandfactor[mask2] *= (ms.zpbandflux(b) /
+                                      normmagsys.zpbandflux(b))
+            factor[mask] = bandfactor
+
+        return factor
 
 
 def photometric_data(data):

@@ -137,38 +137,42 @@ def t0_bounds(data, model):
 
 
 def guess_t0_and_amplitude(data, model, minsnr):
-    """Guess t0 and amplitude of the model based on the data.
+    """Guess t0 and amplitude of the model based on the data."""
 
-    Assumes the data has been normalized."""
+    # get data above the signal-to-noise ratio cut
+    significant_data = data[(data.flux / data.fluxerr) > minsnr]
+    if len(significant_data) == 0:
+        raise DataQualityError('No data points with S/N > {0}. Initial '
+                               'guessing failed.'.format(minsnr))
 
+    # grid on which to evaluate model light curve
     timegrid = np.linspace(model.mintime(), model.maxtime(),
                            int(model.maxtime() - model.mintime() + 1))
 
-    snr = data.flux / data.fluxerr
-    significant_data = data[snr > minsnr]
-    modelflux = {}
-    dataflux = {}
-    datatime = {}
-    zp = data.zp[0]  # Same for all entries in normalized data.
-    zpsys = data.zpsys[0]  # Same for all entries in normalized data.
-    for band in set(data.band):
-        mask = significant_data.band == band
-        if np.any(mask):
-            modelflux[band] = (
-                model.bandflux(band, timegrid, zp=zp, zpsys=zpsys) /
-                model.parameters[2])
-            dataflux[band] = significant_data.flux[mask]
-            datatime[band] = significant_data.time[mask]
+    # get data flux on a consistent scale in order to compare to model
+    # flux light curve.
+    norm_flux = significant_data.normalized_flux(zp=25., zpsys='ab')
 
-    if len(modelflux) == 0:
+    model_lc = {}
+    data_flux = {}
+    data_time = {}
+    for band in set(significant_data.band):
+        model_lc[band] = (
+            model.bandflux(band, timegrid, zp=25., zpsys='ab') /
+            model.parameters[2])
+        mask = significant_data.band == band
+        data_flux[band] = norm_flux[mask]
+        data_time[band] = significant_data.time[mask]
+
+    if len(model_lc) == 0:
         raise DataQualityError('No data points with S/N > {0}. Initial '
                                'guessing failed.'.format(minsnr))
 
     # find band with biggest ratio of maximum data flux to maximum model flux
     maxratio = float("-inf")
     maxband = None
-    for band in modelflux:
-        ratio = np.max(dataflux[band]) / np.max(modelflux[band])
+    for band in model_lc:
+        ratio = np.max(data_flux[band]) / np.max(model_lc[band])
         if ratio > maxratio:
             maxratio = ratio
             maxband = band
@@ -177,8 +181,8 @@ def guess_t0_and_amplitude(data, model, minsnr):
     amplitude = abs(maxratio)
 
     # time guess is time of max in the band with the biggest ratio
-    data_tmax = datatime[maxband][np.argmax(dataflux[maxband])]
-    model_tmax = timegrid[np.argmax(modelflux[maxband])]
+    data_tmax = data_time[maxband][np.argmax(data_flux[maxband])]
+    model_tmax = timegrid[np.argmax(model_lc[maxband])]
     t0 = model.get('t0') + data_tmax - model_tmax
 
     return t0, amplitude
@@ -298,8 +302,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
     """
 
-    # Standardize and normalize data.
-    data = photometric_data(data).normalized()
+    # Standardize data
+    data = photometric_data(data)
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -599,7 +603,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     # experimental parameters
     tied = kwargs.get("tied", None)
 
-    data = photometric_data(data).normalized()
+    data = photometric_data(data)
     model = copy.copy(model)
     bounds = copy.copy(bounds)  # need to copy this b/c we modify it below
 
@@ -846,7 +850,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
         raise ImportError("mcmc_lc() requires the emcee package.")
 
     # Standardize and normalize data.
-    data = photometric_data(data).normalized()
+    data = photometric_data(data)
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
