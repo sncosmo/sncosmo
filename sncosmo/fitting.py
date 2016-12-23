@@ -12,12 +12,44 @@ from astropy.extern import six
 
 from .photdata import photometric_data
 from .utils import Result, Interp1D, ppf
+from .bandpasses import get_bandpass
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 
 
 class DataQualityError(Exception):
     pass
+
+
+def generate_chisq(data, model, signature='iminuit', modelcov=False):
+    """Define and return a chisq function for use in optimization.
+
+    This function pre-computes and saves the inverse covariance matrix,
+    making subsequent evaluations faster. The model covariance (if specified)
+    is fixed at the time the chisq function is generated."""
+
+    # precompute inverse covariance matrix
+    cov = np.diag(data.fluxerr**2) if data.fluxcov is None else data.fluxcov
+    if modelcov:
+        _, mcov = model.bandfluxcov(data.band, data.time,
+                                    zp=data.zp, zpsys=data.zpsys)
+        cov += mcov
+    invcov = np.linalg.inv(cov)
+
+    # iminuit expects each parameter to be a separate argument (including fixed
+    # parameters)
+    if signature == 'iminuit':
+        def chisq(*parameters):
+            model.parameters = parameters
+            model_flux = model.bandflux(data.band, data.time,
+                                        zp=data.zp, zpsys=data.zpsys)
+            diff = data.flux - model_flux
+            return np.dot(np.dot(diff, invcov), diff)
+
+    else:
+        raise ValueError("unknown signature: {!r}".format(signature))
+
+    return chisq
 
 
 def chisq(data, model, modelcov=False):
@@ -41,18 +73,25 @@ def chisq(data, model, modelcov=False):
     """
     data = photometric_data(data)
 
-    if modelcov:
-        mflux, mcov = model.bandfluxcov(data.band, data.time,
-                                        zp=data.zp, zpsys=data.zpsys)
-        diff = (data.flux - mflux)
-        totcov = mcov + np.diag(data.fluxerr**2)
-        invtotcov = np.linalg.inv(totcov)
-        return np.dot(np.dot(diff[np.newaxis, :], invtotcov),
-                      diff[:, np.newaxis])[0, 0]
-    else:
+    if data.fluxcov is None and not modelcov:
         mflux = model.bandflux(data.band, data.time,
                                zp=data.zp, zpsys=data.zpsys)
         return np.sum(((data.flux - mflux) / data.fluxerr)**2)
+
+    else:
+        # need to invert a covariance matrix
+        cov = (np.diag(data.fluxerr**2) if data.fluxcov is None
+               else data.fluxcov)
+        if modelcov:
+            mflux, mcov = model.bandfluxcov(data.band, data.time,
+                                            zp=data.zp, zpsys=data.zpsys)
+            cov += mcov
+        else:
+            mflux = model.bandflux(data.band, data.time,
+                                   zp=data.zp, zpsys=data.zpsys)
+        invcov = np.linalg.inv(cov)
+        diff = data.flux - mflux
+        return np.dot(np.dot(diff, invcov), diff)
 
 
 def flatten_result(res):
@@ -188,10 +227,43 @@ def guess_t0_and_amplitude(data, model, minsnr):
     return t0, amplitude
 
 
+def _print_iminuit_params(names, kwargs):
+    """Verbose printing of parameters to pass to Minuit"""
+    for name in names:
+        print(name, kwargs[name], 'step=', kwargs['error_' + name],
+              end=" ")
+        if 'limit_' + name in kwargs:
+            print('bounds=', kwargs['limit_' + name], end=" ")
+        print()
+
+
+def _data_mask(data, t0, z, phase_range, wave_range):
+    """Return a mask for the data based on an allowed rest-frame phase and/or
+    wavelength range (given some t0 and z)."""
+    if phase_range is not None:
+        data_phase = (data.time - t0) / (1.0 + z)
+        phase_mask = ((data_phase > phase_range[0]) &
+                      (data_phase < phase_range[1]))
+
+    if wave_range is not None:
+        data_obswave = np.array([get_bandpass(b).wave_eff for b in data.band])
+        data_restwave = data_obswave / (1.0 + z)
+        wave_mask = ((data_restwave > wave_range[0]) &
+                     (data_restwave < wave_range[1]))
+
+    if phase_range:
+        if wave_range:
+            return phase_mask & wave_mask
+        return phase_mask
+    if wave_range:
+        return wave_mask
+    return None
+
+
 def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5., modelcov=False, verbose=False, maxcall=10000,
-           **kwargs):
+           minsnr=5.0, modelcov=False, verbose=False, maxcall=10000,
+           phase_range=None, wave_range=None):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -232,6 +304,15 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         Minimization method to use. Currently there is only one choice.
     modelcov : bool, optional
         Include model covariance when calculating chisq. Default is False.
+        If true, the fit is performed multiple times until convergence.
+    phase_range : (float, float), optional
+        If given, discard data outside this range of phases. Note that
+        **the definition of phase varies between models**: For example,
+        phase=0 refers to explosion time in some models and time of peak
+        B band flux in others.
+    wave_range : (float, float), optional
+        If given, discard data with bandpass effective wavelengths outside
+        this range.
     verbose : bool, optional
         Print messages during fitting.
 
@@ -370,12 +451,6 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             raise ValueError("Minimization method 'minuit' requires the "
                              "iminuit package")
 
-        # The iminuit minimizer expects the function signature to have an
-        # argument for each parameter.
-        def fitchisq(*parameters):
-            model.parameters = parameters
-            return chisq(data, model, modelcov=modelcov)
-
         # Set up keyword arguments to pass to Minuit initializer.
         kwargs = {}
         for name in model.param_names:
@@ -405,18 +480,93 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
         if verbose:
             print("Initial parameters:")
-            for name in vparam_names:
-                print(name, kwargs[name], 'step=', kwargs['error_' + name],
-                      end=" ")
-                if 'limit_' + name in kwargs:
-                    print('bounds=', kwargs['limit_' + name], end=" ")
-                print()
+            _print_iminuit_params(vparam_names, kwargs)
+            print()
+
+        # run once with no model covariance, regardless of whether
+        # modelcov=True
+        fitchisq = generate_chisq(data, model, signature='iminuit',
+                                  modelcov=False)
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
                            forced_parameters=model.param_names,
-                           print_level=(1 if verbose else 0),
+                           print_level=(1 if verbose >= 2 else 0),
                            throw_nan=True, **kwargs)
         d, l = m.migrad(ncall=maxcall)
+        if verbose:
+            print("{} function calls; {} dof.".format(d.nfcn, ndof))
+
+        # numpy array of best-fit values (including fixed parameters).
+        parameters = np.array([m.values[name] for name in model.param_names])
+        model.parameters = parameters  # set model parameters to best fit.
+
+        # Iterative Fitting
+
+        if phase_range or wave_range:
+            data_mask = _data_mask(data, model.get('t0'), model.get('z'),
+                                   phase_range, wave_range)
+
+        # if model covariance, we need to re-run iteratively until convergence
+        # if phase range is given, we need to rerun if there are any
+        # masked points.
+        refit = (d.is_valid and
+                 (modelcov or
+                  ((phase_range or wave_range) and not np.all(data_mask))))
+        nfit = 1
+        while refit:
+            # set new starting point to last point
+            for name in vparam_names:
+                kwargs[name] = model.get(name)
+
+            if verbose:
+                print("Initial parameters:")
+                _print_iminuit_params(vparam_names, kwargs)
+                print()
+
+            # crop data based on phase
+            fitdata = data[data_mask] if (phase_range or wave_range) else data
+
+            ndof = len(fitdata) - len(vparam_names)
+
+            # generate chisq function based on new starting point
+            fitchisq = generate_chisq(fitdata, model, signature='iminuit',
+                                      modelcov=modelcov)
+
+            m = iminuit.Minuit(fitchisq, errordef=1.,
+                               forced_parameters=model.param_names,
+                               print_level=(1 if verbose >= 2 else 0),
+                               throw_nan=True, **kwargs)
+            d, l = m.migrad(ncall=maxcall)
+
+            if verbose:
+                print("{} function calls; {} dof.".format(d.nfcn, ndof))
+
+            parameters = np.array([m.values[name]
+                                   for name in model.param_names])
+            model.parameters = parameters
+            nfit += 1
+
+            refit = False
+            # only consider refitting if we got a valid answer and we're under
+            # the maximum number of iterations:
+            if d.is_valid and nfit < 21:
+                # recalculate data mask based on new t0, z
+                if phase_range or wave_range:
+                    old_data_mask = data_mask
+                    data_mask = _data_mask(data, model.get('t0'),
+                                           model.get('z'),
+                                           phase_range, wave_range)
+
+                    # we'll refit if we changed any data
+                    refit = np.any(data_mask != old_data_mask)
+
+                # refit if *any* parameter changed by more than 10% of
+                # statistical error bar
+                if modelcov:
+                    for name in vparam_names:
+                        frac_change = (abs(m.values[name] - kwargs[name]) /
+                                       m.errors[name])
+                        refit = refit or frac_change > 0.1
 
         # Build a message.
         message = []
@@ -437,10 +587,6 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         if len(message) == 0:
             message.append('Minimization exited successfully.')
         # iminuit: m.np_matrix() doesn't work
-
-        # numpy array of best-fit values (including fixed parameters).
-        parameters = np.array([m.values[name] for name in model.param_names])
-        model.parameters = parameters  # set model parameters to best fit.
 
         # Covariance matrix (only varied parameters) as numpy array.
         if m.covariance is None:
@@ -467,11 +613,12 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                      parameters=parameters,
                      vparam_names=vparam_names,
                      covariance=covariance,
-                     errors=errors)
+                     errors=errors,
+                     nfit=nfit)
 
         # TODO remove cov_names in a future release.
         depmsg = ("The `cov_names` attribute is deprecated in sncosmo v1.0 "
-                  "and will be removed in v1.1. Use `vparam_names` instead.")
+                  "and will be removed in v2.0. Use `vparam_names` instead.")
         res.__dict__['deprecated']['cov_names'] = (vparam_names, depmsg)
 
     else:
@@ -480,7 +627,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     # TODO remove this in a future release.
     if "flatten" in kwargs:
         warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
-             "and will be removed in v1.1. Use the flatten_result() "
+             "and will be removed in v2.0. Use the flatten_result() "
              "function instead.")
         if kwargs["flatten"]:
             res = flatten_result(res)
