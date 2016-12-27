@@ -752,19 +752,22 @@ class SALT2Source(Source):
             cwave[mask] = b.wave_eff
 
             # Raise an exception if bandpass is out of model range.
-            if (b.wave[0] < self._wave[0] or b.wave[-1] > self._wave[-1]):
+            if (b.minwave() < self._wave[0] or b.maxwave() > self._wave[-1]):
                 raise ValueError(
                     'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
                     'outside spectral range [{3:.6g}, .., {4:.6g}]'
                     .format(b.name, b.wave[0], b.wave[-1],
                             self._wave[0], self._wave[-1]))
 
-            m0 = self._model['M0'](phase[mask], b.wave)
-            m1 = self._model['M1'](phase[mask], b.wave)
-
-            tmp = b.trans * b.wave * b.dwave
-            f0[mask] = np.sum(m0 * tmp, axis=1) / HC_ERG_AA
-            m1int[mask] = np.sum(m1 * tmp, axis=1) / HC_ERG_AA
+            # integrate m0 and m1 components
+            wave, dwave = _integration_grid(b.minwave(), b.maxwave(),
+                                            MODEL_BANDFLUX_SPACING)
+            trans = b(wave)
+            m0 = self._model['M0'](phase[mask], wave)
+            m1 = self._model['M1'](phase[mask], wave)
+            tmp = trans * wave
+            f0[mask] = np.sum(m0 * tmp, axis=1) * dwave / HC_ERG_AA
+            m1int[mask] = np.sum(m1 * tmp, axis=1) * dwave / HC_ERG_AA
 
             errsnakesq[mask] = self._errsnakesq(b.wave_eff, phase[mask])
 
