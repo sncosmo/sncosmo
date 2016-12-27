@@ -72,6 +72,7 @@ def chisq(data, model, modelcov=False):
     chisq : float
     """
     data = photometric_data(data)
+    data.sort_by_time()
 
     if data.fluxcov is None and not modelcov:
         mflux = model.bandflux(data.band, data.time,
@@ -385,6 +386,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
     # Standardize data
     data = photometric_data(data)
+    data.sort_by_time()
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -751,6 +753,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     tied = kwargs.get("tied", None)
 
     data = photometric_data(data)
+    data.sort_by_time()
     model = copy.copy(model)
     bounds = copy.copy(bounds)  # need to copy this b/c we modify it below
 
@@ -998,6 +1001,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
 
     # Standardize and normalize data.
     data = photometric_data(data)
+    data.sort_by_time()
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)

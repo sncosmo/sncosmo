@@ -189,7 +189,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
 
     # Standardize and normalize data.
     if data is not None:
-        data = photometric_data(data).normalized(zp=zp, zpsys=zpsys)
+        data = photometric_data(data)
+        data.sort_by_time()
+        data = data.normalized(zp=zp, zpsys=zpsys)
 
     # Bands to plot
     if data is None:

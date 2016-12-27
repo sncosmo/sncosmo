@@ -87,10 +87,7 @@ class PhotometricData(object):
                     "the data? Use ``sncosmo.select_data(data, mask)`` in "
                     "place of ``data[mask]`` to properly slice covariance.")
 
-        # ensure sorted by time
-        self._sort_by_time()
-
-    def _sort_by_time(self):
+    def sort_by_time(self):
         if not np.all(np.ediff1d(self.time) >= 0.0):
             idx = np.argsort(self.time)
             self.time = self.time[idx]
@@ -115,9 +112,6 @@ class PhotometricData(object):
         newdata.zpsys = self.zpsys[key]
         newdata.fluxcov = (None if self.fluxcov is None else
                            self.fluxcov[np.ix_(key, key)])
-
-        # ensure sorted by time (key could have caused reordering)
-        newdata._sort_by_time()
 
         return newdata
 
