@@ -6,7 +6,7 @@ environment:
   global:
       PYTHON: "C:\\conda"
       MINICONDA_VERSION: "latest"
-      CONDA_DEPENDENCIES: "scipy"
+      CONDA_DEPENDENCIES: "scipy cython"
       PIP_DEPENDENCIES: "extinction"
       CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\.continuous-integration\\appveyor\\windows_sdk.cmd"
       PYTHON_ARCH: "64" # needs to be set for CMD_IN_ENV to succeed. If a mix
@@ -23,7 +23,6 @@ environment:
       - PYTHON_VERSION: "3.5"
         NUMPY_VERSION: "1.9"
         ASTROPY_VERSION: "development"
-        CONDA_DEPENDENCIES: "scipy cython"
 
       - PYTHON_VERSION: "3.5"
         NUMPY_VERSION: "1.10"
@@ -32,7 +31,7 @@ environment:
       - PYTHON_VERSION: "3.5"
         NUMPY_VERSION: "stable"
         ASTROPY_VERSION: "stable"
-        CONDA_DEPENDENCIES: "scipy matplotlib"
+        CONDA_DEPENDENCIES: "scipy cython matplotlib"
 
 
 platform:
