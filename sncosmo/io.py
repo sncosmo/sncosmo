@@ -162,7 +162,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
     """
 
     if isinstance(name_or_obj, six.string_types):
-        f = open(name_or_obj, 'r')
+        f = open(name_or_obj, 'w')
     else:
         f = name_or_obj
 

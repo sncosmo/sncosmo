@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import os
 from os.path import dirname, join
-from tempfile import NamedTemporaryFile
+from tempfile import mkdtemp, NamedTemporaryFile
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
@@ -60,6 +60,17 @@ def test_write_griddata_ascii():
     assert_allclose(x0_in, x0)
     assert_allclose(x1_in, x1)
     assert_allclose(y_in, y)
+
+    # with a filename:
+    dirname = mkdtemp()
+    fname = os.path.join(dirname, 'griddata.dat')
+    sncosmo.write_griddata_ascii(x0, x1, y, fname)
+    x0_in, x1_in, y_in = sncosmo.read_griddata_ascii(fname)
+    assert_allclose(x0_in, x0)
+    assert_allclose(x1_in, x1)
+    assert_allclose(y_in, y)
+    os.remove(fname)
+    os.rmdir(dirname)
 
 
 def test_griddata_fits():
