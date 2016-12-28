@@ -52,3 +52,9 @@ sncosmo/cython_version.py
 
 # ipython notebooks
 *.ipynb
+
+# misc helpers
+misc/Make.user
+misc/*.o
+misc/*.d
+misc/test-salt2model
