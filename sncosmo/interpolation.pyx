@@ -11,50 +11,62 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from libc.math cimport fabs
 
 
-cdef int locate_below(double *array, int nvalues, double where):
-    """Assumes a sorted array"""
-    cdef:
-        int low = 0
-        int high = nvalues - 1
-        int mid
+cdef int find_index_binary(double *values, int n, double x):
+    """Find index i in array such that values[i] <= x < values[i+1].
+    using binary search.
 
-    if nvalues == 0:
-        return 0
-    if (where > array[high]):
-        return high
-    if (where < array[low]):
-        return -1
-    while (high - low > 1):
-        mid = (low+high)/2
-        if (array[mid] > where):
-            high = mid
-        else:
-            low = mid
-
-    return low
-
-
-cdef int locate_in_array(int lasti, double *xval, int nval, double xwhere):
-    """Return i such that xval[i] <= xwhere < xval[i+1].
-
-    Assumes that  xwhere is really between xval[0] and xval[nval-1]
-    and the array is sorted.
+    Guaranteed to return values between 0 and n-2 inclusive.
     """
-    cdef int i = lasti
-  
-    if (xwhere < xval[i]):
-        i = locate_below(xval, i+1, xwhere)
-    elif (xwhere >= xval[i+1]):
-        if (i <= nval-3 and xwhere < xval[i+2]):
-            i += 1;
+    
+    cdef int lo, hi, mid
+
+    lo = 0
+    hi = n
+    mid = n/2
+
+    if (x < values[0]):
+        return 0
+    if (x >= values[n-1]):
+        return n-2
+
+    while (hi - lo > 1):
+        if (x >= values[mid]):
+            lo = mid
         else:
-            i = i + 1 + locate_below(xval + i + 1, nval - i - 1, xwhere)
+            hi = mid
+        mid = lo + (hi - lo) / 2
 
-    # note that if ( xval[i] <= xwhere < xval[i+2]), there is no binary search.
-    if (i==nval-1 and xwhere == xval[nval-1]):
-        i -= 1
+    return mid
 
-    return i
+
+
+cdef int find_index_unsafe(double *values, int n, double x, int start):
+    """Return i such that values[i] <= x < values[i+1] via linear search,
+    starting from guess `start`.
+
+    If x == values[n-1], n-2 is returned instead of n-1.
+
+    This *assumes* that values[0] <= x <= values[n-1], and that
+    0 <= start <= n-2. If that's not true, this will segfault.
+    """
+    cdef int i
+
+    # search up
+    if (x >= values[start]):
+        i = start + 1
+        while (i < n and x >= values[i]):
+            i += 1
+        if i == n:
+            i -= 1
+        return i-1
+
+    # search down
+    else:
+        i = start - 1
+        while (i > -1 and x < values[i]):
+            i -= 1
+        return i  # -1 should never be returned b/c we assume x >= values[0]
+
 
 cdef bint is_strictly_ordered(double[:] x):
     cdef int i
@@ -67,6 +79,7 @@ cdef bint is_strictly_ordered(double[:] x):
 DEF A = -0.5
 DEF B = A + 2.0
 DEF C = A + 3.0
+
 
 cdef double kernval(double xval):
      cdef double x = fabs(xval)
@@ -164,9 +177,8 @@ cdef class BicubicInterpolator(object):
             double[:] xc = np.atleast_1d(np.asarray(x, dtype=np.float64))
             double[:] yc = np.atleast_1d(np.asarray(y, dtype=np.float64))
             double x_i, y_j
-            int ix, iy
-            int lastix = 0
-            int lastiy = 0
+            int ix = 0
+            int iy = 0
             double ax, ay, ay2, dx, dy
             int nxc = xc.shape[0]
             int nyc = yc.shape[0]
@@ -180,13 +192,20 @@ cdef class BicubicInterpolator(object):
         result = np.empty((nxc, nyc), dtype=np.float64)
         result_view = result
 
-        # allocate and fill array of y indicies and weights
+        # allocate arrays of y indicies and weights
         # (could use static storage here for small vectors)
         wyvec = <double *>PyMem_Malloc(nyc * 4 * sizeof(double))
         iyvec = <int *>PyMem_Malloc(nyc * sizeof(int))
 
         # flags: -1 == "skip, return 0", 0 == "linear", 1 == "cubic"
         yflagvec = <int *>PyMem_Malloc(nyc * sizeof(int))
+
+        # find initial indicies by binary search, because they could be
+        # anywhere.
+        if nxc > 0:
+            ix = find_index_binary(self.xval, self.nx, xc[0])
+        if nyc > 0:
+            iy = find_index_binary(self.yval, self.ny, yc[0])
 
         # fill above three arrays with y value info
         for j in range(nyc):
@@ -196,8 +215,7 @@ cdef class BicubicInterpolator(object):
             if (y_j < self.ymin or y_j > self.ymax):
                 yflagvec[j] = -1
             else:
-                iy = locate_in_array(lastiy, self.yval, self.ny, y_j)
-                lastiy = iy
+                iy = find_index_unsafe(self.yval, self.ny, y_j, iy)
                 iyvec[j] = iy
 
                 # if we're too close to border, we will use linear
@@ -225,8 +243,7 @@ cdef class BicubicInterpolator(object):
             if (x_i < self.xmin or x_i > self.xmax):
                 xflag = -1
             else:
-                ix = locate_in_array(lastix, self.xval, self.nx, x_i)
-                lastix = ix
+                ix = find_index_unsafe(self.xval, self.nx, x_i, ix)
                 if (self.nx < 3 or ix == 0 or ix > (self.nx - 3)):
                     xflag = 0
                 else:
