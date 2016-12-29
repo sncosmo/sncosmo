@@ -1,4 +1,7 @@
+#!/usr/bin/env python
 """Run benchmarks for model synthetic photometry"""
+
+from __future__ import print_function, division
 
 import time
 import os
@@ -13,7 +16,7 @@ delim = 61 * "-"
 # test data
 ndata = 100 # make divisible by 4!
 dates = np.linspace(-15., 40., ndata)
-bands = np.array((ndata/4) * ['desg', 'desr', 'desi', 'sdssg'])
+bands = np.array((ndata//4) * ['desg', 'desr', 'desi', 'sdssg'])
 niter = 100
 
 # models
@@ -29,12 +32,12 @@ models = OrderedDict([
                    effect_names=['mw'], effect_frames=['obs']))
     ])
 
-print "\nbandflux(band_array, time_array) [4 des bands]:"
-print delim
-print "Model              n=1        n=10       n=100"
-print delim
-for name, model in models.iteritems():
-    print '{:15s}'.format(name),
+print("\nbandflux(band_array, time_array) [4 des bands]:")
+print(delim)
+print("Model              n=1        n=10       n=100")
+print(delim)
+for name, model in models.items():
+    print('{:15s}'.format(name), end='')
     for idx in [0, range(10), range(100)]:
         d = dates[idx]
         b = bands[idx]
@@ -42,5 +45,5 @@ for name, model in models.iteritems():
         for i in range(niter): model.bandflux(b, d)
         time2 = time.time()
         time_sec = (time2 - time1) / niter
-        print "%10.5f" % (time_sec * 1000.),
-    print " ms per call"
+        print("%10.5f" % (time_sec * 1000.), end='')
+    print(" ms per call")
