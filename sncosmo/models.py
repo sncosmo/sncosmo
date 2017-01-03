@@ -23,6 +23,7 @@ from .io import read_griddata_ascii, read_griddata_fits
 from ._registry import Registry
 from .bandpasses import get_bandpass, Bandpass, HC_ERG_AA
 from .magsystems import get_magsystem
+from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'MLCS2k2Source', 'Model',
@@ -667,7 +668,7 @@ class SALT2Source(Source):
         for key in ['M0', 'M1']:
             phase, wave, values = read_griddata_ascii(names_or_objs[key])
             values *= self._SCALE_FACTOR
-            self._model[key] = Spline2d(phase, wave, values, kx=3, ky=3)
+            self._model[key] = BicubicInterpolator(phase, wave, values)
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
@@ -678,25 +679,20 @@ class SALT2Source(Source):
         # model covariance is interpolated to 1st order
         for key in ['LCRV00', 'LCRV11', 'LCRV01', 'errscale']:
             phase, wave, values = read_griddata_ascii(names_or_objs[key])
-            self._model[key] = Spline2d(phase, wave, values, kx=1, ky=1)
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+
+        # Set the colorlaw based on the "color correction" file.
+        self._set_colorlaw_from_file(names_or_objs['clfile'])
 
         # Set the color dispersion from "color_dispersion" file
         w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
         self._colordisp = Spline1d(w, val,  k=1)  # linear interp.
 
-        # Set the colorlaw based on the "color correction" file.
-        # Then interpolate it to the "native" wavelength grid,
-        # for performance reasons.
-        self._set_colorlaw_from_file(names_or_objs['clfile'])
-        cl = self._colorlaw(self._wave)
-        clbase = 10. ** (-0.4 * cl)
-        self._model['clbase'] = Spline1d(self._wave, clbase, k=1)
-
     def _flux(self, phase, wave):
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
-                self._model['clbase'](wave)**self._parameters[2])
+                10. ** (-0.4 * self._colorlaw(wave) * self._parameters[2]))
 
     def _errsnakesq(self, wave, phase):
         """Return the errorsnake squared (model variance) for the given
@@ -860,18 +856,7 @@ class SALT2Source(Source):
             raise e
 
     def _set_colorlaw_from_file(self, name_or_obj):
-        """Read color law file and set the internal colorlaw function,
-        as well as some parameters used in that function.
-
-        self._colorlaw (function)
-        self._B_WAVELENGTH (float)
-        self._V_WAVELENGTH (float)
-        self._colorlaw_coeffs (list of float)
-        self._colorlaw_range (tuple) [default is (3000., 7000.)]
-        """
-
-        self._B_WAVELENGTH = 4302.57
-        self._V_WAVELENGTH = 5428.55
+        """Read color law file and set the internal colorlaw function,"""
 
         # Read file
         if isinstance(name_or_obj, six.string_types):
@@ -882,14 +867,14 @@ class SALT2Source(Source):
         f.close()
 
         # Get colorlaw coeffecients.
-        npoly = int(words[0])
-        self._colorlaw_coeffs = [float(word) for word in words[1: 1 + npoly]]
+        ncoeffs = int(words[0])
+        colorlaw_coeffs = [float(word) for word in words[1: 1 + ncoeffs]]
 
-        # If there are more than 1+npoly words in the file, we expect them to
+        # If there are more than 1+ncoeffs words in the file, we expect them to
         # be of the form `keyword value`.
         version = 0
         colorlaw_range = [3000., 7000.]
-        for i in range(1+npoly, len(words), 2):
+        for i in range(1+ncoeffs, len(words), 2):
             if words[i] == 'Salt2ExtinctionLaw.version':
                 version = int(words[i+1])
             elif words[i] == 'Salt2ExtinctionLaw.min_lambda':
@@ -903,65 +888,10 @@ class SALT2Source(Source):
         if version == 0:
             raise Exception("Salt2ExtinctionLaw.version 0 not supported.")
         elif version == 1:
-            self._colorlaw = self._colorlaw_v1
-            self._colorlaw_range = colorlaw_range
+            self._colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
         else:
             raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
                             version)
-
-    def _colorlaw_v1(self, wave):
-        """Return the  extinction in magnitudes as a function of wavelength,
-        for c=1. This is the version 1 extinction law used in SALT2 2.0
-        (SALT2-2-0) and later.
-
-        Notes
-        -----
-        From SALT2 code comments:
-
-        if(l_B<=l<=l_R):
-            ext = exp(color * constant *
-                      (alpha*l + params(0)*l^2 + params(1)*l^3 + ... ))
-                = exp(color * constant * P(l))
-
-            where alpha = 1 - params(0) - params(1) - ...
-
-        if (l > l_R):
-            ext = exp(color * constant * (P(l_R) + P'(l_R) * (l-l_R)))
-        if (l < l_B):
-            ext = exp(color * constant * (P(l_B) + P'(l_B) * (l-l_B)))
-        """
-
-        v_minus_b = self._V_WAVELENGTH - self._B_WAVELENGTH
-
-        l = (wave - self._B_WAVELENGTH) / v_minus_b
-        l_lo = (self._colorlaw_range[0] - self._B_WAVELENGTH) / v_minus_b
-        l_hi = (self._colorlaw_range[1] - self._B_WAVELENGTH) / v_minus_b
-
-        alpha = 1. - sum(self._colorlaw_coeffs)
-        coeffs = [0., alpha]
-        coeffs.extend(self._colorlaw_coeffs)
-        coeffs = np.array(coeffs)
-        prime_coeffs = (np.arange(len(coeffs)) * coeffs)[1:]
-
-        extinction = np.empty_like(wave)
-
-        # Blue side
-        idx_lo = l < l_lo
-        p_lo = np.polyval(np.flipud(coeffs), l_lo)
-        pprime_lo = np.polyval(np.flipud(prime_coeffs), l_lo)
-        extinction[idx_lo] = p_lo + pprime_lo * (l[idx_lo] - l_lo)
-
-        # Red side
-        idx_hi = l > l_hi
-        p_hi = np.polyval(np.flipud(coeffs), l_hi)
-        pprime_hi = np.polyval(np.flipud(prime_coeffs), l_hi)
-        extinction[idx_hi] = p_hi + pprime_hi * (l[idx_hi] - l_hi)
-
-        # In between
-        idx_between = np.invert(idx_lo | idx_hi)
-        extinction[idx_between] = np.polyval(np.flipud(coeffs), l[idx_between])
-
-        return -extinction
 
     def colorlaw(self, wave=None):
         """Return the value of the CL function for the given wavelengths.
@@ -975,15 +905,8 @@ class SALT2Source(Source):
         colorlaw : float or `~numpy.ndarray`
             Values of colorlaw function, which can be interpreted as extinction
             in magnitudes.
-
-        Notes
-        -----
-        Note that this is the "exact" colorlaw. For performance reasons, when
-        calculating the model flux, a spline fit to this function is
-        used rather than the function itself. Therefore this will not be
-        *exactly* equivalent to the color law used when evaluating the model
-        flux for arbitrary wavelengths.
         """
+
         if wave is None:
             wave = self._wave
         else:
