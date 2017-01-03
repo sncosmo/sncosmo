@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 from scipy.interpolate import RectBivariateSpline
 
 import sncosmo
-from sncosmo.interpolation import BicubicInterpolator, SALT2ColorLaw
+from sncosmo.salt2utils import BicubicInterpolator, SALT2ColorLaw
 
 
 def test_bicubic_interpolator_vs_snfit():
