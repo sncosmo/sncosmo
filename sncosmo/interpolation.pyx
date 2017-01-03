@@ -317,3 +317,128 @@ cdef class BicubicInterpolator(object):
         PyMem_Free(yflagvec)
 
         return result
+
+
+cdef double polyval(double *coeffs, int n, double x):
+    "coeffs[0]*x + coeffs[1]*x^2 + ... + coeffs[n-1]*x^ncoeffs"""
+
+    cdef double out = 0.0
+    while n > 0:
+        n -= 1
+        out = x * (coeffs[n] + out)
+
+    return out
+
+
+# constants used in SALT2ColorLaw
+DEF SALT2CL_B = 4302.57  # B-band-ish wavelength
+DEF SALT2CL_V = 5428.55  # V-band-ish wavelength
+DEF SALT2CL_V_MINUS_B = SALT2CL_V - SALT2CL_B
+
+
+cdef class SALT2ColorLaw(object):
+    """Callable returning extinction in magnitudes for c=1.
+
+    This is the version 1 extinction law used in SALT2 2.0 (SALT2-2-0)
+    and later.
+
+    Parameters
+    ----------
+    wave_range : (float, float)
+    coeffs : list_like
+
+
+    Notes
+    -----
+    From snfit code comments:
+
+    if(l_B<=l<=l_R):
+        ext = exp(color * constant *
+                  (alpha*l + params(0)*l^2 + params(1)*l^3 + ... ))
+            = exp(color * constant * P(l))
+
+        where alpha = 1 - params(0) - params(1) - ...
+
+    if (l > l_R):
+        ext = exp(color * constant * (P(l_R) + P'(l_R) * (l-l_R)))
+    if (l < l_B):
+        ext = exp(color * constant * (P(l_B) + P'(l_B) * (l-l_B)))
+    """
+
+    cdef:
+        int ncoeffs
+        double coeffs[7]  # can store up to 6 coeffs (should be only 4)
+        double l_lo
+        double l_hi
+        double p_lo
+        double p_hi
+        double pprime_lo
+        double pprime_hi
+
+    def __cinit__(self, wave_range, coeffs):
+        cdef:
+            int i
+            double wave_lo
+            double wave_hi
+            double[:] ccoeffs = np.asarray(coeffs, dtype=np.float64)
+            double dcoeffs[6]
+
+        if ccoeffs.shape[0] > 6:
+            raise ValueError("number of coefficients must be equal to or "
+                             "less than 6.")
+
+        # set wave_range
+        wave_lo, wave_hi = wave_range
+        self.l_lo = (wave_lo - SALT2CL_B) / SALT2CL_V_MINUS_B
+        self.l_hi = (wave_hi - SALT2CL_B) / SALT2CL_V_MINUS_B
+
+        for i in range(ccoeffs.shape[0]):
+            self.coeffs[i+1] = ccoeffs[i]
+
+        # first coefficient is 'alpha' = 1.0 - sum(other coeffs)
+        self.ncoeffs = ccoeffs.shape[0] + 1
+        self.coeffs[0] = 1.0
+        for i in range(1, self.ncoeffs):
+            self.coeffs[0] -= self.coeffs[i]
+
+        # precompute value of
+        # P(l) = c[0]*l + c[1]*l^2 + c[2]*l^3 + ...  at l_lo and l_hi
+        self.p_lo = polyval(self.coeffs, self.ncoeffs, self.l_lo)
+        self.p_hi = polyval(self.coeffs, self.ncoeffs, self.l_hi)
+
+        # precompute derivative of P(l) at l_lo and l_hi
+        # P'(l) = c[0] + 2*c[1]*l + 3*c[2]*l^2 + ...)
+        for i in range(self.ncoeffs-1):
+            dcoeffs[i] = (i+2) * self.coeffs[i+1]  # [2*c[1], 3*c[2], ...]
+        self.pprime_lo = self.coeffs[0] + polyval(dcoeffs, self.ncoeffs-1,
+                                                  self.l_lo)
+        self.pprime_hi = self.coeffs[0] + polyval(dcoeffs, self.ncoeffs-1,
+                                                  self.l_hi)
+
+    def __call__(self, double[:] wave):
+        cdef:
+            double l
+            int i, n
+            np.ndarray[np.float64_t, ndim=1] out
+
+        n = wave.shape[0]
+        out = np.empty(n, dtype=np.float64)
+
+        for i in range(n):
+            l = (wave[i] - SALT2CL_B) / SALT2CL_V_MINUS_B
+
+            # Blue side
+            if l < self.l_lo:
+                out[i] = self.p_lo + self.pprime_lo * (l - self.l_lo)
+
+            # in between
+            elif l <= self.l_hi:
+                out[i] = polyval(self.coeffs, self.ncoeffs, l)
+
+            # red side
+            else:
+                out[i] = self.p_hi + self.pprime_hi * (l - self.l_hi)
+
+            out[i] = -out[i]
+
+        return out
