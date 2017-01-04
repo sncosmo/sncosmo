@@ -551,7 +551,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             refit = False
             # only consider refitting if we got a valid answer and we're under
             # the maximum number of iterations:
-            if d.is_valid and nfit < 21:
+            if d.is_valid and nfit < 22:
                 # recalculate data mask based on new t0, z
                 if phase_range or wave_range:
                     old_data_mask = data_mask
