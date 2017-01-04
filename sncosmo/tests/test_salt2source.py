@@ -69,6 +69,7 @@ def test_salt2source_timeseries_vs_snfit():
         assert_allclose(flux, fluxref, rtol=1e-13)
 
 
+@remote_data
 def test_salt2source_rcov_vs_snfit():
     dirname = os.path.join(os.path.dirname(__file__), "data")
 
