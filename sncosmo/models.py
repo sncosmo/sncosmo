@@ -694,35 +694,50 @@ class SALT2Source(Source):
         return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
                 10. ** (-0.4 * self._colorlaw(wave) * self._parameters[2]))
 
-    def _errsnakesq(self, wave, phase):
-        """Return the errorsnake squared (model variance) for the given
-        rest-frame phases and rest-frame bandpass central wavelength.
+    def _bandflux_rvar_single(self, band, phase):
+        """Model relative variance for a single bandpass."""
 
-        Note that this is "vectorized" on phase only. Wavelength
-        must be a scalar.
-
-        Parameters
-        ----------
-        wave : float
-            Central wavelength of rest-frame bandpass.
-        phase : 1-d `~numpy.ndarray`
-            Restframe phases.
-
-        Returns
-        -------
-        variance : 1-d `~numpy.ndarray`
-        """
+        # Raise an exception if bandpass is out of model range.
+        if (band.minwave() < self._wave[0] or band.maxwave() > self._wave[-1]):
+            raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                             'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                             .format(band.name, band.wave[0], band.wave[-1],
+                                     self._wave[0], self._wave[-1]))
 
         x1 = self._parameters[1]
 
+        # integrate m0 and m1 components
+        wave, dwave = _integration_grid(band.minwave(), band.maxwave(),
+                                        MODEL_BANDFLUX_SPACING)
+        trans = band(wave)
+        m0 = self._model['M0'](phase, wave)
+        m1 = self._model['M1'](phase, wave)
+        tmp = trans * wave
+        f0 = np.sum(m0 * tmp, axis=1) * dwave / HC_ERG_AA
+        m1int = np.sum(m1 * tmp, axis=1) * dwave / HC_ERG_AA
+        ftot = f0 + x1 * m1int
+
         # In the following, the "[:,0]" reduces from a 2-d array of shape
         # (nphase, 1) to a 1-d array.
-        lcrv00 = self._model['LCRV00'](phase, wave)[:, 0]
-        lcrv11 = self._model['LCRV11'](phase, wave)[:, 0]
-        lcrv01 = self._model['LCRV01'](phase, wave)[:, 0]
-        scale = self._model['errscale'](phase, wave)[:, 0]
+        lcrv00 = self._model['LCRV00'](phase, band.wave_eff)[:, 0]
+        lcrv11 = self._model['LCRV11'](phase, band.wave_eff)[:, 0]
+        lcrv01 = self._model['LCRV01'](phase, band.wave_eff)[:, 0]
+        scale = self._model['errscale'](phase, band.wave_eff)[:, 0]
 
-        return scale*scale * (lcrv00 + 2*x1*lcrv01 + x1*x1*lcrv11)
+        v = lcrv00 + 2.0 * x1 * lcrv01 + x1 * x1 * lcrv11
+
+        # v is supposed to be variance but can go negative
+        # due to interpolation.  Correct negative values to some small
+        # number. (at present, use prescription of snfit : set
+        # negatives to 0.0001)
+        v[v < 0.0] = 0.0001
+
+        result = v * (f0 / ftot)**2 * scale**2
+
+        # treat cases where ftot is negative the same as snfit
+        result[ftot <= 0.0] = 10000.
+
+        return result
 
     def _bandflux_rcov(self, band, phase):
         """Return the model relative covariance of integrated flux through
@@ -734,54 +749,21 @@ class SALT2Source(Source):
             Phases of observations. Must be in ascending order.
         """
 
-        x1 = self._parameters[1]
-
-        # initialize integral arrays
-        f0 = np.zeros(phase.shape, dtype=np.float)
-        m1int = np.zeros(phase.shape, dtype=np.float)
-        cwave = np.zeros(phase.shape, dtype=np.float)  # central wavelengths
-        errsnakesq = np.empty(phase.shape, dtype=np.float)
-
-        # Loop over unique bands
+        # construct covariance array with relative variance on diagonal
+        diagonal = np.zeros(phase.shape, dtype=np.float64)
         for b in set(band):
             mask = band == b
-            cwave[mask] = b.wave_eff
+            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
+        result = np.diagflat(diagonal)
 
-            # Raise an exception if bandpass is out of model range.
-            if (b.minwave() < self._wave[0] or b.maxwave() > self._wave[-1]):
-                raise ValueError(
-                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                    .format(b.name, b.wave[0], b.wave[-1],
-                            self._wave[0], self._wave[-1]))
+        # add kcorr errors
+        for b in set(band):
+            mask1d = band == b
+            mask2d = mask1d * mask1d[:, None]  # mask for result array
+            kcorrerr = self._colordisp(b.wave_eff)
+            result[mask2d] += kcorrerr**2
 
-            # integrate m0 and m1 components
-            wave, dwave = _integration_grid(b.minwave(), b.maxwave(),
-                                            MODEL_BANDFLUX_SPACING)
-            trans = b(wave)
-            m0 = self._model['M0'](phase[mask], wave)
-            m1 = self._model['M1'](phase[mask], wave)
-            tmp = trans * wave
-            f0[mask] = np.sum(m0 * tmp, axis=1) * dwave / HC_ERG_AA
-            m1int[mask] = np.sum(m1 * tmp, axis=1) * dwave / HC_ERG_AA
-
-            errsnakesq[mask] = self._errsnakesq(b.wave_eff, phase[mask])
-
-        # 2-d bool array of shape (len(band), len(band)):
-        # true only where bands are same
-        mask = cwave == cwave[:, np.newaxis]
-
-        colorvar = self._colordisp(cwave)**2  # 1-d array
-        colorcov = mask * colorvar  # 2-d * 1-d = 2-d
-
-        # errorsnakesq is supposed to be variance but can go negative
-        # due to interpolation.  Correct negative values to some small
-        # number. (at present, use prescription of snfit : set
-        # negatives to 0.0001)
-        errsnakesq[errsnakesq < 0.] = 0.01*0.01
-
-        f1 = f0 + x1 * m1int
-        return colorcov + np.diagflat((f0 / f1)**2 * errsnakesq)
+        return result
 
     def bandflux_rcov(self, band, phase):
         """Return the *relative* model covariance (or "model error") on
