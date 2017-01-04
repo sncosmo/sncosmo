@@ -1,0 +1,7 @@
+# parameters and rest-frame times to evaluate model relative covariance
+@Redshift 0.1500000
+@DayMax 6.500000
+@X0 1.000000e-05
+@X1 -1.000000
+@Color 0.1000000
+-30.00000 -20.00000 -10.00000 0.000000 10.00000 20.00000 30.00000 40.00000 50.00000 80.00000 

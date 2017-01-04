@@ -11,8 +11,9 @@ from astropy.tests.helper import remote_data
 import sncosmo
 
 
-def read_griddata_with_metadata(fname):
-    f = open(fname, 'r')
+def read_header(f):
+    """Read header from the open file `f` until first line that doesn't
+    start with # or @."""
 
     meta = {}
 
@@ -29,10 +30,7 @@ def read_griddata_with_metadata(fname):
             f.seek(pos)
             break
 
-    time, wave, flux = sncosmo.read_griddata_ascii(f)
-    f.close()
-
-    return time, wave, flux, meta
+    return meta
 
 
 @remote_data
@@ -49,8 +47,10 @@ def test_salt2source_timeseries_vs_snfit():
                   'salt2_timeseries_2.dat',
                   'salt2_timeseries_3.dat',
                   'salt2_timeseries_4.dat']:
-        time, wave, fluxref, meta = read_griddata_with_metadata(
-            os.path.join(dirname, fname))
+        f = open(os.path.join(dirname, fname), 'r')
+        meta = read_header(f)
+        time, wave, fluxref = sncosmo.read_griddata_ascii(f)
+        f.close()
 
         # The output from snfit's Salt2Model.SpectrumFlux() has a
         # different definition than sncosmo's model.flux() by a factor
@@ -65,5 +65,30 @@ def test_salt2source_timeseries_vs_snfit():
                   x1=meta['X1'], c=meta['Color'])
         flux = model.flux(time, wave)
 
-        # super good agreement
+        # super good agreement!
         assert_allclose(flux, fluxref, rtol=1e-13)
+
+
+def test_salt2source_rcov_vs_snfit():
+    dirname = os.path.join(os.path.dirname(__file__), "data")
+
+    # read parameters and times
+    f = open(os.path.join(dirname, "salt2_rcov_params_times.dat"), 'r')
+    meta = read_header(f)
+    times = np.loadtxt(f)
+    f.close()
+
+    # initialize model and set parameters
+    source = sncosmo.get_source("salt2", version="2.4")  # fixed version
+    model = sncosmo.Model(source)
+    model.set(z=meta['Redshift'], t0=meta['DayMax'], x0=meta['X0'],
+              x1=meta['X1'], c=meta['Color'])
+
+    # Test separate bands separately, as thats how they're written to files.
+    # (And cross-band covariance is zero.)
+    for band in ('SDSSg', 'SDSSr', 'SDSSi'):
+        fname = os.path.join(dirname, "salt2_rcov_snfit_{}.dat".format(band))
+        ref = np.loadtxt(fname, skiprows=1)
+
+        rcov = model._bandflux_rcov(band, times)
+        assert_allclose(ref, rcov, rtol=1.e-5)

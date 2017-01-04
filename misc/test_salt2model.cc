@@ -46,40 +46,36 @@ bool apply_zp_error=true;
  * model covariance for specified dates and filters */
 static double sqr(const double &x) { return x*x;}
 
-void model_rcov(Salt2Model& model, double *times, size_t npoints,
+Mat model_rcov(Salt2Model& model, const vector<double>& times,
                 Filter *filter,
                 bool use_model_errors, 
-                bool use_kcorr_errors,
-                Mat& ModelCovMat) {
-  
-    ModelCovMat.Zero();
-  
-    //cout <<"phase_weight #3 = " << phase_weight << endl;
-    // on rajoute des trucs
-    if(use_model_errors || use_kcorr_errors) {
+                bool use_kcorr_errors)
+{
+    double *w;
+    size_t npoints = times.size();
 
-        const double * d = times;
-        double * w  = ModelCovMat.NonConstData();
-    
-        for(size_t c=0;c<npoints;c++,d++,w+=(npoints+1)) {
-// *w = ModelCovMat(c,c)
-            
-            if(use_model_errors) {
-                // add to error squared to diagonal
-                *w += sqr(model.ModelRelativeError(filter,*d,true));
-            }
-        }
-    
+    //initialize result
+    Mat result(npoints, npoints);
+    result.Zero();
 
-        if (use_kcorr_errors) {
-            // now add kcorr errors
-            double kvar = sqr(model.ModelKError(filter));
-            w = ModelCovMat.NonConstData();
-            for(size_t c=0; c<npoints*npoints; c++, w++) {
-                *w += kvar;
-            }
+    // model errors: added on diagonal only
+    if (use_model_errors) {
+        w = result.NonConstData();
+        for(size_t i=0; i<npoints; i++, w+=(npoints+1)) {
+            *w += sqr(model.ModelRelativeError(filter, times[i], true));
         }
     }
+    
+    // kcorr error added to every element
+    if (use_kcorr_errors) {
+        double kvar = sqr(model.ModelKError(filter));
+        w = result.NonConstData();
+        for(size_t i=0; i<npoints*npoints; i++, w++) {
+            *w += kvar;
+        }
+    }
+
+    return result;
 }
 
 vector<double> read_1d_vector(const string &fname)
@@ -91,6 +87,17 @@ vector<double> read_1d_vector(const string &fname)
         result.push_back(atof(line.c_str()));
     return result;
 }
+
+// write model parameters to "header" of file
+void write_model_params(ofstream& out, const Salt2Model *model)
+{
+    out << "@Redshift " << model->params.LocateParam("Redshift")->val << endl;
+    out << "@DayMax " << model->params.LocateParam("DayMax")->val << endl;
+    out << "@X0 " << model->params.LocateParam("X0")->val << endl;
+    out << "@X1 " << model->params.LocateParam("X1")->val << endl;
+    out << "@Color " << model->params.LocateParam("Color")->val << endl;
+}
+
 
 // Evaluate the model at various times and wavelengths and write results to a
 // file.
@@ -105,11 +112,7 @@ void evaluate_and_write_timeseries(const Salt2Model *model,
     
     // write header
     out << "# output from snfit Salt2Model.SpectrumFlux with following parameters\n";
-    out << "@Redshift " << model->params.LocateParam("Redshift")->val << endl;
-    out << "@DayMax " << model->params.LocateParam("DayMax")->val << endl;
-    out << "@X0 " << model->params.LocateParam("X0")->val << endl;
-    out << "@X1 " << model->params.LocateParam("X1")->val << endl;
-    out << "@Color " << model->params.LocateParam("Color")->val << endl;
+    write_model_params(out, model);
 
     for (auto const& t: time) {
         for (auto const& w: wave) {
@@ -144,7 +147,7 @@ int main(int nargs, char **args)
     interp_out.close();
 
 
-    // Load model for further testing.
+    // Load model for model tests below.
     Salt2Model *model=new Salt2Model();
     model->SetWavelengthRange(salt2_default_wmin,salt2_default_wmax);
 
@@ -175,47 +178,43 @@ int main(int nargs, char **args)
         evaluate_and_write_timeseries(model, time, wave,
                                       "../sncosmo/tests/data/" + fnames[i]);
     }
-        
-    // print a spectrum
-    //ofstream specfile("testspec.dat");
-    //for (double w = 2500.0; w < 9200.; w++) {
-    //    specfile << w << " " << model->SpectrumFlux(w, 0.) << endl;
-    //}
-    //specfile.close();
 
-    // Set model parameters to result of fit from SDSS19230
+    // -----------------------------------------------------------------------
+    // Test model relative covariance
 
-    model->params.LocateParam("DayMax")->val = 5.43904106e+04;
-    model->params.LocateParam("Redshift")->val = 2.21000000e-01;
-    model->params.LocateParam("Color")->val = 7.95355053e-02;
-    model->params.LocateParam("X0")->val = 5.52396533e-05;
-    model->params.LocateParam("X1")->val = -1.62106971e+00;
+    model->params.LocateParam("Redshift")->val = 0.15;
+    model->params.LocateParam("DayMax")->val = 6.5;
+    model->params.LocateParam("X0")->val = 1.e-5;
+    model->params.LocateParam("X1")->val = -1.0;
+    model->params.LocateParam("Color")->val = 0.1;
     
-    // getting model errors:
+    // get some filters
     Instrument *instrument = new Instrument("SDSS");
-    Filter g = instrument->EffectiveFilterByBand("g");
-    Filter r = instrument->EffectiveFilterByBand("r");
-    Filter i = instrument->EffectiveFilterByBand("i");
-    cerr << "g mean: " << g.Mean() << endl;
-    cerr << "r mean: " << r.Mean() << endl;
-    cerr << "i mean: " << i.Mean() << endl;
-    cerr << model->ModelKError(&g) << endl;
-    cerr << model->ModelKError(&r) << endl;
-    cerr << model->ModelKError(&i) << endl;
-    // model->ModelRelativeError(Filter, double (observerday), bool (with_scaling))
+    vector<Filter> filters = {instrument->EffectiveFilterByBand("g"),
+                              instrument->EffectiveFilterByBand("r"),
+                              instrument->EffectiveFilterByBand("i")};
 
-    // just some times with no particular significance.
-    double times[20] = {54346.219, 54356.262, 54358.207, 54359.172, 54365.238,
-                     54373.313, 54382.246, 54386.25,  54388.254, 54393.238,
-                     54403.168, 54406.16,  54412.16,  54416.156, 54420.184,
-                     54421.164, 54423.156, 54425.156, 54431.164, 54433.16};
-    size_t npoints = 20;
-    Mat modelrcov(npoints, npoints);
-    model_rcov(*model, times, npoints, &g, true, false, modelrcov);
-    // cerr << modelrcov << endl;
-    double * rcov = modelrcov.NonConstData();
-    for (size_t i=0; i < npoints; i++, rcov+=(npoints+1)) {
-        cerr << i << "  " << times[i] << "    " << *rcov << endl;
+    // get some times
+    vector<double> times = {-30.0, -20.0, -10.0, 0.0, 10., 20., 30., 40.,
+                            50., 80.};
+
+    // write params and times
+    ofstream out("../sncosmo/tests/data/salt2_rcov_params_times.dat");
+    out.setf(ios::showpoint);
+    out.precision(7);
+    out << "# parameters and rest-frame times to evaluate model relative covariance\n";
+    write_model_params(out, model);
+    for (auto const& t: times)
+        out << t << " ";
+    out << endl;
+    out.close();
+
+    // separate results for each filter
+    for (size_t i=0; i<filters.size(); i++) {
+        Mat modelrcov = model_rcov(*model, times, &filters[i], true, true);
+        modelrcov.writeASCII("../sncosmo/tests/data/salt2_rcov_snfit_" + filters[i].InstrumentName() + filters[i].Band() + ".dat");
     }
 
-}
+
+
+} // end main
