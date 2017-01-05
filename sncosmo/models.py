@@ -739,32 +739,6 @@ class SALT2Source(Source):
 
         return result
 
-    def _bandflux_rcov(self, band, phase):
-        """Return the model relative covariance of integrated flux through
-        the given restframe bands at the given phases
-
-        band : 1-d `~numpy.ndarray` of `~sncosmo.Bandpass`
-            Bandpasses of observations.
-        phase : 1-d `~numpy.ndarray` (float)
-            Phases of observations. Must be in ascending order.
-        """
-
-        # construct covariance array with relative variance on diagonal
-        diagonal = np.zeros(phase.shape, dtype=np.float64)
-        for b in set(band):
-            mask = band == b
-            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
-        result = np.diagflat(diagonal)
-
-        # add kcorr errors
-        for b in set(band):
-            mask1d = band == b
-            mask2d = mask1d * mask1d[:, None]  # mask for result array
-            kcorrerr = self._colordisp(b.wave_eff)
-            result[mask2d] += kcorrerr**2
-
-        return result
-
     def bandflux_rcov(self, band, phase):
         """Return the *relative* model covariance (or "model error") on
         synthetic photometry generated from the model in the given restframe
@@ -791,13 +765,15 @@ class SALT2Source(Source):
         .. math::
 
            F_{0, \mathrm{band}}(t) = \int_\lambda M_0(t, \lambda)
-                                     T_\mathrm{band}(\lambda) d\lambda
+                                     T_\mathrm{band}(\lambda)
+                                     \\frac{\lambda}{hc} d\lambda
 
         .. math::
 
            F_{1, \mathrm{band}}(t) = \int_\lambda
                                      (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                                     T_\mathrm{band}(\lambda) d\lambda
+                                     T_\mathrm{band}(\lambda)
+                                     \\frac{\lambda}{hc} d\lambda
 
         As this first component can sometimes be negative due to
         interpolation, there is a floor applied wherein values less than zero
@@ -831,14 +807,24 @@ class SALT2Source(Source):
             Model relative covariance for given bandpasses and phases.
         """
 
-        try:
-            return self._bandflux_rcov(band, phase)
-        except ValueError as e:
-            _check_for_fitpack_error(e, phase, 'phase')
-            raise e
+        # construct covariance array with relative variance on diagonal
+        diagonal = np.zeros(phase.shape, dtype=np.float64)
+        for b in set(band):
+            mask = band == b
+            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
+        result = np.diagflat(diagonal)
+
+        # add kcorr errors
+        for b in set(band):
+            mask1d = band == b
+            mask2d = mask1d * mask1d[:, None]  # mask for result array
+            kcorrerr = self._colordisp(b.wave_eff)
+            result[mask2d] += kcorrerr**2
+
+        return result
 
     def _set_colorlaw_from_file(self, name_or_obj):
-        """Read color law file and set the internal colorlaw function,"""
+        """Read color law file and set the internal colorlaw function."""
 
         # Read file
         if isinstance(name_or_obj, six.string_types):
@@ -1319,7 +1305,7 @@ class Model(_ModelBase):
         # Note that not all sources have this method. The idea
         # is that this will automatically fail if the method doesn't exist
         # for self._source.
-        rcov = self._source._bandflux_rcov(restband, phase)
+        rcov = self._source.bandflux_rcov(restband, phase)
 
         if ndim == 0:
             return rcov[0, 0]
