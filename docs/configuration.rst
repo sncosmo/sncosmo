@@ -39,24 +39,35 @@ Configuring the Directories
 What if you would rather use a different directory to store downloaded
 data?  Perhaps you'd rather the data not be in a hidden directory, or
 perhaps there are multiple users who wish to use a shared data
-directory. This is where the configuration file comes in. This file is
-found in the astropy configuration directory, e.g.,
-``$HOME/.astropy/config/sncosmo.cfg``. When you ``import sncosmo`` it
-checks for this file and creates a default one if it doesn't
-exist. The default one looks like this::
+directory. There are two options:
 
-    $ cat ~/.astropy/config/sncosmo.cfg 
+1. Set the environment variable ``SNCOSMO_DATA_DIR`` to the directory you
+   wish to use. For example, in bash::
 
-    ## Directory containing SFD (1998) dust maps, with names:
-    ## 'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'
-    ## Example: sfd98_dir = /home/user/data/sfd98
-    # sfd98_dir = None
+     export SNCOSMO_DATA_DIR=/home/user/data/sncosmo
 
-    ## Directory where sncosmo will store and read downloaded data resources.
-    ## If None, ASTROPY_CACHE_DIR/sncosmo will be used.
-    ## Example: data_dir = /home/user/data/sncosmo
-    # data_dir = None
+   If this environment variable is set, it takes precedence over the
+   second option (below).
 
-To change the data directory, simply uncomment the last line and set it to the
-desired directory. You can even move the data directory around, as long as you
-update this configuration parameter accordingly.
+2. Set the ``data_dir`` variable in the sncosmo configuartion file.
+   This file is found in the astropy configuration directory, e.g.,
+   ``$HOME/.astropy/config/sncosmo.cfg``. When you ``import sncosmo`` it
+   checks for this file and creates a default one if it doesn't
+   exist. The default one looks like this::
+
+     $ cat ~/.astropy/config/sncosmo.cfg
+
+     ## Directory containing SFD (1998) dust maps, with names:
+     ## 'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'
+     ## Example: sfd98_dir = /home/user/data/sfd98
+     # sfd98_dir = None
+
+     ## Directory where sncosmo will store and read downloaded data resources.
+     ## If None, ASTROPY_CACHE_DIR/sncosmo will be used.
+     ## Example: data_dir = /home/user/data/sncosmo
+     # data_dir = None
+
+  To change the data directory, simply uncomment the last line and set
+  it to the desired directory. You can even move the data directory
+  around, as long as you update this configuration parameter
+  accordingly.

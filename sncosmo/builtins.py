@@ -56,6 +56,9 @@ def get_url(name, version=None):
     return urls[key]
 
 
+CHECKED_DATA_DIR = None
+
+
 def get_data_dir():
     """Return the full path to the data directory, ensuring that it exists.
 
@@ -64,21 +67,38 @@ def get_data_dir():
 
     Otherwise, uses `(astropy cache dir)/sncosmo` (automatically created if
     it doesn't exist)."""
-    if conf.data_dir is not None:
-        if os.path.isdir(conf.data_dir):
-            return conf.data_dir
-        else:
+
+    global CHECKED_DATA_DIR
+
+    # use a global to avoid checking if the directory exists every time
+    if CHECKED_DATA_DIR is not None:
+        return CHECKED_DATA_DIR
+
+    # use the environment variable if set
+    data_dir = os.environ.get('SNCOSMO_DATA_DIR')
+
+    # otherwise, use config file value if set.
+    if data_dir is None:
+        data_dir = conf.data_dir
+
+    # if either of the above, check existance
+    if data_dir is not None:
+        if not os.path.isdir(data_dir):
             raise RuntimeError(
                 "data directory {0!r} not an existing directory"
                 .format(conf.data_dir))
-    else:
+
+    # if still None, use astropy cache dir and create if necessary
+    if data_dir is None:
         data_dir = join(get_cache_dir(), "sncosmo")
         if not os.path.isdir(data_dir):
             if os.path.exists(data_dir):
                 raise RuntimeError("{0} not a directory".format(data_dir))
-            else:
-                os.mkdir(data_dir)
-        return data_dir
+            os.mkdir(data_dir)
+
+    CHECKED_DATA_DIR = data_dir
+
+    return data_dir
 
 
 def get_abspath(relpath, name, version=None):

@@ -21,6 +21,11 @@ v1.5.0 (unreleased)
     >>> data['Fluxcov'].shape == (len(data), len(data))
     True
 
+- The environment variable ``SNCOSMO_DATA_DIR`` can be used to set the
+  path to the data directory. If set, it takes precedence over the
+  ``data_dir`` variable in the configuration file
+  (``$HOME/.astropy/config/sncosmo.cfg``).
+
 v1.4.0 (2016-11-16)
 ===================
 
