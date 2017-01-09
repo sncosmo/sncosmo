@@ -4,7 +4,6 @@ import copy
 
 import numpy as np
 from scipy.interpolate import splrep, splev
-
 from astropy.utils import lazyproperty
 from astropy.io import ascii
 import astropy.units as u
@@ -15,7 +14,9 @@ from .utils import warn_once
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass']
 
-HC_ERG_AA = const.h.cgs.value * const.c.to(u.AA / u.s).value
+H_ERG_S = const.h.cgs.value
+C_AA_PER_S = const.c.to(u.AA / u.s).value
+HC_ERG_AA = H_ERG_S * C_AA_PER_S
 
 _BANDPASSES = Registry()
 
@@ -224,6 +225,8 @@ class Bandpass(object):
         wave : `~numpy.ndarray`
         trans : `~numpy.ndarray`
         """
+
+        warn_once("Bandpass.to_unit", "1.5", "2.0")
 
         if unit is u.AA:
             return self.wave, self.trans

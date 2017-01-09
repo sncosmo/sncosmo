@@ -10,8 +10,7 @@ from astropy import cosmology
 from scipy.interpolate import splrep, splev
 
 from .bandpasses import get_bandpass, HC_ERG_AA
-from .models import _integration_grid
-from .utils import warn_once
+from .utils import warn_once, integration_grid
 
 __all__ = ['Spectrum']
 
@@ -167,8 +166,8 @@ class Spectrum(object):
 
         # Set up wavelength grid. Spacing (dwave) evenly divides the bandpass,
         # closest to 5 angstroms without going over.
-        wave, dwave = _integration_grid(band.minwave(), band.maxwave(),
-                                        SPECTRUM_BANDFLUX_SPACING)
+        wave, dwave = integration_grid(band.minwave(), band.maxwave(),
+                                       SPECTRUM_BANDFLUX_SPACING)
         trans = band(wave)
         f = splev(wave, self._tck, ext=1)
 

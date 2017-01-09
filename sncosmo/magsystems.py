@@ -8,7 +8,9 @@ import astropy.units as u
 import astropy.constants as const
 
 from ._registry import Registry
-from .bandpasses import get_bandpass
+from .bandpasses import get_bandpass, H_ERG_S
+from .utils import integration_grid
+from .spectrum import SPECTRUM_BANDFLUX_SPACING
 
 __all__ = ['get_magsystem', 'MagSystem', 'SpectralMagSystem',
            'ABMagSystem', 'CompositeMagSystem']
@@ -162,12 +164,19 @@ class ABMagSystem(MagSystem):
     frequencies has magnitude 0 in all bands."""
 
     def _refspectrum_bandflux(self, band):
-        bwave, btrans = band.to_unit(u.Hz)
+        wave, dwave = integration_grid(band.minwave(), band.maxwave(),
+                                       SPECTRUM_BANDFLUX_SPACING)
 
         # AB spectrum is 3631 x 10^{-23} erg/s/cm^2/Hz
-        # Get spectral values in photons/cm^2/s/Hz at bandpass wavelengths
-        # by dividing by (h \nu).
-        f = 3631.e-23 / const.h.cgs.value / bwave
-
-        binw = np.gradient(bwave)
-        return np.sum(f * btrans * binw)
+        #
+        # In F_lambda this is 3631e-23 * c[AA/s] / wave[AA]**2  erg/s/cm^2/AA
+        #
+        # To integrate, we do
+        #
+        # sum(f * trans * wave) * dwave / (hc[erg AA])
+        #
+        # so we can simplify the above into
+        #
+        #   sum(3631e-23 * c / wave * trans) * dwave / hc
+        # = 3631e-23 * dwave / h[ERG S] * sum(trans / wave)
+        return 3631e-23 * dwave / H_ERG_S * np.sum(band(wave) / wave)

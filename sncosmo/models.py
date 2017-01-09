@@ -24,6 +24,7 @@ from ._registry import Registry
 from .bandpasses import get_bandpass, Bandpass, HC_ERG_AA
 from .magsystems import get_magsystem
 from .salt2utils import BicubicInterpolator, SALT2ColorLaw
+from .utils import integration_grid
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'MLCS2k2Source', 'Model',
@@ -89,18 +90,6 @@ def get_source(name, version=None, copy=False):
         return cp(_SOURCES.retrieve(name, version=version))
 
 
-def _integration_grid(low, high, target_spacing):
-    """Divide the range between `start` and `stop` into uniform bins
-    with spacing less than or equal to `target_spacing` and return the
-    bin midpoints and the actual spacing."""
-
-    range_diff = high - low
-    spacing = range_diff / int(ceil(range_diff / target_spacing))
-    grid = np.arange(low + 0.5 * spacing, high, spacing)
-
-    return grid, spacing
-
-
 def _bandflux_single(model, band, time_or_phase):
     """Synthetic photometry of model through a single bandpass.
 
@@ -121,8 +110,8 @@ def _bandflux_single(model, band, time_or_phase):
 
     # Set up wavelength grid. Spacing (dwave) evenly divides the bandpass,
     # closest to 5 angstroms without going over.
-    wave, dwave = _integration_grid(band.minwave(), band.maxwave(),
-                                    MODEL_BANDFLUX_SPACING)
+    wave, dwave = integration_grid(band.minwave(), band.maxwave(),
+                                   MODEL_BANDFLUX_SPACING)
     trans = band(wave)
     f = model._flux(time_or_phase, wave)
 
@@ -707,8 +696,8 @@ class SALT2Source(Source):
         x1 = self._parameters[1]
 
         # integrate m0 and m1 components
-        wave, dwave = _integration_grid(band.minwave(), band.maxwave(),
-                                        MODEL_BANDFLUX_SPACING)
+        wave, dwave = integration_grid(band.minwave(), band.maxwave(),
+                                       MODEL_BANDFLUX_SPACING)
         trans = band(wave)
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)

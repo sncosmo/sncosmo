@@ -24,7 +24,9 @@ def test_spectralmagsystem():
     the same as AB."""
 
     # construct a spectrum with same flux as AB: 3631 x 10^{-23} erg/s/cm^2/Hz
-    wave = np.linspace(1000., 20000., 1000)
+    # Use a fine grid to reduce linear interpolation errors when integrating
+    # in Spectrum.bandflux().
+    wave = np.linspace(1000., 20000., 100000)  # fine grid
     flux = 3631.e-23 * np.ones_like(wave)
     unit = u.erg / u.s / u.cm**2 / u.Hz
     s = sncosmo.Spectrum(wave, flux, unit=unit)
@@ -32,10 +34,8 @@ def test_spectralmagsystem():
 
     magsys2 = sncosmo.ABMagSystem()
 
-    # Match is only good to 1e-3. Probably due to different methods
-    # of calculating bandflux between Spectrum and ABMagSystem.
     assert_allclose(magsys1.zpbandflux('bessellb'),
-                    magsys2.zpbandflux('bessellb'), rtol=1e-3)
+                    magsys2.zpbandflux('bessellb'))
 
 
 @remote_data
