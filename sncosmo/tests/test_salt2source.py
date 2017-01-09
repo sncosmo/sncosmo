@@ -92,4 +92,4 @@ def test_salt2source_rcov_vs_snfit():
         ref = np.loadtxt(fname, skiprows=1)
 
         rcov = model._bandflux_rcov(band, times)
-        assert_allclose(ref, rcov, rtol=5.e-5)
+        assert_allclose(ref, rcov, rtol=6.e-5)

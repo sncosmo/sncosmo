@@ -7,16 +7,12 @@ from scipy.interpolate import splrep, splev
 from astropy.utils import lazyproperty
 from astropy.io import ascii
 import astropy.units as u
-import astropy.constants as const
 
 from ._registry import Registry
-from .utils import warn_once
+from .utils import warn_once, integration_grid
+from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass']
-
-H_ERG_S = const.h.cgs.value
-C_AA_PER_S = const.c.to(u.AA / u.s).value
-HC_ERG_AA = H_ERG_S * C_AA_PER_S
 
 _BANDPASSES = Registry()
 
@@ -206,8 +202,10 @@ class Bandpass(object):
     @lazyproperty
     def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
-        weights = self.trans * np.gradient(self.wave)
-        return np.sum(self.wave * weights) / np.sum(weights)
+        wave, _ = integration_grid(self.minwave(), self.maxwave(),
+                                   SPECTRUM_BANDFLUX_SPACING)
+        weights = self(wave)
+        return np.sum(wave * weights) / np.sum(weights)
 
     def to_unit(self, unit):
         """Return wavelength and transmission in new wavelength units.

@@ -21,16 +21,15 @@ import extinction
 
 from .io import read_griddata_ascii, read_griddata_fits
 from ._registry import Registry
-from .bandpasses import get_bandpass, Bandpass, HC_ERG_AA
+from .bandpasses import get_bandpass, Bandpass
 from .magsystems import get_magsystem
 from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 from .utils import integration_grid
+from .constants import HC_ERG_AA, MODEL_BANDFLUX_SPACING
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'MLCS2k2Source', 'Model',
            'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
-
-MODEL_BANDFLUX_SPACING = 5.
 
 _SOURCES = Registry()
 

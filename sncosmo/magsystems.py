@@ -8,9 +8,9 @@ import astropy.units as u
 import astropy.constants as const
 
 from ._registry import Registry
-from .bandpasses import get_bandpass, H_ERG_S
+from .bandpasses import get_bandpass
 from .utils import integration_grid
-from .spectrum import SPECTRUM_BANDFLUX_SPACING
+from .constants import H_ERG_S, SPECTRUM_BANDFLUX_SPACING
 
 __all__ = ['get_magsystem', 'MagSystem', 'SpectralMagSystem',
            'ABMagSystem', 'CompositeMagSystem']

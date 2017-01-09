@@ -9,12 +9,12 @@ import astropy.constants as const
 from astropy import cosmology
 from scipy.interpolate import splrep, splev
 
-from .bandpasses import get_bandpass, HC_ERG_AA
+from .bandpasses import get_bandpass
 from .utils import warn_once, integration_grid
+from .constants import SPECTRUM_BANDFLUX_SPACING, HC_ERG_AA
 
 __all__ = ['Spectrum']
 
-SPECTRUM_BANDFLUX_SPACING = 1.0
 FLAMBDA_UNIT = u.erg / u.s / u.cm**2 / u.AA
 
 
