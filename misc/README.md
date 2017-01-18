@@ -9,13 +9,20 @@ INC=/path/to/snfit/install/dir/include
 LIB=/path/to/snfit/install/dir/lib
 ```
 
-Then run `make`.
+Then run `make`. Set the `SALTPATH` environment variable to the location
+of the SALT data files before running the program. In bash:
 
-The file `gen_interp_test_data.py` generates files in `sncosmo/tests/data` that
-the C++ program reads.
+```
+export SALTPATH=/path/to/snfit_data
+```
+
+
+## `gen_interp_test_data.py`
+
+Generates files in `sncosmo/tests/data` that the above `test_salt2model` C++
+program reads.
 
 
 ## `gen_example_data.py`
 
-This is used to, as the name implies, generate the example photometric data distributed with sncosmo and loaded with `load_example_data.py`.
-
+This is used, as the name implies, to generate the example photometric data distributed with sncosmo and loaded with `load_example_data.py`.

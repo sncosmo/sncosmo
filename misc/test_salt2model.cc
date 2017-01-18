@@ -124,7 +124,48 @@ void evaluate_and_write_timeseries(const Salt2Model *model,
     }
     out.close();
 }
-        
+
+void test_bandpass_interpolation() {
+
+    Instrument *megacampsf = new Instrument("MEGACAMPSF");
+
+    double area = megacampsf->MirrorArea();
+    
+    // evaluate two filters at two different radial positions
+    vector<string> bands = {"g", "z"};
+    vector<double> x_coords = {2.0, 8.0};
+    vector<double> y_coords = {3.5, 7.5};
+    vector<vector<double>> wave = {
+        {3600., 3800., 4000., 4200., 4400., 4600., 4800.,
+         5000., 5200., 5400., 5600., 5800., 6000., 6200.},
+        {7600., 8000., 8400., 8800., 9200., 9600., 10000.,
+         10400., 10800., 11200.}};
+    
+    for (auto const& band: bands) {
+        for (size_t i=0; i<x_coords.size(); i++) {
+            
+            double x_coord = x_coords[i];
+            double y_coord = y_coords[i];
+            double r = sqrt(x_coord * x_coord + y_coord * y_coord);
+            
+            FocalPlanePosition P(x_coord, y_coord);
+            Filter filter = megacampsf->EffectiveFilterByBand(band, &P);
+
+            // evaluate filter and write out
+            ofstream out("../sncosmo/tests/data/snfit_filter_" + band + "_" + to_string(i) + ".dat");
+            out << "@name MEGACAMPSF::" << band << endl;
+            out << "@radius " << r;
+            for (auto const& w: wave[i]) {
+                out.precision(7);
+                out << w << " ";
+                out.precision(12);
+                out << filter.Value(w) / area << endl;
+            }
+            out.close();
+        }
+    }
+}
+
     
 int main(int nargs, char **args)
 {
@@ -215,6 +256,9 @@ int main(int nargs, char **args)
         modelrcov.writeASCII("../sncosmo/tests/data/salt2_rcov_snfit_" + filters[i].InstrumentName() + filters[i].Band() + ".dat");
     }
 
+    // -----------------------------------------------------------------------
+    // Test bandpass interpolation
 
-
+    test_bandpass_interpolation();
+    
 } // end main
