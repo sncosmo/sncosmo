@@ -173,7 +173,7 @@ class Spectrum(object):
 
         return np.sum(wave * trans * f) * dwave / HC_ERG_AA
 
-    def redshifted_to(self, z, adjustflux=False, dist=None, cosmo=None):
+    def redshifted_to(self, z, adjust_flux=False, dist=None, cosmo=None):
         """Return a new Spectrum object at a new redshift.
 
         The current redshift must be defined (self.z cannot be `None`).
