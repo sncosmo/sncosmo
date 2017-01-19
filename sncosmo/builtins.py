@@ -21,11 +21,11 @@ from astropy.config import ConfigItem, get_cache_dir
 from astropy.extern import six
 from astropy.utils.data import get_pkg_data_filename
 
-from . import registry
 from . import io
-from .utils import download_file, download_dir
-from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source
-from .bandpasses import Bandpass, read_bandpass, _BANDPASSES
+from . import snfitio
+from .utils import download_file, download_dir, DataMirror
+from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source, _SOURCES
+from .bandpasses import Bandpass, read_bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS
 from .spectrum import Spectrum
 from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
                          CompositeMagSystem, _MAGSYSTEMS)
@@ -34,46 +34,8 @@ from . import conf
 # This module is only imported for its side effects.
 __all__ = []
 
-# Dictionary of urls, used by get_url()
-urls = None
 
-
-def get_url(name, version=None):
-    """Get the URL for the remote data associated with name, version"""
-    global urls
-
-    # Only download the URL look up table once.
-    if urls is None:
-        from six.moves.urllib.request import urlopen
-        import json
-        f = urlopen("http://sncosmo.github.io/data/urls.json")
-        reader = codecs.getreader("utf-8")
-        urls = json.load(reader(f))
-        f.close()
-
-    key = name if (version is None) else "{0}_v{1}".format(name, version)
-
-    return urls[key]
-
-
-CHECKED_DATA_DIR = None
-
-
-def get_data_dir():
-    """Return the full path to the data directory, ensuring that it exists.
-
-    If the 'data_dir' configuration parameter is set, checks that it exists
-    and returns it (doesn't automatically create it).
-
-    Otherwise, uses `(astropy cache dir)/sncosmo` (automatically created if
-    it doesn't exist)."""
-
-    global CHECKED_DATA_DIR
-
-    # use a global to avoid checking if the directory exists every time
-    if CHECKED_DATA_DIR is not None:
-        return CHECKED_DATA_DIR
-
+def get_rootdir():
     # use the environment variable if set
     data_dir = os.environ.get('SNCOSMO_DATA_DIR')
 
@@ -81,14 +43,7 @@ def get_data_dir():
     if data_dir is None:
         data_dir = conf.data_dir
 
-    # if either of the above, check existance
-    if data_dir is not None:
-        if not os.path.isdir(data_dir):
-            raise RuntimeError(
-                "data directory {0!r} not an existing directory"
-                .format(conf.data_dir))
-
-    # if still None, use astropy cache dir and create if necessary
+    # if still None, use astropy cache dir (and create if necessary!)
     if data_dir is None:
         data_dir = join(get_cache_dir(), "sncosmo")
         if not os.path.isdir(data_dir):
@@ -96,45 +51,10 @@ def get_data_dir():
                 raise RuntimeError("{0} not a directory".format(data_dir))
             os.mkdir(data_dir)
 
-    CHECKED_DATA_DIR = data_dir
-
     return data_dir
 
 
-def get_abspath(relpath, name, version=None):
-    """Return the absolute path to a sncosmo data file, ensuring that
-    it exists (file will be downloaded if needed).
-
-    Parameters
-    ----------
-    relpath : str
-        Relative path; data directory will be appended.
-    name : str
-        Name of built-in, used to look up URL if needed.
-    version : str
-        Version of built-in, used to look up URL if needed.
-    """
-
-    abspath = join(get_data_dir(), relpath)
-
-    if not os.path.exists(abspath):
-        url = get_url(name, version)
-
-        # If it's a tar file, download and unpack a directory.
-        if url.endswith(".tar.gz") or url.endswith(".tar"):
-            dirname = os.path.dirname(abspath)
-            download_dir(url, dirname)
-
-            # ensure that tarfile unpacked into the expected directory
-            if not os.path.exists(abspath):
-                raise RuntimeError("Tarfile not unpacked into expected "
-                                   "subdirectory. Please file an issue.")
-
-        # Otherwise, its a single file.
-        else:
-            download_file(url, abspath)
-
-    return abspath
+DATADIR = DataMirror(get_rootdir, "http://sncosmo.github.io/data")
 
 
 # =============================================================================
@@ -157,8 +77,8 @@ def load_bandpass_bessell(pkg_data_name, name=None):
                          normalize=True, name=name)
 
 
-def load_bandpass_remote_nm(relpath, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
+def load_bandpass_remote_nm(relpath, name=None):
+    abspath = DATADIR.abspath(relpath)
     return read_bandpass(abspath, wave_unit=u.nm, name=name)
 
 
@@ -243,9 +163,8 @@ bands = [('bessellux', 'bessell/bessell_ux.dat', bessell_meta),
          ('bessellr', 'bessell/bessell_r.dat', bessell_meta),
          ('besselli', 'bessell/bessell_i.dat', bessell_meta)]
 for name, fname, meta in bands:
-    registry.register_loader(Bandpass, name, load_bandpass_bessell,
-                             args=['data/bandpasses/' + fname],
-                             meta=meta)
+    _BANDPASSES.register_loader(name, load_bandpass_bessell,
+                                args=('data/bandpasses/' + fname,), meta=meta)
 
 bands = [('desg', 'des/des_g.dat', des_meta),
          ('desr', 'des/des_r.dat', des_meta),
@@ -313,9 +232,9 @@ bands = [('desg', 'des/des_g.dat', des_meta),
 
 
 for name, fname, meta in bands:
-    registry.register_loader(Bandpass, name, load_bandpass_angstroms,
-                             args=['data/bandpasses/' + fname],
-                             meta=meta)
+    _BANDPASSES.register_loader(name, load_bandpass_angstroms,
+                                args=('data/bandpasses/' + fname,),
+                                meta=meta)
 
 # aliases for sdss
 _BANDPASSES.alias('sdss::u', 'sdssu')
@@ -346,9 +265,9 @@ bands = [('f070w', 'jwst/jwst_nircam_f070w.dat', jwst_nircam_meta),
          ('f480m', 'jwst/jwst_nircam_f480m.dat', jwst_nircam_meta)]
 
 for name, fname, meta in bands:
-    registry.register_loader(Bandpass, name, load_bandpass_microns,
-                             args=['data/bandpasses/' + fname],
-                             meta=meta)
+    _BANDPASSES.register_loader(name, load_bandpass_microns,
+                                args=('data/bandpasses/' + fname,),
+                                meta=meta)
 
 jwst_miri_meta = {'filterset': 'jwst-miri',
                   'dataurl': 'http://www.stsci.edu/jwst/instruments/miri/'
@@ -369,8 +288,8 @@ for name, ctr, width in [('f560w', 5.6, 1.2),
                          ('f1140c', 11.4, 0.57),
                          ('f1550c', 15.5, 0.78),
                          ('f2300c', 23., 4.6)]:
-    registry.register_loader(Bandpass, name, tophat_bandpass,
-                             args=[ctr, width], meta=jwst_miri_meta)
+    _BANDPASSES.register_loader(name, tophat_bandpass,
+                                args=(ctr, width), meta=jwst_miri_meta)
 
 
 lsst_meta = {'filterset': 'lsst',
@@ -382,8 +301,8 @@ lsst_meta = {'filterset': 'lsst',
 for letter in ['u', 'g', 'r', 'i', 'z', 'y']:
     name = 'lsst' + letter
     relpath = 'bandpasses/lsst/total_{}.dat'.format(letter)
-    registry.register_loader(Bandpass, name, load_bandpass_remote_nm,
-                             args=(relpath,), meta=lsst_meta)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_nm,
+                                args=(relpath,), meta=lsst_meta)
 
 
 # =============================================================================
@@ -391,14 +310,14 @@ for letter in ['u', 'g', 'r', 'i', 'z', 'y']:
 
 
 def load_timeseries_ascii(relpath, zero_before=False, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
+    abspath = DATADIR.abspath(relpath)
     phase, wave, flux = io.read_griddata_ascii(abspath)
     return TimeSeriesSource(phase, wave, flux, name=name, version=version,
                             zero_before=zero_before)
 
 
 def load_timeseries_fits(relpath, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
+    abspath = DATADIR.abspath(relpath)
     phase, wave, flux = io.read_griddata_fits(abspath)
     return TimeSeriesSource(phase, wave, flux, name=name, version=version)
 
@@ -410,7 +329,7 @@ def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
 
 
 def load_salt2model(relpath, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
+    abspath = DATADIR.abspath(relpath, isdir=True)
     return SALT2Source(modeldir=abspath, name=name, version=version)
 
 
@@ -420,7 +339,7 @@ def load_2011fe(relpath, name=None, version=None):
     warnings.filterwarnings('ignore', category=wcs.FITSFixedWarning,
                             append=True)
 
-    abspath = get_abspath(relpath, name, version=version)
+    abspath = DATADIR.abspath(relpath, isdir=True)
 
     phasestrs = []
     spectra = []
@@ -491,8 +410,8 @@ for suffix, ver, sntype, ref in [('sn1a', '1.2', 'SN Ia', n02ref),
                                  ('sn2n', '2.1', 'SN IIn', g99ref)]:
     name = "nugent-" + suffix
     relpath = "models/nugent/{0}_flux.v{1}.dat".format(suffix, ver)
-    registry.register_loader(Source, name, load_timeseries_ascii,
-                             args=[relpath], version=ver,
+    _SOURCES.register_loader(name, load_timeseries_ascii,
+                             args=(relpath,), version=ver,
                              meta={'url': website, 'type': sntype,
                                    'subclass': subclass, 'reference': ref})
 
@@ -513,8 +432,8 @@ for name, sntype, fn in [('s11-2004hx', 'SN IIL/P', 'S11_SDSS-000018.SED'),
                          ('s11-2006jl', 'SN IIP', 'S11_SDSS-014599.SED')]:
     meta = {'url': website, 'type': sntype, 'subclass': subclass,
             'reference': ref, 'note': note}
-    registry.register_loader(Source, name, load_timeseries_ascii,
-                             args=['models/sako/' + fn], version='1.0',
+    _SOURCES.register_loader(name, load_timeseries_ascii,
+                             args=('models/sako/' + fn,), version='1.0',
                              meta=meta)
 
 # Hsiao models
@@ -527,14 +446,14 @@ meta = {'url': 'http://csp.obs.carnegiescience.edu/data/snpy',
 for version, fn in [('1.0', 'Hsiao_SED.fits'),
                     ('2.0', 'Hsiao_SED_V2.fits'),
                     ('3.0', 'Hsiao_SED_V3.fits')]:
-    registry.register_loader(Source, 'hsiao', load_timeseries_fits,
-                             args=['models/hsiao/' + fn], version=version,
+    _SOURCES.register_loader('hsiao', load_timeseries_fits,
+                             args=('models/hsiao/' + fn,), version=version,
                              meta=meta)
 
 # subsampled version of Hsiao v3.0, for testing purposes.
-registry.register_loader(Source, 'hsiao-subsampled',
+_SOURCES.register_loader('hsiao-subsampled',
                          load_timeseries_fits_local,
-                         args=['data/models/Hsiao_SED_V3_subsampled.fits'],
+                         args=('data/models/Hsiao_SED_V3_subsampled.fits',),
                          version='3.0', meta=meta)
 
 # SALT2 models
@@ -547,8 +466,8 @@ for topdir, ver, ref in [('salt2-2-0', '2.0', g10ref),
                          ('salt2-4', '2.4', b14ref)]:
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
             'url': website, 'reference': ref}
-    registry.register_loader(Source, 'salt2', load_salt2model,
-                             args=['models/salt2/'+topdir],
+    _SOURCES.register_loader('salt2', load_salt2model,
+                             args=('models/salt2/'+topdir,),
                              version=ver, meta=meta)
 
 # SALT2 extended
@@ -556,8 +475,8 @@ meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT2Source`',
         'url': 'http://sdssdp62.fnal.gov/sdsssn/SNANA-PUBLIC/',
         'note': "extracted from SNANA's SNDATA_ROOT on 15 August 2013."}
-registry.register_loader(Source, 'salt2-extended', load_salt2model,
-                         args=['models/snana/salt2_extended'], version='1.0',
+_SOURCES.register_loader('salt2-extended', load_salt2model,
+                         args=('models/snana/salt2_extended',), version='1.0',
                          meta=meta)
 
 # 2011fe
@@ -566,8 +485,8 @@ meta = {'type': 'SN Ia',
         'url': 'http://snfactory.lbl.gov/snf/data',
         'reference': ('P13', 'Pereira et al. 2013 '
                       '<http://adsabs.harvard.edu/abs/2013A%26A...554A..27P>')}
-registry.register_loader(Source, 'snf-2011fe', load_2011fe, version='1.0',
-                         args=['models/snf/SN2011fe'], meta=meta)
+_SOURCES.register_loader('snf-2011fe', load_2011fe, version='1.0',
+                         args=('models/snf/SN2011fe',), meta=meta)
 
 
 # SNANA CC SN models
@@ -624,8 +543,8 @@ for name, sntype, fn in models:
     relpath = 'models/snana/' + fn
     meta = {'url': url, 'subclass': subclass, 'type': sntype, 'ref': ref,
             'note': note}
-    registry.register_loader(Source, name, load_timeseries_ascii,
-                             args=[relpath], version='1.0', meta=meta)
+    _SOURCES.register_loader(name, load_timeseries_ascii,
+                             args=(relpath,), version='1.0', meta=meta)
 
 
 # Pop III CC SN models from D.Whalen et al. 2013.
@@ -644,13 +563,13 @@ for name, fn in [('whalen-z15b', 'popIII-z15B.sed.restframe10pc.dat'),
                  ('whalen-z40b', 'popIII-z40B.sed.restframe10pc.dat'),
                  ('whalen-z40g', 'popIII-z40G.sed.restframe10pc.dat')]:
     relpath = 'models/whalen/' + fn
-    registry.register_loader(Source, name, load_timeseries_ascii,
-                             args=[relpath, True], version='1.0', meta=meta)
+    _SOURCES.register_loader(name, load_timeseries_ascii,
+                             args=(relpath, True), version='1.0', meta=meta)
 
 
 # MLCS2k2
 def load_mlcs2k2(relpath, name=None, version=None):
-    abspath = get_abspath(relpath, name, version=version)
+    abspath = DATADIR.abspath(relpath)
     return MLCS2k2Source(abspath, name=name, version=version)
 
 meta = {'type': 'SN Ia',
@@ -660,8 +579,8 @@ meta = {'type': 'SN Ia',
                       '<http://adsabs.harvard.edu/abs/2007ApJ...659..122J>'),
         'note': 'In MLCS2k2 language, this version corresponds to '
         '"MLCS2k2 v0.07 rv19-early-smix vectors"'}
-registry.register_loader(Source, 'mlcs2k2', load_mlcs2k2,
-                         args=['models/mlcs2k2/mlcs2k2.modelflux.fits'],
+_SOURCES.register_loader('mlcs2k2', load_mlcs2k2,
+                         args=('models/mlcs2k2/mlcs2k2.modelflux.v1.0.fits',),
                          version='1.0', meta=meta)
 
 # =============================================================================
@@ -673,7 +592,7 @@ def load_ab(name=None):
 
 
 def load_spectral_magsys_fits(relpath, name=None):
-    abspath = get_abspath(relpath, name)
+    abspath = DATADIR.abspath(relpath)
     hdulist = fits.open(abspath)
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
@@ -712,8 +631,8 @@ def load_ab_b12(**kwargs):
 
 
 # AB
-registry.register_loader(
-    MagSystem, 'ab', load_ab,
+_MAGSYSTEMS.register_loader(
+    'ab', load_ab,
     meta={'subclass': '`~sncosmo.ABMagSystem`',
           'description': 'Source of 3631 Jy has magnitude 0 in all bands'})
 
@@ -724,22 +643,22 @@ vega_desc = 'Vega (alpha lyrae) has magnitude 0 in all bands.'
 bd17_desc = 'BD+17d4708 has magnitude 0 in all bands.'
 for name, fn, desc in [('vega', 'alpha_lyr_stis_007.fits', vega_desc),
                        ('bd17', 'bd_17d4708_stisnic_005.fits', bd17_desc)]:
-    registry.register_loader(MagSystem, name, load_spectral_magsys_fits,
-                             args=['spectra/' + fn],
-                             meta={'subclass': subclass, 'url': website,
-                                   'description': desc})
+    _MAGSYSTEMS.register_loader(name, load_spectral_magsys_fits,
+                                args=('spectra/' + fn,),
+                                meta={'subclass': subclass, 'url': website,
+                                      'description': desc})
 
 # CSP
-registry.register_loader(
-    MagSystem, 'csp', load_csp,
+_MAGSYSTEMS.register_loader(
+    'csp', load_csp,
     meta={'subclass': '`~sncosmo.CompositeMagSystem`',
           'url': 'http://csp.obs.carnegiescience.edu/data/filters',
           'description': 'Carnegie Supernova Project magnitude system.'})
 
 
 # ab_b12
-registry.register_loader(
-    MagSystem, 'ab-b12', load_ab_b12,
+_MAGSYSTEMS.register_loader(
+    'ab-b12', load_ab_b12,
     meta={'subclass': '`~sncosmo.CompositeMagSystem`',
           'url': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
           'description': 'Betoule et al (2012) calibration of SDSS system.'})

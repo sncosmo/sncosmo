@@ -6,6 +6,7 @@ import sys
 import math
 import warnings
 import socket
+import codecs
 
 import numpy as np
 from scipy import integrate, optimize
@@ -384,9 +385,13 @@ class DataMirror(object):
     """
 
     def __init__(self, rootdir, remote_root):
+        if not remote_root.endswith('/'):
+            remote_root = remote_root + '/'
+
         self._checked_rootdir = None
         self._rootdir = rootdir
         self._remote_root = remote_root
+
         self._redirects = None
 
     def rootdir(self):
@@ -413,24 +418,21 @@ class DataMirror(object):
 
     def _fetch_redirects(self):
         from six.moves.urllib.request import urlopen
-        from six.moves.urllib.parse import urljoin
         import json
 
-        f = urlopen(urljoin(self._remote_root, "redirects.json"))
+        f = urlopen(self._remote_root + "redirects.json")
         reader = codecs.getreader("utf-8")
         self._redirects = json.load(reader(f))
         f.close()
 
     def _get_url(self, remote_relpath):
-        from six.moves.urllib.parse import urljoin
-
         if self._redirects is None:
             self._fetch_redirects()
 
         if remote_relpath in self._redirects:
             return self._redirects[remote_relpath]
         else:
-            return urljoin(self._remote_root, remote_relpath)
+            return self._remote_root + remote_relpath
 
     def abspath(self, relpath, isdir=False):
         """Return absolute path to file or directory, ensuring that it exists.
@@ -455,6 +457,7 @@ class DataMirror(object):
                     raise RuntimeError("Tarfile not unpacked into expected "
                                        "subdirectory. Please file an issue.")
             else:
+                url = self._get_url(relpath)
                 download_file(url, abspath)
 
         return abspath
