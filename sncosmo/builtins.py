@@ -24,8 +24,10 @@ from astropy.utils.data import get_pkg_data_filename
 from . import io
 from . import snfitio
 from .utils import download_file, download_dir, DataMirror
-from .models import Source, TimeSeriesSource, SALT2Source, MLCS2k2Source, _SOURCES
-from .bandpasses import Bandpass, read_bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS
+from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source,
+                     _SOURCES)
+from .bandpasses import (Bandpass, read_bandpass, _BANDPASSES,
+                         _BANDPASS_INTERPOLATORS)
 from .spectrum import Spectrum
 from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
                          CompositeMagSystem, _MAGSYSTEMS)
@@ -304,6 +306,18 @@ for letter in ['u', 'g', 'r', 'i', 'z', 'y']:
     _BANDPASSES.register_loader(name, load_bandpass_remote_nm,
                                 args=(relpath,), meta=lsst_meta)
 
+
+# =============================================================================
+# bandpass interpolators
+
+
+def load_megacampsf(letter, name=None):
+    abspath = DATADIR.abspath('bandpasses/megacampsf', isdir=True)
+    return snfitio.read_snfit_bandpass_interpolator(abspath, letter, name=name)
+
+for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
+    _BANDPASS_INTERPOLATORS.register_loader('megacampsf::' + letter,
+                                            load_megacampsf, args=(letter,))
 
 # =============================================================================
 # Sources

@@ -1,10 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
+import os
 
 import numpy as np
 from numpy.testing import assert_allclose
+from astropy.tests.helper import remote_data
 
 import sncosmo
 from sncosmo import Bandpass
+from sncosmo.tests.test_salt2source import read_header
 
 
 def test_bandpass_access():
@@ -82,3 +85,22 @@ def test_bandpass_bessell():
     # scaled_trans should be proportional to trans
     factor = scaled_trans[0] / trans[0]
     assert_allclose(scaled_trans, factor * trans)
+
+
+@remote_data
+def test_megacampsf_bandpass():
+    dirname = os.path.join(os.path.dirname(__file__), "data")
+
+    for letter in ('g', 'z'):
+        for i in (0, 1):
+            fname = os.path.join(
+                dirname, 'snfit_filter_{:s}_{:d}.dat'.format(letter, i))
+
+            with open(fname, 'r') as f:
+                meta = read_header(f)
+                wave, trans_ref = np.loadtxt(f, unpack=True)
+
+            # sncosmo version of bandpass:
+            band = sncosmo.get_bandpass('megacampsf::'+letter, meta['radius'])
+            trans = band(wave)
+            assert_allclose(trans, trans_ref)

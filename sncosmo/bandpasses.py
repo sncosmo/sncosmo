@@ -15,13 +15,18 @@ from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass']
 
 _BANDPASSES = Registry()
+_BANDPASS_INTERPOLATORS = Registry()
 
 
-def get_bandpass(name):
+def get_bandpass(name, *args):
     """Get a Bandpass from the registry by name."""
     if isinstance(name, Bandpass):
         return name
-    return _BANDPASSES.retrieve(name)
+    if len(args) == 0:
+        return _BANDPASSES.retrieve(name)
+    else:
+        interp = _BANDPASS_INTERPOLATORS.retrieve(name)
+        return interp.at(*args)
 
 
 def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
@@ -306,3 +311,141 @@ class Bandpass(object):
         if self.name is not None:
             name = ' {0!r:s}'.format(self.name)
         return "<Bandpass{0:s} at 0x{1:x}>".format(name, id(self))
+
+
+class _SampledFunction(object):
+    """Represents a 1-d continuous function, used in AggregateBandpass."""
+
+    def __init__(self, x, y):
+        self.x = np.asarray(x, dtype=np.float64)
+        self.y = np.asarray(y, dtype=np.float64)
+        self.xmin = x[0]
+        self.xmax = x[-1]
+        self._tck = splrep(self.x, self.y, k=1)
+
+    def __call__(self, x):
+        return splev(x, self._tck, ext=1)
+
+
+class AggregateBandpass(Bandpass):
+    """Bandpass defined by multiple transmissions in series.
+
+    Parameters
+    ----------
+    transmissions : list of (wave, trans) pairs.
+        Functions defining component transmissions.
+    prefactor : float, optional
+        Scalar factor to multiply transmissions by. Default is 1.0.
+    name : str, optional
+        Name of bandpass.
+    """
+
+    def __init__(self, transmissions, prefactor=1.0, name=None):
+        if len(transmissions) < 1:
+            raise ValueError("empty list of transmissions")
+
+        # Set up transmissions as `_SampledFunction`s.
+        #
+        # We allow passing `_SampledFunction`s directly to allow
+        # RadialBandpassGenerator to generate AggregateBandpasses a
+        # bit more efficiently, even though _SampledFunction isn't
+        # part of the public API.
+        self.transmissions = [t if isinstance(t, _SampledFunction)
+                              else _SampledFunction(t[0], t[1])
+                              for t in transmissions]
+        self.prefactor = prefactor
+        self.name = name
+
+        # Determine min/max wave: since sampled functions are zero outside
+        # their domain, minwave is the *largest* minimum x value, and
+        # vice-versa for maxwave.
+        self._minwave = max(t.xmin for t in self.transmissions)
+        self._maxwave = min(t.xmax for t in self.transmissions)
+
+    def minwave(self):
+        return self._minwave
+
+    def maxwave(self):
+        return self._maxwave
+
+    def __str__(self):
+        return ("AggregateBandpass: {:d} components, prefactor={!r}, "
+                "range=({!r}, {!r}), name={!r}"
+                .format(len(self.transmissions), self.prefactor,
+                        self.minwave(), self.maxwave(), self.name))
+
+    def __call__(self, wave):
+        t = self.transmissions[0](wave)
+        for trans in self.transmissions[1:]:
+            t *= trans(wave)
+        t *= self.prefactor
+        return t
+
+
+class BandpassInterpolator(object):
+    """Bandpass defined as a function of focal plane position.
+
+    Parameters
+    ----------
+    transmissions : list of (wave, trans) pairs
+        Transmissions that apply everywhere in the focal plane.
+    dependent_transmissions :  list of (value, wave, trans)
+        Transmissions that depend on some parameter. Each `value` is the
+        scalar parameter value, `wave` and `trans` are 1-d arrays.
+    prefactor : float, optional
+        Scalar multiplying factor.
+    name : str
+    """
+    def __init__(self, transmissions, dependent_transmissions,
+                 prefactor=1.0, name=None):
+
+        # create sampled functions for normal transmissions
+        self.transmissions = [_SampledFunction(t[0], t[1])
+                              for t in transmissions]
+
+        # ensure dependent transmissions are sorted
+        sorted_trans = sorted(dependent_transmissions, key=lambda x: x[0])
+        self.dependent_transmissions = [(t[0], _SampledFunction(t[1], t[2]))
+                                        for t in sorted_trans]
+
+        self.prefactor = prefactor
+
+        self.name = name
+
+    def minpos(self):
+        """Minimum positional parameter value."""
+        return self.dependent_transmissions[0][0]
+
+    def maxpos(self):
+        """Maximum positional parameter value."""
+        return self.dependent_transmissions[-1][0]
+
+    def at(self, pos):
+        """Return the bandpass at the given position"""
+
+        if pos < self.minpos() or pos >= self.maxpos():
+            raise ValueError("Position outside bounds")
+
+        # find index such that t[i-1] <= pos < t[i]
+        i = 1
+        while (i < len(self.dependent_transmissions) and
+               pos > self.dependent_transmissions[i][0]):
+            i += 1
+
+        # linearly interpolate second transmission onto first
+        v0, f0 = self.dependent_transmissions[i-1]
+        v1, f1 = self.dependent_transmissions[i]
+        w1 = (pos - v0) / (v1 - v0)
+        w0 = 1.0 - w1
+        x = f0.x
+        y = w0 * f0.y + w1 * f1(x)
+        f = _SampledFunction(x, y)
+
+        transmissions = copy.copy(self.transmissions)  # shallow copy the list
+        transmissions.append(f)
+
+        name = "" if self.name is None else (self.name + " ")
+        name += "at {:f}".format(pos)
+
+        return AggregateBandpass(transmissions, prefactor=self.prefactor,
+                                 name=name)

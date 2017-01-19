@@ -154,7 +154,7 @@ void test_bandpass_interpolation() {
             // evaluate filter and write out
             ofstream out("../sncosmo/tests/data/snfit_filter_" + band + "_" + to_string(i) + ".dat");
             out << "@name MEGACAMPSF::" << band << endl;
-            out << "@radius " << r;
+            out << "@radius " << r << endl;
             for (auto const& w: wave[i]) {
                 out.precision(7);
                 out << w << " ";

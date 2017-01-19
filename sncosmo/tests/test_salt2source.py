@@ -11,6 +11,17 @@ from astropy.tests.helper import remote_data
 import sncosmo
 
 
+def _parse_value(s):
+    try:
+        x = int(s)
+    except:
+        try:
+            x = float(s)
+        except:
+            x = s
+    return x
+
+
 def read_header(f):
     """Read header from the open file `f` until first line that doesn't
     start with # or @."""
@@ -25,7 +36,7 @@ def read_header(f):
             continue
         elif line[0] == '@':
             key, value = line[1:-1].split()
-            meta[key] = float(value)
+            meta[key] = _parse_value(value)
         else:
             f.seek(pos)
             break
