@@ -46,10 +46,10 @@ class Registry(object):
         # check if key already exists in the registry
         if key in self._loaders and not force:
             versionstr = \
-                "" if version is None else " (version='{0:s}')".format(version)
-            raise Exception("Loader for {0:s} named '{1:s}'{2:s} is already "
+                "" if version is None else " (version={!r})".format(version)
+            raise Exception("Loader named {!r}{:s} is already "
                             "defined. Use force=True to override."
-                            .format(data_class.__name__, name, versionstr))
+                            .format(name, versionstr))
 
         self._loaders[key] = func, args, meta
         self._primary_loaders.append(key)
@@ -130,7 +130,7 @@ class Registry(object):
 
         1. If ``name`` is already loaded in the registry, that instance is
            returned.
-        2. If there is a loader defined for (`data_class`, `name`), it is used
+        2. If there is a loader defined for ``name``, it is used
            to create an instance, save it to the registry and return it.
         3. An Exception is raised listing the available registered names.
 
