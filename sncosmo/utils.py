@@ -352,6 +352,114 @@ def download_dir(remote_url, dirname):
     buf.close()  # buf not closed when tf is closed.
 
 
+class DataMirror(object):
+    """Lazy fetcher for remote data.
+
+    When asked for local absolute path to a file or directory, DataMirror
+    checks if the file or directory exists locally and, if so, returns it.
+
+    If it doesn't exist, it first determines where to get it from.
+    It first downloads the file ``{remote_root}/redirects.json`` and checks
+    it for a redirect from ``{relative_path}`` to a full URL. If no redirect
+    exists, it uses ``{remote_root}/{relative_path}`` as the URL.
+
+    It downloads then downloads the URL to ``{rootdir}/{relative_path}``.
+
+    For directories, ``.tar.gz`` is appended to the
+    ``{relative_path}`` before the above is done and then the
+    directory is unpacked locally.
+
+    Parameters
+    ----------
+    rootdir : str or callable
+
+        The local root directory, or a callable that returns the local root
+        directory given no parameters. (The result of the call is cached.)
+        Using a callable allows one to customize the discovery of the root
+        directory (e.g., from a config file), and to defer that discovery
+        until it is needed.
+
+    remote_root : str
+        Root URL of the remote server.
+    """
+
+    def __init__(self, rootdir, remote_root):
+        self._checked_rootdir = None
+        self._rootdir = rootdir
+        self._remote_root = remote_root
+        self._redirects = None
+
+    def rootdir(self):
+        """Return the path to the local data directory, ensuring that it
+        exists"""
+
+        if self._checked_rootdir is None:
+
+            # If the supplied value is a string, use it. Otherwise
+            # assume it is a callable that returns a string)
+            rootdir = (self._rootdir
+                       if isinstance(self._rootdir, six.string_types)
+                       else self._rootdir())
+
+            # Check existance
+            if not os.path.isdir(rootdir):
+                raise Exception("data directory {!r} not an existing "
+                                "directory".format(rootdir))
+
+            # Cache value for future calls
+            self._checked_rootdir = rootdir
+
+        return self._checked_rootdir
+
+    def _fetch_redirects(self):
+        from six.moves.urllib.request import urlopen
+        from six.moves.urllib.parse import urljoin
+        import json
+
+        f = urlopen(urljoin(self._remote_root, "redirects.json"))
+        reader = codecs.getreader("utf-8")
+        self._redirects = json.load(reader(f))
+        f.close()
+
+    def _get_url(self, remote_relpath):
+        from six.moves.urllib.parse import urljoin
+
+        if self._redirects is None:
+            self._fetch_redirects()
+
+        if remote_relpath in self._redirects:
+            return self._redirects[remote_relpath]
+        else:
+            return urljoin(self._remote_root, remote_relpath)
+
+    def abspath(self, relpath, isdir=False):
+        """Return absolute path to file or directory, ensuring that it exists.
+
+        If ``isdir``, look for ``{relpath}.tar.gz`` on the remote server and
+        unpackage it.
+
+        Otherwise, just look for ``{relpath}``. If redirect points to a gz, it
+        will be uncompressed."""
+
+        abspath = os.path.join(self.rootdir(), relpath)
+
+        if not os.path.exists(abspath):
+            if isdir:
+                url = self._get_url(relpath + ".tar.gz")
+
+                # Download and unpack a directory.
+                download_dir(url, os.path.dirname(abspath))
+
+                # ensure that tarfile unpacked into the expected directory
+                if not os.path.exists(abspath):
+                    raise RuntimeError("Tarfile not unpacked into expected "
+                                       "subdirectory. Please file an issue.")
+            else:
+                download_file(url, abspath)
+
+        return abspath
+
+
 def alias_map(aliased, aliases, required=()):
     """For each key in ``aliases``, find the item in ``aliased`` matching
     exactly one of the corresponding items in ``aliases``.

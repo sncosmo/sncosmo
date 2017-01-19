@@ -1,5 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
+from tempfile import mkdtemp
+import os
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_approx_equal
 from scipy.stats import norm
@@ -51,3 +54,17 @@ def test_alias_map():
     mapping = utils.alias_map(['A', 'B_', 'foo'],
                               {'a': set(['a', 'a_']), 'b': set(['b', 'b_'])})
     assert mapping == {'a': 'A', 'b': 'B_'}
+
+
+def test_data_mirror_rootdir():
+    dirname = mkdtemp()
+
+    # rootdir is a string
+    mirror = utils.DataMirror(dirname, "url_goes_here")
+    assert mirror.rootdir() == dirname
+
+    # rootdir is a callable
+    mirror = utils.DataMirror(lambda: dirname, "url_goes_here")
+    assert mirror.rootdir() == dirname
+
+    os.rmdir(dirname)
