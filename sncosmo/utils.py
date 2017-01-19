@@ -298,7 +298,7 @@ def download_file(remote_url, local_name):
 
     if remote_url.endswith(".gz"):
         import io
-        from astropy.utils.compat import gzip
+        import gzip
 
         buf = io.BytesIO()
         _download_file(remote_url, buf)
