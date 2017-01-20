@@ -12,7 +12,7 @@ from ._registry import Registry
 from .utils import warn_once, integration_grid
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 
-__all__ = ['get_bandpass', 'read_bandpass', 'Bandpass']
+__all__ = ['get_bandpass', 'read_bandpass', 'Bandpass', 'AggregateBandpass']
 
 _BANDPASSES = Registry()
 _BANDPASS_INTERPOLATORS = Registry()
@@ -309,8 +309,9 @@ class Bandpass(object):
     def __repr__(self):
         name = ''
         if self.name is not None:
-            name = ' {0!r:s}'.format(self.name)
-        return "<Bandpass{0:s} at 0x{1:x}>".format(name, id(self))
+            name = ' {!r}'.format(self.name)
+        return "<{:s}{:s} at 0x{:x}>".format(self.__class__.__name__, name,
+                                             id(self))
 
 
 class _SampledFunction(object):

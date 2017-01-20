@@ -87,8 +87,14 @@ def test_bandpass_bessell():
     assert_allclose(scaled_trans, factor * trans)
 
 
+def test_aggregate_bandpass_name():
+    b = sncosmo.AggregateBandpass([([1000., 2000.], [1., 1.])])
+    assert repr(b).startswith("<AggregateBandpass")
+
+
 @remote_data
 def test_megacampsf_bandpass():
+    """Test megacampsf position-dependent bandpasses against snfit"""
     dirname = os.path.join(os.path.dirname(__file__), "data")
 
     for letter in ('g', 'z'):
