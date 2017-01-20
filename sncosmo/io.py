@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 from warnings import warn
+import math
 import os
 import sys
 import re
@@ -17,6 +18,7 @@ from astropy import wcs
 from astropy.extern import six
 
 from .utils import dict_to_array
+from .bandpasses import get_bandpass
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
            'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
@@ -252,7 +254,28 @@ def _read_ascii(f, delim=None, metachar='@', commentchar='#'):
 # -----------------------------------------------------------------------------
 # Reader: salt2
 
-def _read_salt2(name_or_obj, read_covmat=False):
+def _expand_bands(band_list, meta):
+    """Given a list containing band names, return a list of Bandpass objects"""
+
+    # Treat dependent bandpasses based on metadata contents
+    # TODO: need a way to figure out which bands are position dependent!
+    #       for now, we assume *all* or none are.
+    if "X_FOCAL_PLANE" in meta and "Y_FOCAL_PLANE" in meta:
+        r = math.sqrt(meta["X_FOCAL_PLANE"]**2 + meta["Y_FOCAL_PLANE"]**2)
+
+        # map name to object for unique bands
+        name_to_band = {name: get_bandpass(name, r)
+                        for name in set(band_list)}
+
+        return [name_to_band[name] for name in band_list]
+
+    else:
+        # For other bandpasses, get_bandpass will return the same object
+        # on each call, so just use it directly.
+        return [sncosmo.get_bandpass(name) for name in band_list]
+
+
+def _read_salt2(name_or_obj, read_covmat=False, expand_bands=False):
     """Read a new-style SALT2 file.
 
     Such a file has metadata on lines starting with '@' and column names
@@ -330,6 +353,9 @@ def _read_salt2(name_or_obj, read_covmat=False):
         cols.append(fluxcov)
 
     data = OrderedDict(zip(colnames, cols))
+
+    if expand_bands:
+        data['Filter'] = _expand_bands(data['Filter'], meta)
 
     return meta, data
 
@@ -454,6 +480,14 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
         by ``COVMAT`` (assumed to be in the same directory as the lightcurve
         file) and include it as a column named ``Fluxcov`` in the returned
         table. Default is False.
+
+        *New in version 1.5.0*
+
+    expand_bands : bool, optional
+        **[salt2 only]** If True, convert band names into equivalent Bandpass
+        objects. This is particularly useful for position-dependent
+        bandpasses: the position information is read from the header and used
+        when creating the bandpass objects.
 
         *New in version 1.5.0*
 
