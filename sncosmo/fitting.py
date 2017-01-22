@@ -1,10 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from __future__ import division, print_function
-from warnings import warn
+
 import copy
 import time
 import math
 from collections import OrderedDict
+import warnings
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
@@ -143,26 +144,36 @@ def flatten_result(res):
     return flat
 
 
-def cut_bands(data, model, z_bounds=None):
-
+def _mask_bands(data, model, z_bounds=None):
     if z_bounds is None:
-        valid = model.bandoverlap(data.band)
+        return model.bandoverlap(data.band)
     else:
-        valid = model.bandoverlap(data.band, z=z_bounds)
-        valid = np.all(valid, axis=1)
+        return np.all(model.bandoverlap(data.band, z=z_bounds), axis=1)
 
-    if not np.all(valid):
+
+def _warn_dropped_bands(data, mask):
+    """Warn that we are dropping some bands from the data:"""
+    drop_bands = [repr(b) for b in set(data.band[np.invert(mask)])]
+    warnings.warn("Dropping following bands from data: " +
+                  ", ".join(drop_bands) +
+                  "(out of model wavelength range)", RuntimeWarning)
+
+
+def cut_bands(data, model, z_bounds=None, warn=True):
+    mask = _mask_bands(data, model, z_bounds=z_bounds)
+
+    if not np.all(mask):
+
         # Fail if there are no overlapping bands whatsoever.
-        if not np.any(valid):
+        if not np.any(mask):
             raise RuntimeError('No bands in data overlap the model.')
 
-        # Otherwise, warn that we are dropping some bands from the data:
-        drop_bands = [repr(b) for b in set(data.band[np.invert(valid)])]
-        warn("Dropping following bands from data: " + ", ".join(drop_bands) +
-             "(out of model wavelength range)", RuntimeWarning)
-        data = data[valid]
+        if warn:
+            _warn_dropped_bands(data, mask)
 
-    return data
+        data = data[mask]
+
+    return data, mask
 
 
 def t0_bounds(data, model):
@@ -238,7 +249,7 @@ def _print_iminuit_params(names, kwargs):
         print()
 
 
-def _data_mask(data, t0, z, phase_range, wave_range):
+def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
     """Return a mask for the data based on an allowed rest-frame phase and/or
     wavelength range (given some t0 and z)."""
     if phase_range is not None:
@@ -264,7 +275,7 @@ def _data_mask(data, t0, z, phase_range, wave_range):
 def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
            guess_amplitude=True, guess_t0=True, guess_z=True,
            minsnr=5.0, modelcov=False, verbose=False, maxcall=10000,
-           phase_range=None, wave_range=None):
+           phase_range=None, wave_range=None, warn=True):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -311,11 +322,22 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         **the definition of phase varies between models**: For example,
         phase=0 refers to explosion time in some models and time of peak
         B band flux in others.
+
+        *New in version 1.5.0*
+
     wave_range : (float, float), optional
         If given, discard data with bandpass effective wavelengths outside
         this range.
+
+        *New in version 1.5.0*
+
     verbose : bool, optional
         Print messages during fitting.
+    warn : bool, optional
+        Issue a warning when dropping bands outside the wavelength range of
+        the model. Default is True.
+
+        *New in version 1.5.0*
 
     Returns
     -------
@@ -338,6 +360,12 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
           indicies correspond to order of ``vparam_names``.
         - ``errors``: OrderedDict of varied parameter uncertainties.
           Corresponds to square root of diagonal entries in covariance matrix.
+        - ``nfit``: number of times the fit was performed. Can be greater than
+          one when model covariance, phase range or wavelength range is used.
+          *New in version 1.5.0.*
+        - ``data_mask``: Boolean array the same length as data specifying
+          whether each observation was used in the final fit.
+          *New in version 1.5.0.*
 
     fitmodel : `~sncosmo.Model`
         A copy of the model with parameters set to best-fit values.
@@ -386,7 +414,16 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
     # Standardize data
     data = photometric_data(data)
-    data.sort_by_time()
+
+    # sort by time (some sources require this)
+    # We keep track of indicies that sort the array because we want to be
+    # able to report the indexes of the original data that were used in the
+    # fit.
+    if not np.all(np.ediff1d(data.time) >= 0.0):
+        sortidx = np.argsort(data.time)
+        data = data[sortidx]
+    else:
+        sortidx = None
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -416,14 +453,17 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             raise ValueError('z out of range.')
 
     # Cut bands that are not allowed by the wavelength range of the model.
-    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
+    fitdata, support_mask = cut_bands(data, model,
+                                      z_bounds=bounds.get('z', None),
+                                      warn=warn)
+    data_mask = support_mask  # Initially this is the complete mask on data.
 
     # Unique set of bands in data
-    bands = set(data.band.tolist())
+    bands = set(fitdata.band.tolist())
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in vparam_names and 't0' not in bounds:
-        bounds['t0'] = t0_bounds(data, model)
+        bounds['t0'] = t0_bounds(fitdata, model)
 
     # Note that in the parameter guessing below, we assume that the source
     # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
@@ -437,14 +477,14 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     # Make guesses for t0 and amplitude.
     # (For now, we assume it is the 3rd parameter of the model.)
     if (guess_amplitude or guess_t0):
-        t0, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+        t0, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr)
         if guess_amplitude:
             model.parameters[2] = amplitude
         if guess_t0:
             model.set(t0=t0)
 
     # count degrees of freedom
-    ndof = len(data) - len(vparam_names)
+    ndof = len(fitdata) - len(vparam_names)
 
     if method == 'minuit':
         try:
@@ -487,7 +527,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
         # run once with no model covariance, regardless of whether
         # modelcov=True
-        fitchisq = generate_chisq(data, model, signature='iminuit',
+        fitchisq = generate_chisq(fitdata, model, signature='iminuit',
                                   modelcov=False)
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
@@ -505,15 +545,17 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         # Iterative Fitting
 
         if phase_range or wave_range:
-            data_mask = _data_mask(data, model.get('t0'), model.get('z'),
-                                   phase_range, wave_range)
+            range_mask = _phase_and_wave_mask(data, model.get('t0'),
+                                              model.get('z'),
+                                              phase_range, wave_range)
+            data_mask = range_mask & support_mask
 
         # if model covariance, we need to re-run iteratively until convergence
         # if phase range is given, we need to rerun if there are any
         # masked points.
-        refit = (d.is_valid and
-                 (modelcov or
-                  ((phase_range or wave_range) and not np.all(data_mask))))
+        refit = (d.is_valid and (modelcov or
+                                 ((phase_range or wave_range) and
+                                  np.any(data_mask != support_mask))))
         nfit = 1
         while refit:
             # set new starting point to last point
@@ -525,8 +567,9 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                 _print_iminuit_params(vparam_names, kwargs)
                 print()
 
-            # crop data based on phase
-            fitdata = data[data_mask] if (phase_range or wave_range) else data
+            # re-crop data based on ranges, if necessary
+            if (phase_range or wave_range):
+                fitdata = data[data_mask]
 
             ndof = len(fitdata) - len(vparam_names)
 
@@ -555,9 +598,10 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                 # recalculate data mask based on new t0, z
                 if phase_range or wave_range:
                     old_data_mask = data_mask
-                    data_mask = _data_mask(data, model.get('t0'),
-                                           model.get('z'),
-                                           phase_range, wave_range)
+                    range_mask = _phase_and_wave_mask(data, model.get('t0'),
+                                                      model.get('z'),
+                                                      phase_range, wave_range)
+                    data_mask = support_mask & range_mask
 
                     # we'll refit if we changed any data
                     refit = np.any(data_mask != old_data_mask)
@@ -605,6 +649,11 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             errors = OrderedDict((name, m.errors[name])
                                  for name in vparam_names)
 
+        # If we need to, unsort the mask so mask applies to input data
+        if sortidx is not None:
+            unsort_idx = np.argsort(sortidx)  # indicies that will unsort array
+            data_mask = data_mask[unsort_idx]
+
         # Compile results
         res = Result(success=d.is_valid,
                      message=' '.join(message),
@@ -616,9 +665,9 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                      vparam_names=vparam_names,
                      covariance=covariance,
                      errors=errors,
-                     nfit=nfit)
+                     nfit=nfit,
+                     data_mask=data_mask)
 
-        # TODO remove cov_names in a future release.
         depmsg = ("The `cov_names` attribute is deprecated in sncosmo v1.0 "
                   "and will be removed in v2.0. Use `vparam_names` instead.")
         res.__dict__['deprecated']['cov_names'] = (vparam_names, depmsg)
@@ -628,9 +677,9 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
     # TODO remove this in a future release.
     if "flatten" in kwargs:
-        warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
-             "and will be removed in v2.0. Use the flatten_result() "
-             "function instead.")
+        warnings.warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
+                      "and will be removed in v2.0. Use the flatten_result() "
+                      "function instead.")
         if kwargs["flatten"]:
             res = flatten_result(res)
     return res, model
@@ -745,8 +794,8 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
         raise ImportError("nest_lc() requires the nestle package.")
 
     if "nobj" in kwargs:
-        warn("The nobj keyword is deprecated and will be removed in a future "
-             "sncosmo release. Use `npoints` instead.")
+        warnings.warn("The nobj keyword is deprecated and will be removed in "
+                      "a future sncosmo release. Use `npoints` instead.")
         npoints = kwargs.pop("nobj")
 
     # experimental parameters
@@ -761,7 +810,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     vparam_names = [s for s in model.param_names if s in vparam_names]
 
     # Drop data that the model doesn't cover.
-    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
+    data, _ = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     if guess_amplitude_bound:
         if model.param_names[2] not in vparam_names:
@@ -1033,7 +1082,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
             raise ValueError('z out of range.')
 
     # Cut bands that are not allowed by the wavelength range of the model.
-    data = cut_bands(data, model, z_bounds=bounds.get('z', None))
+    data, _ = cut_bands(data, model, z_bounds=bounds.get('z', None))
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in vparam_names and 't0' not in bounds:
