@@ -573,9 +573,12 @@ class SALT2Source(Source):
     .. math::
 
        F(t, \lambda) = x_0 (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                       \\times CL(\lambda)^c
+                       \\times 10^{-0.4 CL(\lambda) c}
 
-    where ``x0``, ``x1`` and ``c`` are the free parameters of the model.
+    where ``x0``, ``x1`` and ``c`` are the free parameters of the model,
+    ``M_0``, ``M_1`` are the zeroth and first components of the model, and
+    ``CL`` is the colorlaw, which gives the extinction in magnitudes for
+    ``c=1``.
 
     Parameters
     ----------
