@@ -675,7 +675,6 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     else:
         raise ValueError("unknown method {0:r}".format(method))
 
-    # TODO remove this in a future release.
     if "flatten" in kwargs:
         warnings.warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
                       "and will be removed in v2.0. Use the flatten_result() "
@@ -688,7 +687,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
             minsnr=5., priors=None, ppfs=None, npoints=100, method='single',
             maxiter=None, maxcall=None, modelcov=False, rstate=None,
-            verbose=False, **kwargs):
+            verbose=False, warn=True, **kwargs):
     """Run nested sampling algorithm to estimate model parameters and evidence.
 
     Parameters
@@ -747,6 +746,11 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
         ``numpy.random`` module will be used.
     verbose : bool, optional
         Print running evidence sum on a single line.
+    warn : bool, optional
+        Issue warning when dropping bands outside the model range. Default is
+        True.
+
+        *New in version 1.5.0*
 
     Returns
     -------
@@ -782,6 +786,9 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
           len(vparam_names)).
         * ``bounds``: Dictionary of bounds on varied parameters (including
           any automatically determined bounds).
+        * ``data_mask``: Boolean array the same length as data specifying
+          whether each observation was used.
+          *New in version 1.5.0.*
 
     estimated_model : `~sncosmo.Model`
         A copy of the model with parameters set to the values in
@@ -793,16 +800,24 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     except ImportError:
         raise ImportError("nest_lc() requires the nestle package.")
 
+    # warnings
     if "nobj" in kwargs:
         warnings.warn("The nobj keyword is deprecated and will be removed in "
-                      "a future sncosmo release. Use `npoints` instead.")
+                      "sncosmo v2.0. Use `npoints` instead.")
         npoints = kwargs.pop("nobj")
 
     # experimental parameters
     tied = kwargs.get("tied", None)
 
     data = photometric_data(data)
-    data.sort_by_time()
+
+    # sort by time
+    if not np.all(np.ediff1d(data.time) >= 0.0):
+        sortidx = np.argsort(data.time)
+        data = data[sortidx]
+    else:
+        sortidx = None
+
     model = copy.copy(model)
     bounds = copy.copy(bounds)  # need to copy this b/c we modify it below
 
@@ -810,7 +825,9 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     vparam_names = [s for s in model.param_names if s in vparam_names]
 
     # Drop data that the model doesn't cover.
-    data, _ = cut_bands(data, model, z_bounds=bounds.get('z', None))
+    fitdata, data_mask = cut_bands(data, model,
+                                   z_bounds=bounds.get('z', None),
+                                   warn=warn)
 
     if guess_amplitude_bound:
         if model.param_names[2] not in vparam_names:
@@ -826,12 +843,12 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
         # when doing the guess.
         if 'z' in bounds:
             model.set(z=sum(bounds['z']) / 2.)
-        _, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+        _, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr)
         bounds[model.param_names[2]] = (0., 10. * amplitude)
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in vparam_names and 't0' not in bounds:
-        bounds['t0'] = t0_bounds(data, model)
+        bounds['t0'] = t0_bounds(fitdata, model)
 
     if ppfs is None:
         ppfs = {}
@@ -891,7 +908,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
 
     def loglike(parameters):
         model.parameters[idx] = parameters
-        return -0.5 * chisq(data, model, modelcov=modelcov)
+        return -0.5 * chisq(fitdata, model, modelcov=modelcov)
 
     t0 = time.time()
     res = nestle.sample(loglike, prior_transform, ndim, npdim=npdim,
@@ -906,6 +923,11 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     # update model parameters to estimated ones.
     model.set(**dict(zip(vparam_names, vparameters)))
 
+    # If we need to, unsort the mask so mask applies to input data
+    if sortidx is not None:
+        unsort_idx = np.argsort(sortidx)  # indicies that will unsort array
+        data_mask = data_mask[unsort_idx]
+
     # `res` is a nestle.Result object. Collect result into a sncosmo.Result
     # object for consistency, and add more fields.
     res = Result(niter=res.niter,
@@ -918,7 +940,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
                  logvol=res.logvol,
                  logl=res.logl,
                  vparam_names=copy.copy(vparam_names),
-                 ndof=len(data) - len(vparam_names),
+                 ndof=len(fitdata) - len(vparam_names),
                  bounds=bounds,
                  time=elapsed,
                  parameters=model.parameters.copy(),
@@ -926,16 +948,17 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
                  errors=OrderedDict(zip(vparam_names,
                                         np.sqrt(np.diagonal(cov)))),
                  param_dict=OrderedDict(zip(model.param_names,
-                                            model.parameters)))
+                                            model.parameters)),
+                 data_mask=data_mask)
 
     # Deprecated result fields.
     depmsg = ("The `param_names` attribute is deprecated in sncosmo v1.0 "
-              "and will be removed in a future release. "
+              "and will be removed in sncosmo v2.0."
               "Use `vparam_names` instead.")
     res.__dict__['deprecated']['param_names'] = (res.vparam_names, depmsg)
 
     depmsg = ("The `logprior` attribute is deprecated in sncosmo v1.2 "
-              "and will be changed in a future release. "
+              "and will be changed in sncosmo v2.0."
               "Use `logvol` instead.")
     res.__dict__['deprecated']['logprior'] = (res.logvol, depmsg)
 
@@ -946,7 +969,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
             guess_amplitude=True, guess_t0=True, guess_z=True,
             minsnr=5., modelcov=False, nwalkers=10, nburn=200,
             nsamples=1000, sampler='ensemble', ntemps=4, thin=1,
-            a=2.0):
+            a=2.0, warn=True):
     """Run an MCMC chain to get model parameter samples.
 
     This is a convenience function around `emcee.EnsembleSampler` andx
@@ -1016,6 +1039,11 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
         array will have (nsamples/thin) samples.
     a : float, optional
         Proposal scale parameter passed to the sampler.
+    warn : bool, optional
+        Issue a warning when dropping bands outside the wavelength range of
+        the model. Default is True.
+
+        *New in version 1.5.0*
 
     Returns
     -------
@@ -1036,6 +1064,9 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
           matrix for varied parameters. Useful for ``plot_lc``.
         * ``mean_acceptance_fraction``: mean acceptance fraction for all
           walkers in the sampler.
+        * ``data_mask``: Boolean array the same length as data specifying
+          whether each observation was used.
+          *New in version 1.5.0.*
 
     est_model : `~sncosmo.Model`
         Copy of input model with varied parameters set to mean value in
@@ -1050,7 +1081,13 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
 
     # Standardize and normalize data.
     data = photometric_data(data)
-    data.sort_by_time()
+
+    # sort by time
+    if not np.all(np.ediff1d(data.time) >= 0.0):
+        sortidx = np.argsort(data.time)
+        data = data[sortidx]
+    else:
+        sortidx = None
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -1082,11 +1119,13 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
             raise ValueError('z out of range.')
 
     # Cut bands that are not allowed by the wavelength range of the model.
-    data, _ = cut_bands(data, model, z_bounds=bounds.get('z', None))
+    fitdata, data_mask = cut_bands(data, model,
+                                   z_bounds=bounds.get('z', None),
+                                   warn=warn)
 
     # Find t0 bounds to use, if not explicitly given
     if 't0' in vparam_names and 't0' not in bounds:
-        bounds['t0'] = t0_bounds(data, model)
+        bounds['t0'] = t0_bounds(fitdata, model)
 
     # Note that in the parameter guessing below, we assume that the source
     # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
@@ -1100,7 +1139,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     # Make guesses for t0 and amplitude.
     # (we assume amplitude is the 3rd parameter of the model.)
     if guess_amplitude or guess_t0:
-        t0, amplitude = guess_t0_and_amplitude(data, model, minsnr)
+        t0, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr)
         if guess_amplitude:
             model.parameters[2] = amplitude
         if guess_t0:
@@ -1122,7 +1161,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                 return -np.inf
 
         model.parameters[modelidx] = parameters
-        logp = -0.5 * chisq(data, model, modelcov=modelcov)
+        logp = -0.5 * chisq(fitdata, model, modelcov=modelcov)
         return logp
 
     def lnprior(parameters):
@@ -1188,12 +1227,18 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     errors = OrderedDict(zip(vparam_names, np.sqrt(np.diagonal(cov))))
     mean_acceptance_fraction = np.mean(sampler.acceptance_fraction)
 
+    # If we need to, unsort the mask so mask applies to input data
+    if sortidx is not None:
+        unsort_idx = np.argsort(sortidx)  # indicies that will unsort array
+        data_mask = data_mask[unsort_idx]
+
     res = Result(param_names=copy.copy(model.param_names),
                  parameters=model.parameters.copy(),
                  vparam_names=vparam_names,
                  samples=samples,
                  covariance=cov,
                  errors=errors,
-                 mean_acceptance_fraction=mean_acceptance_fraction)
+                 mean_acceptance_fraction=mean_acceptance_fraction,
+                 data_mask=data_mask)
 
     return res, model
