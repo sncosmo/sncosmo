@@ -1064,6 +1064,9 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
           matrix for varied parameters. Useful for ``plot_lc``.
         * ``mean_acceptance_fraction``: mean acceptance fraction for all
           walkers in the sampler.
+        * ``ndof``: Number of degrees of freedom (len(data) -
+          len(vparam_names)).
+          *New in version 1.5.0.*
         * ``data_mask``: Boolean array the same length as data specifying
           whether each observation was used.
           *New in version 1.5.0.*
@@ -1238,6 +1241,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                  samples=samples,
                  covariance=cov,
                  errors=errors,
+                 ndof=len(fitdata) - len(vparam_names),
                  mean_acceptance_fraction=mean_acceptance_fraction,
                  data_mask=data_mask)
 
