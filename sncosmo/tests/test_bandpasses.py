@@ -109,4 +109,6 @@ def test_megacampsf_bandpass():
             # sncosmo version of bandpass:
             band = sncosmo.get_bandpass('megacampsf::'+letter, meta['radius'])
             trans = band(wave)
-            assert_allclose(trans, trans_ref)
+            for i in range(len(trans)):
+                print(trans_ref[i], trans[i])
+            assert_allclose(trans, trans_ref, rtol=1e-5)
