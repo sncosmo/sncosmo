@@ -99,17 +99,12 @@ def load_bandpass_remote_wfc3(relpath, name=None):
                     trim_level=BANDPASS_TRIM_LEVEL, name=name)
 
 
-def tophat_bandpass(ctr, width, name=None):
+def tophat_bandpass_um(ctr, width, name=None):
     """Create a tophat Bandpass centered at `ctr` with width `width` (both
-    in microns) sampled at 100 intervals."""
+    in microns)."""
 
-    nintervals = 100  # intervals between wmin and wmax
-    interval = width / nintervals  # interval of each sample
-    wmin = ctr - width / 2. - interval / 2.
-    wmax = ctr + width / 2. + interval / 2.
-    wave = np.linspace(wmin, wmax, nintervals + 1)
-    trans = np.ones_like(wave)
-    trans[[0, -1]] = 0.
+    wave = np.array([ctr - width / 2.0, ctr + width / 2.0])
+    trans = np.array([1.0, 1.0])
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
 
 
@@ -324,7 +319,7 @@ for name, ctr, width in [('f560w', 5.6, 1.2),
                          ('f1140c', 11.4, 0.57),
                          ('f1550c', 15.5, 0.78),
                          ('f2300c', 23., 4.6)]:
-    _BANDPASSES.register_loader(name, tophat_bandpass,
+    _BANDPASSES.register_loader(name, tophat_bandpass_um,
                                 args=(ctr, width), meta=jwst_miri_meta)
 
 
