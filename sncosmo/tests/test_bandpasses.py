@@ -42,11 +42,11 @@ def test_bandpass_zeros():
 
 def test_trimmed():
     band = Bandpass([4000., 4100., 4200., 4300., 4400., 4500.],
-                    [0.001, 0.002,   0.5,   0.6, 0.003, 0.001])
-    newband = band._trimmed(0.01)
+                    [0.001, 0.002,   0.5,   0.6, 0.003, 0.001],
+                    trim_level=0.01)
 
-    assert np.all(newband.wave == np.array([4100.,  4200.,  4300.,  4400.]))
-    assert_allclose(newband.trans,  np.array([0.002,  0.5,  0.6,  0.003]))
+    assert np.all(band.wave == np.array([4100.,  4200.,  4300.,  4400.]))
+    assert_allclose(band.trans,  np.array([0.002,  0.5,  0.6,  0.003]))
 
 
 # issue 100
