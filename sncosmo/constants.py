@@ -5,6 +5,7 @@ import astropy.units as u
 import astropy.constants as const
 
 
+BANDPASS_TRIM_LEVEL = 0.001
 SPECTRUM_BANDFLUX_SPACING = 1.0
 MODEL_BANDFLUX_SPACING = 5.0
 

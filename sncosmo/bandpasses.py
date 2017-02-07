@@ -31,7 +31,7 @@ def get_bandpass(name, *args):
 
 def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
                   trans_unit=u.dimensionless_unscaled,
-                  normalize=False, name=None):
+                  normalize=False, trim_level=None, name=None):
     """Read bandpass from two-column ASCII file containing wavelength and
     transmission in each line.
 
@@ -69,7 +69,7 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
     t = ascii.read(fname, names=['wave', 'trans'])
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit,
                     trans_unit=trans_unit, normalize=normalize,
-                    name=name)
+                    trim_level=trim_level, name=name)
 
 
 def slice_exclude_below(a, minvalue, grow=1):

@@ -32,6 +32,7 @@ from .spectrum import Spectrum
 from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
                          CompositeMagSystem, _MAGSYSTEMS)
 from . import conf
+from .constants import BANDPASS_TRIM_LEVEL
 
 # This module is only imported for its side effects.
 __all__ = []
@@ -79,9 +80,23 @@ def load_bandpass_bessell(pkg_data_name, name=None):
                          normalize=True, name=name)
 
 
+def load_bandpass_remote_aa(relpath, name=None):
+    abspath = DATADIR.abspath(relpath)
+    return read_bandpass(abspath, wave_unit=u.AA,
+                         trim_level=BANDPASS_TRIM_LEVEL, name=name)
+
+
 def load_bandpass_remote_nm(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
-    return read_bandpass(abspath, wave_unit=u.nm, name=name)
+    return read_bandpass(abspath, wave_unit=u.nm,
+                         trim_level=BANDPASS_TRIM_LEVEL, name=name)
+
+
+def load_bandpass_remote_wfc3(relpath, name=None):
+    abspath = DATADIR.abspath(relpath)
+    _, wave, trans = np.loadtxt(abspath, unpack=True)
+    return Bandpass(wave, trans, wave_unit=u.AA,
+                    trim_level=BANDPASS_TRIM_LEVEL, name=name)
 
 
 def tophat_bandpass(ctr, width, name=None):
@@ -98,12 +113,6 @@ def tophat_bandpass(ctr, width, name=None):
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
 
 
-bessell_meta = {
-    'filterset': 'bessell',
-    'reference': ('B90', '`Bessell 1990 <http://adsabs.harvard.edu/'
-                  'abs/1990PASP..102.1181B>`__, Table 2'),
-    'description': 'Representation of Johnson-Cousins UBVRI system'}
-
 des_meta = {
     'filterset': 'des',
     'retrieved': '22 March 2013',
@@ -116,11 +125,6 @@ sdss_meta = {
     'description': ('SDSS 2.5m imager at airmass 1.3 (including '
                     'atmosphere), normalized')}
 
-nicmos_meta = {'filterset': 'nicmos2',
-               'dataurl': 'http://www.stsci.edu/hst/',
-               'retrieved': '05 Aug 2014',
-               'description': 'Hubble Space Telescope NICMOS2 filters'}
-
 wfc3ir_meta = {'filterset': 'wfc3-ir',
                'dataurl': 'http://www.stsci.edu/hst/wfc3/ins_performance/'
                           'throughputs/Throughput_Tables',
@@ -132,11 +136,6 @@ wfc3uvis_meta = {'filterset': 'wfc3-uvis',
                             'throughputs/Throughput_Tables',
                  'retrieved': '05 Aug 2014',
                  'description': 'Hubble Space Telescope WFC3 UVIS filters'}
-
-acs_meta = {'filterset': 'acs',
-            'dataurl': 'http://www.stsci.edu/hst/acs/analysis/throughputs',
-            'retrieved': '05 Aug 2014',
-            'description': 'Hubble Space Telescope ACS WFC filters'}
 
 jwst_nircam_meta = {'filterset': 'jwst-nircam',
                     'dataurl': 'http://www.stsci.edu/jwst/instruments/nircam'
@@ -158,15 +157,69 @@ csp_meta = {
     'dataurl': 'http://csp.obs.carnegiescience.edu/data/filters'}
 
 
-# Bessell bandpasses have transmission in units of (photons / erg)
-bands = [('bessellux', 'bessell/bessell_ux.dat', bessell_meta),
-         ('bessellb', 'bessell/bessell_b.dat', bessell_meta),
-         ('bessellv', 'bessell/bessell_v.dat', bessell_meta),
-         ('bessellr', 'bessell/bessell_r.dat', bessell_meta),
-         ('besselli', 'bessell/bessell_i.dat', bessell_meta)]
-for name, fname, meta in bands:
+# Bessell bandpasses (transmission is in units of (photons / erg))
+bessell_meta = {
+    'filterset': 'bessell',
+    'reference': ('B90', '`Bessell 1990 <http://adsabs.harvard.edu/'
+                  'abs/1990PASP..102.1181B>`__, Table 2'),
+    'description': 'Representation of Johnson-Cousins UBVRI system'}
+
+for name, fname in [('bessellux', 'bessell/bessell_ux.dat'),
+                    ('bessellb', 'bessell/bessell_b.dat'),
+                    ('bessellv', 'bessell/bessell_v.dat'),
+                    ('bessellr', 'bessell/bessell_r.dat'),
+                    ('besselli', 'bessell/bessell_i.dat')]:
     _BANDPASSES.register_loader(name, load_bandpass_bessell,
-                                args=('data/bandpasses/' + fname,), meta=meta)
+                                args=('data/bandpasses/' + fname,),
+                                meta=bessell_meta)
+
+# HST ACS WFC bandpasses
+acs_meta = {'filterset': 'acs',
+            'dataurl': 'http://www.stsci.edu/hst/acs/analysis/throughputs',
+            'retrieved': 'direct download',
+            'description': 'Hubble Space Telescope ACS WFC filters'}
+for name, fname in [('f435w', 'bandpasses/acs-wfc/wfc_F435W.dat'),
+                    ('f475w', 'bandpasses/acs-wfc/wfc_F475W.dat'),
+                    ('f555w', 'bandpasses/acs-wfc/wfc_F555W.dat'),
+                    ('f606w', 'bandpasses/acs-wfc/wfc_F606W.dat'),
+                    ('f625w', 'bandpasses/acs-wfc/wfc_F625W.dat'),
+                    ('f775w', 'bandpasses/acs-wfc/wfc_F775W.dat'),
+                    ('f814w', 'bandpasses/acs-wfc/wfc_F814W.dat'),
+                    ('f850lp', 'bandpasses/acs-wfc/wfc_F850LP.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=acs_meta)
+
+
+# HST NICMOS NIC2 bandpasses
+nicmos_meta = {'filterset': 'nicmos2',
+               'dataurl': 'http://www.stsci.edu/hst/',
+               'retrieved': '05 Aug 2014',
+               'description': 'Hubble Space Telescope NICMOS2 filters'}
+for name, fname in [
+        ('nicf110w', 'bandpasses/nicmos-nic2/hst_nicmos_nic2_f110w.dat'),
+        ('nicf160w', 'bandpasses/nicmos-nic2/hst_nicmos_nic2_f160w.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=nicmos_meta)
+
+
+# WFC3 IR bandpasses
+wfc3ir_meta = {'filterset': 'wfc3-ir',
+               'dataurl': 'http://www.stsci.edu/hst/wfc3/ins_performance/'
+                          'throughputs/Throughput_Tables',
+               'retrieved': 'direct download',
+               'description': 'Hubble Space Telescope WFC3 IR filters'}
+for name, fname in [('f098m', 'bandpasses/wfc3-ir/f098m.IR.tab'),
+                    ('f105w', 'bandpasses/wfc3-ir/f105w.IR.tab'),
+                    ('f110w', 'bandpasses/wfc3-ir/f110w.IR.tab'),
+                    ('f125w', 'bandpasses/wfc3-ir/f125w.IR.tab'),
+                    ('f127m', 'bandpasses/wfc3-ir/f127m.IR.tab'),
+                    ('f139m', 'bandpasses/wfc3-ir/f139m.IR.tab'),
+                    ('f140w', 'bandpasses/wfc3-ir/f140w.IR.tab'),
+                    ('f153m', 'bandpasses/wfc3-ir/f153m.IR.tab'),
+                    ('f160w', 'bandpasses/wfc3-ir/f160w.IR.tab')]:
+        _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
+                                    args=(fname,), meta=nicmos_meta)
+
 
 bands = [('desg', 'des/des_g.dat', des_meta),
          ('desr', 'des/des_r.dat', des_meta),
@@ -178,17 +231,6 @@ bands = [('desg', 'des/des_g.dat', des_meta),
          ('sdssr', 'sdss/sdss_r.dat', sdss_meta),
          ('sdssi', 'sdss/sdss_i.dat', sdss_meta),
          ('sdssz', 'sdss/sdss_z.dat', sdss_meta),
-         ('nicf110w', 'hst/hst_nicmos_nic2_f110w.dat', nicmos_meta),
-         ('nicf160w', 'hst/hst_nicmos_nic2_f160w.dat', nicmos_meta),
-         ('f098m', 'hst/hst_wfc3_ir_f098m.dat', wfc3ir_meta),
-         ('f105w', 'hst/hst_wfc3_ir_f105w.dat', wfc3ir_meta),
-         ('f110w', 'hst/hst_wfc3_ir_f110w.dat', wfc3ir_meta),
-         ('f125w', 'hst/hst_wfc3_ir_f125w.dat', wfc3ir_meta),
-         ('f127m', 'hst/hst_wfc3_ir_f127m.dat', wfc3ir_meta),
-         ('f139m', 'hst/hst_wfc3_ir_f139m.dat', wfc3ir_meta),
-         ('f140w', 'hst/hst_wfc3_ir_f140w.dat', wfc3ir_meta),
-         ('f153m', 'hst/hst_wfc3_ir_f153m.dat', wfc3ir_meta),
-         ('f160w', 'hst/hst_wfc3_ir_f160w.dat', wfc3ir_meta),
          ('f218w', 'hst/hst_wfc3_uvis_f218w.dat', wfc3uvis_meta),
          ('f225w', 'hst/hst_wfc3_uvis_f225w.dat', wfc3uvis_meta),
          ('f275w', 'hst/hst_wfc3_uvis_f275w.dat', wfc3uvis_meta),
@@ -207,14 +249,6 @@ bands = [('desg', 'des/des_g.dat', des_meta),
          ('uvf775w', 'hst/hst_wfc3_uvis_f775w.dat', wfc3uvis_meta),
          ('uvf814w', 'hst/hst_wfc3_uvis_f814w.dat', wfc3uvis_meta),
          ('uvf850lp', 'hst/hst_wfc3_uvis_f850lp.dat', wfc3uvis_meta),
-         ('f435w', 'hst/hst_acs_wfc_f435w.dat', acs_meta),
-         ('f475w', 'hst/hst_acs_wfc_f475w.dat', acs_meta),
-         ('f555w', 'hst/hst_acs_wfc_f555w.dat', acs_meta),
-         ('f606w', 'hst/hst_acs_wfc_f606w.dat', acs_meta),
-         ('f625w', 'hst/hst_acs_wfc_f625w.dat', acs_meta),
-         ('f775w', 'hst/hst_acs_wfc_f775w.dat', acs_meta),
-         ('f814w', 'hst/hst_acs_wfc_f814w.dat', acs_meta),
-         ('f850lp', 'hst/hst_acs_wfc_f850lp.dat', acs_meta),
          ('kepler', 'kepler/kepler.dat', kepler_meta),
          ('cspb',     'csp/B_texas_WLcorr_atm.txt',        csp_meta),
          ('csphs',    'csp/H_SWO_TAM_scan_atm.dat',        csp_meta),
