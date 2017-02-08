@@ -239,12 +239,13 @@ for name, fname in [('f218w', 'hst/hst_wfc3_uvis_f218w.dat'),
 # Kepler
 kepler_meta = {
     'filterset': 'kepler',
-    'retrieved': '14 Jan 2015',
+    'retrieved': 'direct download',
     'description': 'Bandpass for the Kepler spacecraft',
     'dataurl': 'http://keplergo.arc.nasa.gov/CalibrationResponse.shtml'}
-_BANDPASSES.register_loader('kepler', load_bandpass_angstroms,
-                            args=('data/bandpasses/kepler/kepler.dat',),
-                            meta=kepler_meta)
+_BANDPASSES.register_loader(
+    'kepler', load_bandpass_remote_nm,
+    args=("bandpasses/kepler/kepler_response_hires1.txt",),
+    meta=kepler_meta)
 
 
 csp_meta = {
