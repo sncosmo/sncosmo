@@ -26,11 +26,12 @@ except ImportError:
 class TestFitting:
     def setup_class(self):
         model = sncosmo.Model(source='hsiao-subsampled')
-        params = {'t0': 56000., 'amplitude': 1.e-7, 'z': 0.1}
+        params = {'t0': 56000., 'amplitude': 1.e-7, 'z': 0.2}
 
         # generate fake data with no errors
         points_per_band = 12
-        bands = points_per_band * ['desg', 'desr', 'desi', 'desz']
+        bands = points_per_band * ['bessellux', 'bessellb', 'bessellr',
+                                   'besselli']
         times = params['t0'] + np.linspace(-10., 60., len(bands))
         zp = len(bands) * [25.]
         zpsys = len(bands) * ['ab']

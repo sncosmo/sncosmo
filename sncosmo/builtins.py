@@ -63,15 +63,6 @@ DATADIR = DataMirror(get_rootdir, "http://sncosmo.github.io/data")
 # =============================================================================
 # Bandpasses
 
-def load_bandpass_angstroms(pkg_data_name, name=None):
-    fname = get_pkg_data_filename(pkg_data_name)
-    return read_bandpass(fname, wave_unit=u.AA, name=name)
-
-
-def load_bandpass_microns(pkg_data_name, name=None):
-    fname = get_pkg_data_filename(pkg_data_name)
-    return read_bandpass(fname, wave_unit=u.micron, name=name)
-
 
 def load_bandpass_bessell(pkg_data_name, name=None):
     """Bessell bandpasses have (1/energy) transmission units."""
@@ -89,6 +80,12 @@ def load_bandpass_remote_aa(relpath, name=None):
 def load_bandpass_remote_nm(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
     return read_bandpass(abspath, wave_unit=u.nm,
+                         trim_level=BANDPASS_TRIM_LEVEL, name=name)
+
+
+def load_bandpass_remote_um(relpath, name=None):
+    abspath = DATADIR.abspath(relpath)
+    return read_bandpass(abspath, wave_unit=u.micron,
                          trim_level=BANDPASS_TRIM_LEVEL, name=name)
 
 
@@ -128,14 +125,13 @@ des_meta = {
     'filterset': 'des',
     'retrieved': '22 March 2013',
     'description': 'Dark Energy Camera grizy filter set at airmass 1.3'}
-for name, fname in [('desg', 'des/des_g.dat'),
-                    ('desr', 'des/des_r.dat'),
-                    ('desi', 'des/des_i.dat'),
-                    ('desz', 'des/des_z.dat'),
-                    ('desy', 'des/des_y.dat')]:
-    _BANDPASSES.register_loader(name, load_bandpass_angstroms,
-                                args=('data/bandpasses/' + fname,),
-                                meta=des_meta)
+for name, fname in [('desg', 'bandpasses/des/des_g.dat'),
+                    ('desr', 'bandpasses/des/des_r.dat'),
+                    ('desi', 'bandpasses/des/des_i.dat'),
+                    ('desz', 'bandpasses/des/des_z.dat'),
+                    ('desy', 'bandpasses/des/des_y.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=des_meta)
 
 
 sdss_meta = {
@@ -144,13 +140,13 @@ sdss_meta = {
                   'abs/2010AJ....139.1628D>`__, Table 4'),
     'description': ('SDSS 2.5m imager at airmass 1.3 (including '
                     'atmosphere), normalized')}
-for name, fname in [('sdssu', 'sdss/sdss_u.dat'),
-                    ('sdssg', 'sdss/sdss_g.dat'),
-                    ('sdssr', 'sdss/sdss_r.dat'),
-                    ('sdssi', 'sdss/sdss_i.dat'),
-                    ('sdssz', 'sdss/sdss_z.dat')]:
-    _BANDPASSES.register_loader(name, load_bandpass_angstroms,
-                                args=('data/bandpasses/' + fname,),
+for name, fname in [('sdssu', 'bandpasses/sdss/sdss_u.dat'),
+                    ('sdssg', 'bandpasses/sdss/sdss_g.dat'),
+                    ('sdssr', 'bandpasses/sdss/sdss_r.dat'),
+                    ('sdssi', 'bandpasses/sdss/sdss_i.dat'),
+                    ('sdssz', 'bandpasses/sdss/sdss_z.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,),
                                 meta=sdss_meta)
 
 _BANDPASSES.alias('sdss::u', 'sdssu')
@@ -178,7 +174,7 @@ for name, fname in [('f435w', 'bandpasses/acs-wfc/wfc_F435W.dat'),
 
 
 # HST NICMOS NIC2 bandpasses: remote
-nicmos_meta = {'filterset': 'nicmos2',
+nicmos_meta = {'filterset': 'nicmos-nic2',
                'dataurl': 'http://www.stsci.edu/hst/',
                'retrieved': '05 Aug 2014',
                'description': 'Hubble Space Telescope NICMOS2 filters'}
@@ -211,29 +207,29 @@ for name, fname in [('f098m', 'bandpasses/wfc3-ir/f098m.IR.tab'),
 wfc3uvis_meta = {'filterset': 'wfc3-uvis',
                  'dataurl': 'http://www.stsci.edu/hst/wfc3/ins_performance/'
                             'throughputs/Throughput_Tables',
-                 'retrieved': '05 Aug 2014',
-                 'description': 'Hubble Space Telescope WFC3 UVIS filters'}
-for name, fname in [('f218w', 'hst/hst_wfc3_uvis_f218w.dat'),
-                    ('f225w', 'hst/hst_wfc3_uvis_f225w.dat'),
-                    ('f275w', 'hst/hst_wfc3_uvis_f275w.dat'),
-                    ('f300x', 'hst/hst_wfc3_uvis_f300x.dat'),
-                    ('f336w', 'hst/hst_wfc3_uvis_f336w.dat'),
-                    ('f350lp', 'hst/hst_wfc3_uvis_f350lp.dat'),
-                    ('f390w', 'hst/hst_wfc3_uvis_f390w.dat'),
-                    ('f689m', 'hst/hst_wfc3_uvis_f689m.dat'),
-                    ('f763m', 'hst/hst_wfc3_uvis_f763m.dat'),
-                    ('f845m', 'hst/hst_wfc3_uvis_f845m.dat'),
-                    ('f438w', 'hst/hst_wfc3_uvis_f438w.dat'),
-                    ('uvf475w', 'hst/hst_wfc3_uvis_f475w.dat'),
-                    ('uvf555w', 'hst/hst_wfc3_uvis_f555w.dat'),
-                    ('uvf606w', 'hst/hst_wfc3_uvis_f606w.dat'),
-                    ('uvf625w', 'hst/hst_wfc3_uvis_f625w.dat'),
-                    ('uvf775w', 'hst/hst_wfc3_uvis_f775w.dat'),
-                    ('uvf814w', 'hst/hst_wfc3_uvis_f814w.dat'),
-                    ('uvf850lp', 'hst/hst_wfc3_uvis_f850lp.dat')]:
-    _BANDPASSES.register_loader(name, load_bandpass_angstroms,
-                                args=('data/bandpasses/' + fname,),
-                                meta=wfc3uvis_meta)
+                 'retrieved': 'direct download',
+                 'description': ('Hubble Space Telescope WFC3 UVIS filters '
+                                 '(CCD 2)')}
+for name, fname in [('f218w', "bandpasses/wfc3-uvis/f218w.UVIS2.tab"),
+                    ('f225w', "bandpasses/wfc3-uvis/f225w.UVIS2.tab"),
+                    ('f275w', "bandpasses/wfc3-uvis/f275w.UVIS2.tab"),
+                    ('f300x', "bandpasses/wfc3-uvis/f300x.UVIS2.tab"),
+                    ('f336w', "bandpasses/wfc3-uvis/f336w.UVIS2.tab"),
+                    ('f350lp', "bandpasses/wfc3-uvis/f350lp.UVIS2.tab"),
+                    ('f390w', "bandpasses/wfc3-uvis/f390w.UVIS2.tab"),
+                    ('f689m', "bandpasses/wfc3-uvis/f689m.UVIS2.tab"),
+                    ('f763m', "bandpasses/wfc3-uvis/f763m.UVIS2.tab"),
+                    ('f845m', "bandpasses/wfc3-uvis/f845m.UVIS2.tab"),
+                    ('f438w', "bandpasses/wfc3-uvis/f438w.UVIS2.tab"),
+                    ('uvf475w', "bandpasses/wfc3-uvis/f475w.UVIS2.tab"),
+                    ('uvf555w', "bandpasses/wfc3-uvis/f555w.UVIS2.tab"),
+                    ('uvf606w', "bandpasses/wfc3-uvis/f606w.UVIS2.tab"),
+                    ('uvf625w', "bandpasses/wfc3-uvis/f625w.UVIS2.tab"),
+                    ('uvf775w', "bandpasses/wfc3-uvis/f775w.UVIS2.tab"),
+                    ('uvf814w', "bandpasses/wfc3-uvis/f814w.UVIS2.tab"),
+                    ('uvf850lp', "bandpasses/wfc3-uvis/f850lp.UVIS2.tab")]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=wfc3uvis_meta)
 
 
 # Kepler
@@ -250,27 +246,28 @@ _BANDPASSES.register_loader(
 
 csp_meta = {
     'filterset': 'csp',
-    'retrieved': '6 Nov 2015',
-    'description': 'Carnegie Supernova Proj. filts (Swope+DuPont Telescopes)',
+    'retrieved': '8 Feb 2017',
+    'description': ('Carnegie Supernova Project filters (Swope+DuPont '
+                    'Telescopes) updated 6 Oct 2016'),
     'dataurl': 'http://csp.obs.carnegiescience.edu/data/filters'}
-for name, fname in [('cspb',     'csp/B_texas_WLcorr_atm.txt'),
-                    ('csphs',    'csp/H_SWO_TAM_scan_atm.dat'),
-                    ('csphd',    'csp/H_texas_DUP_atm.dat'),
-                    ('cspjs',    'csp/J_SWO_TAM_atm.dat'),
-                    ('cspjd',    'csp/J_texas_DUP_atm.dat'),
-                    ('cspv3009', 'csp/V_LC3009_texas_WLcorr_atm.txt'),
-                    ('cspv3014', 'csp/V_LC3014_texas_WLcorr_atm.txt'),
-                    ('cspv9844', 'csp/V_LC9844_texax_WLcorr_atm.txt'),
-                    ('cspys',    'csp/Y_SWO_TAM_scan_atm.dat'),
-                    ('cspyd',    'csp/Y_texas_DUP_atm.dat'),
-                    ('cspg',     'csp/g_texas_WLcorr_atm.txt'),
-                    ('cspi',     'csp/i_texas_WLcorr_atm.txt'),
-                    ('cspk',     'csp/kfilter'),
-                    ('cspr',     'csp/r_texas_WLcorr_atm.txt'),
-                    ('cspu',     'csp/u_texas_WLcorr_atm.txt')]:
-    _BANDPASSES.register_loader(name, load_bandpass_angstroms,
-                                args=('data/bandpasses/' + fname,),
-                                meta=csp_meta)
+for name, fname in [
+        ('cspb',     'bandpasses/csp/B_tel_ccd_atm_ext_1.2.dat'),
+        ('csphs',    'bandpasses/csp/H_SWO_TAM_scan_atm.dat'),
+        ('csphd',    'bandpasses/csp/H_DUP_TAM_scan_atm.dat'),
+        ('cspjs',    'bandpasses/csp/J_SWO_TAM_scan_atm.dat'),
+        ('cspjd',    'bandpasses/csp/J_DUP_TAM_scan_atm.dat'),
+        ('cspv3009', 'bandpasses/csp/V_LC3009_tel_ccd_atm_ext_1.2.dat'),
+        ('cspv3014', 'bandpasses/csp/V_LC3014_tel_ccd_atm_ext_1.2.dat'),
+        ('cspv9844', 'bandpasses/csp/V_LC9844_tel_ccd_atm_ext_1.2.dat'),
+        ('cspys',    'bandpasses/csp/Y_SWO_TAM_scan_atm.dat'),
+        ('cspyd',    'bandpasses/csp/Y_DUP_TAM_scan_atm.dat'),
+        ('cspg',     'bandpasses/csp/g_tel_ccd_atm_ext_1.2.dat'),
+        ('cspi',     'bandpasses/csp/i_tel_ccd_atm_ext_1.2.dat'),
+        ('cspk',     'bandpasses/csp/kfilter'),
+        ('cspr',     'bandpasses/csp/r_tel_ccd_atm_ext_1.2.dat'),
+        ('cspu',     'bandpasses/csp/u_tel_ccd_atm_ext_1.2.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=csp_meta)
 
 
 jwst_nircam_meta = {'filterset': 'jwst-nircam',
@@ -279,29 +276,28 @@ jwst_nircam_meta = {'filterset': 'jwst-nircam',
                     'retrieved': '09 Sep 2014',
                     'description': 'James Webb Space Telescope NIRCAM '
                                    'Wide+Medium filters'}
-for name, fname in [('f070w', 'jwst/jwst_nircam_f070w.dat'),
-                    ('f090w', 'jwst/jwst_nircam_f090w.dat'),
-                    ('f115w', 'jwst/jwst_nircam_f115w.dat'),
-                    ('f150w', 'jwst/jwst_nircam_f150w.dat'),
-                    ('f200w', 'jwst/jwst_nircam_f200w.dat'),
-                    ('f277w', 'jwst/jwst_nircam_f277w.dat'),
-                    ('f356w', 'jwst/jwst_nircam_f356w.dat'),
-                    ('f444w', 'jwst/jwst_nircam_f444w.dat'),
-                    ('f140m', 'jwst/jwst_nircam_f140m.dat'),
-                    ('f162m', 'jwst/jwst_nircam_f162m.dat'),
-                    ('f182m', 'jwst/jwst_nircam_f182m.dat'),
-                    ('f210m', 'jwst/jwst_nircam_f210m.dat'),
-                    ('f250m', 'jwst/jwst_nircam_f250m.dat'),
-                    ('f300m', 'jwst/jwst_nircam_f300m.dat'),
-                    ('f335m', 'jwst/jwst_nircam_f335m.dat'),
-                    ('f360m', 'jwst/jwst_nircam_f360m.dat'),
-                    ('f410m', 'jwst/jwst_nircam_f410m.dat'),
-                    ('f430m', 'jwst/jwst_nircam_f430m.dat'),
-                    ('f460m', 'jwst/jwst_nircam_f460m.dat'),
-                    ('f480m', 'jwst/jwst_nircam_f480m.dat')]:
-    _BANDPASSES.register_loader(name, load_bandpass_microns,
-                                args=('data/bandpasses/' + fname,),
-                                meta=jwst_nircam_meta)
+for name, fname in [('f070w', 'bandpasses/nircam/jwst_nircam_f070w.dat'),
+                    ('f090w', 'bandpasses/nircam/jwst_nircam_f090w.dat'),
+                    ('f115w', 'bandpasses/nircam/jwst_nircam_f115w.dat'),
+                    ('f150w', 'bandpasses/nircam/jwst_nircam_f150w.dat'),
+                    ('f200w', 'bandpasses/nircam/jwst_nircam_f200w.dat'),
+                    ('f277w', 'bandpasses/nircam/jwst_nircam_f277w.dat'),
+                    ('f356w', 'bandpasses/nircam/jwst_nircam_f356w.dat'),
+                    ('f444w', 'bandpasses/nircam/jwst_nircam_f444w.dat'),
+                    ('f140m', 'bandpasses/nircam/jwst_nircam_f140m.dat'),
+                    ('f162m', 'bandpasses/nircam/jwst_nircam_f162m.dat'),
+                    ('f182m', 'bandpasses/nircam/jwst_nircam_f182m.dat'),
+                    ('f210m', 'bandpasses/nircam/jwst_nircam_f210m.dat'),
+                    ('f250m', 'bandpasses/nircam/jwst_nircam_f250m.dat'),
+                    ('f300m', 'bandpasses/nircam/jwst_nircam_f300m.dat'),
+                    ('f335m', 'bandpasses/nircam/jwst_nircam_f335m.dat'),
+                    ('f360m', 'bandpasses/nircam/jwst_nircam_f360m.dat'),
+                    ('f410m', 'bandpasses/nircam/jwst_nircam_f410m.dat'),
+                    ('f430m', 'bandpasses/nircam/jwst_nircam_f430m.dat'),
+                    ('f460m', 'bandpasses/nircam/jwst_nircam_f460m.dat'),
+                    ('f480m', 'bandpasses/nircam/jwst_nircam_f480m.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_um,
+                                args=(fname,), meta=jwst_nircam_meta)
 
 
 jwst_miri_meta = {'filterset': 'jwst-miri',

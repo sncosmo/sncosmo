@@ -29,7 +29,7 @@ def test_realize_lcs():
 
     # here's some completely made-up data:
     obs1 = Table({'time': [10., 60., 110.],
-                  'band': ['desg', 'desr', 'desi'],
+                  'band': ['bessellb', 'bessellr', 'besselli'],
                   'gain': [1., 1., 1.],
                   'skynoise': [100., 100., 100.],
                   'zp': [30., 30., 30.],
@@ -37,7 +37,7 @@ def test_realize_lcs():
 
     # same made up data with aliased column names:
     obs2 = Table({'MJD': [10., 60., 110.],
-                  'filter': ['desg', 'desr', 'desi'],
+                  'filter': ['bessellb', 'bessellr', 'besselli'],
                   'GAIN': [1., 1., 1.],
                   'skynoise': [100., 100., 100.],
                   'ZPT': [30., 30., 30.],
