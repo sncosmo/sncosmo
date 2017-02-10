@@ -219,8 +219,8 @@ def _download_file(remote_url, target):
     """
 
     from contextlib import closing
-    from six.moves.urllib.request import urlopen, Request
-    from six.moves.urllib.error import URLError
+    from astropy.extern.six.moves.urllib.request import urlopen, Request
+    from astropy.extern.six.moves.urllib.error import URLError
     from astropy.utils.console import ProgressBarOrSpinner
     from astropy.utils.data import conf
 
@@ -417,7 +417,7 @@ class DataMirror(object):
         return self._checked_rootdir
 
     def _fetch_redirects(self):
-        from six.moves.urllib.request import urlopen
+        from astropy.extern.six.moves.urllib.request import urlopen
         import json
 
         f = urlopen(self._remote_root + "redirects.json")
