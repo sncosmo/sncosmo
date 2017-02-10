@@ -168,8 +168,8 @@ class TestModel:
 
     def test_set_source_peakabsmag(self):
         # Both Bandpass and str should work
-        band = sncosmo.get_bandpass('desg')
-        self.model.set_source_peakabsmag(-19.3, 'desg', 'ab')
+        band = sncosmo.get_bandpass('bessellb')
+        self.model.set_source_peakabsmag(-19.3, 'bessellb', 'ab')
         self.model.set_source_peakabsmag(-19.3, band, 'ab')
 
     def test_str(self):
