@@ -11,7 +11,7 @@ if (! $env:ASTROPY_LTS_VERSION) {
 
 function DownloadMiniconda ($version, $platform_suffix) {
     $webclient = New-Object System.Net.WebClient
-    $filename = "Miniconda-" + $version + "-Windows-" + $platform_suffix + ".exe"
+    $filename = "Miniconda3-" + $version + "-Windows-" + $platform_suffix + ".exe"
 
     $url = $MINICONDA_URL + $filename
 
