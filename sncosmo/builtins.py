@@ -120,6 +120,22 @@ for name, fname in [('bessellux', 'bessell/bessell_ux.dat'),
                                 args=('data/bandpasses/' + fname,),
                                 meta=bessell_meta)
 
+# Shifted bessell filters used in SNLS3 (in units of photon / photon)
+snls3_landolt_meta = {
+    'filterset': 'snls3-landolt',
+    'dataurl': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
+    'retrieved': '13 February 2017',
+    'description': 'Bessell bandpasses shifted as in JLA analysis',
+    'reference': ('B14a',
+                  '`Betoule et al. (2014) <http://adsabs.harvard.edu'
+                  '/abs/2014A%26A...568A..22B>`__, Footnote 21')}
+for name, fname in [('standard::u', 'bandpasses/snls3-landolt/sux-shifted.dat'),
+                    ('standard::b', 'bandpasses/snls3-landolt/sb-shifted.dat'),
+                    ('standard::v', 'bandpasses/snls3-landolt/sv-shifted.dat'),
+                    ('standard::r', 'bandpasses/snls3-landolt/sr-shifted.dat'),
+                    ('standard::i', 'bandpasses/snls3-landolt/si-shifted.dat')]:
+        _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=snls3_landolt_meta)
 
 des_meta = {
     'filterset': 'des',
@@ -172,6 +188,10 @@ for name, fname in [('f435w', 'bandpasses/acs-wfc/wfc_F435W.dat'),
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=acs_meta)
 
+_BANDPASSES.alias('acswf::f606w', 'f606w')
+_BANDPASSES.alias('acswf::f775w', 'f775w')
+_BANDPASSES.alias('acswf::f850lp', 'f850lp')
+
 
 # HST NICMOS NIC2 bandpasses: remote
 nicmos_meta = {'filterset': 'nicmos-nic2',
@@ -183,6 +203,9 @@ for name, fname in [
         ('nicf160w', 'bandpasses/nicmos-nic2/hst_nicmos_nic2_f160w.dat')]:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=nicmos_meta)
+
+_BANDPASSES.alias('nicmos2::f110w', 'nicf110w')
+_BANDPASSES.alias('nicmos2::f160w', 'nicf160w')
 
 
 # WFC3 IR bandpasses: remote
@@ -269,6 +292,18 @@ for name, fname in [
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=csp_meta)
 
+_BANDPASSES.alias('swope2::u', 'cspu')
+_BANDPASSES.alias('swope2::b', 'cspb')
+_BANDPASSES.alias('swope2::g', 'cspg')
+_BANDPASSES.alias('swope2::v', 'cspv3014')
+_BANDPASSES.alias('swope2::v1', 'cspv3009')
+_BANDPASSES.alias('swope2::v2', 'cspv9844')
+_BANDPASSES.alias('swope2::r', 'cspr')
+_BANDPASSES.alias('swope2::i', 'cspi')
+_BANDPASSES.alias('swope2::y', 'cspys')
+_BANDPASSES.alias('swope2::j', 'cspjs')
+_BANDPASSES.alias('swope2::h', 'csphs')
+
 
 jwst_nircam_meta = {'filterset': 'jwst-nircam',
                     'dataurl': 'http://www.stsci.edu/jwst/instruments/nircam'
@@ -322,7 +357,7 @@ for name, ctr, width in [('f560w', 5.6, 1.2),
     _BANDPASSES.register_loader(name, tophat_bandpass_um,
                                 args=(ctr, width), meta=jwst_miri_meta)
 
-
+# LSST bandpasses
 lsst_meta = {'filterset': 'lsst',
              'dataurl': ('https://github.com/lsst/throughputs/tree/'
                          '7632edaa9e93d06576e34a065ea4622de8cc48d0/baseline'),
@@ -333,6 +368,19 @@ for letter in ['u', 'g', 'r', 'i', 'z', 'y']:
     relpath = 'bandpasses/lsst/total_{}.dat'.format(letter)
     _BANDPASSES.register_loader(name, load_bandpass_remote_nm,
                                 args=(relpath,), meta=lsst_meta)
+
+# Keplercam
+keplercam_meta = {'filterset': 'keplercam',
+                  'dataurl': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
+                  'retrieved': '13 Feb 2017',
+                  'description': 'Keplercam transmissions as used in JLA'}
+for name, fname in [('keplercam::us', 'bandpasses/keplercam/Us_Keplercam.txt'),
+                    ('keplercam::b', 'bandpasses/keplercam/B_Keplercam.txt'),
+                    ('keplercam::v', 'bandpasses/keplercam/V_Keplercam.txt'),
+                    ('keplercam::r', 'bandpasses/keplercam/r_Keplercam.txt'),
+                    ('keplercam::i', 'bandpasses/keplercam/i_Keplercam.txt')]:
+        _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                    args=(fname,), meta=keplercam_meta)
 
 
 # =============================================================================
@@ -502,8 +550,8 @@ _SOURCES.register_loader('hsiao-subsampled',
 website = 'http://supernovae.in2p3.fr/salt/doku.php?id=salt_templates'
 g10ref = ('G10', 'Guy et al. 2010 '
           '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
-b14ref = ('B14', 'Betoule et al. 2014 '
-          '<http://arxiv.org/abs/1401.4064>')
+b14ref = ('B14b', 'Betoule et al. 2014 '
+          '<http://adsabs.harvard.edu/abs/2014A%26A...568A..22B>')
 for topdir, ver, ref in [('salt2-2-0', '2.0', g10ref),
                          ('salt2-4', '2.4', b14ref)]:
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
