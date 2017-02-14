@@ -220,7 +220,7 @@ def _download_file(remote_url, target):
 
     from contextlib import closing
     from astropy.extern.six.moves.urllib.request import urlopen, Request
-    from astropy.extern.six.moves.urllib.error import URLError
+    from astropy.extern.six.moves.urllib.error import URLError, HTTPError
     from astropy.utils.console import ProgressBarOrSpinner
     from astropy.utils.data import conf
 
@@ -254,7 +254,10 @@ def _download_file(remote_url, target):
                     p.update(bytes_read)
                     block = remote.read(conf.download_block_size)
 
-    # Append a more informative error message to URLErrors.
+    # Append a more informative error message to HTTPErrors, URLErrors.
+    except HTTPError as e:
+        e.msg = "{}. requested URL: {!r}".format(e.msg, remote_url)
+        raise
     except URLError as e:
         append_msg = (hasattr(e, 'reason') and hasattr(e.reason, 'errno') and
                       e.reason.errno == 8)
@@ -291,6 +294,8 @@ def download_file(remote_url, local_name):
         Whenever there's a problem getting the remote file.
     """
 
+    from astropy.extern.six.moves.urllib.error import HTTPError
+
     # ensure target directory exists
     dn = os.path.dirname(local_name)
     if not os.path.exists(dn):
@@ -310,8 +315,14 @@ def download_file(remote_url, local_name):
         f.close()
 
     else:
-        with open(local_name, 'wb') as target:
-            _download_file(remote_url, target)
+        try:
+            with open(local_name, 'wb') as target:
+                _download_file(remote_url, target)
+        except HTTPError:
+            # in case of error downloading, remove opened file.
+            if os.path.exists(local_name):
+                os.remove(local_name)
+            raise
 
 
 def download_dir(remote_url, dirname):
