@@ -129,12 +129,13 @@ snls3_landolt_meta = {
     'reference': ('B14a',
                   '`Betoule et al. (2014) <http://adsabs.harvard.edu'
                   '/abs/2014A%26A...568A..22B>`__, Footnote 21')}
-for name, fname in [('standard::u', 'bandpasses/snls3-landolt/sux-shifted.dat'),
-                    ('standard::b', 'bandpasses/snls3-landolt/sb-shifted.dat'),
-                    ('standard::v', 'bandpasses/snls3-landolt/sv-shifted.dat'),
-                    ('standard::r', 'bandpasses/snls3-landolt/sr-shifted.dat'),
-                    ('standard::i', 'bandpasses/snls3-landolt/si-shifted.dat')]:
-        _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+for name, fname in [
+        ('standard::u', 'bandpasses/snls3-landolt/sux-shifted.dat'),
+        ('standard::b', 'bandpasses/snls3-landolt/sb-shifted.dat'),
+        ('standard::v', 'bandpasses/snls3-landolt/sv-shifted.dat'),
+        ('standard::r', 'bandpasses/snls3-landolt/sr-shifted.dat'),
+        ('standard::i', 'bandpasses/snls3-landolt/si-shifted.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=snls3_landolt_meta)
 
 des_meta = {
@@ -183,7 +184,9 @@ for name, fname in [('f435w', 'bandpasses/acs-wfc/wfc_F435W.dat'),
                     ('f606w', 'bandpasses/acs-wfc/wfc_F606W.dat'),
                     ('f625w', 'bandpasses/acs-wfc/wfc_F625W.dat'),
                     ('f775w', 'bandpasses/acs-wfc/wfc_F775W.dat'),
-                    ('f814w', 'bandpasses/acs-wfc/wfc_F814W.dat'),
+                    # TODO: 814 filter from STScI has multiple identical
+                    # wavelength values.
+                    #('f814w', 'bandpasses/acs-wfc/wfc_F814W.dat'),
                     ('f850lp', 'bandpasses/acs-wfc/wfc_F850LP.dat')]:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=acs_meta)
@@ -251,7 +254,7 @@ for name, fname in [('f218w', "bandpasses/wfc3-uvis/f218w.UVIS2.tab"),
                     ('uvf775w', "bandpasses/wfc3-uvis/f775w.UVIS2.tab"),
                     ('uvf814w', "bandpasses/wfc3-uvis/f814w.UVIS2.tab"),
                     ('uvf850lp', "bandpasses/wfc3-uvis/f850lp.UVIS2.tab")]:
-    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+    _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
                                 args=(fname,), meta=wfc3uvis_meta)
 
 
@@ -335,27 +338,32 @@ for name, fname in [('f070w', 'bandpasses/nircam/jwst_nircam_f070w.dat'),
                                 args=(fname,), meta=jwst_nircam_meta)
 
 
-jwst_miri_meta = {'filterset': 'jwst-miri',
-                  'dataurl': 'http://www.stsci.edu/jwst/instruments/miri/'
-                             'instrumentdesign/filters',
-                  'retrieved': '09 Sep 2014',
-                  'description': 'James Webb Space Telescope MIRI '
-                                 'filters (idealized tophats)'}
-for name, ctr, width in [('f560w', 5.6, 1.2),
-                         ('f770w', 7.7, 2.2),
-                         ('f1000w', 10., 2.),
-                         ('f1130w', 11.3, 0.7),
-                         ('f1280w', 12.8, 2.4),
-                         ('f1500w', 15., 3.),
-                         ('f1800w', 18., 3.),
-                         ('f2100w', 21., 5.),
-                         ('f2550w', 25.5, 4.),
-                         ('f1065c', 10.65, 0.53),
+jwst_miri_meta = {
+    'filterset': 'jwst-miri',
+    'dataurl': ('http://ircamera.as.arizona.edu/MIRI/'
+                'ImPCE_TN-00072-ATC-Iss2.xlsx'),
+    'retrieved': '16 Feb 2017',
+    'description': 'James Webb Space Telescope MIRI filters'}
+for name in ['f560w', 'f770w', 'f1000w', 'f1130w', 'f1280w',
+             'f1500w', 'f1800w', 'f2100w', 'f2550w']:
+    fname = "bandpasses/miri/jwst_miri_{}.dat".format(name)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_um,
+                                args=(fname,), meta=jwst_miri_meta)
+
+
+jwst_miri_meta2 = {'filterset': 'jwst-miri-tophat',
+                   'dataurl': ('http://www.stsci.edu/jwst/instruments/miri/'
+                               'instrumentdesign/filters'),
+                   'retrieved': '09 Sep 2014',
+                   'description': ('James Webb Space Telescope MIRI '
+                                   'filters (idealized tophat)')}
+for name, ctr, width in [('f1065c', 10.65, 0.53),
                          ('f1140c', 11.4, 0.57),
                          ('f1550c', 15.5, 0.78),
                          ('f2300c', 23., 4.6)]:
     _BANDPASSES.register_loader(name, tophat_bandpass_um,
-                                args=(ctr, width), meta=jwst_miri_meta)
+                                args=(ctr, width), meta=jwst_miri_meta2)
+
 
 # LSST bandpasses
 lsst_meta = {'filterset': 'lsst',
@@ -370,10 +378,11 @@ for letter in ['u', 'g', 'r', 'i', 'z', 'y']:
                                 args=(relpath,), meta=lsst_meta)
 
 # Keplercam
-keplercam_meta = {'filterset': 'keplercam',
-                  'dataurl': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
-                  'retrieved': '13 Feb 2017',
-                  'description': 'Keplercam transmissions as used in JLA'}
+keplercam_meta = {
+    'filterset': 'keplercam',
+    'dataurl': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
+    'retrieved': '13 Feb 2017',
+    'description': 'Keplercam transmissions as used in JLA'}
 for name, fname in [('keplercam::us', 'bandpasses/keplercam/Us_Keplercam.txt'),
                     ('keplercam::b', 'bandpasses/keplercam/B_Keplercam.txt'),
                     ('keplercam::v', 'bandpasses/keplercam/V_Keplercam.txt'),
