@@ -1,9 +1,11 @@
 """Helper function to plot a set of bandpasses in sphinx docs."""
 from __future__ import division
 
-import sncosmo
+import numpy as np
 from matplotlib import rc
 from matplotlib import pyplot as plt
+
+import sncosmo
 
 
 def plot_bandpass_set(setname):
@@ -20,8 +22,18 @@ def plot_bandpass_set(setname):
     for m in bandpass_meta:
         if m['filterset'] != setname:
             continue
+        print(m['name'])
         b = sncosmo.get_bandpass(m['name'])
-        ax.plot(b.wave, b.trans, label=m['name'])
+
+        # add zeros on either side of bandpass transmission
+        wave = np.zeros(len(b.wave) + 2)
+        wave[0] = b.wave[0]
+        wave[1:-1] = b.wave
+        wave[-1] = b.wave[-1]
+        trans = np.zeros(len(b.trans) + 2)
+        trans[1:-1] = b.trans
+
+        ax.plot(wave, trans, label=m['name'])
         nbands += 1
 
     ax.set_xlabel("Wavelength ($\\AA$)")
