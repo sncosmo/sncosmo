@@ -318,9 +318,14 @@ class AggregateBandpass(Bandpass):
         Scalar factor to multiply transmissions by. Default is 1.0.
     name : str, optional
         Name of bandpass.
+    family : str, optional
+        Name of "family" this bandpass belongs to. Such an identifier can
+        be useful for identifying bandpasses belonging to the same
+        instrument/filter combination but different focal plane
+        positions.
     """
 
-    def __init__(self, transmissions, prefactor=1.0, name=None):
+    def __init__(self, transmissions, prefactor=1.0, name=None, family=None):
         if len(transmissions) < 1:
             raise ValueError("empty list of transmissions")
 
@@ -335,6 +340,7 @@ class AggregateBandpass(Bandpass):
                               for t in transmissions]
         self.prefactor = prefactor
         self.name = name
+        self.family = family
 
         # Determine min/max wave: since sampled functions are zero outside
         # their domain, minwave is the *largest* minimum x value, and
@@ -428,4 +434,4 @@ class BandpassInterpolator(object):
         name += "at {:f}".format(pos)
 
         return AggregateBandpass(transmissions, prefactor=self.prefactor,
-                                 name=name)
+                                 name=name, family=self.name)
