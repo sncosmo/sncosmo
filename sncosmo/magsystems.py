@@ -9,7 +9,7 @@ import astropy.constants as const
 
 from ._registry import Registry
 from .bandpasses import get_bandpass
-from .utils import integration_grid
+from .utils import integration_grid, warn_once
 from .constants import H_ERG_S, SPECTRUM_BANDFLUX_SPACING
 
 __all__ = ['get_magsystem', 'MagSystem', 'SpectralMagSystem',
@@ -87,57 +87,99 @@ class CompositeMagSystem(MagSystem):
 
     Parameters
     ----------
-    bands: iterable of `~sncosmo.Bandpass` or str
-        The filters in the magnitude system.
-    standards: iterable of `~sncosmo.MagSystem` or str,
-        The spectrophotmetric flux standards for each band, in the
-        same order as `bands`.
-    offsets: list_like
-        The magnitude of standard in the given band. A positive offset
-        means that the composite magsystem zeropoint flux is brighter
-        than the standard.
+    bands: dict, optional
+        Dictionary where keys are `~sncosmo.Bandpass` instances or names,
+        thereof and values are 2-tuples of magnitude system and offset.
+        The offset gives the magnitude of standard in the given band.
+        A positive offset means that the composite magsystem zeropoint flux
+        is higher (brighter) than that of the standard.
+    families : dict, optional
+        Similar to the ``bands`` argument, but keys are strings that apply to
+        any bandpass that has a matching ``family`` attribute. This is useful
+        for generated bandpasses where the transmission differs across
+        focal plane (and hence the bandpass at each position is unique), but
+        all photometry has been calibrated to the same offset.
+    name : str
+        The ``name`` attribute of the magnitude system.
+
+    Examples
+    --------
+    Create a magnitude system defined in only two SDSS bands where an
+    object with AB magnitude of 0 would have a magnitude of 0.01 and 0.02
+    in the two bands respectively:
+
+    >>> sncosmo.CompositeMagSystem(bands={'sdssg': ('ab', 0.01),
+    ...                                   'sdssr': ('ab', 0.02)})
     """
 
-    def __init__(self, bands, standards, offsets, name=None):
+    def __init__(self, bands=None, standards=None, offsets=None,
+                 families=None, name=None):
         super(CompositeMagSystem, self).__init__(name=name)
 
-        if not len(bands) == len(offsets) == len(standards):
-            raise ValueError('Lengths of bands, standards, and offsets '
-                             'must match.')
+        # detect use of deprecated API
+        using_deprecated = (bands is not None and
+                            (standards is not None or
+                             offsets is not None))
 
-        self._bands = [get_bandpass(band) for band in bands]
-        self._standards = [get_magsystem(s) for s in standards]
-        self._offsets = offsets
+        # old API
+        if using_deprecated:
+            warn_once("`standards`, `offsets` keyword in CompositeMagSystem",
+                      '1.5', '2.0',
+                      "Use new constructor API (see documentation).")
+
+            if not len(bands) == len(offsets) == len(standards):
+                raise ValueError('Lengths of bands, standards, and offsets '
+                                 'must match.')
+
+            self._bands = {
+                get_bandpass(band): (get_magsystem(magsys), offset)
+                for band, magsys, offset in zip(bands, standards, offsets)}
+
+        # new API includes "families"
+        else:
+            if bands is not None:
+                self._bands = {
+                    get_bandpass(band): (get_magsystem(magsys), offset)
+                    for band, (magsys, offset) in bands.items()}
+            else:
+                self._bands = {}
+
+            if families is not None:
+                self._families = {f: (get_magsystem(magsys), offset)
+                                  for f, (magsys, offset) in families.items()}
+            else:
+                self._families = {}
 
     @property
     def bands(self):
         return self._bands
 
-    @property
-    def standards(self):
-        return self._standards
-
-    @property
-    def offsets(self):
-        return self._offsets
-
     def _refspectrum_bandflux(self, band):
-        if band not in self._bands:
-            raise ValueError('band not in local magnitude system')
-        i = self._bands.index(band)
-        standard = self._standards[i]
-        offset = self._offsets[i]
+        val = self._bands.get(band)
 
-        return 10.**(0.4 * offset) * standard.zpbandflux(band)
+        if val is not None:
+            standard, offset = val
+            return 10.**(0.4 * offset) * standard.zpbandflux(band)
+
+        if hasattr(band, 'family'):
+            val = self._families.get(band.family)
+            if val is not None:
+                standard, offset = val
+                return 10.**(0.4 * offset) * standard.zpbandflux(band)
+
+        raise ValueError('band not defined in composite magnitude system')
 
     def __str__(self):
         s = "CompositeMagSystem {!r}:\n".format(self.name)
 
-        for i in range(len(self._bands)):
+        for band, (magsys, offset) in self._bands.items():
             s += "  {!r}: system={!r}  offset={}\n".format(
-                self._bands[i].name,
-                self._standards[i].name,
-                self._offsets[i])
+                band, magsys, offset)
+
+        for family, (magsys, offset) in self._families.items():
+            s += "  {!r}: system={!r}  offset={}\n".format(
+                family, magsys, offset)
+
         return s
 
 
