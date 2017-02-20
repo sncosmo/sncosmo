@@ -391,7 +391,19 @@ for name, fname in [('keplercam::us', 'bandpasses/keplercam/Us_Keplercam.txt'),
         _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                     args=(fname,), meta=keplercam_meta)
 
-
+# 4shooter
+fourshooter_meta = {
+    'filterset': '4shooter2',
+    'dataurl': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
+    'retrieved': '13 Feb 2017',
+    'description': '4Shooter filters as used in JLA'}
+for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
+                    ('4shooter2::b', 'bandpasses/4shooter2/B_4Shooter2.txt'),
+                    ('4shooter2::v', 'bandpasses/4shooter2/V_4Shooter2.txt'),
+                    ('4shooter2::r', 'bandpasses/4shooter2/r_4Shooter2.txt'),
+                    ('4shooter2::i', 'bandpasses/4shooter2/i_4Shooter2.txt')]:
+        _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                    args=(fname,), meta=fourshooter_meta)
 # =============================================================================
 # bandpass interpolators
 
@@ -702,32 +714,87 @@ def load_spectral_magsys_fits(relpath, name=None):
     return SpectralMagSystem(refspectrum, name=name)
 
 
-def load_csp(**kwargs):
+def load_csp(name=None):
 
     # this file contains the csp zeropoints and standards
     fname = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
     data = np.genfromtxt(fname, names=True, dtype=None, skip_header=3)
-    bands = data['name']
+    bandnames = data['name']
     refsystems = data['reference_sed']
     offsets = data['natural_mag']
 
     # In Python 3, convert to native strings (Unicode)
     if six.PY3:
-        bands = np.char.decode(bands)
+        bandnames = np.char.decode(bandnames)
         refsystems = np.char.decode(refsystems)
 
-    return CompositeMagSystem(bands, refsystems, offsets, name='csp')
+    bands = {name: (magsys, offset) for name, magsys, offset in
+             zip(bandnames, refsystems, offsets)}
+    return CompositeMagSystem(bands=bands, name=name)
 
 
-def load_ab_b12(**kwargs):
+def load_ab_b12(name=None):
     # offsets are in the sense (mag_SDSS - mag_AB) = offset
     # -> for example: a source with AB mag = 0. will have SDSS mag = 0.06791
-    bands = ['sdssu', 'sdssg', 'sdssr', 'sdssi', 'sdssz',
-             'sdss::u', 'sdss::g', 'sdss::r', 'sdss::i', 'sdss::z']
-    standards = 10 * ['ab']
-    offsets = 2 * [0.06791, -0.02028, -0.00493, -0.01780, -0.01015]
-    return CompositeMagSystem(bands, standards, offsets)
+    bands = {'sdssu': ('ab', 0.06791),
+             'sdssg': ('ab', -0.02028),
+             'sdssr': ('ab', -0.00493),
+             'sdssi': ('ab', -0.01780),
+             'sdssz': ('ab', -0.01015)}
 
+    # add aliases for above
+    for letter in 'ugriz':
+        bands['sdss::' + letter] = bands['sdss' + letter]
+
+    families = {'megacampsf::u': ('ab', 0.0),
+                'megacampsf::g': ('ab', 0.0),
+                'megacampsf::r': ('ab', 0.0),
+                'megacampsf::i': ('ab', 0.0),
+                'megacampsf::z': ('ab', 0.0),
+                'megacampsf::y': ('ab', 0.0)}
+
+    return CompositeMagSystem(bands=bands, families=families, name=name)
+
+
+def load_jla1(name=None):
+    """JLA1 analysis magnitude system based on CALSPEC stis spectra 003"""
+
+    base = load_spectral_magsys_fits("spectra/bd_17d4708_stisnic_003.fits")
+    bands = {'standard::u': (base, 9.724),
+             'standard::b': (base, 9.907),
+             'standard::v': (base, 9.464),
+             'standard::r': (base, 9.166),
+             'standard::i': (base, 8.846),
+             'keplercam::us': (base, 9.724),
+             'keplercam::b': (base, 9.8803),
+             'keplercam::v': (base, 9.4722),
+             'keplercam::r': (base, 9.3523),
+             'keplercam::i': (base, 9.2542),
+             '4shooter2::us': (base, 9.724),
+             '4shooter2::b': (base, 9.8744),
+             '4shooter2::v': (base, 9.4789),
+             '4shooter2::r': (base, 9.1554),
+             '4shooter2::i': (base, 8.8506),
+             'swope2::u': (base, 10.514),
+             'swope2::g': (base, 9.64406),
+             'swope2::r': (base, 9.3516),
+             'swope2::i': (base, 9.25),
+             'swope2::b': (base, 9.876433),
+             'swope2::v': (base, 9.476626),
+             'swope2::v1': (base, 9.471276),
+             'swope2::v2': (base, 9.477482)}
+
+    return CompositeMagSystem(bands=bands, name=name)
+
+
+_MAGSYSTEMS.register_loader(
+    'jla1', load_jla1,
+    meta={'subclass': '`~sncosmo.CompositeMagSystem`',
+          'url': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
+          'description': ('JLA1 analysis magnitude system based on BD+17 '
+                          'CALSPEC STIS spectra 003.')})
+
+_MAGSYSTEMS.alias('vega2', 'jla1')
 
 # AB
 _MAGSYSTEMS.register_loader(
