@@ -11,6 +11,7 @@ def test_hst_bands():
         sncosmo.get_bandpass(bandname)
 
 
+@remote_data
 def test_jwst_miri_bands():
     for bandname in ['f1130w']:
         sncosmo.get_bandpass(bandname)

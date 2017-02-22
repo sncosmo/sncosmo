@@ -544,5 +544,5 @@ def warn_once(name, depver, rmver, extra=None):
                "and will be removed in sncosmo {}".format(name, depver, rmver))
         if extra is not None:
             msg += " " + extra
-        warnings.warn(msg)
+        warnings.warn(msg, stacklevel=2)
         warned.append(name)

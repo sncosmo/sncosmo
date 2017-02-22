@@ -272,7 +272,7 @@ def _expand_bands(band_list, meta):
     else:
         # For other bandpasses, get_bandpass will return the same object
         # on each call, so just use it directly.
-        return [sncosmo.get_bandpass(name) for name in band_list]
+        return [get_bandpass(name) for name in band_list]
 
 
 def _read_salt2(name_or_obj, read_covmat=False, expand_bands=False):

@@ -186,7 +186,7 @@ for name, fname in [('f435w', 'bandpasses/acs-wfc/wfc_F435W.dat'),
                     ('f775w', 'bandpasses/acs-wfc/wfc_F775W.dat'),
                     # TODO: 814 filter from STScI has multiple identical
                     # wavelength values.
-                    #('f814w', 'bandpasses/acs-wfc/wfc_F814W.dat'),
+                    # ('f814w', 'bandpasses/acs-wfc/wfc_F814W.dat'),
                     ('f850lp', 'bandpasses/acs-wfc/wfc_F850LP.dat')]:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=acs_meta)
@@ -400,8 +400,8 @@ fourshooter_meta = {
 for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
                     ('4shooter2::b', 'bandpasses/4shooter2/B_4Shooter2.txt'),
                     ('4shooter2::v', 'bandpasses/4shooter2/V_4Shooter2.txt'),
-                    ('4shooter2::r', 'bandpasses/4shooter2/r_4Shooter2.txt'),
-                    ('4shooter2::i', 'bandpasses/4shooter2/i_4Shooter2.txt')]:
+                    ('4shooter2::r', 'bandpasses/4shooter2/R_4Shooter2.txt'),
+                    ('4shooter2::i', 'bandpasses/4shooter2/I_4Shooter2.txt')]:
         _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                     args=(fname,), meta=fourshooter_meta)
 # =============================================================================
@@ -830,3 +830,4 @@ _MAGSYSTEMS.register_loader(
           'description': 'Betoule et al (2012) calibration of SDSS system.'})
 
 _MAGSYSTEMS.alias('ab_b12', 'ab-b12')
+_MAGSYSTEMS.alias('vegahst', 'vega')
