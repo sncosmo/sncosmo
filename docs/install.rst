@@ -2,16 +2,19 @@
 Installation
 ************
 
-SNCosmo works on Python 2.7 and Python 3.3+ and requires the
-following standard scientific python packages: `NumPy
-<http://www.numpy.org/>`_, `SciPy <http://www.scipy.org/>`_ and
-`AstroPy <http://www.astropy.org>`_.
+SNCosmo works on Python 2.7 and Python 3.4+ and requires the
+following Python packages:
+
+- `numpy <http://www.numpy.org/>`_
+- `scipy <http://www.scipy.org/>`_
+- `astropy <http://www.astropy.org>`_
+- `extinction <http://extinction.readthedocs.io>`_
 
 
-Install using conda
-===================
+Install using conda (recommended)
+=================================
 
-SNCosmo is available on the `astropy channel <https://anaconda.org/astropy/>`_::
+If you are using Anaconda or the conda package manager, you can install SNCosmo from the `astropy channel <https://anaconda.org/astropy/>`_::
 
     conda install -c astropy sncosmo
 
@@ -25,14 +28,14 @@ Install using pip
 
 Using pip::
 
-    pip install --no-deps sncosmo
+    pip install --no-deps extinction sncosmo
 
 .. note::
 
     The ``--no-deps`` flag is optional, but highly recommended if you
-    already have Numpy installed, since otherwise pip will sometimes
-    try to "help" you by upgrading your Numpy installation, which may
-    not always be desired.
+    already have numpy, scipy and astropy installed, since otherwise
+    pip will sometimes try to "help" you by upgrading your Numpy
+    installation, which may not always be desired.
 
 .. note::
 
