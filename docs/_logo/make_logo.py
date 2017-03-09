@@ -4,11 +4,12 @@
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import sncosmo
-cmap = cm.get_cmap('gist_rainbow')
-model = sncosmo.get_sourcemodel('hsiao')
 
-wave = model.wavelengths
-flux = model.flux(0.)
+cmap = cm.get_cmap('gist_rainbow')
+model = sncosmo.get_source('hsiao')
+
+wave = model._wave
+flux = model.flux(0., wave)
 
 wmin = 2600.
 wmax = 7400.
@@ -26,7 +27,8 @@ for i in range(len(cscale)):
     d0, d1 = wave[i], wave[i+1]
     f0, f1 = flux[i], flux[i+1]
     plt.fill([d0, d0, d1, d1], [0., f0, f1, 0.], color=colors[i])
-plt.xlim(dmin, dmax)
+plt.xlim(wmin, wmax)
 plt.ylim(0., 1.05*max(flux))
 plt.axis('off')
 plt.savefig('spectral.png', dpi=500., transparent=True)
+plt.savefig('spectral_white_bkg.png', dpi=500., transparent=False)

@@ -65,12 +65,14 @@ autosummary_generate = True
 autoclass_content = "class"
 autodoc_default_flags = ["members", "no-special-members"]
 sphinx_gallery_conf = {
-    'examples_dirs' : '_examples',  # path to examples scripts
-    'gallery_dirs'  : 'examples',   # path to gallery generated examples
-    'mod_example_dir'     : 'modules/generated',  # path to store the module
-                                                  # using example template
-    'doc_module'          : ('sncosmo',),  # documented module(s)
-    #'default_thumb_file': '_logo/spectral.png',
+    'examples_dirs': '_examples',  # path to examples scripts
+    'gallery_dirs': 'examples',   # path to gallery generated examples
+    'mod_example_dir': 'modules/generated',  # path to store the module
+                                             # using example template
+    'doc_module': ('sncosmo',),  # documented module(s)
+    'download_section_examples': False,
+    'download_all_examples': False,  # don't package up examples.
+    'default_thumb_file': '_logo/spectral_white_bkg.png',
 }
 
     
