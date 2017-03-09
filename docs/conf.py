@@ -39,9 +39,9 @@ sys.path.insert(0, os.path.abspath("_helpers"))
 needs_sphinx = '1.3'
 
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/3/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'python': ('https://docs.python.org/3/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
     'emcee': ('http://dan.iel.fm/emcee/current/', None)
     }
@@ -65,12 +65,14 @@ autosummary_generate = True
 autoclass_content = "class"
 autodoc_default_flags = ["members", "no-special-members"]
 sphinx_gallery_conf = {
-    'examples_dirs' : '_examples',  # path to examples scripts
-    'gallery_dirs'  : 'examples',   # path to gallery generated examples
-    'mod_example_dir'     : 'modules/generated',  # path to store the module
-                                                  # using example template
-    'doc_module'          : ('sncosmo',),  # documented module(s)
-    #'default_thumb_file': '_logo/spectral.png',
+    'examples_dirs': '_examples',  # path to examples scripts
+    'gallery_dirs': 'examples',   # path to gallery generated examples
+    'mod_example_dir': 'modules/generated',  # path to store the module
+                                             # using example template
+    'doc_module': ('sncosmo',),  # documented module(s)
+    'download_section_examples': False,
+    'download_all_examples': False,  # don't package up examples.
+    'default_thumb_file': '_logo/spectral_white_bkg.png',
 }
 
     

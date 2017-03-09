@@ -355,13 +355,3 @@ parameters:
     ...                             m0file='mytemplate0file.dat')
 
 See `~sncosmo.SALT2Source` for more details.
-
-Creating New Source Classes
-===========================
-
-A "source" is something that specifies the spectral
-timeseries as a function of an arbitrary number of parameters. For
-example, the SALT2 model has three parameters (``x0``, ``x1`` and ``c``) that
-determine a unique spectrum as a function of phase. New models can be
-easily implemented by deriving from the abstract base class
-`sncosmo.Source` and inheriting most of the functionality described here.

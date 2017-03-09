@@ -757,7 +757,7 @@ def load_ab_b12(name=None):
 
 
 def load_jla1(name=None):
-    """JLA1 analysis magnitude system based on CALSPEC stis spectra 003"""
+    """JLA1 magnitude system based on BD+17 STIS v003 spectrum"""
 
     base = load_spectral_magsys_fits("spectra/bd_17d4708_stisnic_003.fits")
     bands = {'standard::u': (base, 9.724),
@@ -791,8 +791,8 @@ _MAGSYSTEMS.register_loader(
     'jla1', load_jla1,
     meta={'subclass': '`~sncosmo.CompositeMagSystem`',
           'url': 'http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html',
-          'description': ('JLA1 analysis magnitude system based on BD+17 '
-                          'CALSPEC STIS spectra 003.')})
+          'description': ('JLA1 magnitude system based on BD+17 '
+                          'STIS v003 spectrum')})
 
 _MAGSYSTEMS.alias('vega2', 'jla1')
 
