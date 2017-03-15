@@ -1021,7 +1021,7 @@ class Model(_ModelBase):
         frame : {'rest', 'obs', 'free'}
         """
         self._add_effect_partial(effect, name, frame)
-        self._synchronize_parameters()
+        self._sync_parameter_arrays()
         self._update_description()
 
     @property
