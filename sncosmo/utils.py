@@ -273,6 +273,8 @@ def _download_file(remote_url, target):
     # way, but for some reason in mysterious circumstances it doesn't. So
     # we'll just re-raise it here instead.
     except socket.timeout as e:
+        # add the requested URL to the message (normally just 'timed out')
+        e.args = ('requested URL {!r} timed out'.format(remote_url),)
         raise URLError(e)
 
 
