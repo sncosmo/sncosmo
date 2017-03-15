@@ -17,6 +17,22 @@ def flatsource():
     return sncosmo.TimeSeriesSource(phase, wave, flux)
 
 
+class StepEffect(sncosmo.PropagationEffect):
+    """Effect with transmission 0 below cutoff wavelength, 1 above.
+    Useful for testing behavior with redshift."""
+
+    _param_names = ['stepwave']
+    param_names_latex = [r'\lambda_{s}']
+
+    def __init__(self, minwave, maxwave, stepwave=10000.):
+        self._minwave = minwave
+        self._maxwave = maxwave
+        self._parameters = np.array([stepwave], dtype=np.float64)
+
+    def propagate(self, wave, flux):
+        return flux * (wave >= self._parameters[0])
+
+
 class TestTimeSeriesSource:
 
     def setup_class(self):
@@ -175,3 +191,26 @@ class TestModel:
     def test_str(self):
         """Test if string summary works at all."""
         str(self.model)
+
+    def test_add_effect(self):
+        nparams = len(self.model.parameters)
+        self.model.add_effect(sncosmo.F99Dust(), 'host', 'rest')
+        assert len(self.model.effects) == 2
+        assert 'hostebv' in self.model.param_names
+        assert len(self.model.parameters) == nparams + 1
+
+
+def test_effect_frame_free():
+    """Test Model with PropagationEffect with a 'free' frame."""
+
+    model = sncosmo.Model(source=flatsource(),
+                          effects=[StepEffect(800., 20000.)],
+                          effect_frames=['free'],
+                          effect_names=['screen'])
+    model.set(z=1.0, screenz=0.5, screenstepwave=10000.)
+
+    # maxwave is set by the effect at z=0.5
+    assert model.maxwave() == (1. + 0.5) * 20000.
+
+    wave = np.array([12000., 13000., 14000., 14999., 15000., 16000.])
+    assert_allclose(model.flux(0., wave), [0., 0., 0., 0., 0.5, 0.5])

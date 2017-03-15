@@ -974,32 +974,39 @@ class Model(_ModelBase):
 
     def __init__(self, source, effects=None,
                  effect_names=None, effect_frames=None):
+        # Set parameter names, initial values (inital values set to zero)
         self._param_names = ['z', 't0']
         self.param_names_latex = ['z', 't_0']
-        self._parameters = np.array([0., 0.])
+        self._parameters = np.zeros(2, dtype=np.float)
+
+        # Set source and add source parameter names
         self._source = get_source(source, copy=True)
-        self.description = None
+        self._param_names.extend(self._source.param_names)
+        self.param_names_latex.extend(self._source.param_names_latex)
+
+        # Add PropagationEffects
         self._effects = []
         self._effect_names = []
         self._effect_frames = []
-        self._synchronize_parameters()
-
-        # Add PropagationEffects
         if (effects is not None or effect_names is not None or
                 effect_frames is not None):
             try:
                 same_length = (len(effects) == len(effect_names) and
                                len(effects) == len(effect_frames))
             except TypeError:
-                raise TypeError('effects, effect_names, and effect_values '
+                raise TypeError('effects, effect_names, and effect_frames '
                                 'should all be iterables.')
             if not same_length:
-                raise ValueError('effects, effect_names and effect_values '
+                raise ValueError('effects, effect_names and effect_frames '
                                  'must have matching lengths')
 
             for effect, name, frame in zip(effects, effect_names,
                                            effect_frames):
-                self.add_effect(effect, name, frame)
+                self._add_effect_partial(effect, name, frame)
+
+        # sync
+        self._sync_parameter_arrays()
+        self._update_description()
 
     def add_effect(self, effect, name, frame):
         """
@@ -1007,20 +1014,15 @@ class Model(_ModelBase):
 
         Parameters
         ----------
-        name : str
-            Name of the effect.
         effect : `~sncosmo.PropagationEffect`
             Propagation effect.
-        frame : {'rest', 'obs'}
+        name : str
+            Name of the effect.
+        frame : {'rest', 'obs', 'free'}
         """
-        if not isinstance(effect, PropagationEffect):
-            raise TypeError('effect is not a PropagationEffect')
-        if frame not in ['rest', 'obs']:
-            raise ValueError("frame must be one of: {'rest', 'obs'}")
-        self._effects.append(cp(effect))
-        self._effect_names.append(name)
-        self._effect_frames.append(frame)
-        self._synchronize_parameters()
+        self._add_effect_partial(effect, name, frame)
+        self._sync_parameter_arrays()
+        self._update_description()
 
     @property
     def source(self):
@@ -1037,42 +1039,93 @@ class Model(_ModelBase):
         """List of constituent propagation effects."""
         return self._effects
 
-    def _synchronize_parameters(self):
+    def _add_effect_partial(self, effect, name, frame):
+        """Like 'add effect', but don't sync parameter arrays"""
+
+        if not isinstance(effect, PropagationEffect):
+            raise TypeError('effect is not a PropagationEffect')
+        if frame not in ['rest', 'obs', 'free']:
+            raise ValueError("frame must be one of: {'rest', 'obs', 'free'}")
+        self._effects.append(cp(effect))
+        self._effect_names.append(name)
+        self._effect_frames.append(frame)
+
+        # for 'free' effects, add a redshift parameter
+        if frame == 'free':
+            self._param_names.append(name + 'z')
+            self.param_names_latex.append('{\\rm ' + name + '}\,z')
+
+        # add all of this effect's parameters
+        for param_name in effect.param_names:
+            self._param_names.append(name + param_name)
+            self.param_names_latex.append('{\\rm ' + name + '}\,' + param_name)
+
+    def _sync_parameter_arrays(self):
         """Synchronize parameter names and parameter arrays between
         the aggregated parameters and those of the individual source and
         effects.
+
+        This is a bit tricksy, pay attention! After this, self._parameters
+        holds all the model parameters. The source._parameters and
+        effect._parameters arrays (for each effect) are changed to reference
+        self._parameters. This works because ``B = A[start:stop]`` on
+        numpy arrays makes ``B`` a reference to a block of memory in ``A``.
+        We take advantage of this to make the model and it's components
+        reference the same block of memory, so that updates to the model's
+        parameters are automatically reflected in the components.
+
+        This assumes that we are in a state where self._effects and
+        self._effect_frames have been set, and self._parameters is an
+        iterable.
         """
 
-        # Build a new list of parameter names
-        self._param_names = self._param_names[0:2]
-        self._param_names.extend(self._source.param_names)
-        for effect, effect_name in zip(self._effects, self._effect_names):
-            self._param_names.extend([effect_name + param_name
-                                      for param_name in effect.param_names])
+        # save a reference to old parameter values, in case there are
+        # effect redshifts that have been set.
+        old_parameters = self._parameters
 
-        # Build a new list of latex parameter names
-        self.param_names_latex = self.param_names_latex[0:2]
-        self.param_names_latex.extend(self._source.param_names_latex)
-        for effect, effect_name in zip(self._effects, self._effect_names):
-            for name in effect.param_names_latex:
-                self.param_names_latex.append('{\\rm ' + effect_name + '}\,' +
-                                              name)
+        # Calculate total length of model's parameter array
+        l = 2 + len(self._source._parameters)
+        for effect, frame in zip(self._effects, self._effect_frames):
+            l += (frame == 'free') + len(effect._parameters)
 
-        # For each "model", get its parameter array.
-        param_arrays = [self._parameters[0:2]]
-        models = [self._source] + self._effects
-        param_arrays.extend([m._parameters for m in models])
+        # allocate new array (zeros so that new 'free' effects redshifts
+        # initialize to 0)
+        self._parameters = np.zeros(l, dtype=np.float)
 
-        # Create a new parameter array built from the individual arrays
-        # and reference the individual parameter arrays to the new combined
-        # array.
-        self._parameters = np.concatenate(param_arrays)
+        # copy old parameters: we do this to make sure we copy
+        # non-default values of any parameters that the model alone
+        # holds, such as z, t0 and effect redshifts.
+        self._parameters[0:len(old_parameters)] = old_parameters
+
+        # cross-reference source's parameters
         pos = 2
-        for m in models:
-            l = len(m._parameters)
-            m._parameters = self._parameters[pos:pos+l]
+        l = len(self._source._parameters)
+        self._parameters[pos:pos+l] = self._source._parameters  # copy
+        self._source._parameters = self._parameters[pos:pos+l]  # reference
+        pos += l
+
+        # initialize a list of ints that keeps track of where the redshift
+        # parameter of each effect is. Value is 0 if effect_frame is not 'free'
+        self._effect_zindicies = []
+
+        # for each effect, cross-reference the effect's parameters
+        for i in range(len(self._effects)):
+            effect = self._effects[i]
+
+            # for 'free' effects, add a redshift parameter
+            if self._effect_frames[i] == 'free':
+                self._effect_zindicies.append(pos)
+                pos += 1
+            else:
+                self._effect_zindicies.append(-1)
+
+            # add all of this effect's parameters
+            l = len(effect._parameters)
+            self._parameters[pos:pos+l] = effect._parameters  # copy
+            effect._parameters = self._parameters[pos:pos+l]  # reference
             pos += l
 
+    def _update_description(self):
         # Make a name for myself. We have to watch out for None values here.
         # If all constituents are None, name is None. Otherwise, replace
         # None's with '?'
@@ -1095,24 +1148,30 @@ class Model(_ModelBase):
 
     def minwave(self):
         """Minimum observer-frame wavelength of the model."""
-        shift = (1. + self._parameters[0])
-        max_minwave = self._source.minwave() * shift
-        for effect, frame in zip(self._effects, self._effect_frames):
+        source_shift = (1. + self._parameters[0])
+        max_minwave = self._source.minwave() * source_shift
+        for effect, frame, zindex in zip(self._effects, self._effect_frames,
+                                         self._effect_zindicies):
             effect_minwave = effect.minwave()
             if frame == 'rest':
-                effect_minwave *= shift
+                effect_minwave *= source_shift
+            elif frame == 'free':
+                effect_minwave *= (1. + self._parameters[zindex])
             if effect_minwave > max_minwave:
                 max_minwave = effect_minwave
         return max_minwave
 
     def maxwave(self):
         """Maximum observer-frame wavelength of the model."""
-        shift = (1. + self._parameters[0])
-        min_maxwave = self._source.maxwave() * shift
-        for effect, frame in zip(self._effects, self._effect_frames):
+        source_shift = (1. + self._parameters[0])
+        min_maxwave = self._source.maxwave() * source_shift
+        for effect, frame, zindex in zip(self._effects, self._effect_frames,
+                                         self._effect_zindicies):
             effect_maxwave = effect.maxwave()
             if frame == 'rest':
-                effect_maxwave *= shift
+                effect_maxwave *= source_shift
+            elif frame == 'free':
+                effect_maxwave *= (1. + self._parameters[zindex])
             if effect_maxwave < min_maxwave:
                 min_maxwave = effect_maxwave
         return min_maxwave
@@ -1141,11 +1200,17 @@ class Model(_ModelBase):
         f = a * self._source._flux(phase, restwave)
 
         # Pass the flux through the PropagationEffects.
-        for effect, frame in zip(self._effects, self._effect_frames):
+        for effect, frame, zindex in zip(self._effects, self._effect_frames,
+                                         self._effect_zindicies):
             if frame == 'obs':
-                f = effect.propagate(wave, f)
-            else:
-                f = effect.propagate(restwave, f)
+                effect_wave = wave
+            elif frame == 'rest':
+                effect_wave = restwave
+            else:  # frame == 'free'
+                effect_a = 1. / (1. + self._parameters[zindex])
+                effect_wave = wave * effect_a
+
+            f = effect.propagate(effect_wave, f)
 
         return f
 
