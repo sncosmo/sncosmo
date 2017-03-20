@@ -195,8 +195,7 @@ class _ModelBase(object):
     """Base class for anything with parameters.
 
     Derived classes must have properties ``_param_names`` (list of str)
-    and ``_parameters`` (1-d numpy.ndarray). In the future this might
-    use model classes in astropy.modeling as a base class.
+    and ``_parameters`` (1-d numpy.ndarray).
     """
 
     @property
@@ -218,15 +217,27 @@ class _ModelBase(object):
 
     def set(self, **param_dict):
         """Set parameters of the model by name."""
-        for key, val in param_dict.items():
-            try:
-                i = self._param_names.index(key)
-            except ValueError:
-                raise KeyError("Unknown parameter: " + repr(key))
-            self._parameters[i] = val
+        self.update(param_dict)
+
+    def update(self, param_dict):
+        """Set parameters of the model from a dictionary."""
+        for key, value in param_dict.items():
+            self[key] = value
+
+    def __setitem__(self, key, value):
+        """Set a single parameter of the model by name."""
+        try:
+            i = self._param_names.index(key)
+        except ValueError:
+            raise KeyError("Unknown parameter: " + repr(key))
+        self._parameters[i] = value
 
     def get(self, name):
         """Get parameter of the model by name."""
+        return self[name]
+
+    def __getitem__(self, name):
+        """Get parameter of the model by name"""
         try:
             i = self._param_names.index(name)
         except ValueError:

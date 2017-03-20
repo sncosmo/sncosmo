@@ -199,6 +199,16 @@ class TestModel:
         assert 'hostebv' in self.model.param_names
         assert len(self.model.parameters) == nparams + 1
 
+    def test_set_and_get(self):
+        """Test different methods for setting and getting parameters."""
+
+        a = self.model.get('amplitude')
+        self.model['amplitude'] = 2 * a   # test __setitem__
+        assert self.model['amplitude'] == 2 * a   # test __getitem__
+
+        self.model.update({'amplitude': 4 * a})  # test update
+        assert self.model['amplitude'] == 4 * a
+
 
 def test_effect_frame_free():
     """Test Model with PropagationEffect with a 'free' frame."""
