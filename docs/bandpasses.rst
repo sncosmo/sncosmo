@@ -11,55 +11,56 @@ frequency or energy). They are basically simple containers for arrays of these
 values, with a couple special features. To get a bandpass that is in
 the registry (built-in)::
 
-    >>> import sncosmo  # doctest: +ELLIPSIS
+    >>> import sncosmo
     >>> band = sncosmo.get_bandpass('sdssi')
     >>> band
     <Bandpass 'sdssi' at 0x...>
 
-If you try to retrieve a bandpass that is not in the registry, you
-will get a list of bandpasses that *are* in the registry::
+To create a Bandpass directly, you can supply arrays of wavelength and
+transmission values:
 
-    >>> band = sncosmo.get_bandpass('perfect_tophat')
-    Traceback (most recent call last):
-    ...
-    Exception: No Bandpass named 'perfect_tophat' in registry. Registered names: 'desg', 'desr', ..., 'sdssi', 'sdssz'
-
-See the :ref:`list-of-built-in-bandpasses`.
-
-To create a Bandpass directly:
-
-    >>> import numpy as np
-    >>> wavelength = np.array([4000., 4200., 4400., 4600., 4800., 5000.])
-    >>> transmission = np.array([0., 1., 1., 1., 1., 0.])
+    >>> wavelength = [4200., 4400., 4600., 4800.]
+    >>> transmission = [1., 1., 1., 1.]
     >>> sncosmo.Bandpass(wavelength, transmission, name='tophatg')
     <Bandpass 'tophatg' at 0x...>
 
-By default, the dispersion is assumed to be wavelengths with units of
-Angstroms. It must be monotonically increasing. To specify a different
-dispersion unit, use a unit from the `astropy.units` package:
+By default, the first argument is assumed to be wavelength in Angstroms.
+To specify a different dispersion unit, use a unit from the
+`astropy.units` package:
 
     >>> import astropy.units as u
-    >>> wavelength = np.array([400., 420., 440., 460., 480., 500.])
-    >>> transmission = np.array([0., 1., 1., 1., 1., 0.])
-    >>> band = Bandpass(wavelength, transmission, wave_unit=u.nm)
-
-Outside the defined dispersion range, the transmission is treated as being 0. 
+    >>> wavelength = [420., 440., 460., 480.]
+    >>> transmission = [1., 1., 1., 1.]
+    >>> Bandpass(wavelength, transmission, wave_unit=u.nm)
+    <Bandpass 'tophatg' at 0x...>
 
 Using a Bandpass
 ----------------
 
-Once created, you can access the values:
+A Bandpass acts like a continuous 1-d function, returning the transmission
+at supplied wavelengths (always in Angstroms)::
 
-    >>> band.wave  # always returns wavelengths in Angstroms
-    array([ 4000.,  4200.,  4400.,  4600.,  4800.,  5000.])
-    >>> band.trans
-    array([ 0.,  1.,  1.,  1.,  1.,  0.])
+    >>> band([4100., 4250., 4300.])
+    array([ 0.,  1.,  1.])
+
+Note that the transmission is zero outside the defined wavelength range.
+Linear interpolation is used between the defined wavelengths.
+
+Bnadpasses have a few other useful properties. You can get the range of
+wavelengths where the transmission is non-zero::
+
+    >>> band.minwave(), band.maxwave()
+    (4200.0, 4800.0)
+
+Or the transmission-weighted effective wavelength:
+
+    >>> band.wave_eff
+    4500.0
+
+Or the name:
+
     >>> band.name
     'tophatg'
-    >>> band.dwave  # width of each "bin" in Angstroms
-    array([ 200.,  200.,  200.,  200.,  200.,  200.])
-    >>> band.wave_eff  # effective wavelength (transmission-weighted)
-    4500.0
 
 
 Adding Bandpasses to the Registry
@@ -68,17 +69,17 @@ Adding Bandpasses to the Registry
 You can create your own bandpasses and use them like built-ins by adding them
 to the registry. Suppose we want to register the 'tophatg' bandpass we created:
 
-    >>> sncosmo.registry.register(band, 'tophatg')
+    >>> sncosmo.register(band, 'tophatg')
 
 Or if ``band.name`` has been set:
 
-    >>> sncosmo.registry.register(band)  # registers band under band.name
+    >>> sncosmo.register(band)  # registers band under band.name
 
 After doing this, we can get the bandpass object by doing
 
     >>> band = sncosmo.get_bandpass('tophatg')
 
-Also, *we can pass the string* ``'tophatg'`` *to any function that
-takes a* `~sncosmo.Bandpass` *object*. This means that you can create
+Also, **we can pass the string** ``'tophatg'`` **to any function that
+takes a** `~sncosmo.Bandpass` **object**. This means that you can create
 and register bandpasses at the top of a script, then just keep track
 of string identifiers throughout the rest of the script.
