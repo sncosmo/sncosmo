@@ -82,13 +82,17 @@ These can also be retrieved as:
 
     >>> model.get('z')
     0.0
+    >>> model['z']
+    0.0
 
-Parameter values can be set by explicitly indexing the parameter array
-or by using the ``set`` method:
+Parameter values can be set by any of the following methods:
 
     >>> model.parameters[0] = 0.5
+    >>> model.parameters = [0.5, 0., 1.]  # set the entire array
+    >>> model['z'] = 0.5
     >>> model.set(z=0.5)
     >>> model.set(z=0.5, amplitude=2.0)  # Can specify multiple parameters
+    >>> model.update({'z': 0.5, 'amplitude': 2.0})
 
 What do these parameters mean? The first two, ``z`` and ``t0`` are
 common to all `~sncosmo.Model` instances:
@@ -162,7 +166,7 @@ In the model, the parameter names are prefixed with the name of the effect
 At any time you can print the model to get a nicely formatted string
 representation of its components and current parameter values:
 
-    >>> print model
+    >>> print(model)
     <Model at 0x...>
     source:
       class      : TimeSeriesSource
@@ -320,8 +324,8 @@ also directly supply custom `~sncosmo.MagSystem` objects. See
 Initializing Sources directly
 =============================
 
-You can initialize a source directly from your own model rather than
-using the built-in model data.
+You can initialize a source directly from your own template rather than
+using the built-in source templates.
 
 Initializing a ``TimeSeriesSource``
 -----------------------------------
@@ -336,7 +340,11 @@ rising from phase -50 to 0, then declining from phase 0 to +50.
     >>> flux = np.repeat(np.array([[0.], [1.], [2.], [3.], [4.], [5.],
     ...                            [4.], [3.], [2.], [1.], [0.]]),
     ...                  6, axis=1)
-    >>> model = sncosmo.TimeSeriesSource(phase, disp, flux)
+    >>> source = sncosmo.TimeSeriesSource(phase, disp, flux)
+
+Typically, you would then include this source in a ``Model``:
+
+    >>> model = sncosmo.Model(source)
 
 
 Initializing a ``SALT2Source``
@@ -345,13 +353,13 @@ Initializing a ``SALT2Source``
 The SALT2 model is initialized directly from data files representing the model.
 You can initialize it by giving it a path to a directory containing the files.
 
-    >>> model = sncosmo.SALT2Source(modeldir='/path/to/dir')
+    >>> source = sncosmo.SALT2Source(modeldir='/path/to/dir')
 
 By default, the initializer looks for files with names like 
 ``'salt2_template_0.dat'``, but this behavior can be altered with keyword
 parameters:
 
-    >>> model = sncosmo.SALT2Source(modeldir='/path/to/dir',
-    ...                             m0file='mytemplate0file.dat')
+    >>> source = sncosmo.SALT2Source(modeldir='/path/to/dir',
+    ...                              m0file='mytemplate0file.dat')
 
 See `~sncosmo.SALT2Source` for more details.
