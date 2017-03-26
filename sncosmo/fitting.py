@@ -153,7 +153,8 @@ def _mask_bands(data, model, z_bounds=None):
 
 def _warn_dropped_bands(data, mask):
     """Warn that we are dropping some bands from the data:"""
-    drop_bands = [repr(b) for b in set(data.band[np.invert(mask)])]
+    drop_bands = [(b.name if b.name is not None else repr(b))
+                  for b in set(data.band[np.invert(mask)])]
     warnings.warn("Dropping following bands from data: " +
                   ", ".join(drop_bands) +
                   "(out of model wavelength range)", RuntimeWarning)
@@ -258,7 +259,7 @@ def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
                       (data_phase < phase_range[1]))
 
     if wave_range is not None:
-        data_obswave = np.array([get_bandpass(b).wave_eff for b in data.band])
+        data_obswave = np.array([b.wave_eff for b in data.band])
         data_restwave = data_obswave / (1.0 + z)
         wave_mask = ((data_restwave > wave_range[0]) &
                      (data_restwave < wave_range[1]))

@@ -201,6 +201,9 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     else:
         bands = set(data.band) & set(bands)
 
+    # ensure bands is a list of Bandpass objects
+    bands = [get_bandpass(b) for b in bands]
+
     # Build figtext (including model parameters, if there is exactly 1 model).
     if errors is None:
         errors = {}
@@ -287,8 +290,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     tgrid = np.linspace(tmin, tmax, int(tmax - tmin) + 1)
 
     # Loop over bands
-    bands = list(bands)
-    waves = [get_bandpass(b).wave_eff for b in bands]
+    waves = [b.wave_eff for b in bands]
     waves_and_bands = sorted(zip(waves, bands))
     for axnum in range(ncol * nrow):
         row = axnum // ncol
@@ -362,7 +364,8 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
             bandname_ha = 'left'
 
         # Band name in corner
-        ax.text(bandname_coords[0], bandname_coords[1], band,
+        text = band.name if band.name is not None else str(band)
+        ax.text(bandname_coords[0], bandname_coords[1], text,
                 color='k', ha=bandname_ha, va='top', transform=ax.transAxes)
 
         ax.axhline(y=0., ls='--', c='k')  # horizontal line at flux = 0.
