@@ -1362,7 +1362,7 @@ class Model(_ModelBase):
         for b in set(band):
             mask = band == b
             b = get_bandpass(b)
-            restband[mask] = Bandpass(a*b.wave, b.trans)
+            restband[mask] = b.shifted(a)
 
         phase = (time - self._parameters[1]) * a
 

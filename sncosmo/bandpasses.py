@@ -292,6 +292,11 @@ class Bandpass(object):
         return "<{:s}{:s} at 0x{:x}>".format(self.__class__.__name__, name,
                                              id(self))
 
+    def shifted(self, factor, name=None):
+        """Return a new Bandpass instance with all wavelengths
+        multiplied by a factor."""
+        return Bandpass(factor * self.wave, self.trans, name=name)
+
 
 class _SampledFunction(object):
     """Represents a 1-d continuous function, used in AggregateBandpass."""
@@ -366,6 +371,15 @@ class AggregateBandpass(Bandpass):
             t *= trans(wave)
         t *= self.prefactor
         return t
+
+    def shifted(self, factor, name=None, family=None):
+        """Return a new AggregateBandpass instance with all wavelengths
+        multiplied by a factor."""
+
+        transmissions = [(factor * t.x, t.y) for t in self.transmissions]
+        return AggregateBandpass(transmissions,
+                                 prefactor=self.prefactor,
+                                 name=name, family=family)
 
 
 class BandpassInterpolator(object):
