@@ -11,7 +11,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.extern import six
 
-from .photdata import photometric_data
+from .photdata import photometric_data, select_data
 from .utils import Result, Interp1D, ppf
 from .bandpasses import get_bandpass
 
@@ -530,6 +530,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         # modelcov=True
         fitchisq = generate_chisq(fitdata, model, signature='iminuit',
                                   modelcov=False)
+        ndof = len(fitdata) - len(vparam_names)
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
                            forced_parameters=model.param_names,
@@ -554,9 +555,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
         # if model covariance, we need to re-run iteratively until convergence
         # if phase range is given, we need to rerun if there are any
         # masked points.
-        refit = (d.is_valid and (modelcov or
-                                 ((phase_range or wave_range) and
-                                  np.any(data_mask != support_mask))))
+        refit = (modelcov or ((phase_range or wave_range) and
+                              np.any(data_mask != support_mask)))
         nfit = 1
         while refit:
             # set new starting point to last point
