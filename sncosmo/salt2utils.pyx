@@ -9,6 +9,7 @@ import numpy as np
 cimport numpy as np
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from libc.math cimport fabs
+from libc.string cimport memcpy
 
 
 cdef int find_index_binary(double *values, int n, double x):
@@ -150,7 +151,7 @@ cdef class BicubicInterpolator(object):
 
         # copy values array
         self.fval_storage = <double *>PyMem_Malloc(self.nx * self.ny *
-                                                   sizeof(double*))
+                                                   sizeof(double))
         if not self.fval_storage:
             raise MemoryError()
         for i in range(self.nx):
@@ -318,6 +319,24 @@ cdef class BicubicInterpolator(object):
 
         return result
 
+    def __getnewargs__(self):
+        """Return arguments to pass to constructor (to support pickling)"""
+
+        cdef:
+            np.ndarray[np.double_t, ndim=1] x
+            np.ndarray[np.double_t, ndim=1] y
+            np.ndarray[np.double_t, ndim=2] z
+
+        x = np.empty(self.nx, dtype=np.float64)
+        y = np.empty(self.ny, dtype=np.float64)
+        z = np.empty((self.nx, self.ny), dtype=np.float64)
+
+        memcpy(&x[0], self.xval, self.nx * sizeof(double))
+        memcpy(&y[0], self.yval, self.ny * sizeof(double))
+        memcpy(&z[0,0], self.fval_storage, self.nx * self.ny * sizeof(double))
+
+        return x, y, z
+
 
 cdef double polyval(double *coeffs, int n, double x):
     "coeffs[0]*x + coeffs[1]*x^2 + ... + coeffs[n-1]*x^ncoeffs"""
@@ -442,3 +461,20 @@ cdef class SALT2ColorLaw(object):
             out[i] = -out[i]
 
         return out
+
+    def __getnewargs__(self):
+        """Return arguments to pass to constructor (to support pickling)."""
+
+        # Note: an alternative to this would be moving the current __cinit__
+        # contents to __init__, then defining __getstate__ and __setstate__
+        # to copy the entire struct contents to a bytearray object and back.
+        # This would avoid the need to do the initialization again, but
+        # seems quite fiddly because the size to copy is unclear:
+        # it depends on the struct layout.
+
+        # reconstruct input wavelengths
+        wave_lo = self.l_lo * SALT2CL_V_MINUS_B + SALT2CL_B
+        wave_hi = self.l_hi * SALT2CL_V_MINUS_B + SALT2CL_B
+        coeffs = [self.coeffs[i+1] for i in range(self.ncoeffs)]
+
+        return (wave_lo, wave_hi), coeffs

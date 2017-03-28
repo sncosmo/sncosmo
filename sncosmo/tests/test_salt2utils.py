@@ -1,11 +1,18 @@
 import os
+import pickle
 
+from astropy.extern import six
 import numpy as np
 from numpy.testing import assert_allclose
 from scipy.interpolate import RectBivariateSpline
 
 import sncosmo
 from sncosmo.salt2utils import BicubicInterpolator, SALT2ColorLaw
+
+
+# On Python 2 highest protocol is 2.
+# Protocols 0 and 1 don't work on the classes here!
+TEST_PICKLE_PROTOCOLS = (2,) if six.PY2 else (2, 3, 4)
 
 
 def test_bicubic_interpolator_vs_snfit():
@@ -41,6 +48,17 @@ def test_bicubic_interpolator_shapes():
     assert f(0., [1., 2.]).shape == f2(0., [1., 2.]).shape
     assert f([1., 2.], 0.).shape == f2([1., 2.], 0.).shape
     assert f(0., 0.).shape == f2(0., 0.).shape
+
+
+def test_bicubic_interpolator_pickle():
+    x = np.arange(5)
+    y = np.arange(10)
+    z = np.ones((len(x), len(y)))
+    f = BicubicInterpolator(x, y, z)
+
+    for protocol in TEST_PICKLE_PROTOCOLS:
+        f2 = pickle.loads(pickle.dumps(f, protocol=protocol))
+        assert f2(4., 5.5) == f(4., 5.5)
 
 
 def test_salt2colorlaw_vs_python():
@@ -89,3 +107,15 @@ def test_salt2colorlaw_vs_python():
 
     wave = np.linspace(2000., 9200., 201)
     assert np.all(colorlaw(wave) == colorlaw_python(wave))
+
+
+def test_salt2colorlaw_pickle():
+
+    colorlaw_coeffs = [-0.504294, 0.787691, -0.461715, 0.0815619]
+    colorlaw_range = (2800., 7000.)
+    colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
+
+    for protocol in TEST_PICKLE_PROTOCOLS:
+        colorlaw2 = pickle.loads(pickle.dumps(colorlaw, protocol=protocol))
+        wave = np.linspace(2000., 9200., 201)
+        assert np.all(colorlaw(wave) == colorlaw2(wave))
