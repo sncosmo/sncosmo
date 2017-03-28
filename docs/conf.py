@@ -64,7 +64,8 @@ extensions = [
 numpydoc_show_class_members = False
 autosummary_generate = True
 autoclass_content = "class"
-autodoc_default_flags = ["members", "no-special-members"]
+autodoc_default_flags = ["members", "inherited-members"]
+autodoc_docstring_signature = False
 sphinx_gallery_conf = {
     'examples_dirs': '_examples',  # path to examples scripts
     'gallery_dirs': 'examples',   # path to gallery generated examples

@@ -40,9 +40,11 @@ Bandpass & Magnitude Systems
    :toctree: api
 
    Bandpass
+   AggregateBandpass
    MagSystem
    ABMagSystem
    SpectralMagSystem
+   CompositeMagSystem
 
 I/O
 ===

@@ -80,7 +80,10 @@ class MagSystem(object):
 
 
 class CompositeMagSystem(MagSystem):
-    """A magnitude system defined in a specific set of bands.
+    """
+    CompositeMagSystem(bands=None, families=None, name=None)
+
+    A magnitude system defined in a specific set of bands.
 
     In each band, there is a fundamental standard with a known
     (generally non-zero) magnitude.
@@ -114,6 +117,8 @@ class CompositeMagSystem(MagSystem):
 
     def __init__(self, bands=None, standards=None, offsets=None,
                  families=None, name=None):
+        """__init__(bands=None, families=None, name=None)"""
+
         super(CompositeMagSystem, self).__init__(name=name)
 
         # detect use of deprecated API
