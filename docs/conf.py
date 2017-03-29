@@ -55,6 +55,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.mathjax',
+    'sphinx.ext.linkcode',
     'sphinx_gallery.gen_gallery',
     'numpydoc',
     matplotlib.sphinxext.plot_directive.__name__
@@ -163,3 +164,60 @@ latex_documents = [('index', project + '.tex', project + u' Documentation',
 # (source start file, name, description, authors, manual section).
 man_pages = [('index', project.lower(), project + u' Documentation',
               [author], 1)]
+
+
+# -----------------------------------------------------------------------------
+# Source code links
+#
+# Lifted from numpy docs conf.py
+# -----------------------------------------------------------------------------
+
+import inspect
+from os.path import relpath, dirname
+
+def linkcode_resolve(domain, info):
+    """
+    Determine the URL corresponding to Python object
+    """
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except:
+        fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.findsource(obj)
+    except:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d" % (lineno + 1)
+    else:
+        linespec = ""
+
+    fn = relpath(fn, start=dirname(sncosmo.__file__))
+
+    if 'dev' in sncosmo.__version__:
+        return "http://github.com/sncosmo/sncosmo/blob/master/sncosmo/%s%s" % (
+           fn, linespec)
+    else:
+        return "http://github.com/sncosmo/sncosmo/blob/v%s/sncosmo/%s%s" % (
+           sncosmo.__version__, fn, linespec)
