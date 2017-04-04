@@ -19,8 +19,8 @@ the registry (built-in)::
 To create a Bandpass directly, you can supply arrays of wavelength and
 transmission values:
 
-    >>> wavelength = [4200., 4400., 4600., 4800.]
-    >>> transmission = [1., 1., 1., 1.]
+    >>> wavelength = [4000., 5000.]
+    >>> transmission = [1., 1.]
     >>> sncosmo.Bandpass(wavelength, transmission, name='tophatg')
     <Bandpass 'tophatg' at 0x...>
 
@@ -29,8 +29,8 @@ To specify a different dispersion unit, use a unit from the
 `astropy.units` package:
 
     >>> import astropy.units as u
-    >>> wavelength = [420., 440., 460., 480.]
-    >>> transmission = [1., 1., 1., 1.]
+    >>> wavelength = [400., 500.]
+    >>> transmission = [1., 1.]
     >>> Bandpass(wavelength, transmission, wave_unit=u.nm)
     <Bandpass 'tophatg' at 0x...>
 
@@ -50,7 +50,7 @@ Bnadpasses have a few other useful properties. You can get the range of
 wavelengths where the transmission is non-zero::
 
     >>> band.minwave(), band.maxwave()
-    (4200.0, 4800.0)
+    (4000.0, 5000.0)
 
 Or the transmission-weighted effective wavelength:
 
