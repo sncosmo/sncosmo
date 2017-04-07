@@ -18,7 +18,7 @@ magnitude system can take either the name of a magnitude system in the
 registry or an actual `~sncosmo.MagSystem` instance. You can access
 these objects directly or create your own.
 
-`~sncosmo.MagSystem`s represent the spectral flux density
+`~sncosmo.MagSystem` objects represent the spectral flux density
 corresponding to magnitude zero in the given system and can be used to
 convert physical fluxes (in photons/s/cm^2) to magnitudes. Here's an
 example::
