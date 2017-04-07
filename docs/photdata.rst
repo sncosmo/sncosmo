@@ -2,15 +2,14 @@
 Photometric Data
 ****************
 
-Introduction
-============
+Photometric data stored in AstroPy Table
+========================================
 
-In order to fit a supernova model to photometric data, we must first
-have a standard way to represent the photometric data so that a
-fitting function can interpret it. We've chosen to use an astropy
-`~astropy.table.Table` for this standard representation: each
-photometric data point is a row in the table. To see what such a table
-looks like, you can load an example with the following function::
+In sncosmo, photometric data for a supernova is stored in an astropy
+`~astropy.table.Table`: each row in the table is a photometric
+observation.  The table must contain certain columns. To see what such
+a table looks like, you can load an example with the following
+function::
 
 
     >>> data = sncosmo.load_example_data()
@@ -33,15 +32,58 @@ data.)
 Additionally, metadata about the photometric data can be stored with
 the table: ``data.meta`` is an `OrderedDict` of the metadata.
 
+Including Covariance
+====================
 
-Column names and units
-======================
+If your table contains a column ``'fluxcov'`` (or any similar name;
+see below) it will be interpreted as covariance between the data
+points and will be used *instead* of the ``'fluxerr'`` column when
+calculating a :math:`\chi^2` value in fitting functions. For each row,
+the ``'fluxcov'`` column should be a length *N* array, where *N* is the
+number of rows in the table. In other, words, ``table['fluxcov']`` should
+have shape ``(N, N)``, where other columns like ``table['time']`` have shape
+``(N,)``.
+
+As an example, let's add a ``'fluxcov'`` column to the example data
+table above. ::
+
+  >>> data['fluxcov'] = np.diag(data['fluxerr']**2)
+  >>> len(data)
+  40
+  >>> data['fluxcov'].shape
+  (40, 40)
+
+  # diagonal elements are error squared:
+  >>> data['fluxcov'][0, 0]
+  0.45271884317377648
+
+  >>> data['fluxerr'][0]
+  0.67284384754100002
+
+  # off diagonal elements are zero:
+  >>> data['fluxcov'][0, 1]
+  0.0
+
+As is, this would be completely equivalent to just having the
+``'fluxerr'`` column. But now we have the flexibility to represent
+non-zero off-diagonal covariance.
+
+.. note::
+
+   When sub-selecting data from a table with covariance, be sure to
+   use `sncosmo.select_data`. For example, rather than
+   ``table[mask]``, use ``sncosmo.select_data(table, mask)``. This
+   ensures that the covariance column is sliced appropriately! See the
+   documentation for `~sncosmo.select_data` for details.
+
+Flexible column names
+=====================
 
 What if you'd rather call the time column ``'date'``, or perhaps
 ``'mjd'``?  Good news! SNCosmo is flexible about the column names. For
 each column, it accepts a variety of alias names:
 
-.. automodule:: sncosmo.photdata
+.. automodule:: photdata_aliases_table
 
 Note that each column must be present in some form or another, with no
 repeats.  For example, you can have either a ``'flux'`` column or a
@@ -110,14 +152,17 @@ not included, use a standard reader/writer from astropy or the Python universe.
 | json        | JavaScript Object Notation  | Good performance, but not as  |
 |             |                             | human-readable as ascii       |
 +-------------+-----------------------------+-------------------------------+
-| salt2       | SALT2 new-style data files  | Mostly untested.              |
+| salt2       | SALT2 new-style data files  |                               |
 +-------------+-----------------------------+-------------------------------+
-| salt2-old   | SALT2 old-style data files  | Mostly untested.              |
+| salt2-old   | SALT2 old-style data files  |                               |
 +-------------+-----------------------------+-------------------------------+
 
 
 Manipulating data tables
 ========================
+
+Because photometric data tables are astropy Tables, they can be manipulated
+any way that Tables can. Here's a few things you might want to do.
 
 Rename a column::
 
