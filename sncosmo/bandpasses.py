@@ -12,7 +12,8 @@ from ._registry import Registry
 from .utils import warn_once, integration_grid
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 
-__all__ = ['get_bandpass', 'read_bandpass', 'Bandpass', 'AggregateBandpass']
+__all__ = ['get_bandpass', 'read_bandpass', 'Bandpass', 'AggregateBandpass',
+           'BandpassInterpolator']
 
 _BANDPASSES = Registry()
 _BANDPASS_INTERPOLATORS = Registry()
@@ -383,7 +384,13 @@ class AggregateBandpass(Bandpass):
 
 
 class BandpassInterpolator(object):
-    """Bandpass defined as a function of focal plane position.
+    """Bandpass generator defined as a function of focal plane position.
+
+    Instances of this class are not Bandpasses themselves, but
+    generate Bandpasses at a given focal plane position. This class
+    stores the transmission as a function of focal plane position and
+    interpolates between the defined positions to return the bandpass
+    at an arbitrary position.
 
     Parameters
     ----------
@@ -395,6 +402,43 @@ class BandpassInterpolator(object):
     prefactor : float, optional
         Scalar multiplying factor.
     name : str
+
+    Examples
+    --------
+
+    Transmission uniform across focal plane:
+
+    >>> uniform_trans = ([4000., 5000.], [1., 0.5])  # wave, trans
+    
+    Transmissions as a function of radius:
+
+    >>> trans0 = (0., [4000., 5000.], [0.5, 0.5])  # radius=0
+    >>> trans1 = (1., [4000., 5000.], [0.75, 0.75]) # radius=1
+    >>> trans2 = (2., [4000., 5000.], [0.1, 0.1]) # radius=2
+
+
+    >>> band_interp = BandpassInterpolator([uniform_trans],
+    ...                                    [trans0, trans1, trans2],
+    ...                                    name='my_band')
+
+    Min and max radius:
+
+    >>> band_interp.minpos(), band_interp.maxpos()
+    (0.0, 2.0)
+
+    Get bandpass at a given radius:
+
+    >>> band = band_interp.at(1.5)
+
+    >>> band
+    <AggregateBandpass 'my_band at 1.500000' at 0x7f7a2e425668>
+
+    The band is aggregate of uniform transmission part,
+    and interpolated radial-dependent part.
+
+    >>> band([4500., 4600.])
+    array([ 0.65625,  0.6125 ])
+
     """
     def __init__(self, transmissions, dependent_transmissions,
                  prefactor=1.0, name=None):

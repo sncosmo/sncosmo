@@ -41,6 +41,7 @@ Bandpass & Magnitude Systems
 
    Bandpass
    AggregateBandpass
+   BandpassInterpolator
    MagSystem
    ABMagSystem
    SpectralMagSystem
