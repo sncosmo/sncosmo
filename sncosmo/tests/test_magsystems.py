@@ -42,19 +42,21 @@ def test_spectralmagsystem():
 def test_csp_magsystem():
     csp = sncosmo.get_magsystem('csp')
 
-    # filter zeropoints (copied from file)
-    zps = {"cspu": 13.044,
-           "cspg": 15.135,
-           "cspr": 14.915,
-           "cspi": 14.781,
-           "cspb": 14.344,
-           "cspv3014": 14.540,
-           "cspv3009": 14.493,
-           "cspv9844": 14.450,
+    # filter zeropoints (copied from
+    # http://csp.obs.carnegiescience.edu/data/filters
+    # on 13 April 2017)
+    zps = {"cspu": 12.986,
+           "cspg": 15.111,
+           "cspr": 14.902,
+           "cspi": 14.535,
+           "cspb": 14.328,
+           "cspv3014": 14.437,
+           "cspv3009": 14.388,
+           "cspv9844": 14.439,
            "cspys": 13.921,
            "cspjs": 13.836,
            "csphs": 13.510,
-           "cspk": 11.967,
+           "cspk": 11.968,
            "cspyd": 13.770,
            "cspjd": 13.866,
            "csphd": 13.502}

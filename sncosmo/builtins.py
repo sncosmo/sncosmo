@@ -715,22 +715,25 @@ def load_spectral_magsys_fits(relpath, name=None):
 
 
 def load_csp(name=None):
-
-    # this file contains the csp zeropoints and standards
-    fname = get_pkg_data_filename('data/bandpasses/csp/csp_filter_info.dat')
-    data = np.genfromtxt(fname, names=True, dtype=None, skip_header=3)
-    bandnames = data['name']
-    refsystems = data['reference_sed']
-    offsets = data['natural_mag']
-
-    # In Python 3, convert to native strings (Unicode)
-    if six.PY3:
-        bandnames = np.char.decode(bandnames)
-        refsystems = np.char.decode(refsystems)
-
-    bands = {name: (magsys, offset) for name, magsys, offset in
-             zip(bandnames, refsystems, offsets)}
-    return CompositeMagSystem(bands=bands, name=name)
+    # Values transcribed from
+    # http://csp.obs.carnegiescience.edu/data/filters
+    # on 13 April 2017
+    return CompositeMagSystem(bands={'cspu': ('bd17', 10.519),
+                                     'cspg': ('bd17', 9.644),
+                                     'cspr': ('bd17', 9.352),
+                                     'cspi': ('bd17', 9.250),
+                                     'cspb': ('vega', 0.030),
+                                     'cspv3014': ('vega', 0.0096),
+                                     'cspv3009': ('vega', 0.0096),
+                                     'cspv9844': ('vega', 0.0096),
+                                     'cspys': ('vega', 0.),
+                                     'cspjs': ('vega', 0.),
+                                     'csphs': ('vega', 0.),
+                                     'cspk': ('vega', 0.),
+                                     'cspyd': ('vega', 0.),
+                                     'cspjd': ('vega', 0.),
+                                     'csphd': ('vega', 0.)},
+                              name=name)
 
 
 def load_ab_b12(name=None):
