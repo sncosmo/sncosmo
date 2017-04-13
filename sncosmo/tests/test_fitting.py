@@ -102,6 +102,7 @@ class TestFitting:
 
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
 
+
 @remote_data
 @pytest.mark.skipif('not HAS_IMINUIT')
 def test_fit_lc_vs_snfit():

@@ -24,16 +24,16 @@ addons:
 env:
     global:
         # Set defaults to avoid repeating in most cases.
-        - NUMPY_VERSION=1.11
-        - ASTROPY_VERSION=1.2
-        - SCIPY_VERSION=0.17
+        - NUMPY_VERSION=1.12
+        - ASTROPY_VERSION=1.3
+        - SCIPY_VERSION=0.19
         - OPTIONAL_DEPS=true
         - MAIN_CMD='python setup.py'
 
     matrix:
         - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.4 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.6 SETUP_CMD='egg_info'
 
 matrix:
 
@@ -46,31 +46,25 @@ matrix:
         - os: osx
           env: PYTHON_VERSION=2.7 SETUP_CMD='test'
         - os: osx
-          env: PYTHON_VERSION=3.5 SETUP_CMD='test'
-
-        # Check for sphinx doc build warnings
-        - os: linux
-          env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx -w'
+          env: PYTHON_VERSION=3.6 SETUP_CMD='test'
 
         # Try all python versions
         - os: linux
           env: PYTHON_VERSION=2.7 SETUP_CMD='test'
         - os: linux
-          env: PYTHON_VERSION=3.4 SETUP_CMD='test'
-        - os: linux
-          env: PYTHON_VERSION=3.5 SETUP_CMD='test --coverage'
+          env: PYTHON_VERSION=3.6 SETUP_CMD='test --remote-data --coverage'
 
-        # Try astropy 1.0 version
+        # Try astropy 1.0 version and some older dependencies
         - os: linux
-          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.10 ASTROPY_VERSION=1.0 SETUP_CMD='test'
+          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.10 SCIPY_VERSION=0.17 ASTROPY_VERSION=1.0 SETUP_CMD='test'
         - os: linux
-          env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.10 ASTROPY_VERSION=1.0 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.10 SCIPY_VERSION=0.17 ASTROPY_VERSION=1.0 SETUP_CMD='test'
 
         # Try disabling optional dependencies
         - os: linux
           env: PYTHON_VERSION=2.7 OPTIONAL_DEPS=false SETUP_CMD='test'
         - os: linux
-          env: PYTHON_VERSION=3.5 OPTIONAL_DEPS=false SETUP_CMD='test'
+          env: PYTHON_VERSION=3.6 OPTIONAL_DEPS=false SETUP_CMD='test'
 
         # Try older numpy versions & astropy versions
         # (conda only has builds for np18 and later for astropy 1.0) 
@@ -79,7 +73,7 @@ matrix:
 
         # Do a PEP8 test
         - os: linux
-          env: PYTHON_VERSION=3.5 MAIN_CMD='pep8 sncosmo --count' SETUP_CMD=''
+          env: PYTHON_VERSION=3.6 MAIN_CMD='pep8 sncosmo --count' SETUP_CMD=''
 
 install:
     - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh

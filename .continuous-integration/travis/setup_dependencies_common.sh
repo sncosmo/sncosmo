@@ -12,7 +12,7 @@ source activate test
 # --no-use-wheel requirement is temporary due to
 # https://github.com/astropy/astropy/issues/4180
 # and may be removed once the upstream fix is in place
-export PIP_INSTALL="pip install --no-deps --no-use-wheel"
+export PIP_INSTALL="pip install --no-deps"
 
 # Now set up shortcut to conda install command to make sure the Python and Numpy
 # versions are always explicitly specified.
@@ -61,7 +61,7 @@ then
 fi
 
 # COVERAGE DEPENDENCIES
-if [[ $SETUP_CMD == 'test --coverage' ]]
+if [[ $SETUP_CMD == *"--coverage"* ]]
 then
   # TODO can use latest version of coverage (4.0) once
   # https://github.com/astropy/astropy/issues/4175 is addressed in
