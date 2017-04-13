@@ -23,7 +23,7 @@ the name of a bandpass:
 
 Under the covers, the ``bandflux`` method retrieves the `~sncosmo.Bandpass`
 corresponding to ``'sdssg'`` by calling the
-`sncosmo.registry.retrieve` function.
+`sncosmo.get_bandpass` function.
 
 The registry is actually quite simple: it basically amounts to a
 dictionary and a few functions for accessing the dictionary. Most of
@@ -68,7 +68,7 @@ To change the name of the ``'sdssg'`` band to ``'SDSS_G'``::
 
     band = sncosmo.get_bandpass('sdssg')
     band.name = 'SDSS_G'
-    sncosmo.registry.register(band)
+    sncosmo.register(band)
 
 
 Large built-ins
@@ -92,7 +92,7 @@ might for models or spectra.)::
         return band
 
     filename = 'path/to/datafile/for/huge_tophatg'
-    sncosmo.registry.register_loader(
+    sncosmo.register_loader(
         sncosmo.Bandpass,      # class of object returned.
         'huge_tophatg',        # name
         load_bandpass,         # function that does the loading
