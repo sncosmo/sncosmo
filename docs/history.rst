@@ -11,20 +11,52 @@ example, due to changes in integration method.)
 v1.5.0 (unreleased)
 ===================
 
-- Added support for covariance in photometric data measurements. Covariance
-  is stored as a ``'fluxcov'`` column in the table of measurements.
+This is a major new release. The highlight is really close compatibility of
+the SALT2 model and fitting procedure with ``snfit``, the "official" SALT2
+fitter.
 
-- Added support for reading snfit-format "covmat" files into a table of
-  photometry::
+- ``SALT2Source``: Internal interpolation scheme of ``SALT2Source``
+  updated to match ``snfit`` implementation exactly. Test suite now tests
+  against ``snfit`` implementation.
+
+- ``fit_lc``:
+
+  - Handling of model covariance updated to match that of ``snfit``: model
+    covariance is fixed for each fit and fit is repeated until convergence.
+    
+  - New arguments ``phase_range`` and ``wave_range``. If given,
+    data outside this range will be discarded after an initial fit and
+    additional fits will be performed until convergence.
+    With ``phase_range=(-15., 45.)`` and ``wave_range=(3000., 7000.)``,
+    behavior approximates that of snfit with default arguments.
+
+  - Added support for covariance in photometric data measurements, and
+    this covariance is used in ``fit_lc`` if present. Covariance
+    is stored as a ``'fluxcov'`` column in the table of measurements.
+
+  - Result includes two new attributes: ``data_mask``, a boolean array
+    indicating which rows in the input data were used in the final fit
+    (since multiple fits might be performed), and ``nfit``, the number
+    of fits performed.
+
+  - New argument ``warn`` can be set to False to turn off warnings about
+    dropping bands outside model wavelength range.
+
+- ``read_lc``: Added support for reading snfit-format "covmat" files into
+  a table of photometry::
 
     >>> data = read_lc('filename', format='salt2', read_covmat=True)
     >>> data['Fluxcov'].shape == (len(data), len(data))
     True
 
-- The environment variable ``SNCOSMO_DATA_DIR`` can be used to set the
-  path to the data directory. If set, it takes precedence over the
-  ``data_dir`` variable in the configuration file
+- Built-in bandpasses and magnitude systems: Many new built-in bandpasses
+  and magnitude systems.
+
+- Configuration: The environment variable ``SNCOSMO_DATA_DIR`` can be
+  used to set the path to the data directory. If set, it takes
+  precedence over the ``data_dir`` variable in the configuration file
   (``$HOME/.astropy/config/sncosmo.cfg``).
+
 
 v1.4.0 (2016-11-16)
 ===================
