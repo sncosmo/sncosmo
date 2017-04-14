@@ -3,7 +3,7 @@ and save it to this module's docstring for the purpose of including in
 sphinx documentation via the automodule directive."""
 
 from astropy.extern import six
-from sncosmo.bandpasses import _BANDPASSES
+from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS
 
 __all__ = []  # so that bandpass_table is not documented.
 
@@ -86,6 +86,25 @@ for setname in setnames:
    from bandpass_plot import plot_bandpass_set
    plot_bandpass_set({0!r})
 """.format(setname))
+
+# Bandpass interpolators
+bandpass_interpolator_meta = _BANDPASS_INTERPOLATORS.get_loaders_metadata()
+setnames = {m['filterset'] for m in bandpass_interpolator_meta}
+for setname in setnames:
+    names = [m['name'] for m in bandpass_interpolator_meta
+             if m['filterset'] == setname]
+    lines.append("")
+    lines.append(setname)
+    lines.append(len(setname) * "-")
+    lines.append("")
+    lines.append("These are radially-variable bandpasses. To get a Bandpass at a given radius, use ``band = sncosmo.get_bandpass('megacampsf::g', 13.0)``")
+    lines.append("")
+    lines.append("""
+.. plot::
+
+   from bandpass_plot import plot_bandpass_interpolators
+   plot_bandpass_interpolators({0!r})
+""".format(names))
 
 # URL links accumulated from all the tables.
 for url, urlnum in urlnums.items():

@@ -4,9 +4,10 @@ from __future__ import division
 import numpy as np
 from matplotlib import rc
 from matplotlib import pyplot as plt
-
+from matplotlib.cm import get_cmap
 import sncosmo
 
+cmap = get_cmap('viridis')
 
 def plot_bandpass_set(setname):
     """Plot the given set of bandpasses."""
@@ -48,5 +49,45 @@ def plot_bandpass_set(setname):
     xmin, xmax = ax.get_xlim()
     xmax += ncol * 0.125 * (xmax - xmin)
     ax.set_xlim(xmin, xmax)
+    plt.tight_layout()
+    plt.show()
+
+def plot_bandpass_interpolators(names):
+
+    # we'll figure out min and max wave as we go.
+    minwave = float('inf')
+    maxwave = 0.
+
+    fig, axes = plt.subplots(nrows=len(names), ncols=1,
+                             figsize=(9., 2.5*len(names)), squeeze=True,
+                             sharex=True)
+    for i in range(len(names)):
+        bi = sncosmo.bandpasses._BANDPASS_INTERPOLATORS.retrieve(names[i])
+        
+        radii = np.linspace(bi.minpos(), bi.maxpos()-0.000001, 8)
+
+        for r in radii:
+            band = bi.at(r)
+
+            # update min,max wave
+            minwave = min(minwave, band.minwave())
+            maxwave = max(maxwave, band.maxwave())
+
+            wave = np.linspace(band.minwave(), band.maxwave(), 1000)
+            trans = band(wave)
+            label = ("radius = {:4.1f}cm".format(r)
+                     if (r == radii[0] or r == radii[-1])
+                     else None)
+            axes[i].plot(wave, trans, color=cmap((r - bi.minpos())/
+                                                 (bi.maxpos() - bi.minpos())),
+                         label=label)
+
+
+        axes[i].legend(loc='upper right')
+        axes[i].set_ylabel("Transmission")
+        axes[i].text(0.03, 0.92, names[i], transform=axes[i].transAxes,
+                     va='top', ha='left')
+
+    axes[-1].set_xlabel("Wavelength ($\\AA$)")
     plt.tight_layout()
     plt.show()
