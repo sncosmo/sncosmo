@@ -409,7 +409,7 @@ class BandpassInterpolator(object):
     Transmission uniform across focal plane:
 
     >>> uniform_trans = ([4000., 5000.], [1., 0.5])  # wave, trans
-    
+
     Transmissions as a function of radius:
 
     >>> trans0 = (0., [4000., 5000.], [0.5, 0.5])  # radius=0

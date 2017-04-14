@@ -408,9 +408,12 @@ for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
 # bandpass interpolators
 
 megacam_meta = {'filterset': 'megacampsf'}
+
+
 def load_megacampsf(letter, name=None):
     abspath = DATADIR.abspath('bandpasses/megacampsf', isdir=True)
     return snfitio.read_snfit_bandpass_interpolator(abspath, letter, name=name)
+
 
 for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
     _BANDPASS_INTERPOLATORS.register_loader('megacampsf::' + letter,
