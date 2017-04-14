@@ -212,10 +212,13 @@ def read_snfit_bandpass_interpolator(dirname, filtername, name=None):
 
     # optional key:
     if "CHROMATIC_CORRECTIONS" in cards:
-        fname = read_filterwheel(
-            expand(cards["CHROMATIC_CORRECTIONS"]))[filtername]
-        x, y = np.loadtxt(expand(fname), unpack=True, skiprows=3)
-        transmissions.append((x, y))
+        corr_fnames = read_filterwheel(expand(cards["CHROMATIC_CORRECTIONS"]))
+
+        # skip if correction file not defined for this band
+        if filtername in corr_fnames:
+            fname = corr_fnames[filtername]
+            x, y = np.loadtxt(expand(fname), unpack=True, skiprows=3)
+            transmissions.append((x, y))
 
     fnames = read_radial_filterwheel(
         expand(cards["RADIALLY_VARIABLE_FILTERS"]))[filtername]
