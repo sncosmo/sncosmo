@@ -42,12 +42,22 @@ fitter.
   - New argument ``warn`` can be set to False to turn off warnings about
     dropping bands outside model wavelength range.
 
-- ``read_lc``: Added support for reading snfit-format "covmat" files into
-  a table of photometry::
+- ``read_lc``:
 
-    >>> data = read_lc('filename', format='salt2', read_covmat=True)
-    >>> data['Fluxcov'].shape == (len(data), len(data))
-    True
+  - Added support for reading snfit-format "covmat" files into
+    a table of photometry::
+
+      >>> data = read_lc('filename', format='salt2', read_covmat=True)
+      >>> data['Fluxcov'].shape == (len(data), len(data))
+      True
+
+  - New keyword argument ``expand_bands``. When True, the returned band
+    column will contain ``Bandpass`` objects instead of strings. (Strings
+    converted to bandpass objects using ``sncosmo.get_bandpass``.) This
+    is particularly useful for position-dependent bandpasses in the salt2
+    file format, such as ``megacampsf``: ``read_lc`` reads the position from
+    the header and feeds the position to ``get_bandpass`` to get a Bandpass
+    object for the correct position.
 
 - Built-in bandpasses and magnitude systems: Many new built-in bandpasses
   and magnitude systems.
