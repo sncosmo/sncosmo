@@ -76,7 +76,7 @@ def read_griddata_ascii(name_or_obj):
     x1_current = []
     y1_current = []
     for line in f:
-        stripped_line = _stripcomment(line)
+        stripped_line = _stripcomment(line.decode("utf-8"))
         if len(stripped_line) == 0:
             continue
         x0_tmp, x1_tmp, y_tmp = map(float, stripped_line.split())
