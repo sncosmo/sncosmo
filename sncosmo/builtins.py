@@ -227,7 +227,7 @@ for name, fname in [('f098m', 'bandpasses/wfc3-ir/f098m.IR.tab'),
                     ('f153m', 'bandpasses/wfc3-ir/f153m.IR.tab'),
                     ('f160w', 'bandpasses/wfc3-ir/f160w.IR.tab')]:
         _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
-                                    args=(fname,), meta=nicmos_meta)
+                                    args=(fname,), meta=wfc3ir_meta)
 
 
 wfc3uvis_meta = {'filterset': 'wfc3-uvis',
