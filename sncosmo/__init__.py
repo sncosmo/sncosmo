@@ -5,28 +5,12 @@ sncosmo: A Python package for supernova cosmology
 
 from __future__ import absolute_import
 
-# This indicates whether or not we are in the package's setup.py
-try:
-    _ASTROPY_SETUP_
-except NameError:
-    from sys import version_info
-    if version_info[0] >= 3:
-        import builtins
-    else:
-        import __builtin__ as builtins
-    builtins._ASTROPY_SETUP_ = False
-    del version_info
+import os
+from astropy.config import ConfigItem, ConfigNamespace
+from astropy.config.configuration import update_default_config
 
-# Populate __version__ and __githash__
-try:
-    from .version import version as __version__
-except ImportError:
-    __version__ = ''
-try:
-    from .version import githash as __githash__
-except ImportError:
-    __githash__ = ''
 
+__version__ = "1.6.dev0"
 
 def test(package=None, test_path=None, args=None, plugins=None,
          verbose=False, pastebin=None, remote_data=False, pep8=False,
@@ -115,58 +99,50 @@ def test(package=None, test_path=None, args=None, plugins=None,
         coverage=coverage, open_files=open_files, **kwargs)
 
 
-# Putting everything else in the following block makes it possible to
-# import the package with no dependencies installed. This is
-# desirable for being able to do 'setup.py egg_info'. (Though I'm not
-# sure if 'setup.py egg_info' actually imports the package...)
-if not _ASTROPY_SETUP_:
-    import os
-    from astropy.config import ConfigItem, ConfigNamespace
-    from astropy.config.configuration import update_default_config
+# Create default configurations. The file sncosmo.cfg should be
+# kept in sync with the ConfigItems here.
+class Conf(ConfigNamespace):
+    """Configuration parameters for sncosmo."""
+    data_dir = ConfigItem(
+        None,
+        "Directory where sncosmo will store and read downloaded data "
+        "resources. If None, ASTROPY_CACHE_DIR/sncosmo is created and "
+        "used. Example: data_dir = /home/user/data/sncosmo",
+        cfgtype='string(default=None)')
+    sfd98_dir = ConfigItem(
+        None,
+        "Directory containing SFD (1998) dust maps, with names: "
+        "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'. "
+        "Example: sfd98_dir = /home/user/data/sfd98",
+        cfgtype='string(default=None)')
 
-    # Create default configurations. The file sncosmo.cfg should be
-    # kept in sync with the ConfigItems here.
-    class Conf(ConfigNamespace):
-        """Configuration parameters for sncosmo."""
-        data_dir = ConfigItem(
-            None,
-            "Directory where sncosmo will store and read downloaded data "
-            "resources. If None, ASTROPY_CACHE_DIR/sncosmo is created and "
-            "used. Example: data_dir = /home/user/data/sncosmo",
-            cfgtype='string(default=None)')
-        sfd98_dir = ConfigItem(
-            None,
-            "Directory containing SFD (1998) dust maps, with names: "
-            "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'. "
-            "Example: sfd98_dir = /home/user/data/sfd98",
-            cfgtype='string(default=None)')
+# Create an instance of the class we just defined.
+conf = Conf()
 
-    # Create an instance of the class we just defined.
-    conf = Conf()
+# Update the user's ~/.astropy/config/sncosmo.cfg if needed.
+update_default_config("sncosmo",  # pkg
+                      os.path.dirname(__file__),  # configdir
+                      version=__version__)
 
-    # Update the user's ~/.astropy/config/sncosmo.cfg if needed.
-    update_default_config("sncosmo",  # pkg
-                          os.path.dirname(__file__),  # configdir
-                          version=__version__)
+# clean up namespace
+del os, ConfigItem, ConfigNamespace, update_default_config
 
-    # clean up namespace
-    del os, ConfigItem, ConfigNamespace, update_default_config
+# import all the things into the top-level namespace
+from .bandpasses import *
+from .magsystems import *
+from .spectrum import *
+from .models import *
+from .io import *
+from .snanaio import *
+from .fitting import *
+from .simulation import *
+from .plotting import *
+from .photdata import *
+from .registry import *
 
-    # Do all the necessary imports.
-    from .bandpasses import *
-    from .magsystems import *
-    from .spectrum import *
-    from .models import *
-    from .io import *
-    from .snanaio import *
-    from .fitting import *
-    from .simulation import *
-    from .plotting import *
-    from .photdata import *
-    from .registry import *
+# deprecated stuff
+from . import registry  # deprecated in v1.2; use previous import.
+from ._deprecated import *
 
-    from . import registry  # deprecated in v1.2; use previous import.
-    from ._deprecated import *
-
-    # Register all the built-ins.
-    from .builtins import *
+# Register all the built-ins.
+from .builtins import *

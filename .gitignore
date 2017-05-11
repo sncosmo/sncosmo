@@ -58,3 +58,6 @@ misc/Make.user
 misc/*.o
 misc/*.d
 misc/test-salt2model
+
+# from testing?
+.cache
