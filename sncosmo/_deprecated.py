@@ -19,7 +19,7 @@ from astropy.table import Table
 
 from .utils import warn_once
 from .models import Source, get_source
-from sncosmo import conf
+from . import conf
 
 __all__ = ['SFD98Map', 'get_ebv_from_map', 'animate_source']
 

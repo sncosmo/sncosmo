@@ -73,7 +73,7 @@ matrix:
 
         # Do a PEP8 test
         - os: linux
-          env: PYTHON_VERSION=3.6 MAIN_CMD='pep8 sncosmo --count' SETUP_CMD=''
+          env: PYTHON_VERSION=3.6 MAIN_CMD='pep8 sncosmo --count --exclude=__init__.py' SETUP_CMD=''
 
 install:
     - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh
