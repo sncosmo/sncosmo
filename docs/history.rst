@@ -8,6 +8,14 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+
+v1.5.1 (2017-05-12)
+===================
+
+No new features or bugfixes. This release simply removes build dependencies
+to enable building conda packages on conda-forge.
+
+
 v1.5.0 (2017-04-20)
 ===================
 
