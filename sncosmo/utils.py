@@ -222,10 +222,10 @@ def _download_file(remote_url, target):
     from astropy.extern.six.moves.urllib.request import urlopen, Request
     from astropy.extern.six.moves.urllib.error import URLError, HTTPError
     from astropy.utils.console import ProgressBarOrSpinner
-    from astropy.utils.data import conf
+    from . import conf
 
     timeout = conf.remote_timeout
-
+    download_block_size = 32768
     try:
         # Pretend to be a web browser (IE 6.0). Some servers that we download
         # from forbid access from programs.
@@ -247,12 +247,12 @@ def _download_file(remote_url, target):
             dlmsg = "Downloading {0}".format(remote_url)
             with ProgressBarOrSpinner(size, dlmsg) as p:
                 bytes_read = 0
-                block = remote.read(conf.download_block_size)
+                block = remote.read(download_block_size)
                 while block:
                     target.write(block)
                     bytes_read += len(block)
                     p.update(bytes_read)
-                    block = remote.read(conf.download_block_size)
+                    block = remote.read(download_block_size)
 
     # Append a more informative error message to HTTPErrors, URLErrors.
     except HTTPError as e:
@@ -296,7 +296,7 @@ def download_file(remote_url, local_name):
         Whenever there's a problem getting the remote file.
     """
 
-    from astropy.extern.six.moves.urllib.error import HTTPError
+    from astropy.extern.six.moves.urllib.error import HTTPError, URLError
 
     # ensure target directory exists
     dn = os.path.dirname(local_name)
@@ -320,8 +320,8 @@ def download_file(remote_url, local_name):
         try:
             with open(local_name, 'wb') as target:
                 _download_file(remote_url, target)
-        except HTTPError:
-            # in case of error downloading, remove opened file.
+        except:
+            # in case of error downloading, remove file.
             if os.path.exists(local_name):
                 os.remove(local_name)
             raise

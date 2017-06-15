@@ -101,7 +101,7 @@ def test(package=None, test_path=None, args=None, plugins=None,
 
 # Create default configurations. The file sncosmo.cfg should be
 # kept in sync with the ConfigItems here.
-class Conf(ConfigNamespace):
+class _Conf(ConfigNamespace):
     """Configuration parameters for sncosmo."""
     data_dir = ConfigItem(
         None,
@@ -115,9 +115,11 @@ class Conf(ConfigNamespace):
         "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'. "
         "Example: sfd98_dir = /home/user/data/sfd98",
         cfgtype='string(default=None)')
+    remote_timeout = ConfigItem(
+        10.0, "Remote timeout in seconds.")
 
 # Create an instance of the class we just defined.
-conf = Conf()
+conf = _Conf()
 
 # Update the user's ~/.astropy/config/sncosmo.cfg if needed.
 update_default_config("sncosmo",  # pkg
