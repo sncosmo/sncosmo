@@ -1,4 +1,5 @@
-#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
+#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True, auto_pickle=False
+# (need auto_pickle=False because we've implemented explicit pickle support via getnewargs() below)
 """
 mimic Grid2DFunction function in salt2 software snfit because it doesn't
 use spline interpolation; it does bicubic convolution.
