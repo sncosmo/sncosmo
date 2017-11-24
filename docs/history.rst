@@ -8,6 +8,11 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v1.5.3 (2017-11-24)
+===================
+
+- Fix pickling issue with Cython v0.26.
+
 v1.5.2 (2017-11-24)
 ===================
 

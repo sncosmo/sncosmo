@@ -10,7 +10,7 @@ from astropy.config import ConfigItem, ConfigNamespace
 from astropy.config.configuration import update_default_config
 
 
-__version__ = "1.5.2"
+__version__ = "1.5.3"
 
 def test(package=None, test_path=None, args=None, plugins=None,
          verbose=False, pastebin=None, remote_data=False, pep8=False,
