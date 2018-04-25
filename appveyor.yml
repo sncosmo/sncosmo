@@ -18,12 +18,6 @@ environment:
         NUMPY_VERSION: "stable"
         ASTROPY_VERSION: "stable"
 
-        # We deliberately test with Numpy 1.9 to check that installing Astropy
-        # dev doesn't upgrade Numpy.
-      - PYTHON_VERSION: "3.5"
-        NUMPY_VERSION: "1.9"
-        ASTROPY_VERSION: "development"
-
       - PYTHON_VERSION: "3.5"
         NUMPY_VERSION: "1.10"
         ASTROPY_VERSION: "lts"
