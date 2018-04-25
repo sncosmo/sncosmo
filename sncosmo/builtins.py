@@ -603,7 +603,7 @@ meta = {'type': 'SN Ia',
         'reference': ('H17', 'Hounsell et al. 2017 ',
                       '<http://adsabs.harvard.edu/abs/2017arXiv170201747H>')}
 _SOURCES.register_loader('salt2-h17', load_salt2model,
-                         args=('models/snana/salt2_wfirst-h17',),
+                         args=('models/snana/salt2-h17',),
                          version='1.0', meta=meta)
 
 # 2011fe
