@@ -25,7 +25,7 @@ PHOTDATA_ALIASES = OrderedDict([
     ('fluxerr', {'fluxerr', 'fe', 'fluxerror', 'flux_error', 'flux_err'}),
     ('zp', {'zp', 'zpt', 'zeropoint', 'zero_point'}),
     ('zpsys', {'zpsys', 'zpmagsys', 'magsys'}),
-    ('fluxcov', {'cov', 'covar', 'covariance', 'covmat'})
+    ('fluxcov', {'cov', 'covar', 'covariance', 'covmat', 'fluxcov'})
     ])
 
 PHOTDATA_REQUIRED_ALIASES = ('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys')

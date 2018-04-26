@@ -34,7 +34,7 @@ def generate_chisq(data, model, signature='iminuit', modelcov=False):
     if modelcov:
         _, mcov = model.bandfluxcov(data.band, data.time,
                                     zp=data.zp, zpsys=data.zpsys)
-        cov += mcov
+        cov = cov + mcov
     invcov = np.linalg.pinv(cov)
 
     # iminuit expects each parameter to be a separate argument (including fixed
@@ -87,7 +87,7 @@ def chisq(data, model, modelcov=False):
         if modelcov:
             mflux, mcov = model.bandfluxcov(data.band, data.time,
                                             zp=data.zp, zpsys=data.zpsys)
-            cov += mcov
+            cov = cov + mcov
         else:
             mflux = model.bandflux(data.band, data.time,
                                    zp=data.zp, zpsys=data.zpsys)
