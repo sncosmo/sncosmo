@@ -600,7 +600,7 @@ meta = {'type': 'SN Ia',
         'url': 'http://snana.uchicago.edu/',
         'note': "extracted from SNANA's SNDATA_ROOT on 24 April 2018. SALT2"
         " model with wide wavelength range, Hounsell et al. 2017",
-        'reference': ('H17', 'Hounsell et al. 2017 ',
+        'reference': ('H17', 'Hounsell et al. 2017 '
                       '<http://adsabs.harvard.edu/abs/2017arXiv170201747H>')}
 _SOURCES.register_loader('salt2-h17', load_salt2model,
                          args=('models/snana/salt2-h17',),

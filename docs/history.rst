@@ -8,10 +8,29 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
-v1.6.0 (unreleased)
+v1.6.0 (2018-04-27)
 ===================
 
-Nothing yet.
+- Add Hounsell et al. (2017) SALT2 model to built-ins.
+
+- Add ``remote_timeout`` configuration option.
+  
+- Build system: remove build-time dependency on astropy helpers.
+
+- Bugfixes:
+
+  - Correctly delete empty files created when a download fails.
+
+  - Use pseudo-inverse when inverting covariance matrix for increased stability.
+
+  - Fix an issue with pickling on Cython 0.26+.
+
+  - Fixed problem where ``data['fluxcov']`` was unintentionally being modified
+    in-place when passed to ``fit_lc``.
+
+  - Fixed problem where ``'fluxcov'`` not recognized as a valid name for
+    covariance column in data in ``fit_lc``.
+
 
 v1.5.0 (2017-04-20)
 ===================
