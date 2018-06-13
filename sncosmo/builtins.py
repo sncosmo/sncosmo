@@ -71,6 +71,12 @@ def load_bandpass_bessell(pkg_data_name, name=None):
                          normalize=True, name=name)
 
 
+def load_bandpass_wfirst(pkg_data_name, name=None):
+    fname = get_pkg_data_filename(pkg_data_name)
+    return read_bandpass(fname, wave_unit=u.AA, 
+                         trim_level=BANDPASS_TRIM_LEVEL, name=name)
+
+
 def load_bandpass_remote_aa(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
     return read_bandpass(abspath, wave_unit=u.AA,
@@ -404,8 +410,24 @@ for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
                     ('4shooter2::i', 'bandpasses/4shooter2/I_4Shooter2.txt')]:
         _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                     args=(fname,), meta=fourshooter_meta)
+
+wfirst_meta = {
+    'filterset': 'wfirst',
+    'retrieved': '13 Jun 2018',
+    'description': 'WFIRST filters from Hounsell et al. 2017 ' 
+    '(http://adsabs.harvard.edu/abs/2017arXiv170201747H)'}
+for name, fname in [('j129', 'wfirst/WFIRST_J129.dat'),
+                    ('w149', 'wfirst/WFIRST_W149.dat'),
+                    ('y106', 'wfirst/WFIRST_Y106.dat'),
+                    ('z087', 'wfirst/WFIRST_Z087.dat'),
+                    ('f184', 'wfirst/WFIRST_F184.dat'),
+                    ('h158', 'wfirst/WFIRST_H158.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_wfirst,
+                                args=('data/bandpasses/' + fname,),
+                                meta=wfirst_meta)
+    
 # =============================================================================
-# bandpass interpolators
+# Bandpass interpolators
 
 megacam_meta = {'filterset': 'megacampsf'}
 
