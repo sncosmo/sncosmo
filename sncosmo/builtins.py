@@ -70,6 +70,10 @@ def load_bandpass_bessell(pkg_data_name, name=None):
     return read_bandpass(fname, wave_unit=u.AA, trans_unit=u.erg**-1,
                          normalize=True, name=name)
 
+def load_bandpass_ztf(pkg_data_name, name=None):
+    fname = get_pkg_data_filename(pkg_data_name)
+    return read_bandpass(fname, wave_unit=u.AA,
+                         trim_level=BANDPASS_TRIM_LEVEL, name=name)
 
 def load_bandpass_remote_aa(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
@@ -404,8 +408,22 @@ for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
                     ('4shooter2::i', 'bandpasses/4shooter2/I_4Shooter2.txt')]:
         _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                     args=(fname,), meta=fourshooter_meta)
+
+
+# ZTF
+ztf_meta = {
+    'filterset':'ztf',
+    'retrieved': '7 Jun 2018',
+    'description': 'ZTF filters from Uli Feindt. No atmospheric correction.'}
+for name, fname in [('ztfg', 'ztf/P48_g.dat'),
+                    ('ztfr', 'ztf/P48_R.dat'),
+                    ('ztfi', 'ztf/P48_I.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_ztf,
+                                args=('data/bandpasses/' + fname,),
+                                meta=ztf_meta)
+    
 # =============================================================================
-# bandpass interpolators
+# interpolators
 
 megacam_meta = {'filterset': 'megacampsf'}
 
