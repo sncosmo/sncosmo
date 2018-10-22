@@ -104,6 +104,41 @@ def read_griddata_ascii(name_or_obj):
     f.close()
     return np.array(x0), np.array(x1), np.array(y)
 
+def read_multivector_griddata_ascii(name_or_obj):
+    """Read 2-d grid data from a text file.
+
+    Each line has values `x0 x1 y0, y1 ...`. Space separated.
+    Assumed to be grid of values.
+
+    Parameters
+    ----------
+    name_or_obj : str or file-like object
+
+    Returns
+    -------
+    x0 : numpy.ndarray
+        1-d array.
+    x1 : numpy.ndarray
+        1-d array.
+    y : numpy.ndarray
+        3-d array of shape (len(y0, y1, ...), len(x0), len(x1)).
+    """
+
+    if isinstance(name_or_obj, six.string_types):
+        f = np.loadtxt(name_or_obj)
+    else:
+        f = name_or_obj
+
+    x0 = np.sort(np.unique(f[:,0])) 
+    x1 = np.sort(np.unique(f[:,1])) 
+    y = np.zeros((len(f[0])-2, len(x0), len(x1)))
+
+    for i0, p in enumerate(x0):
+        for i1, q in enumerate(x1):
+            ind = (f[:,0] == p) & (f[:,1] == q)
+            y[:,i0,i1] = f[ind,2:]
+    
+    return x0, x1, y
 
 def read_griddata_fits(name_or_obj, ext=0):
     """Read a multi-dimensional grid of data from a FITS file, where the
