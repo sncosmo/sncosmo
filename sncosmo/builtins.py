@@ -25,7 +25,7 @@ from . import io
 from . import snfitio
 from .utils import download_file, download_dir, DataMirror
 from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source,
-                     _SOURCES)
+                     SNEMOSource, _SOURCES)
 from .bandpasses import (Bandpass, read_bandpass, _BANDPASSES,
                          _BANDPASS_INTERPOLATORS)
 from .spectrum import Spectrum
@@ -709,6 +709,25 @@ meta = {'type': 'SN Ia',
 _SOURCES.register_loader('mlcs2k2', load_mlcs2k2,
                          args=('models/mlcs2k2/mlcs2k2.modelflux.v1.0.fits',),
                          version='1.0', meta=meta)
+
+
+# SNEMO
+def load_snemomodel(relpath, name=None, version=None):
+    abspath = DATADIR.abspath(relpath)
+    return SNEMOSource(abspath, name=name, version=version)
+
+for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
+                        ('snemo7', 'snemo7_ev.dat', '1.0'),
+                        ('snemo15', 'snemo15_ev.dat', '1.0')]:
+
+    meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SNEMOSource`',
+            'url': 'https://snfactory.lbl.gov/snemo/',
+            'reference': 'Saunders et al. 2018'}
+    version = int(name[5:])
+
+    _SOURCES.register_loader(name, load_snemomodel,
+                             args=['models/snemo/'+file],
+                             version=version, meta=meta)
 
 # =============================================================================
 # MagSystems
