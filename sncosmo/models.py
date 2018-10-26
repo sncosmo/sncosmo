@@ -974,28 +974,27 @@ class SNEMOSource(Source):
         array of spectral flux density values for a grid of phase
         and wavelength values. Assuming columns ``phase``, ``wavelength``,
         ``e_0``, ``e_1``, ``e_2``...
-    n_vector : int
-        One of 2, 7, 15 to select SNEMO2, SNEMO7, SNEMO15
     """
     
     def __init__(self, fluxfile='SNEMO7_ev.dat', name=None,
-                 version=7):
+                 version=None):
 
-        n_vector = int(float(version))
         self.name = name
         self.version = version
+
+        phase, wave, values = read_multivector_griddata_ascii(fluxfile)
+        n_vector = values.shape[0]
+
         self._parameters = np.zeros(n_vector+1)
         self._parameters[0] = 1
 
         _param_names = ['c0','As','c1','c2','c3','c4','c5','c6','c7',
                         'c8','c9','c10','c11','c12','c13', 'c14']
-        param_names_latex = ['c_0','A_s','c_1','c_2','c_3','c_4','c_5','c_6','c_7',
-                             'c_8','c_9','c_{10}','c_{11}','c_{12}','c_{13}',
-                             'c_{14}']
+        param_names_latex = ['c_0','A_s','c_1','c_2','c_3','c_4','c_5','c_6',
+                             'c_7', 'c_8','c_9','c_{10}','c_{11}','c_{12}',
+                             'c_{13}','c_{14}']
         self._param_names = _param_names[:n_vector + 1]
         self.param_names_latex = param_names_latex[:n_vector+1]
-
-        phase, wave, values = read_multivector_griddata_ascii(fluxfile)
 
         self._phase = phase
         self._wave = wave

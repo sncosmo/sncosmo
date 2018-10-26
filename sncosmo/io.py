@@ -21,7 +21,8 @@ from .utils import dict_to_array
 from .bandpasses import get_bandpass
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
-           'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
+           'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits',
+           'read_multivector_griddata_ascii']
 
 
 def _stripcomment(line, char='#'):
@@ -124,19 +125,17 @@ def read_multivector_griddata_ascii(name_or_obj):
         3-d array of shape (len(y0, y1, ...), len(x0), len(x1)).
     """
 
-    if isinstance(name_or_obj, six.string_types):
-        f = np.loadtxt(name_or_obj)
-    else:
-        f = name_or_obj
 
-    x0 = np.sort(np.unique(f[:,0])) 
-    x1 = np.sort(np.unique(f[:,1])) 
-    y = np.zeros((len(f[0])-2, len(x0), len(x1)))
+    data = np.loadtxt(name_or_obj)
+    
+    x0 = np.sort(np.unique(data[:,0])) 
+    x1 = np.sort(np.unique(data[:,1])) 
+    y = np.zeros((len(data[0])-2, len(x0), len(x1)))
 
     for i0, p in enumerate(x0):
         for i1, q in enumerate(x1):
-            ind = (f[:,0] == p) & (f[:,1] == q)
-            y[:,i0,i1] = f[ind,2:]
+            ind = (data[:,0] == p) & (data[:,1] == q)
+            y[:,i0,i1] = data[ind,2:]
     
     return x0, x1, y
 

@@ -723,11 +723,10 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SNEMOSource`',
             'url': 'https://snfactory.lbl.gov/snemo/',
             'reference': 'Saunders et al. 2018'}
-    version = int(name[5:])
 
     _SOURCES.register_loader(name, load_snemomodel,
                              args=['models/snemo/'+file],
-                             version=version, meta=meta)
+                             version=ver, meta=meta)
 
 # =============================================================================
 # MagSystems
