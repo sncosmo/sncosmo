@@ -19,7 +19,8 @@ from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six
 import extinction
 
-from .io import read_griddata_ascii, read_griddata_fits
+from .io import (read_griddata_ascii, read_griddata_fits,
+                 read_multivector_griddata_ascii)
 from ._registry import Registry
 from .bandpasses import get_bandpass, Bandpass
 from .magsystems import get_magsystem
@@ -28,7 +29,7 @@ from .utils import integration_grid
 from .constants import HC_ERG_AA, MODEL_BANDFLUX_SPACING
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SALT2Source', 'MLCS2k2Source', 'Model',
+           'SALT2Source', 'MLCS2k2Source', 'SNEMOSource', 'Model',
            'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 _SOURCES = Registry()
@@ -953,6 +954,67 @@ class MLCS2k2Source(Source):
         points = arr.reshape((-1, 3))
         return (self._parameters[0] *
                 self._3d_model_flux(points).reshape(lp, lw))
+
+
+class SNEMOSource(Source):
+    """The SNEMO Type Ia supernova spectral timeseries model
+
+    The spectral flux density of this model is given by
+
+    .. math::
+       F(t, \lambda) = c_0(e_0(t, \lambda) + 
+                           \Sum_{i=1}^{n} c_i e_i(t, \lambda))
+                           \\times FM07(\lambda, A_s)
+    where ``c_0``, ``c_i``, and ``A_s`` are the free parameters of the model.
+
+    Parameters
+    ----------
+    fluxfile : str or obj, optional
+        Filename of an ascii file containing 2-d
+        array of spectral flux density values for a grid of phase
+        and wavelength values. Assuming columns ``phase``, ``wavelength``,
+        ``e_0``, ``e_1``, ``e_2``...
+    """
+    
+    def __init__(self, fluxfile, name=None, version=None):
+        self.name = name
+        self.version = version
+
+        phase, wave, values = read_multivector_griddata_ascii(fluxfile)
+        n_vector = values.shape[0]
+
+        self._parameters = np.zeros(n_vector+1)
+        self._parameters[0] = 1
+
+        _param_names = ['c0', 'As', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7',
+                        'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14']
+        param_names_latex = ['c_0', 'A_s', 'c_1', 'c_2', 'c_3', 'c_4', 'c_5',
+                             'c_6', 'c_7', 'c_8', 'c_9', 'c_{10}', 'c_{11}',
+                             'c_{12}', 'c_{13}', 'c_{14}']
+        self._param_names = _param_names[:n_vector + 1]
+        self.param_names_latex = param_names_latex[:n_vector + 1]
+
+        self._phase = phase
+        self._wave = wave
+
+        self._model_fluxes = np.array([Spline2d(phase, wave,
+                                                v, kx=2, ky=2)
+                                       for v in values])
+
+    def _flux(self, phase, wave):
+        c_0 = self._parameters[0]
+        A_s = self._parameters[1]
+        color = extinction.fm07(wave * u.angstrom, A_s)
+        model_fluxes = np.array([mf(phase, wave) for mf 
+                                 in self._model_fluxes])
+        
+        model_ev = c_0 * (model_fluxes[0] + 
+                          (self._parameters[2:, None, None] 
+                           * model_fluxes[1:]).sum(axis=0))
+
+        model_c = 10**(-0.4 * color)
+
+        return model_ev * model_c
 
 
 class Model(_ModelBase):
