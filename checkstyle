@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+# to the default ignore list, we add
+#
+# E402 module level import not at top of file
+#      Reason: in __init__.py, we need to import things in a certain order
+#
+# E741 ambiguous variable name
+#      Reason: Sometimes 'l' is a fine variable name.
+#
+pycodestyle --ignore=E121,E123,E126,E226,E24,E704,W503,W504,E402,E741 sncosmo

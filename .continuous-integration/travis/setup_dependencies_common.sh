@@ -1,12 +1,13 @@
 #!/bin/bash -x
 
 hash -r
+conda config --add channels conda-forge
 conda config --set always_yes yes --set changeps1 no
-conda update -q conda
+conda update -q --yes conda
 conda info -a
 
 # CONDA
-conda create --yes -n test -c astropy-ci-extras python=$PYTHON_VERSION pip
+conda create --yes -n test python=$PYTHON_VERSION pip
 source activate test
 
 # --no-use-wheel requirement is temporary due to
@@ -25,15 +26,14 @@ then
 fi
 
 # PEP8
-if [[ $MAIN_CMD == pep8* ]]
+if [[ $MAIN_CMD == *checkstyle* ]]
 then
-  $PIP_INSTALL pep8
+  conda install --yes python=$PYTHON_VERSION pycodestyle
   return  # no more dependencies needed
 fi
 
 # CORE DEPENDENCIES (besides astropy)
-$CONDA_INSTALL pip jinja2 psutil cython
-$PIP_INSTALL extinction
+$CONDA_INSTALL jinja2 psutil cython extinction
 
 # ASTROPY
 if [[ $ASTROPY_VERSION == dev ]]
@@ -46,26 +46,18 @@ fi
 # OPTIONAL DEPENDENCIES
 if $OPTIONAL_DEPS
 then
-  $CONDA_INSTALL matplotlib
-  $PIP_INSTALL emcee nestle iminuit
+  $CONDA_INSTALL matplotlib iminuit
+  $PIP_INSTALL nestle
 fi
 
 # DOCUMENTATION DEPENDENCIES
-# build_sphinx needs sphinx as well as matplotlib (for plot_directive)
-# Note that this matplotlib will *not* work with py 3.x, but our sphinx
-# build is currently 2.7, so that's fine
-if [[ $SETUP_CMD == build_sphinx* ]]
+if [[ $SETUP_CMD == *docs* ]]
 then
-  $PIP_INSTALL sphinx-gallery astropy-helpers
-  $CONDA_INSTALL sphinx pygments matplotlib pillow sphinx_rtd_theme
+  $CONDA_INSTALL sphinx sphinx-gallery pygments matplotlib pillow sphinx_rtd_theme numpydoc
 fi
 
 # COVERAGE DEPENDENCIES
 if [[ $SETUP_CMD == *"--coverage"* ]]
 then
-  # TODO can use latest version of coverage (4.0) once
-  # https://github.com/astropy/astropy/issues/4175 is addressed in
-  # astropy release version.
-  pip install coverage==3.7.1
-  pip install coveralls
+  $CONDA_INSTALL coverage coveralls
 fi

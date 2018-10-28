@@ -21,6 +21,7 @@ addons:
             - dvipng
             - g++
 
+
 env:
     global:
         # Set defaults to avoid repeating in most cases.
@@ -32,7 +33,7 @@ env:
 
     matrix:
         - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.4 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.6 SETUP_CMD='egg_info'
 
 matrix:
@@ -48,11 +49,11 @@ matrix:
         - os: osx
           env: PYTHON_VERSION=3.6 SETUP_CMD='test'
 
-        # Try all python versions
+        # Try different python versions
         - os: linux
           env: PYTHON_VERSION=2.7 SETUP_CMD='test'
         - os: linux
-          env: PYTHON_VERSION=3.6 SETUP_CMD='test --remote-data --coverage'
+          env: PYTHON_VERSION=3.6 SETUP_CMD='test --remote-data any'
 
         # Try astropy 1.0 version and some older dependencies
         - os: linux
@@ -66,20 +67,23 @@ matrix:
         - os: linux
           env: PYTHON_VERSION=3.6 OPTIONAL_DEPS=false SETUP_CMD='test'
 
-        # Try older numpy versions & astropy versions
-        # (conda only has builds for np18 and later for astropy 1.0) 
+        # Do a pycodestyle test
         - os: linux
-          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.8 SCIPY_VERSION=0.12 ASTROPY_VERSION=0.4 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.6 MAIN_CMD='./checkstyle' SETUP_CMD=''
 
-        # Do a PEP8 test
+        # coverage test
         - os: linux
-          env: PYTHON_VERSION=3.6 MAIN_CMD='pep8 sncosmo --count --exclude=__init__.py' SETUP_CMD=''
+          env: PYTHON_VERSION=3.6 SETUP_CMD='test --coverage'
+
+        # Try a doc build
+        - os: linux
+          env: PYTHON_VERSION=3.6 SETUP_CMD='install; cd docs && make html'
 
 install:
     - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh
 
 script:
-    - $MAIN_CMD $SETUP_CMD
+    - eval $MAIN_CMD $SETUP_CMD
 
 after_success:
     - if [[ $SETUP_CMD == *"--coverage"* ]]; then

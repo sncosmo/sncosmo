@@ -6,14 +6,16 @@ sncosmo: A Python package for supernova cosmology
 from __future__ import absolute_import
 
 import os
+
 from astropy.config import ConfigItem, ConfigNamespace
 from astropy.config.configuration import update_default_config
 
 
 __version__ = "1.6.0"
 
+
 def test(package=None, test_path=None, args=None, plugins=None,
-         verbose=False, pastebin=None, remote_data=False, pep8=False,
+         verbose=False, pastebin=None, remote_data='none', pep8=False,
          pdb=False, coverage=False, open_files=False, **kwargs):
     """
     Run the tests using py.test. A proper set of arguments is constructed and
@@ -118,7 +120,10 @@ class _Conf(ConfigNamespace):
     remote_timeout = ConfigItem(
         10.0, "Remote timeout in seconds.")
 
+
 # Create an instance of the class we just defined.
+# This needs to be done before the imports below because `conf` is used
+# in some parts of the library.
 conf = _Conf()
 
 # Update the user's ~/.astropy/config/sncosmo.cfg if needed.

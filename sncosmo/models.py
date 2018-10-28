@@ -479,7 +479,7 @@ class TimeSeriesSource(Source):
 
     .. math::
 
-       F(t, \lambda) = A \\times M(t, \lambda)
+       F(t, \\lambda) = A \\times M(t, \\lambda)
 
     where _M_ is the flux defined on a grid in phase and wavelength
     and _A_ (amplitude) is the single free parameter of the model. The
@@ -508,7 +508,6 @@ class TimeSeriesSource(Source):
         Name of the model. Default is `None`.
     version : str, optional
         Version of the model. Default is `None`.
-
     """
 
     _param_names = ['amplitude']
@@ -540,7 +539,7 @@ class StretchSource(Source):
 
     .. math::
 
-       F(t, \lambda) = A \\times M(t / s, \lambda)
+       F(t, \\lambda) = A \\times M(t / s, \\lambda)
 
     where _A_ is the amplitude and _s_ is the "stretch".
 
@@ -584,8 +583,8 @@ class SALT2Source(Source):
 
     .. math::
 
-       F(t, \lambda) = x_0 (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                       \\times 10^{-0.4 CL(\lambda) c}
+       F(t, \\lambda) = x_0 (M_0(t, \\lambda) + x_1 M_1(t, \\lambda))
+                       \\times 10^{-0.4 CL(\\lambda) c}
 
     where ``x0``, ``x1`` and ``c`` are the free parameters of the model,
     ``M_0``, ``M_1`` are the zeroth and first components of the model, and
@@ -751,14 +750,14 @@ class SALT2Source(Source):
         the model.  The covariance matrix has two components. The
         first component is diagonal (pure variance) and depends on the
         phase :math:`t` and bandpass central wavelength
-        :math:`\lambda_c` of each photometry point:
+        :math:`\\lambda_c` of each photometry point:
 
         .. math::
 
-           (F_{0, \mathrm{band}}(t) / F_{1, \mathrm{band}}(t))^2
-           S(t, \lambda_c)^2
-           (V_{00}(t, \lambda_c) + 2 x_1 V_{01}(t, \lambda_c) +
-            x_1^2 V_{11}(t, \lambda_c))
+           (F_{0, \\mathrm{band}}(t) / F_{1, \\mathrm{band}}(t))^2
+           S(t, \\lambda_c)^2
+           (V_{00}(t, \\lambda_c) + 2 x_1 V_{01}(t, \\lambda_c) +
+            x_1^2 V_{11}(t, \\lambda_c))
 
         where the 2-d functions :math:`S`, :math:`V_{00}`, :math:`V_{01}`,
         and :math:`V_{11}` are given by the files ``errscalefile``,
@@ -767,16 +766,16 @@ class SALT2Source(Source):
 
         .. math::
 
-           F_{0, \mathrm{band}}(t) = \int_\lambda M_0(t, \lambda)
-                                     T_\mathrm{band}(\lambda)
-                                     \\frac{\lambda}{hc} d\lambda
+           F_{0, \\mathrm{band}}(t) = \\int_\\lambda M_0(t, \\lambda)
+                                      T_\\mathrm{band}(\\lambda)
+                                      \\frac{\\lambda}{hc} d\\lambda
 
         .. math::
 
-           F_{1, \mathrm{band}}(t) = \int_\lambda
-                                     (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                                     T_\mathrm{band}(\lambda)
-                                     \\frac{\lambda}{hc} d\lambda
+           F_{1, \\mathrm{band}}(t) = \\int_\\lambda
+                                      (M_0(t, \\lambda) + x_1 M_1(t, \\lambda))
+                                      T_\\mathrm{band}(\\lambda)
+                                      \\frac{\\lambda}{hc} d\\lambda
 
         As this first component can sometimes be negative due to
         interpolation, there is a floor applied wherein values less than zero
@@ -790,7 +789,7 @@ class SALT2Source(Source):
 
         .. math::
 
-           CD(\lambda_c)^2
+           CD(\\lambda_c)^2
 
         where the 1-d function :math:`CD` is given by the file ``cdfile``.
         Adding these two components gives the *relative* covariance on model
@@ -897,7 +896,7 @@ class MLCS2k2Source(Source):
 
     .. math::
 
-       F(t, \lambda) = A \\times M(\Delta, t, \lambda)
+       F(t, \\lambda) = A \\times M(\\Delta, t, \\lambda)
 
     where _A_ is the amplitude and _Delta_ is the MLCS2k2 light curve shape
     parameter.
@@ -913,7 +912,7 @@ class MLCS2k2Source(Source):
     """
 
     _param_names = ['amplitude', 'delta']
-    param_names_latex = ['A', '\Delta']
+    param_names_latex = ['A', '\\Delta']
 
     def __init__(self, fluxfile, name=None, version=None):
 
@@ -962,9 +961,9 @@ class SNEMOSource(Source):
     The spectral flux density of this model is given by
 
     .. math::
-       F(t, \lambda) = c_0(e_0(t, \lambda) + 
-                           \Sum_{i=1}^{n} c_i e_i(t, \lambda))
-                           \\times FM07(\lambda, A_s)
+       F(t, \\lambda) = c_0(e_0(t, \\lambda) +
+                           \\Sum_{i=1}^{n} c_i e_i(t, \\lambda))
+                           \\times FM07(\\lambda, A_s)
     where ``c_0``, ``c_i``, and ``A_s`` are the free parameters of the model.
 
     Parameters
@@ -975,7 +974,6 @@ class SNEMOSource(Source):
         and wavelength values. Assuming columns ``phase``, ``wavelength``,
         ``e_0``, ``e_1``, ``e_2``...
     """
-    
     def __init__(self, fluxfile, name=None, version=None):
         self.name = name
         self.version = version
@@ -1005,12 +1003,12 @@ class SNEMOSource(Source):
         c_0 = self._parameters[0]
         A_s = self._parameters[1]
         color = extinction.fm07(wave * u.angstrom, A_s)
-        model_fluxes = np.array([mf(phase, wave) for mf 
+        model_fluxes = np.array([mf(phase, wave) for mf
                                  in self._model_fluxes])
-        
-        model_ev = c_0 * (model_fluxes[0] + 
-                          (self._parameters[2:, None, None] 
-                           * model_fluxes[1:]).sum(axis=0))
+
+        model_ev = c_0 * (model_fluxes[0] +
+                          (self._parameters[2:, None, None] *
+                           model_fluxes[1:]).sum(axis=0))
 
         model_c = 10**(-0.4 * color)
 
@@ -1126,12 +1124,13 @@ class Model(_ModelBase):
         # for 'free' effects, add a redshift parameter
         if frame == 'free':
             self._param_names.append(name + 'z')
-            self.param_names_latex.append('{\\rm ' + name + '}\,z')
+            self.param_names_latex.append('{\\rm ' + name + '}\\,z')
 
         # add all of this effect's parameters
         for param_name in effect.param_names:
             self._param_names.append(name + param_name)
-            self.param_names_latex.append('{\\rm ' + name + '}\,' + param_name)
+            self.param_names_latex.append('{\\rm ' + name + '}\\,' +
+                                          param_name)
 
     def _sync_parameter_arrays(self):
         """Synchronize parameter names and parameter arrays between

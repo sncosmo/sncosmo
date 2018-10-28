@@ -39,11 +39,11 @@ def dict_to_array(d):
 def format_value(value, error=None, latex=False):
     """Return a string representing value and uncertainty.
 
-    If latex=True, use '\pm' and '\times'.
+    If latex=True, use '\\pm' and '\\times'.
     """
 
     if latex:
-        pm = '\pm'
+        pm = '\\pm'
         suffix_templ = ' \\times 10^{{{0:d}}}'
     else:
         pm = '+/-'
@@ -112,7 +112,7 @@ class Result(dict):
     def __getitem__(self, name):
         try:
             return dict.__getitem__(self, name)
-        except:
+        except KeyError:
             val, msg = self.__dict__['deprecated'][name]
             warnings.warn(msg)
             return val
@@ -320,7 +320,7 @@ def download_file(remote_url, local_name):
         try:
             with open(local_name, 'wb') as target:
                 _download_file(remote_url, target)
-        except:
+        except:  # noqa
             # in case of error downloading, remove file.
             if os.path.exists(local_name):
                 os.remove(local_name)
