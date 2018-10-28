@@ -976,9 +976,7 @@ class SNEMOSource(Source):
         ``e_0``, ``e_1``, ``e_2``...
     """
     
-    def __init__(self, fluxfile='SNEMO7_ev.dat', name=None,
-                 version=None):
-
+    def __init__(self, fluxfile, name=None, version=None):
         self.name = name
         self.version = version
 
@@ -988,13 +986,13 @@ class SNEMOSource(Source):
         self._parameters = np.zeros(n_vector+1)
         self._parameters[0] = 1
 
-        _param_names = ['c0','As','c1','c2','c3','c4','c5','c6','c7',
-                        'c8','c9','c10','c11','c12','c13', 'c14']
-        param_names_latex = ['c_0','A_s','c_1','c_2','c_3','c_4','c_5','c_6',
-                             'c_7', 'c_8','c_9','c_{10}','c_{11}','c_{12}',
-                             'c_{13}','c_{14}']
+        _param_names = ['c0', 'As', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7',
+                        'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14']
+        param_names_latex = ['c_0', 'A_s', 'c_1', 'c_2', 'c_3', 'c_4', 'c_5',
+                             'c_6', 'c_7', 'c_8', 'c_9', 'c_{10}', 'c_{11}',
+                             'c_{12}', 'c_{13}', 'c_{14}']
         self._param_names = _param_names[:n_vector + 1]
-        self.param_names_latex = param_names_latex[:n_vector+1]
+        self.param_names_latex = param_names_latex[:n_vector + 1]
 
         self._phase = phase
         self._wave = wave
@@ -1004,10 +1002,9 @@ class SNEMOSource(Source):
                                        for v in values])
 
     def _flux(self, phase, wave):
-
         c_0 = self._parameters[0]
         A_s = self._parameters[1]
-        color = extinction.fm07(wave*u.angstrom, A_s)
+        color = extinction.fm07(wave * u.angstrom, A_s)
         model_fluxes = np.array([mf(phase, wave) for mf 
                                  in self._model_fluxes])
         
@@ -1018,7 +1015,8 @@ class SNEMOSource(Source):
         model_c = 10**(-0.4 * color)
 
         return model_ev * model_c
-        
+
+
 class Model(_ModelBase):
     """An observer-frame model, composed of a Source and zero or more effects.
 
