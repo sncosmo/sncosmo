@@ -3,7 +3,7 @@ include CITATION.md
 include LICENSE.rst
 include setup.cfg
 
-recursive-include sncosmo *.c
+recursive-include sncosmo *.c *.pyx
 recursive-include docs *
 
 exclude __pycache__
