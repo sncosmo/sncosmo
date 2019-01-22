@@ -308,7 +308,7 @@ def animate_source(source, label=None, fps=30, length=20.,
     ax = plt.axes(xlim=(minwave, maxwave), ylim=(ymin, ymax))
     plt.axhline(y=0., c='k')
     plt.xlabel('Wavelength ($\\AA$)')
-    plt.ylabel('Flux Density ($F_\lambda$)')
+    plt.ylabel(r'Flux Density ($F_\lambda$)')
     phase_text = ax.text(0.05, 0.95, '', ha='left', va='top',
                          transform=ax.transAxes)
     empty_lists = 2 * len(sources) * [[]]

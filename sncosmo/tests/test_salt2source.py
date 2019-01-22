@@ -14,10 +14,10 @@ import sncosmo
 def _parse_value(s):
     try:
         x = int(s)
-    except:
+    except ValueError:
         try:
             x = float(s)
-        except:
+        except ValueError:
             x = s
     return x
 

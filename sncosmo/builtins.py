@@ -104,6 +104,7 @@ def tophat_bandpass_um(ctr, width, name=None):
     trans = np.array([1.0, 1.0])
     return Bandpass(wave, trans, wave_unit=u.micron, name=name)
 
+
 # Bessell bandpasses (transmission is in units of (photons / erg))
 bessell_meta = {
     'filterset': 'bessell',
@@ -699,6 +700,7 @@ def load_mlcs2k2(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath)
     return MLCS2k2Source(abspath, name=name, version=version)
 
+
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.MLCS2k2Source`',
         'reference': ('Jha07',
@@ -712,9 +714,10 @@ _SOURCES.register_loader('mlcs2k2', load_mlcs2k2,
 
 
 # SNEMO
-def load_snemomodel(relpath, name=None, version=None):
+def load_snemo(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath)
     return SNEMOSource(abspath, name=name, version=version)
+
 
 for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
                         ('snemo7', 'snemo7_ev.dat', '1.0'),
@@ -722,9 +725,11 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
 
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SNEMOSource`',
             'url': 'https://snfactory.lbl.gov/snemo/',
-            'reference': 'Saunders et al. 2018'}
+            'reference': ('Saunders18',
+                          'Saunders et al. 2018 '
+                          '<https://arxiv.org/abs/1810.09476>')}
 
-    _SOURCES.register_loader(name, load_snemomodel,
+    _SOURCES.register_loader(name, load_snemo,
                              args=['models/snemo/'+file],
                              version=ver, meta=meta)
 

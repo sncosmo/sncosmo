@@ -25,7 +25,7 @@ def recursive_glob(basedir, pattern):
 # class to hook up `setup.py test` to `sncosmo.test(...)`
 class SNCosmoTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to pytest"),
-                    ('remote-data', None,
+                    ('remote-data=', None,
                      "Run tests marked with @remote_data. These tests use "
                      "online data and are not run by default."),
                     ('coverage', None,
@@ -35,7 +35,7 @@ class SNCosmoTest(TestCommand):
     def initialize_options(self):
         TestCommand.initialize_options(self)
         self.pytest_args = None
-        self.remote_data = False
+        self.remote_data = 'none'
         self.coverage = False
 
     def run_tests(self):

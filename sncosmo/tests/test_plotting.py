@@ -6,7 +6,7 @@ import sncosmo
 try:
     from matplotlib.figure import Figure
     HAS_MATPLOTLIB = True
-except:
+except ImportError:
     HAS_MATPLOTLIB = False
 
 
