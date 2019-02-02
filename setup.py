@@ -46,23 +46,30 @@ class SNCosmoTest(TestCommand):
                              coverage=self.coverage)
         sys.exit(errno)
 
+
+# Synchronize version from code.
+VERSION = re.findall(r"__version__ = \"(.*?)\"",
+                     open(os.path.join("sncosmo", "__init__.py")).read())[0]
+
+
+# Detect whether to use Cython based on the presence of MANIFEST.in.
+# If this file doesn't exist, it indicates that we're in a source
+# distribution build, in which case the C files should already be
+# included and Cython should not be required. As a fallback, if the C
+# files are not included, Cython will be used to generate them regardless.
+USE_CYTHON = (os.path.exists('MANIFEST.in') or
+              not os.path.exists(os.path.join("sncosmo", "salt2utils.c")))
+
 # extension module(s): only add if setup.py argument is not egg_info, because
 # we need to import numpy, and we'd rather egg_info work when dependencies
 # are not installed.
 if sys.argv[1] != 'egg_info':
     import numpy
-    fname = os.path.join("sncosmo", "salt2utils.pyx")
-    if os.path.exists(fname):
-        USE_CYTHON = True
-    else:
-        USE_CYTHON = False
-        fname = os.path.join("sncosmo", "salt2utils.c")
-
-    source_files = [fname]
+    ext = '.pyx' if USE_CYTHON else '.c'
+    source_files = [os.path.join("sncosmo", "salt2utils" + ext)]
     include_dirs = [numpy.get_include()]
     extensions = [Extension("sncosmo.salt2utils", source_files,
                             include_dirs=include_dirs)]
-
     if USE_CYTHON:
         from Cython.Build import cythonize
         extensions = cythonize(extensions)
@@ -77,10 +84,6 @@ AUTHOR_EMAIL = 'kylebarbary@gmail.com'
 LICENSE = 'BSD'
 URL = 'http://sncosmo.readthedocs.org'
 
-# Synchronize version from code.
-VERSION = re.findall(r"__version__ = \"(.*?)\"",
-                     open(os.path.join("sncosmo", "__init__.py")).read())[0]
-
 # Add the project-global data
 pkgdatadir = os.path.join(PACKAGENAME, 'data')
 testdatadir = os.path.join(PACKAGENAME, 'tests', 'data')
@@ -94,10 +97,10 @@ data_files = [f[len(PACKAGENAME)+1:] for f in data_files]
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
-      install_requires=['numpy>=1.5.0',
+      install_requires=['numpy>=1.7.0',
                         'scipy>=0.9.0',
                         'extinction>=0.2.2',
-                        'astropy>=0.4.0'],
+                        'astropy>=1.0.0'],
       provides=[PACKAGENAME],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
