@@ -82,6 +82,10 @@ matrix:
 install:
     - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh
 
+# for matplotlib
+services:
+    - xvfb
+
 script:
     - eval $MAIN_CMD $SETUP_CMD
 
