@@ -227,8 +227,8 @@ for name, fname in [('f098m', 'bandpasses/wfc3-ir/f098m.IR.tab'),
                     ('f140w', 'bandpasses/wfc3-ir/f140w.IR.tab'),
                     ('f153m', 'bandpasses/wfc3-ir/f153m.IR.tab'),
                     ('f160w', 'bandpasses/wfc3-ir/f160w.IR.tab')]:
-        _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
-                                    args=(fname,), meta=wfc3ir_meta)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
+                                args=(fname,), meta=wfc3ir_meta)
 
 
 wfc3uvis_meta = {'filterset': 'wfc3-uvis',
@@ -389,8 +389,8 @@ for name, fname in [('keplercam::us', 'bandpasses/keplercam/Us_Keplercam.txt'),
                     ('keplercam::v', 'bandpasses/keplercam/V_Keplercam.txt'),
                     ('keplercam::r', 'bandpasses/keplercam/r_Keplercam.txt'),
                     ('keplercam::i', 'bandpasses/keplercam/i_Keplercam.txt')]:
-        _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
-                                    args=(fname,), meta=keplercam_meta)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=keplercam_meta)
 
 # 4shooter
 fourshooter_meta = {
@@ -403,8 +403,8 @@ for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
                     ('4shooter2::v', 'bandpasses/4shooter2/V_4Shooter2.txt'),
                     ('4shooter2::r', 'bandpasses/4shooter2/R_4Shooter2.txt'),
                     ('4shooter2::i', 'bandpasses/4shooter2/I_4Shooter2.txt')]:
-        _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
-                                    args=(fname,), meta=fourshooter_meta)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,), meta=fourshooter_meta)
 # =============================================================================
 # bandpass interpolators
 

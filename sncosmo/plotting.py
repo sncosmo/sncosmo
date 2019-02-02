@@ -29,11 +29,11 @@ def _add_errorbar(ax, x, y, yerr, filled, markersize=None, color=None):
 
 
 def _add_plot(ax, x, y, filled, markersize=None, color=None):
-        ax.plot(x[filled], y[filled], marker='o',
-                markersize=markersize, color=color, ls='None')
-        notfilled = ~filled
-        ax.plot(x[notfilled], y[notfilled], marker='o', mfc='None',
-                markersize=markersize, color=color, ls='None')
+    ax.plot(x[filled], y[filled], marker='o',
+            markersize=markersize, color=color, ls='None')
+    notfilled = ~filled
+    ax.plot(x[notfilled], y[notfilled], marker='o', mfc='None',
+            markersize=markersize, color=color, ls='None')
 
 
 def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',

@@ -30,6 +30,7 @@ env:
         - SCIPY_VERSION=0.19
         - OPTIONAL_DEPS=true
         - MAIN_CMD='python setup.py'
+        - MPLBACKEND="agg"
 
     matrix:
         - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
@@ -81,10 +82,6 @@ matrix:
 
 install:
     - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh
-
-# for matplotlib
-services:
-    - xvfb
 
 script:
     - eval $MAIN_CMD $SETUP_CMD
