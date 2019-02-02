@@ -8,6 +8,13 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v1.7.0 (2019-02-02)
+===================
+
+- Add SNEMO2, SNEMO7, SNEMO15 source models from Saunders et al. (2018)
+  to built-ins.
+
+
 v1.6.0 (2018-04-27)
 ===================
 

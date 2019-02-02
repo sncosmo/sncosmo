@@ -1,7 +1,6 @@
 include README.md
 include CITATION.md
 include LICENSE.rst
-include setup.cfg
 
 recursive-include sncosmo *.c *.pyx
 recursive-include docs *
