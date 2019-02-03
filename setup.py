@@ -52,12 +52,12 @@ VERSION = re.findall(r"__version__ = \"(.*?)\"",
                      open(os.path.join("sncosmo", "__init__.py")).read())[0]
 
 
-# Detect whether to use Cython based on the presence of MANIFEST.in.
-# If this file doesn't exist, it indicates that we're in a source
+# Detect whether to use Cython based on the presence of PKG-INFO.
+# If this file exists, it indicates that we're in a source
 # distribution build, in which case the C files should already be
 # included and Cython should not be required. As a fallback, if the C
 # files are not included, Cython will be used to generate them regardless.
-USE_CYTHON = (os.path.exists('MANIFEST.in') or
+USE_CYTHON = (not os.path.exists('PKG-INFO') or
               not os.path.exists(os.path.join("sncosmo", "salt2utils.c")))
 
 # extension module(s): only add if setup.py argument is not egg_info, because
