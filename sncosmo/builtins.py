@@ -716,7 +716,7 @@ _SOURCES.register_loader('mlcs2k2', load_mlcs2k2,
 # SNEMO
 def load_snemo(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath)
-    return TimeSeriesSource(abspath, name=name, version=version)
+    return SNEMOSource(abspath, name=name, version=version)
 
 
 for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
