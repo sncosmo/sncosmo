@@ -12,4 +12,4 @@ _Python library for supernova cosmology_
 
 **Mailing list:** https://groups.google.com/forum/#!forum/sncosmo
 
-**Citing sncosmo:** [![DOI](http://img.shields.io/badge/DOI-10.5281%2Fzenodo.11938-blue.svg?style=flat-square)](http://dx.doi.org/10.5281/zenodo.11938)
+**Citing sncosmo:** [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.168220.svg)](https://doi.org/10.5281/zenodo.168220)
