@@ -736,58 +736,59 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
 
 # P18
 p18Models_CC = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
-          ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
-          ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),  # no IAU name
-          ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
-          ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU name
-          ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
-          ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),  # type Ic in SNANA
-          ('snana-04d1la', 'SN Ic', 'SNLS-04D1la.SED'),
-          ('snana-04d4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
-          ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
-          ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
-          ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
-          ('snana-2004ib', 'SN Ib', 'SDSS-000020.SED'),
-          ('snana-2005hm', 'SN Ib', 'SDSS-002744.SED'),  # PSNID
-          ('snana-2006jo', 'SN Ib', 'SDSS-014492.SED'),  # PSNID
-          ('snana-2007nc', 'SN Ib', 'SDSS-019323.SED'),
-          ('snana-2004hx', 'SN IIP', 'SDSS-000018.SED'),  # PSNID
-          ('snana-2005gi', 'SN IIP', 'SDSS-003818.SED'),  # PSNID
-          ('snana-2006gq', 'SN IIP', 'SDSS-013376.SED'),
-          ('snana-2006kn', 'SN IIP', 'SDSS-014450.SED'),
-          ('snana-2006jl', 'SN IIP', 'SDSS-014599.SED'),  # PSNID
-          ('snana-2006iw', 'SN IIP', 'SDSS-015031.SED'),
-          ('snana-2006kv', 'SN IIP', 'SDSS-015320.SED'),
-          ('snana-2006ns', 'SN IIP', 'SDSS-015339.SED'),
-          ('snana-2007iz', 'SN IIP', 'SDSS-017564.SED'),
-          ('snana-2007nr', 'SN IIP', 'SDSS-017862.SED'),
-          ('snana-2007kw', 'SN IIP', 'SDSS-018109.SED'),
-          ('snana-2007ky', 'SN IIP', 'SDSS-018297.SED'),
-          ('snana-2007lj', 'SN IIP', 'SDSS-018408.SED'),
-          ('snana-2007lb', 'SN IIP', 'SDSS-018441.SED'),
-          ('snana-2007ll', 'SN IIP', 'SDSS-018457.SED'),
-          ('snana-2007nw', 'SN IIP', 'SDSS-018590.SED'),
-          ('snana-2007ld', 'SN IIP', 'SDSS-018596.SED'),
-          ('snana-2007md', 'SN IIP', 'SDSS-018700.SED'),
-          ('snana-2007lz', 'SN IIP', 'SDSS-018713.SED'),
-          ('snana-2007lx', 'SN IIP', 'SDSS-018734.SED'),
-          ('snana-2007og', 'SN IIP', 'SDSS-018793.SED'),
-          ('snana-2007ny', 'SN IIP', 'SDSS-018834.SED'),
-          ('snana-2007nv', 'SN IIP', 'SDSS-018892.SED'),
-          ('snana-2007pg', 'SN IIP', 'SDSS-020038.SED')]
+                ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
+                ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),  # no IAU
+                ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
+                ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU
+                ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
+                ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),
+                ('snana-04d1la', 'SN Ic', 'SNLS-04D1la.SED'),
+                ('snana-04d4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
+                ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
+                ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
+                ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
+                ('snana-2004ib', 'SN Ib', 'SDSS-000020.SED'),
+                ('snana-2005hm', 'SN Ib', 'SDSS-002744.SED'),  # PSNID
+                ('snana-2006jo', 'SN Ib', 'SDSS-014492.SED'),  # PSNID
+                ('snana-2007nc', 'SN Ib', 'SDSS-019323.SED'),
+                ('snana-2004hx', 'SN IIP', 'SDSS-000018.SED'),  # PSNID
+                ('snana-2005gi', 'SN IIP', 'SDSS-003818.SED'),  # PSNID
+                ('snana-2006gq', 'SN IIP', 'SDSS-013376.SED'),
+                ('snana-2006kn', 'SN IIP', 'SDSS-014450.SED'),
+                ('snana-2006jl', 'SN IIP', 'SDSS-014599.SED'),  # PSNID
+                ('snana-2006iw', 'SN IIP', 'SDSS-015031.SED'),
+                ('snana-2006kv', 'SN IIP', 'SDSS-015320.SED'),
+                ('snana-2006ns', 'SN IIP', 'SDSS-015339.SED'),
+                ('snana-2007iz', 'SN IIP', 'SDSS-017564.SED'),
+                ('snana-2007nr', 'SN IIP', 'SDSS-017862.SED'),
+                ('snana-2007kw', 'SN IIP', 'SDSS-018109.SED'),
+                ('snana-2007ky', 'SN IIP', 'SDSS-018297.SED'),
+                ('snana-2007lj', 'SN IIP', 'SDSS-018408.SED'),
+                ('snana-2007lb', 'SN IIP', 'SDSS-018441.SED'),
+                ('snana-2007ll', 'SN IIP', 'SDSS-018457.SED'),
+                ('snana-2007nw', 'SN IIP', 'SDSS-018590.SED'),
+                ('snana-2007ld', 'SN IIP', 'SDSS-018596.SED'),
+                ('snana-2007md', 'SN IIP', 'SDSS-018700.SED'),
+                ('snana-2007lz', 'SN IIP', 'SDSS-018713.SED'),
+                ('snana-2007lx', 'SN IIP', 'SDSS-018734.SED'),
+                ('snana-2007og', 'SN IIP', 'SDSS-018793.SED'),
+                ('snana-2007ny', 'SN IIP', 'SDSS-018834.SED'),
+                ('snana-2007nv', 'SN IIP', 'SDSS-018892.SED'),
+                ('snana-2007pg', 'SN IIP', 'SDSS-020038.SED')]
 
 ref = ('SNSEDExtend', 'Pierel et al. 2018'
        '<https://arxiv.org/abs/1808.02534>')
 for name, sntype, fn in p18Models_CC:
-    relpath = os.path.join('models','pierel','cc_models',fn)
-    meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype, 'ref': ref}
+    relpath = os.path.join('models', 'pierel', 'cc_models', fn)
+    meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype,
+            'ref': ref}
     _SOURCES.register_loader(name, load_timeseries_ascii,
-                             args=(relpath,), version='1.0', meta=meta)
+                             args=(relpath,), version='2.0', meta=meta)
 
 meta = {'type': 'SN Ia',
-        'subclass': '`~sncosmo.SALT2Source`','ref':ref}
-_SOURCES.register_loader('salt2-p18', load_salt2model,
-                         args=('models/pierel/salt2',), version='1.0',
+        'subclass': '`~sncosmo.SALT2Source`', 'ref': ref}
+_SOURCES.register_loader('salt2-extended', load_salt2model,
+                         args=('models/pierel/salt2',), version='2.0',
                          meta=meta)
 # =============================================================================
 # MagSystems
