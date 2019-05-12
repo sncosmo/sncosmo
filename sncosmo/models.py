@@ -1647,7 +1647,7 @@ class Model(_ModelBase):
                     effects=self._effects,
                     effect_names=self._effect_names,
                     effect_frames=self._effect_frames)
-        new._parameters[0:2] = self._parameters[0:2]
+        new._parameters[0:] = self._parameters[0:]
         return new
 
     def __deepcopy__(self, memo):
