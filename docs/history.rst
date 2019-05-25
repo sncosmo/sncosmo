@@ -8,6 +8,20 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v1.8.0 (2019-05-25)
+===================
+
+- Add version 2.0 of many ``snana-...`` built-in core-collapse models,
+  based on Pierel et al. 2018 (pull request 229).
+
+- Bugfixes:
+
+  - Fix compatibility with scipy 1.3+ by removing outdated import statements
+    (pull request 238).
+
+  - Fix issue affecting optimization of models with free propagation effects
+    (pull request 236).
+
 v1.7.0 (2019-02-02)
 ===================
 
