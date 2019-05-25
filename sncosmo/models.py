@@ -12,8 +12,7 @@ import itertools
 
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
-                               RectBivariateSpline as Spline2d,
-                               splmake, spleval)
+                               RectBivariateSpline as Spline2d)
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
 from astropy.extern import six
