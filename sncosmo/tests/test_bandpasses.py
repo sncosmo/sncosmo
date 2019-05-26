@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 from numpy.testing import assert_allclose
-from astropy.tests.helper import remote_data
+import pytest
 
 import sncosmo
 from sncosmo import Bandpass
@@ -92,7 +92,7 @@ def test_aggregate_bandpass_name():
     assert repr(b).startswith("<AggregateBandpass")
 
 
-@remote_data
+@pytest.mark.might_download
 def test_megacampsf_bandpass():
     """Test megacampsf position-dependent bandpasses against snfit"""
     dirname = os.path.join(os.path.dirname(__file__), "data")

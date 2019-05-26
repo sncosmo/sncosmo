@@ -2,8 +2,6 @@
 
 from collections import OrderedDict
 
-from astropy.extern import six
-
 
 class Registry(object):
     """Connect strings to instances and loaders."""
@@ -75,7 +73,7 @@ class Registry(object):
             except AttributeError:
                 raise ValueError("name not given and instance has no 'name' "
                                  "attribute")
-            if not isinstance(name, six.string_types):
+            if not isinstance(name, str):
                 raise ValueError("name attribute of {0!r:s} is not a string.")
 
         name = name.lower()

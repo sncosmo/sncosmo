@@ -3,19 +3,16 @@
 sncosmo: A Python package for supernova cosmology
 """
 
-from __future__ import absolute_import
-
 import os
 
 from astropy.config import ConfigItem, ConfigNamespace
 from astropy.config.configuration import update_default_config
 
-
-__version__ = "1.8.0"
+__version__ = "2.0.0"
 
 
 def test(package=None, test_path=None, args=None, plugins=None,
-         verbose=False, pastebin=None, remote_data='none', pep8=False,
+         verbose=False, pastebin=None, pep8=False,
          pdb=False, coverage=False, open_files=False, **kwargs):
     """
     Run the tests using py.test. A proper set of arguments is constructed and
@@ -48,11 +45,6 @@ def test(package=None, test_path=None, args=None, plugins=None,
         Convenience option for turning on py.test pastebin output. Set to
         'failed' to upload info for failed tests, or 'all' to upload info
         for all tests.
-
-    remote_data : bool, optional
-        Controls whether to run tests marked with @remote_data. These
-        tests use online data and are not run by default. Set to True to
-        run these tests.
 
     pep8 : bool, optional
         Turn on PEP8 checking via the pytest-pep8 plugin and disable normal
@@ -97,7 +89,7 @@ def test(package=None, test_path=None, args=None, plugins=None,
     return runner.run_tests(
         package=package, test_path=test_path, args=args,
         plugins=plugins, verbose=verbose, pastebin=pastebin,
-        remote_data=remote_data, pep8=pep8, pdb=pdb,
+        pep8=pep8, pdb=pdb,
         coverage=coverage, open_files=open_files, **kwargs)
 
 
@@ -146,10 +138,6 @@ from .simulation import *
 from .plotting import *
 from .photdata import *
 from .registry import *
-
-# deprecated stuff
-from . import registry  # deprecated in v1.2; use previous import.
-from ._deprecated import *
 
 # Register all the built-ins.
 from .builtins import *

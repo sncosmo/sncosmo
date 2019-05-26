@@ -1,5 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from __future__ import division, print_function
 
 import copy
 import time
@@ -9,7 +8,6 @@ import warnings
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from astropy.extern import six
 
 from .photdata import photometric_data, select_data
 from .utils import Result, Interp1D, ppf
@@ -669,19 +667,9 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                      nfit=nfit,
                      data_mask=data_mask)
 
-        depmsg = ("The `cov_names` attribute is deprecated in sncosmo v1.0 "
-                  "and will be removed in v2.0. Use `vparam_names` instead.")
-        res.__dict__['deprecated']['cov_names'] = (vparam_names, depmsg)
-
     else:
         raise ValueError("unknown method {0:r}".format(method))
 
-    if "flatten" in kwargs:
-        warnings.warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
-                      "and will be removed in v2.0. Use the flatten_result() "
-                      "function instead.")
-        if kwargs["flatten"]:
-            res = flatten_result(res)
     return res, model
 
 
@@ -801,12 +789,6 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
     except ImportError:
         raise ImportError("nest_lc() requires the nestle package.")
 
-    # warnings
-    if "nobj" in kwargs:
-        warnings.warn("The nobj keyword is deprecated and will be removed in "
-                      "sncosmo v2.0. Use `npoints` instead.")
-        npoints = kwargs.pop("nobj")
-
     # experimental parameters
     tied = kwargs.get("tied", None)
 
@@ -858,7 +840,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
 
     # Convert bounds/priors combinations into ppfs
     if bounds is not None:
-        for key, val in six.iteritems(bounds):
+        for key, val in bounds.items():
             if key in ppfs:
                 continue  # ppfs take priority over bounds/priors
             a, b = val
@@ -951,17 +933,6 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
                  param_dict=OrderedDict(zip(model.param_names,
                                             model.parameters)),
                  data_mask=data_mask)
-
-    # Deprecated result fields.
-    depmsg = ("The `param_names` attribute is deprecated in sncosmo v1.0 "
-              "and will be removed in sncosmo v2.0."
-              "Use `vparam_names` instead.")
-    res.__dict__['deprecated']['param_names'] = (res.vparam_names, depmsg)
-
-    depmsg = ("The `logprior` attribute is deprecated in sncosmo v1.2 "
-              "and will be changed in sncosmo v2.0."
-              "Use `logvol` instead.")
-    res.__dict__['deprecated']['logprior'] = (res.logvol, depmsg)
 
     return res, model
 

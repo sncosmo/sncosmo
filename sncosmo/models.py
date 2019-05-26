@@ -15,7 +15,6 @@ from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
                                RectBivariateSpline as Spline2d)
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
-from astropy.extern import six
 import extinction
 
 from .io import (read_griddata_ascii, read_griddata_fits,
@@ -419,7 +418,7 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if isinstance(band_or_wave, (six.string_types, Bandpass)):
+        if isinstance(band_or_wave, (str, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
@@ -662,7 +661,7 @@ class SALT2Source(Source):
         if modeldir is not None:
             for k in names_or_objs:
                 v = names_or_objs[k]
-                if (v is not None and isinstance(v, six.string_types)):
+                if (v is not None and isinstance(v, str)):
                     names_or_objs[k] = os.path.join(modeldir, v)
 
         # model components are interpolated to 2nd order
@@ -733,7 +732,9 @@ class SALT2Source(Source):
         # negatives to 0.0001)
         v[v < 0.0] = 0.0001
 
-        result = v * (f0 / ftot)**2 * scale**2
+        # avoid warnings due to evaluating 0. / 0. in f0 / ftot
+        with np.errstate(invalid='ignore'):
+            result = v * (f0 / ftot)**2 * scale**2
 
         # treat cases where ftot is negative the same as snfit
         result[ftot <= 0.0] = 10000.
@@ -828,7 +829,7 @@ class SALT2Source(Source):
         """Read color law file and set the internal colorlaw function."""
 
         # Read file
-        if isinstance(name_or_obj, six.string_types):
+        if isinstance(name_or_obj, str):
             f = open(name_or_obj, 'r')
         else:
             f = name_or_obj
@@ -1515,14 +1516,12 @@ class Model(_ModelBase):
             The return value is an `~numpy.ndarray` if phase is iterable.
         """
 
-        if (((isiterable(band1)) and
-           not (isinstance(band1, six.string_types))) or
-           ((isiterable(band2)) and
-           not (isinstance(band2, six.string_types)))):
+        band1_isiterable = isiterable(band1) and not isinstance(band1, str)
+        band2_isiterable = isiterable(band2) and not isinstance(band2, str)
+        if band1_isiterable or band2_isiterable:
             raise TypeError("Band arguments must be scalars.")
 
-        if ((isiterable(magsys)) and
-           not (isinstance(magsys, six.string_types))):
+        if (isiterable(magsys) and not isinstance(magsys, str)):
             raise TypeError("Magnitude system argument must be scalar.")
 
         return (self.bandmag(band1, magsys, time) -
@@ -1646,7 +1645,7 @@ class Model(_ModelBase):
                     effects=self._effects,
                     effect_names=self._effect_names,
                     effect_frames=self._effect_frames)
-        new._parameters[0:] = self._parameters[0:]
+        new._parameters[:] = self._parameters
         return new
 
     def __deepcopy__(self, memo):

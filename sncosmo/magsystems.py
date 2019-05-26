@@ -9,7 +9,7 @@ import astropy.constants as const
 
 from ._registry import Registry
 from .bandpasses import get_bandpass
-from .utils import integration_grid, warn_once
+from .utils import integration_grid
 from .constants import H_ERG_S, SPECTRUM_BANDFLUX_SPACING
 
 __all__ = ['get_magsystem', 'MagSystem', 'SpectralMagSystem',
@@ -115,45 +115,20 @@ class CompositeMagSystem(MagSystem):
     ...                                   'sdssr': ('ab', 0.02)})
     """
 
-    def __init__(self, bands=None, standards=None, offsets=None,
-                 families=None, name=None):
-        """__init__(bands=None, families=None, name=None)"""
-
+    def __init__(self, bands=None, families=None, name=None):
         super(CompositeMagSystem, self).__init__(name=name)
 
-        # detect use of deprecated API
-        using_deprecated = (bands is not None and
-                            (standards is not None or
-                             offsets is not None))
-
-        # old API
-        if using_deprecated:
-            warn_once("`standards`, `offsets` keyword in CompositeMagSystem",
-                      '1.5', '2.0',
-                      "Use new constructor API (see documentation).")
-
-            if not len(bands) == len(offsets) == len(standards):
-                raise ValueError('Lengths of bands, standards, and offsets '
-                                 'must match.')
-
-            self._bands = {
-                get_bandpass(band): (get_magsystem(magsys), offset)
-                for band, magsys, offset in zip(bands, standards, offsets)}
-
-        # new API includes "families"
+        if bands is not None:
+            self._bands = {get_bandpass(band): (get_magsystem(magsys), offset)
+                           for band, (magsys, offset) in bands.items()}
         else:
-            if bands is not None:
-                self._bands = {
-                    get_bandpass(band): (get_magsystem(magsys), offset)
-                    for band, (magsys, offset) in bands.items()}
-            else:
-                self._bands = {}
+            self._bands = {}
 
-            if families is not None:
-                self._families = {f: (get_magsystem(magsys), offset)
-                                  for f, (magsys, offset) in families.items()}
-            else:
-                self._families = {}
+        if families is not None:
+            self._families = {f: (get_magsystem(magsys), offset)
+                              for f, (magsys, offset) in families.items()}
+        else:
+            self._families = {}
 
     @property
     def bands(self):

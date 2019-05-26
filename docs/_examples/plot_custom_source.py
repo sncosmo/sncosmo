@@ -23,8 +23,6 @@ combination of two spectral time series, with a parameter ``w`` that
 determines the relative weight of the models.
 """
 
-from __future__ import print_function
-
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 import sncosmo

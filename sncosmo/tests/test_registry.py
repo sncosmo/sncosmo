@@ -14,11 +14,6 @@ def test_register():
     sncosmo.register(band)
     assert sncosmo.get_bandpass('tophatg') is band
 
-    # test deprecated path to registry
-    band = sncosmo.Bandpass(disp, trans, name='tophatg2')
-    sncosmo.registry.register(band)
-    assert sncosmo.get_bandpass('tophatg2') is band
-
 
 def test_retrieve_cases():
     for name in ['ab', 'Ab', 'AB']:  # Should work regardless of case.

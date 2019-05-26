@@ -8,6 +8,17 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.0.0 (?)
+==========
+
+This version is the same as v1.8.0, with the exception that Python 2 support
+has been removed, and deprecated functions and attributes have been removed.
+These were deprecated in v1.5.0 (released April 2017) or before.
+
+On Python 2, pip should automatically install sncosmo v1.8.0 still. If not,
+specify ``sncosmo<2.0.0``.
+
+
 v1.8.0 (2019-05-25)
 ===================
 

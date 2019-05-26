@@ -1,4 +1,5 @@
-#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True, auto_pickle=False
+# cython: boundscheck=False, wraparound=False, initializedcheck=False
+# cython: cdivision=True, auto_pickle=False, language_level=3
 # (need auto_pickle=False because we've implemented explicit pickle support via getnewargs() below)
 """
 mimic Grid2DFunction function in salt2 software snfit because it doesn't
@@ -188,7 +189,7 @@ cdef class BicubicInterpolator(object):
             int *iyvec
             int *yflagvec
             int xflag
-            double wx[4]
+            double *wx = [0., 0., 0., 0.]
 
         # allocate result
         result = np.empty((nxc, nyc), dtype=np.float64)

@@ -6,7 +6,6 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy import units as u
 from astropy.utils.data import get_pkg_data_filename
-from astropy.tests.helper import remote_data
 import pytest
 
 import sncosmo
@@ -38,7 +37,7 @@ def test_spectralmagsystem():
                     magsys2.zpbandflux('bessellb'))
 
 
-@remote_data
+@pytest.mark.might_download
 def test_csp_magsystem():
     csp = sncosmo.get_magsystem('csp')
 
@@ -67,7 +66,7 @@ def test_csp_magsystem():
         assert abs(2.5 * math.log10(csp.zpbandflux(band)) - zp) < 0.015
 
 
-@remote_data
+@pytest.mark.might_download
 def test_compositemagsystem_band_error():
     """Test that CompositeMagSystem raises an error when band is
     not in system."""

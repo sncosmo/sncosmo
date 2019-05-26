@@ -6,7 +6,7 @@ import os
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_approx_equal
-from astropy.tests.helper import remote_data
+import pytest
 
 import sncosmo
 
@@ -44,7 +44,7 @@ def read_header(f):
     return meta
 
 
-@remote_data
+@pytest.mark.might_download
 def test_salt2source_timeseries_vs_snfit():
     """Test timeseries output from SALT2Source vs pregenerated timeseries
     from snfit (SALT2 software)."""
@@ -80,7 +80,7 @@ def test_salt2source_timeseries_vs_snfit():
         assert_allclose(flux, fluxref, rtol=1e-13)
 
 
-@remote_data
+@pytest.mark.might_download
 def test_salt2source_rcov_vs_snfit():
     dirname = os.path.join(os.path.dirname(__file__), "data")
 

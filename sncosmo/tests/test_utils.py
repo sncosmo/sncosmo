@@ -19,9 +19,14 @@ def test_result():
     # test deprecating result attributes
     res.__dict__['deprecated']['c'] = (2, "Use b instead")
 
-    # can't test warnings currently because bundled version of pytest in
-    # astropy is too old to support pytest.warns (need 2.8)
-    assert res.c == 2
+    # for some reason, pytest 3.8 seems to not have warns
+    if hasattr(pytest, 'warns'):
+        with pytest.warns(UserWarning):
+            val = res.c
+    else:
+        val = res.c
+
+    assert val == 2
 
 
 def test_format_value():
@@ -45,7 +50,7 @@ def test_ppf():
 
     # test a normal distribution
     priordist = norm(0., 1.)
-    x = np.linspace(0.05, 0.95, 5.)
+    x = np.linspace(0.05, 0.95, 5)
     y = utils.ppf(priordist.pdf, x, -np.inf, np.inf)
     assert_allclose(y, priordist.ppf(x), atol=1.e-10)
 

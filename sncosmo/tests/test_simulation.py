@@ -1,5 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
-from __future__ import print_function
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal

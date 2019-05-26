@@ -23,9 +23,6 @@ def register_loader(data_class, name, func, args=None,
                     version=None, meta=None, force=False):
     """Register a data reading function.
 
-    .. note:: Formerly accessed as ``sncosmo.registry.register_loader`` prior
-              to v1.2.
-
     Parameters
     ----------
     data_class : classobj
@@ -52,9 +49,6 @@ def register_loader(data_class, name, func, args=None,
 
 def register(instance, name=None, data_class=None, force=False):
     """Register a class instance.
-
-    .. note:: Formerly accessed as ``sncosmo.registry.register`` prior
-              to v1.2.
 
     Parameters
     ----------

@@ -27,6 +27,8 @@
 
 import sys
 import os
+import datetime
+
 import sphinx_rtd_theme
 import sphinx_gallery
 import matplotlib.sphinxext.plot_directive
@@ -92,9 +94,10 @@ master_doc = 'index'
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = u'sncosmo'
-author = u'Kyle Barbary and contributors'
-copyright = u'2013-2019, ' + author
+project = 'sncosmo'
+author = 'Kyle Barbary and contributors'
+current_year = datetime.datetime.now().year
+copyright = '2013-{:d}, {}'.format(current_year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

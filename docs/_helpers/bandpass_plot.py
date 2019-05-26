@@ -1,5 +1,4 @@
 """Helper function to plot a set of bandpasses in sphinx docs."""
-from __future__ import division
 
 import numpy as np
 from matplotlib import rc
