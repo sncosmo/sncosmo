@@ -1,6 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Convenience functions for photometric data."""
-from __future__ import division
 
 from collections import OrderedDict
 import copy
@@ -12,9 +11,6 @@ from astropy.table import Table
 from .utils import alias_map
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
-
-# deprecated (private!) functions: make them available where they used to be
-from ._deprecated import standardize_data, normalize_data
 
 __all__ = ['select_data']
 

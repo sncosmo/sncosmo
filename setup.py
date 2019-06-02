@@ -9,11 +9,10 @@ import sys
 
 from setuptools import setup
 from setuptools.extension import Extension
-from setuptools.command.test import test as TestCommand
 
 
 # Need a recursive glob to find all package data files if there are
-# subdirectories. Doesn't exist on Python 2, so write our own:
+# subdirectories. Doesn't exist on Python 3.4, so write our own:
 def recursive_glob(basedir, pattern):
     matches = []
     for root, dirnames, filenames in os.walk(basedir):
@@ -22,57 +21,22 @@ def recursive_glob(basedir, pattern):
     return matches
 
 
-# class to hook up `setup.py test` to `sncosmo.test(...)`
-class SNCosmoTest(TestCommand):
-    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest"),
-                    ('remote-data=', None,
-                     "Run tests marked with @remote_data. These tests use "
-                     "online data and are not run by default."),
-                    ('coverage', None,
-                     "Generate a test coverage report. The result will be "
-                     "placed in the directory htmlcov.")]
-
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.pytest_args = None
-        self.remote_data = 'none'
-        self.coverage = False
-
-    def run_tests(self):
-        import shlex
-        import sncosmo
-        errno = sncosmo.test(args=self.pytest_args,
-                             remote_data=self.remote_data,
-                             coverage=self.coverage)
-        sys.exit(errno)
-
-
 # Synchronize version from code.
 VERSION = re.findall(r"__version__ = \"(.*?)\"",
                      open(os.path.join("sncosmo", "__init__.py")).read())[0]
 
-
-# Detect whether to use Cython based on the presence of PKG-INFO.
-# If this file exists, it indicates that we're in a source
-# distribution build, in which case the C files should already be
-# included and Cython should not be required. As a fallback, if the C
-# files are not included, Cython will be used to generate them regardless.
-USE_CYTHON = (not os.path.exists('PKG-INFO') or
-              not os.path.exists(os.path.join("sncosmo", "salt2utils.c")))
 
 # extension module(s): only add if setup.py argument is not egg_info, because
 # we need to import numpy, and we'd rather egg_info work when dependencies
 # are not installed.
 if sys.argv[1] != 'egg_info':
     import numpy
-    ext = '.pyx' if USE_CYTHON else '.c'
-    source_files = [os.path.join("sncosmo", "salt2utils" + ext)]
+    from Cython.Build import cythonize
+    source_files = [os.path.join("sncosmo", "salt2utils.pyx")]
     include_dirs = [numpy.get_include()]
     extensions = [Extension("sncosmo.salt2utils", source_files,
                             include_dirs=include_dirs)]
-    if USE_CYTHON:
-        from Cython.Build import cythonize
-        extensions = cythonize(extensions)
+    extensions = cythonize(extensions)
 else:
     extensions = None
 
@@ -97,6 +61,7 @@ data_files = [f[len(PACKAGENAME)+1:] for f in data_files]
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
+      python_requires='>=3.4',
       install_requires=['numpy>=1.7.0',
                         'scipy>=0.9.0',
                         'extinction>=0.2.2',
@@ -112,11 +77,10 @@ setup(name=PACKAGENAME,
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: BSD License',
           'Operating System :: OS Independent',
-          'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 3',
           'Topic :: Scientific/Engineering :: Astronomy',
           'Topic :: Scientific/Engineering :: Physics'],
-      cmdclass={'test': SNCosmoTest},
+
       zip_safe=False,
       use_2to3=False,
       ext_modules=extensions,

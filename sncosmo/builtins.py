@@ -18,7 +18,6 @@ import numpy as np
 from astropy import wcs, units as u
 from astropy.io import ascii, fits
 from astropy.config import ConfigItem, get_cache_dir
-from astropy.extern import six
 from astropy.utils.data import get_pkg_data_filename
 
 from . import io

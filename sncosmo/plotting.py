@@ -1,12 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions to plot light curve data and models."""
-from __future__ import division
 
 import math
 
 import numpy as np
-from astropy.extern import six
-from astropy.extern.six.moves import range
 
 from .models import Model
 from .bandpasses import get_bandpass
@@ -194,7 +191,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     # Get the model labels
     if model_label is None:
         model_labels = [None] * len(models)
-    elif isinstance(model_label, six.string_types):
+    elif isinstance(model_label, str):
         model_labels = [model_label]
     else:
         model_labels = model_label
@@ -244,7 +241,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
         errors = {}
     if figtext is None:
         figtext = []
-    elif isinstance(figtext, six.string_types):
+    elif isinstance(figtext, str):
         figtext = [figtext]
     if len(models) == 1 and show_model_params:
         model = models[0]

@@ -1,9 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions for supernova light curve I/O"""
 
-from __future__ import print_function
-
-from warnings import warn
 import math
 import os
 import sys
@@ -15,7 +12,6 @@ import numpy as np
 from astropy.table import Table
 from astropy.io import fits
 from astropy import wcs
-from astropy.extern import six
 
 from .utils import dict_to_array
 from .bandpasses import get_bandpass
@@ -63,7 +59,7 @@ def read_griddata_ascii(name_or_obj):
         2-d array of shape (len(x0), len(x1)).
     """
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f = open(name_or_obj, 'r')
     else:
         f = name_or_obj
@@ -199,7 +195,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
         Filename to write to or open file.
     """
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f = open(name_or_obj, 'w')
     else:
         f = name_or_obj
@@ -208,7 +204,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
         for i in range(len(x1)):
             f.write("{0:.7g} {1:.7g} {2:.7g}\n".format(x0[j], x1[i], y[j, i]))
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f.close()
 
 
@@ -319,7 +315,7 @@ def _read_salt2(name_or_obj, read_covmat=False, expand_bands=False):
     There is optionally a line containing '#end' before the start of data.
     """
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f = open(name_or_obj, 'r')
     else:
         f = name_or_obj
@@ -373,7 +369,7 @@ def _read_salt2(name_or_obj, read_covmat=False, expand_bands=False):
         for col, item in zip(cols, items):
             col.append(_cast_str(item))
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f.close()
 
     # read covariance matrix file, if requested and present
@@ -450,8 +446,7 @@ def _read_salt2_old(dirname, filenames=None):
         # Add the instrument/band to the file data, in anticipation of
         # aggregating it with other files.
 
-        # PY3: next(iter(filedata.vlues()))
-        firstcol = six.next(six.itervalues(filedata))
+        firstcol = next(iter(filedata.values()))
         data_length = len(firstcol)
         filter_name = '{0}::{1}'.format(filemeta.pop('INSTRUMENT'),
                                         filemeta.pop('BAND'))
@@ -554,7 +549,7 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
     Read an ascii format file that includes metadata (``StringIO``
     behaves like a file object):
 
-    >>> from astropy.extern.six import StringIO
+    >>> from io import StringIO
     >>> f = StringIO('''
     ... @id 1
     ... @RA 36.0
@@ -582,7 +577,7 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
 
     if format == 'salt2-old':
         meta, data = readfunc(file_or_dir, **kwargs)
-    elif isinstance(file_or_dir, six.string_types):
+    elif isinstance(file_or_dir, str):
         with open(file_or_dir, 'r') as f:
             meta, data = readfunc(f, **kwargs)
     else:
@@ -603,7 +598,7 @@ def _write_ascii(f, data, meta, **kwargs):
     metachar = kwargs.get('metachar', '@')
 
     if meta is not None:
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             f.write('{0}{1}{2}{3}\n'.format(metachar, key, delim, str(val)))
 
     keys = data.dtype.names
@@ -642,7 +637,7 @@ def _write_salt2(f, data, meta, **kwargs):
     pedantic = kwargs.get('pedantic', True)
 
     if meta is not None:
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SALT2KEY_META.get(key, key)
@@ -699,7 +694,7 @@ def _write_snana(f, data, meta, **kwargs):
     # Write metadata
     keys_as_written = []
     if meta is not None:
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SNANAKEY_META.get(key, key)

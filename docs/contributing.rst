@@ -170,36 +170,28 @@ Yes, this could be more automated, but it isn't done very often,
 and involves some human verification.
 
 - Update ``docs/history.rst`` with a summary of the new version's changes.
-- Bump version in ``setup.py``.
-- Check copyright year in ``docs/conf.py``.
+- Bump version in ``sncosmo/__init__.py``.
 - Build package and docs and check that docs look good.
 - Commit.
 - ``git clean -dfx``
-- ``setup.py sdist``
-- Check that the tarball in ``dist/`` can be unpacked and
-  that ``setup.py test`` succeeds. Bonus: create a fresh conda
-  environment (or virtual environment) with minimal requirements and
-  install and test in that.
-- ``setup.py register``
-- ``setup.py sdist upload``
+- ``tox`` (test in clean virtual env and make sure everything passes.
+- ``setup.py sdist upload`` (register new version and upload.)
 
 **Post-release steps:**
 
 - If not a bugfix release, create a feature branch. For example,
   ``git branch v1.1.x``.
 - Tag the release. For example, ``git tag v1.1.0``.
-- On master, bump version in ``setup.py`` to the next development
-  version and add the next development version to
-  ``docs/whatsnew.rst``.
+- On master, bump version in ``sncosmo/__init__.py`` to the next development
+  version.
 - Commit.
 - Push repo changes to GitHub. For example:
   ``git push upstream master v1.1.x v1.1.0``.
 
 **Docs and conda**
 
-- On readthedocs.org, set the new feature branch to "active".
-- To trigger new conda build, edit version number in requirements.txt
-  in https://github.com/astropy/conda-builder-affiliated and submit
-  a pull request.
-- Once conda build succeeds, make the new feature branch the default
-  on readthedocs.org.
+- A conda build should start (with some delay) via a bot pull request
+  at https://github.com/conda-forge/sncosmo-feedstock. Merge the PR
+  once it passes all tests.
+- On readthedocs.org, set the new feature branch to "active"
+  and make it the default.

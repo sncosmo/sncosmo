@@ -14,8 +14,6 @@ wish to experiment with a custom fitting or sampling method.
 Here, we give a minimal example of using the L-BFGS-B minimizer from scipy.
 """
 
-from __future__ import print_function
-
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
 import sncosmo

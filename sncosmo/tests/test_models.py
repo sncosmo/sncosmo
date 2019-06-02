@@ -58,7 +58,8 @@ class TestTimeSeriesSource:
 
         # Correct answer
         b = sncosmo.get_bandpass("bessellb")
-        ans = np.sum(b.trans * b.wave * b.dwave) / sncosmo.models.HC_ERG_AA
+        dwave = np.gradient(b.wave)
+        ans = np.sum(b.trans * b.wave * dwave) / sncosmo.models.HC_ERG_AA
         assert_approx_equal(ans, f)
 
     def test_bandflux_shapes(self):

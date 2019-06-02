@@ -1,5 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
-from __future__ import print_function
 
 from os.path import dirname, join
 
@@ -8,7 +7,6 @@ import numpy as np
 from numpy.random import RandomState
 from numpy.testing import assert_allclose, assert_almost_equal
 from astropy.table import Table
-from astropy.tests.helper import remote_data
 
 import sncosmo
 
@@ -103,7 +101,7 @@ class TestFitting:
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
 
 
-@remote_data
+@pytest.mark.might_download
 @pytest.mark.skipif('not HAS_IMINUIT')
 def test_fit_lc_vs_snfit():
     """Test fit_lc versus snfit result for one SN."""

@@ -6,7 +6,7 @@ environment:
   global:
       PYTHON: "C:\\conda"
       MINICONDA_VERSION: "latest"
-      CONDA_DEPENDENCIES: "scipy cython"
+      CONDA_DEPENDENCIES: "scipy cython pytest"
       PIP_DEPENDENCIES: "extinction"
       CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\.continuous-integration\\appveyor\\windows_sdk.cmd"
       PYTHON_ARCH: "64" # needs to be set for CMD_IN_ENV to succeed. If a mix
@@ -14,10 +14,6 @@ environment:
                         # to the matrix section.
 
   matrix:
-      - PYTHON_VERSION: "2.7"
-        NUMPY_VERSION: "stable"
-        ASTROPY_VERSION: "stable"
-
       - PYTHON_VERSION: "3.5"
         NUMPY_VERSION: "1.12"
         ASTROPY_VERSION: "lts"
@@ -44,9 +40,12 @@ install:
     - "conda --version"
     - "python --version"
 
+    # install
+    - "python setup.py build_ext --inplace"
+
 # Not a .NET project, we build ci-helpers in the install step instead
 build: false
 
 test_script:
-  - "%CMD_IN_ENV% python setup.py test"
+  - "%CMD_IN_ENV% pytest sncosmo"
 

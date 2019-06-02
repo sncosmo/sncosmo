@@ -2,7 +2,7 @@
 Installation
 ************
 
-SNCosmo works on Python 2.7 and Python 3.4+ and requires the
+SNCosmo works on Python 3.4+ and depends on the
 following Python packages:
 
 - `numpy <http://www.numpy.org/>`_
@@ -14,21 +14,18 @@ following Python packages:
 Install using conda (recommended)
 =================================
 
-If you are using Anaconda or the conda package manager, you can install SNCosmo from the `astropy channel <https://anaconda.org/astropy/>`_::
+If you are using Anaconda or the conda package manager, you can install SNCosmo
+from the conda-forge channel::
 
-    conda install -c astropy sncosmo
-
-The release of the conda version may lag behind the pip release, so
-you may want to check the available conda version. You can do this
-at the link above, or by running ``conda search -c astropy sncosmo``.
+    conda install -c conda-forge sncosmo
 
 
 Install using pip
 =================
 
-Using pip::
+First ensure that numpy and cython are installed. Then::
 
-    pip install --no-deps extinction sncosmo
+    pip install sncosmo
 
 .. note::
 
@@ -88,8 +85,6 @@ functionality in SNCosmo.
   estimation in `sncosmo.mcmc_lc`.
 - `nestle <http://kbarbary.github.io/nestle/>`_ for nested sampling
   light curve parameter estimation in `sncosmo.nest_lc`.
-
-iminuit, emcee and nestle can be installed using pip.
 
 The `corner <https://github.com/dfm/corner.py>`_ package is also
 recommended for plotting results from the samplers `sncosmo.mcmc_lc`
