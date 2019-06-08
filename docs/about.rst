@@ -25,9 +25,9 @@ Package Features
 The name SNCosmo
 ================
 
-A natural choice, "snpy", was already taken (`SNooPy`_) so I tried to
-be a little more descriptive. The package is really specific to
-supernova *cosmology*, as it doesn't cover other types of supernova
+A natural choice, "snpy", was already in use by the "SNooPy" package,
+so I tried to be a little more descriptive. The package is really specific
+to supernova *cosmology*, as it doesn't cover other types of supernova
 science (radiative transfer simulations for instance).  Hence
 "sncosmo".
 

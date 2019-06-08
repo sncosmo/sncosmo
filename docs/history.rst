@@ -8,8 +8,8 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
-v2.0.0 (?)
-==========
+v2.0.0 (2019-06-08)
+===================
 
 This version is the same as v1.8, with the exception that Python 2 support
 has been removed, and deprecated functions and attributes have been removed.
@@ -22,8 +22,13 @@ Minor changes:
 
 - The ``salt2-h17`` source model has been renamed to ``salt2-extended-h17``
   to make clearer its relation to ``salt2-extended``. It is still available
-  under the old name.
+  under the old name for backwards compatibility.
 
+v1.8.2 (2019-06-08)
+===================
+
+- Fix bug in download location of ``snana-*`` models latest versions,
+  introduced in v1.8.0.
 
 v1.8.1 (2019-06-08)
 ===================

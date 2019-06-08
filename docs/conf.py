@@ -45,7 +45,7 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'emcee': ('http://dan.iel.fm/emcee/current/', None)
+    'emcee': ('https://emcee.readthedocs.io/en/stable/', None)
     }
 
 # Add any Sphinx extension module names here, as strings. They can be
