@@ -11,13 +11,25 @@ example, due to changes in integration method.)
 v2.0.0 (?)
 ==========
 
-This version is the same as v1.8.0, with the exception that Python 2 support
+This version is the same as v1.8, with the exception that Python 2 support
 has been removed, and deprecated functions and attributes have been removed.
 These were deprecated in v1.5.0 (released April 2017) or before.
 
-On Python 2, pip should automatically install sncosmo v1.8.0 still. If not,
+On Python 2, pip should automatically install sncosmo v1.8 still. If not,
 specify ``sncosmo<2.0.0``.
 
+Minor changes:
+
+- The ``salt2-h17`` source model has been renamed to ``salt2-extended-h17``
+  to make clearer its relation to ``salt2-extended``. It is still available
+  under the old name.
+
+
+v1.8.1 (2019-06-08)
+===================
+
+- Fix bug in download location of ``salt2-extended`` model latest version,
+  introduced in v1.8.0.
 
 v1.8.0 (2019-05-25)
 ===================
