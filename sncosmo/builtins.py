@@ -779,7 +779,7 @@ p18Models_CC = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
 ref = ('SNSEDExtend', 'Pierel et al. 2018'
        '<https://arxiv.org/abs/1808.02534>')
 for name, sntype, fn in p18Models_CC:
-    relpath = os.path.join('models', 'pierel', 'cc_models', fn)
+    relpath = os.path.join('models', 'pierel', fn)
     meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype,
             'ref': ref}
     _SOURCES.register_loader(name, load_timeseries_ascii,

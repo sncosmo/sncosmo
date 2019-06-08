@@ -8,6 +8,12 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v1.8.2 (2019-06-08)
+===================
+
+- Fix bug in download location of ``snana-*`` models latest versions,
+  introduced in v1.8.0.
+
 v1.8.1 (2019-06-08)
 ===================
 
