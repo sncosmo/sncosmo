@@ -618,7 +618,6 @@ _SOURCES.alias('salt2-h17', 'salt2-extended-h17', new_version='1.0',
                existing_version='1.0')
 
 
-
 # 2011fe
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.TimeSeriesSource`',
