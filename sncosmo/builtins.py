@@ -788,7 +788,7 @@ for name, sntype, fn in p18Models_CC:
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT2Source`', 'ref': ref}
 _SOURCES.register_loader('salt2-extended', load_salt2model,
-                         args=('models/pierel/salt2',), version='2.0',
+                         args=('models/pierel/salt2-extended',), version='2.0',
                          meta=meta)
 # =============================================================================
 # MagSystems
