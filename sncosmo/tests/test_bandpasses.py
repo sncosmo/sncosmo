@@ -112,3 +112,9 @@ def test_megacampsf_bandpass():
             for i in range(len(trans)):
                 print(trans_ref[i], trans[i])
             assert_allclose(trans, trans_ref, rtol=1e-5)
+
+
+@remote_data
+def test_ztf_bandpass():
+    bp = sncosmo.get_bandpass('ztfg')
+
