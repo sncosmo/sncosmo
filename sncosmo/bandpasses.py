@@ -9,7 +9,7 @@ from astropy.io import ascii
 import astropy.units as u
 
 from ._registry import Registry
-from .utils import warn_once, integration_grid
+from .utils import integration_grid
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass', 'AggregateBandpass',
@@ -241,47 +241,12 @@ class Bandpass(object):
         return self.wave[-1]
 
     @lazyproperty
-    def dwave(self):
-        warn_once("Bandpass.dwave", "1.4", "2.0",
-                  "Use numpy.gradient(wave) with your own wavelength array.")
-        return np.gradient(self.wave)
-
-    @lazyproperty
     def wave_eff(self):
         """Effective wavelength of bandpass in Angstroms."""
         wave, _ = integration_grid(self.minwave(), self.maxwave(),
                                    SPECTRUM_BANDFLUX_SPACING)
         weights = self(wave)
         return np.sum(wave * weights) / np.sum(weights)
-
-    def to_unit(self, unit):
-        """Return wavelength and transmission in new wavelength units.
-
-        If the requested units are the same as the current units, self is
-        returned.
-
-        Parameters
-        ----------
-        unit : `~astropy.units.Unit` or str
-            Target wavelength unit.
-
-        Returns
-        -------
-        wave : `~numpy.ndarray`
-        trans : `~numpy.ndarray`
-        """
-
-        warn_once("Bandpass.to_unit", "1.5", "2.0")
-
-        if unit is u.AA:
-            return self.wave, self.trans
-
-        d = u.AA.to(unit, self.wave, u.spectral())
-        t = self.trans
-        if d[0] > d[-1]:
-            d = np.flipud(d)
-            t = np.flipud(t)
-        return d, t
 
     def __call__(self, wave):
         return splev(wave, self._tck, ext=1)

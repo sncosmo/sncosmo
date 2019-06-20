@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 from collections import OrderedDict
 import os
 import sys
@@ -10,7 +8,6 @@ import codecs
 
 import numpy as np
 from scipy import integrate, optimize
-from astropy.extern import six
 
 
 def dict_to_array(d):
@@ -25,7 +22,7 @@ def dict_to_array(d):
 
     # Determine dtype of output array.
     dtype = [(key, arr.dtype)
-             for key, arr in six.iteritems(new_d)]
+             for key, arr in new_d.items()]
 
     # Initialize ndarray and then fill it.
     col_len = max([len(v) for v in new_d.values()])
@@ -39,11 +36,11 @@ def dict_to_array(d):
 def format_value(value, error=None, latex=False):
     """Return a string representing value and uncertainty.
 
-    If latex=True, use '\pm' and '\times'.
+    If latex=True, use '\\pm' and '\\times'.
     """
 
     if latex:
-        pm = '\pm'
+        pm = '\\pm'
         suffix_templ = ' \\times 10^{{{0:d}}}'
     else:
         pm = '+/-'
@@ -89,9 +86,6 @@ class Result(dict):
 
     Notes
     -----
-    This is a cut and paste from scipy, normally imported with `from
-    scipy.optimize import Result`. However, it isn't available in
-    scipy 0.9 (or possibly 0.10), so it is included here.
     Since this class is essentially a subclass of dict with attribute
     accessors, one can see which attributes are available using the
     `keys()` method.
@@ -112,7 +106,7 @@ class Result(dict):
     def __getitem__(self, name):
         try:
             return dict.__getitem__(self, name)
-        except:
+        except KeyError:
             val, msg = self.__dict__['deprecated'][name]
             warnings.warn(msg)
             return val
@@ -219,8 +213,8 @@ def _download_file(remote_url, target):
     """
 
     from contextlib import closing
-    from astropy.extern.six.moves.urllib.request import urlopen, Request
-    from astropy.extern.six.moves.urllib.error import URLError, HTTPError
+    from urllib.request import urlopen, Request
+    from urllib.error import URLError, HTTPError
     from astropy.utils.console import ProgressBarOrSpinner
     from . import conf
 
@@ -292,11 +286,11 @@ def download_file(remote_url, local_name):
 
     Raises
     ------
-    URLError (from urllib2 on PY2, urllib.request on PY3)
+    URLError
         Whenever there's a problem getting the remote file.
     """
 
-    from astropy.extern.six.moves.urllib.error import HTTPError, URLError
+    from urllib.error import HTTPError, URLError
 
     # ensure target directory exists
     dn = os.path.dirname(local_name)
@@ -320,7 +314,7 @@ def download_file(remote_url, local_name):
         try:
             with open(local_name, 'wb') as target:
                 _download_file(remote_url, target)
-        except:
+        except:  # noqa
             # in case of error downloading, remove file.
             if os.path.exists(local_name):
                 os.remove(local_name)
@@ -416,7 +410,7 @@ class DataMirror(object):
             # If the supplied value is a string, use it. Otherwise
             # assume it is a callable that returns a string)
             rootdir = (self._rootdir
-                       if isinstance(self._rootdir, six.string_types)
+                       if isinstance(self._rootdir, str)
                        else self._rootdir())
 
             # Check existance
@@ -430,7 +424,7 @@ class DataMirror(object):
         return self._checked_rootdir
 
     def _fetch_redirects(self):
-        from astropy.extern.six.moves.urllib.request import urlopen
+        from urllib.request import urlopen
         import json
 
         f = urlopen(self._remote_root + "redirects.json")

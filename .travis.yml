@@ -21,19 +21,22 @@ addons:
             - dvipng
             - g++
 
+
 env:
     global:
         # Set defaults to avoid repeating in most cases.
-        - NUMPY_VERSION=1.12
-        - ASTROPY_VERSION=1.3
-        - SCIPY_VERSION=0.19
+        - NUMPY_VERSION=1.15
+        - ASTROPY_VERSION=3.0
+        - SCIPY_VERSION=1.1
         - OPTIONAL_DEPS=true
-        - MAIN_CMD='python setup.py'
+        - SETUP_CMD='build_ext --inplace'
+        - MAIN_CMD='pytest sncosmo --no-downloads'
+        - MPLBACKEND="agg"
 
     matrix:
-        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.4 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.6 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info' MAIN_CMD=''
+        - PYTHON_VERSION=3.6 SETUP_CMD='egg_info' MAIN_CMD=''
+        - PYTHON_VERSION=3.7 SETUP_CMD='egg_info' MAIN_CMD=''
 
 matrix:
 
@@ -42,46 +45,42 @@ matrix:
 
     include:
 
-        # Try Mac OS X
         - os: osx
-          env: PYTHON_VERSION=2.7 SETUP_CMD='test'
-        - os: osx
-          env: PYTHON_VERSION=3.6 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.6
 
-        # Try all python versions
+        # Try different python versions
         - os: linux
-          env: PYTHON_VERSION=2.7 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.5
         - os: linux
-          env: PYTHON_VERSION=3.6 SETUP_CMD='test --remote-data --coverage'
+          env: PYTHON_VERSION=3.7
 
         # Try astropy 1.0 version and some older dependencies
         - os: linux
-          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.10 SCIPY_VERSION=0.17 ASTROPY_VERSION=1.0 SETUP_CMD='test'
-        - os: linux
-          env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.10 SCIPY_VERSION=0.17 ASTROPY_VERSION=1.0 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.10 SCIPY_VERSION=0.17 ASTROPY_VERSION=1.0
 
         # Try disabling optional dependencies
         - os: linux
-          env: PYTHON_VERSION=2.7 OPTIONAL_DEPS=false SETUP_CMD='test'
-        - os: linux
-          env: PYTHON_VERSION=3.6 OPTIONAL_DEPS=false SETUP_CMD='test'
+          env: PYTHON_VERSION=3.6 OPTIONAL_DEPS=false
 
-        # Try older numpy versions & astropy versions
-        # (conda only has builds for np18 and later for astropy 1.0) 
+        # Do a pycodestyle test
         - os: linux
-          env: PYTHON_VERSION=2.7 NUMPY_VERSION=1.8 SCIPY_VERSION=0.12 ASTROPY_VERSION=0.4 SETUP_CMD='test'
+          env: PYTHON_VERSION=3.6 SETUP_CMD='egg_info' MAIN_CMD='./checkstyle'
 
-        # Do a PEP8 test
+        # coverage test
         - os: linux
-          env: PYTHON_VERSION=3.6 MAIN_CMD='pep8 sncosmo --count --exclude=__init__.py' SETUP_CMD=''
+          env: PYTHON_VERSION=3.6 MAIN_CMD='pytest sncosmo --cov=sncosmo'
+
+        # Try a doc build
+        - os: linux
+          env: PYTHON_VERSION=3.6 SETUP_CMD='install' MAIN_CMD='cd docs && make html'
 
 install:
     - source .continuous-integration/travis/setup_environment_$TRAVIS_OS_NAME.sh
-
+    - python setup.py $SETUP_CMD
 script:
-    - $MAIN_CMD $SETUP_CMD
+    - eval $MAIN_CMD
 
 after_success:
-    - if [[ $SETUP_CMD == *"--coverage"* ]]; then
+    - if [[ $MAIN_CMD == *"--cov"* ]]; then
         coveralls --rcfile='sncosmo/tests/coveragerc';
       fi

@@ -4,7 +4,6 @@ import numpy as np
 
 from astropy.io import fits
 from astropy.table import Table, vstack
-from astropy.extern import six
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
@@ -152,7 +151,7 @@ def read_snana_ascii(fname, default_tablename=None):
     Examples
     --------
 
-    >>> from astropy.extern.six import StringIO  # StringIO behaves like a file
+    >>> from io import StringIO  # StringIO behaves like a file
     >>> f = StringIO('META1: a\\n'
     ...              'META2: 6\\n'
     ...              'NVAR_SN: 3\\n'
@@ -192,8 +191,8 @@ def read_snana_ascii(fname, default_tablename=None):
     meta = odict()  # initialize structure to hold metadata.
     tables = {}  # initialize structure to hold data.
 
-    if isinstance(fname, six.string_types):
-        fh = open(fname, 'U')
+    if isinstance(fname, str):
+        fh = open(fname, 'r')
     else:
         fh = fname
     words = fh.read().split()
@@ -268,7 +267,7 @@ def read_snana_ascii(fname, default_tablename=None):
     # All values in each column are currently strings. Convert to int or
     # float if possible.
     for table in tables.values():
-        for colname, values in six.iteritems(table):
+        for colname, values in table.items():
             try:
                 table[colname] = [int(val) for val in values]
             except ValueError:
@@ -309,7 +308,7 @@ def read_snana_ascii_multi(fnames, default_tablename=None):
         meta, tables = read_snana_ascii(fname,
                                         default_tablename=default_tablename)
 
-        for key, table in six.iteritems(tables):
+        for key, table in tables.items():
             if key in alltables:
                 alltables[key].append(table)
             else:

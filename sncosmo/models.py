@@ -12,14 +12,13 @@ import itertools
 
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
-                               RectBivariateSpline as Spline2d,
-                               splmake, spleval)
+                               RectBivariateSpline as Spline2d)
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
-from astropy.extern import six
 import extinction
 
-from .io import read_griddata_ascii, read_griddata_fits
+from .io import (read_griddata_ascii, read_griddata_fits,
+                 read_multivector_griddata_ascii)
 from ._registry import Registry
 from .bandpasses import get_bandpass, Bandpass
 from .magsystems import get_magsystem
@@ -28,7 +27,7 @@ from .utils import integration_grid
 from .constants import HC_ERG_AA, MODEL_BANDFLUX_SPACING
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SALT2Source', 'MLCS2k2Source', 'Model',
+           'SALT2Source', 'MLCS2k2Source', 'SNEMOSource', 'Model',
            'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 _SOURCES = Registry()
@@ -419,7 +418,7 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if isinstance(band_or_wave, (six.string_types, Bandpass)):
+        if isinstance(band_or_wave, (str, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
@@ -478,7 +477,7 @@ class TimeSeriesSource(Source):
 
     .. math::
 
-       F(t, \lambda) = A \\times M(t, \lambda)
+       F(t, \\lambda) = A \\times M(t, \\lambda)
 
     where _M_ is the flux defined on a grid in phase and wavelength
     and _A_ (amplitude) is the single free parameter of the model. The
@@ -507,7 +506,6 @@ class TimeSeriesSource(Source):
         Name of the model. Default is `None`.
     version : str, optional
         Version of the model. Default is `None`.
-
     """
 
     _param_names = ['amplitude']
@@ -539,7 +537,7 @@ class StretchSource(Source):
 
     .. math::
 
-       F(t, \lambda) = A \\times M(t / s, \lambda)
+       F(t, \\lambda) = A \\times M(t / s, \\lambda)
 
     where _A_ is the amplitude and _s_ is the "stretch".
 
@@ -583,8 +581,8 @@ class SALT2Source(Source):
 
     .. math::
 
-       F(t, \lambda) = x_0 (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                       \\times 10^{-0.4 CL(\lambda) c}
+       F(t, \\lambda) = x_0 (M_0(t, \\lambda) + x_1 M_1(t, \\lambda))
+                       \\times 10^{-0.4 CL(\\lambda) c}
 
     where ``x0``, ``x1`` and ``c`` are the free parameters of the model,
     ``M_0``, ``M_1`` are the zeroth and first components of the model, and
@@ -663,7 +661,7 @@ class SALT2Source(Source):
         if modeldir is not None:
             for k in names_or_objs:
                 v = names_or_objs[k]
-                if (v is not None and isinstance(v, six.string_types)):
+                if (v is not None and isinstance(v, str)):
                     names_or_objs[k] = os.path.join(modeldir, v)
 
         # model components are interpolated to 2nd order
@@ -734,7 +732,9 @@ class SALT2Source(Source):
         # negatives to 0.0001)
         v[v < 0.0] = 0.0001
 
-        result = v * (f0 / ftot)**2 * scale**2
+        # avoid warnings due to evaluating 0. / 0. in f0 / ftot
+        with np.errstate(invalid='ignore'):
+            result = v * (f0 / ftot)**2 * scale**2
 
         # treat cases where ftot is negative the same as snfit
         result[ftot <= 0.0] = 10000.
@@ -750,14 +750,14 @@ class SALT2Source(Source):
         the model.  The covariance matrix has two components. The
         first component is diagonal (pure variance) and depends on the
         phase :math:`t` and bandpass central wavelength
-        :math:`\lambda_c` of each photometry point:
+        :math:`\\lambda_c` of each photometry point:
 
         .. math::
 
-           (F_{0, \mathrm{band}}(t) / F_{1, \mathrm{band}}(t))^2
-           S(t, \lambda_c)^2
-           (V_{00}(t, \lambda_c) + 2 x_1 V_{01}(t, \lambda_c) +
-            x_1^2 V_{11}(t, \lambda_c))
+           (F_{0, \\mathrm{band}}(t) / F_{1, \\mathrm{band}}(t))^2
+           S(t, \\lambda_c)^2
+           (V_{00}(t, \\lambda_c) + 2 x_1 V_{01}(t, \\lambda_c) +
+            x_1^2 V_{11}(t, \\lambda_c))
 
         where the 2-d functions :math:`S`, :math:`V_{00}`, :math:`V_{01}`,
         and :math:`V_{11}` are given by the files ``errscalefile``,
@@ -766,16 +766,16 @@ class SALT2Source(Source):
 
         .. math::
 
-           F_{0, \mathrm{band}}(t) = \int_\lambda M_0(t, \lambda)
-                                     T_\mathrm{band}(\lambda)
-                                     \\frac{\lambda}{hc} d\lambda
+           F_{0, \\mathrm{band}}(t) = \\int_\\lambda M_0(t, \\lambda)
+                                      T_\\mathrm{band}(\\lambda)
+                                      \\frac{\\lambda}{hc} d\\lambda
 
         .. math::
 
-           F_{1, \mathrm{band}}(t) = \int_\lambda
-                                     (M_0(t, \lambda) + x_1 M_1(t, \lambda))
-                                     T_\mathrm{band}(\lambda)
-                                     \\frac{\lambda}{hc} d\lambda
+           F_{1, \\mathrm{band}}(t) = \\int_\\lambda
+                                      (M_0(t, \\lambda) + x_1 M_1(t, \\lambda))
+                                      T_\\mathrm{band}(\\lambda)
+                                      \\frac{\\lambda}{hc} d\\lambda
 
         As this first component can sometimes be negative due to
         interpolation, there is a floor applied wherein values less than zero
@@ -789,7 +789,7 @@ class SALT2Source(Source):
 
         .. math::
 
-           CD(\lambda_c)^2
+           CD(\\lambda_c)^2
 
         where the 1-d function :math:`CD` is given by the file ``cdfile``.
         Adding these two components gives the *relative* covariance on model
@@ -829,7 +829,7 @@ class SALT2Source(Source):
         """Read color law file and set the internal colorlaw function."""
 
         # Read file
-        if isinstance(name_or_obj, six.string_types):
+        if isinstance(name_or_obj, str):
             f = open(name_or_obj, 'r')
         else:
             f = name_or_obj
@@ -896,7 +896,7 @@ class MLCS2k2Source(Source):
 
     .. math::
 
-       F(t, \lambda) = A \\times M(\Delta, t, \lambda)
+       F(t, \\lambda) = A \\times M(\\Delta, t, \\lambda)
 
     where _A_ is the amplitude and _Delta_ is the MLCS2k2 light curve shape
     parameter.
@@ -912,7 +912,7 @@ class MLCS2k2Source(Source):
     """
 
     _param_names = ['amplitude', 'delta']
-    param_names_latex = ['A', '\Delta']
+    param_names_latex = ['A', '\\Delta']
 
     def __init__(self, fluxfile, name=None, version=None):
 
@@ -953,6 +953,66 @@ class MLCS2k2Source(Source):
         points = arr.reshape((-1, 3))
         return (self._parameters[0] *
                 self._3d_model_flux(points).reshape(lp, lw))
+
+
+class SNEMOSource(Source):
+    """The SNEMO Type Ia supernova spectral timeseries model
+
+    The spectral flux density of this model is given by
+
+    .. math::
+       F(t, \\lambda) = c_0(e_0(t, \\lambda) +
+                           \\Sum_{i=1}^{n} c_i e_i(t, \\lambda))
+                           \\times FM07(\\lambda, A_s)
+    where ``c_0``, ``c_i``, and ``A_s`` are the free parameters of the model.
+
+    Parameters
+    ----------
+    fluxfile : str or obj, optional
+        Filename of an ascii file containing 2-d
+        array of spectral flux density values for a grid of phase
+        and wavelength values. Assuming columns ``phase``, ``wavelength``,
+        ``e_0``, ``e_1``, ``e_2``...
+    """
+    def __init__(self, fluxfile, name=None, version=None):
+        self.name = name
+        self.version = version
+
+        phase, wave, values = read_multivector_griddata_ascii(fluxfile)
+        n_vector = values.shape[0]
+
+        self._parameters = np.zeros(n_vector+1)
+        self._parameters[0] = 1
+
+        _param_names = ['c0', 'As', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7',
+                        'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14']
+        param_names_latex = ['c_0', 'A_s', 'c_1', 'c_2', 'c_3', 'c_4', 'c_5',
+                             'c_6', 'c_7', 'c_8', 'c_9', 'c_{10}', 'c_{11}',
+                             'c_{12}', 'c_{13}', 'c_{14}']
+        self._param_names = _param_names[:n_vector + 1]
+        self.param_names_latex = param_names_latex[:n_vector + 1]
+
+        self._phase = phase
+        self._wave = wave
+
+        self._model_fluxes = np.array([Spline2d(phase, wave,
+                                                v, kx=2, ky=2)
+                                       for v in values])
+
+    def _flux(self, phase, wave):
+        c_0 = self._parameters[0]
+        A_s = self._parameters[1]
+        color = extinction.fm07(wave * u.angstrom, A_s)
+        model_fluxes = np.array([mf(phase, wave) for mf
+                                 in self._model_fluxes])
+
+        model_ev = c_0 * (model_fluxes[0] +
+                          (self._parameters[2:, None, None] *
+                           model_fluxes[1:]).sum(axis=0))
+
+        model_c = 10**(-0.4 * color)
+
+        return model_ev * model_c
 
 
 class Model(_ModelBase):
@@ -1064,12 +1124,13 @@ class Model(_ModelBase):
         # for 'free' effects, add a redshift parameter
         if frame == 'free':
             self._param_names.append(name + 'z')
-            self.param_names_latex.append('{\\rm ' + name + '}\,z')
+            self.param_names_latex.append('{\\rm ' + name + '}\\,z')
 
         # add all of this effect's parameters
         for param_name in effect.param_names:
             self._param_names.append(name + param_name)
-            self.param_names_latex.append('{\\rm ' + name + '}\,' + param_name)
+            self.param_names_latex.append('{\\rm ' + name + '}\\,' +
+                                          param_name)
 
     def _sync_parameter_arrays(self):
         """Synchronize parameter names and parameter arrays between
@@ -1455,14 +1516,12 @@ class Model(_ModelBase):
             The return value is an `~numpy.ndarray` if phase is iterable.
         """
 
-        if (((isiterable(band1)) and
-           not (isinstance(band1, six.string_types))) or
-           ((isiterable(band2)) and
-           not (isinstance(band2, six.string_types)))):
+        band1_isiterable = isiterable(band1) and not isinstance(band1, str)
+        band2_isiterable = isiterable(band2) and not isinstance(band2, str)
+        if band1_isiterable or band2_isiterable:
             raise TypeError("Band arguments must be scalars.")
 
-        if ((isiterable(magsys)) and
-           not (isinstance(magsys, six.string_types))):
+        if (isiterable(magsys) and not isinstance(magsys, str)):
             raise TypeError("Magnitude system argument must be scalar.")
 
         return (self.bandmag(band1, magsys, time) -
@@ -1586,7 +1645,7 @@ class Model(_ModelBase):
                     effects=self._effects,
                     effect_names=self._effect_names,
                     effect_frames=self._effect_frames)
-        new._parameters[0:2] = self._parameters[0:2]
+        new._parameters[:] = self._parameters
         return new
 
     def __deepcopy__(self, memo):

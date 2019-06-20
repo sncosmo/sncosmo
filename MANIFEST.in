@@ -1,13 +1,9 @@
 include README.md
 include CITATION.md
 include LICENSE.rst
-include setup.cfg
+include pyproject.toml
 
-recursive-include sncosmo *.c
-recursive-include docs *
+recursive-include sncosmo *.pyx
+recursive-exclude sncosmo *.c
 
-exclude __pycache__
-exclude *.pyc *.o 
-prune docs/_build
-prune docs/api
-prune build
+global-exclude __pycache__

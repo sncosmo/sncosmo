@@ -9,8 +9,6 @@ light curve data.
 First, we'll load an example of some photometric data.
 """
 
-from __future__ import print_function
-
 import sncosmo
 
 data = sncosmo.load_example_data()

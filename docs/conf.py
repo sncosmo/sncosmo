@@ -27,6 +27,8 @@
 
 import sys
 import os
+import datetime
+
 import sphinx_rtd_theme
 import sphinx_gallery
 import matplotlib.sphinxext.plot_directive
@@ -43,7 +45,7 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'emcee': ('http://dan.iel.fm/emcee/current/', None)
+    'emcee': ('https://emcee.readthedocs.io/en/stable/', None)
     }
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -69,12 +71,13 @@ autodoc_docstring_signature = False
 sphinx_gallery_conf = {
     'examples_dirs': '_examples',  # path to examples scripts
     'gallery_dirs': 'examples',   # path to gallery generated examples
-    'mod_example_dir': 'modules/generated',  # path to store the module
+    'backreferences_dir': 'modules/generated',  # path to store the module
                                              # using example template
     'doc_module': ('sncosmo',),  # documented module(s)
     'download_section_examples': False,
     'download_all_examples': False,  # don't package up examples.
-    'default_thumb_file': '_logo/spectral_white_bkg.png',
+    'default_thumb_file': os.path.join(os.path.dirname(__file__), '_logo',
+                                       'spectral_white_bkg.png')
 }
 
     
@@ -91,9 +94,10 @@ master_doc = 'index'
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = u'sncosmo'
-author = u'Kyle Barbary and contributors'
-copyright = u'2013-2018, ' + author
+project = 'sncosmo'
+author = 'Kyle Barbary and contributors'
+current_year = datetime.datetime.now().year
+copyright = '2013-{:d}, {}'.format(current_year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

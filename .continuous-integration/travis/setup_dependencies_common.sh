@@ -1,71 +1,44 @@
 #!/bin/bash -x
 
 hash -r
+conda config --add channels conda-forge
 conda config --set always_yes yes --set changeps1 no
-conda update -q conda
+conda update -q --yes conda
 conda info -a
 
-# CONDA
-conda create --yes -n test -c astropy-ci-extras python=$PYTHON_VERSION pip
-source activate test
-
-# --no-use-wheel requirement is temporary due to
-# https://github.com/astropy/astropy/issues/4180
-# and may be removed once the upstream fix is in place
-export PIP_INSTALL="pip install --no-deps"
-
-# Now set up shortcut to conda install command to make sure the Python and Numpy
-# versions are always explicitly specified.
-export CONDA_INSTALL="conda install --yes python=$PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION"
-
 # EGG_INFO
-if [[ $SETUP_CMD == egg_info ]]
+if [[ $MAIN_CMD == *egg_info* ]]
 then
-  return  # no more dependencies needed
-fi
-
-# PEP8
-if [[ $MAIN_CMD == pep8* ]]
+  export CONDA_PACKAGES="python=$PYTHON_VERSION pip"
+# STYLE
+elif [[ $MAIN_CMD == *checkstyle* ]]
 then
-  $PIP_INSTALL pep8
-  return  # no more dependencies needed
-fi
-
-# CORE DEPENDENCIES (besides astropy)
-$CONDA_INSTALL pip jinja2 psutil cython
-$PIP_INSTALL extinction
-
-# ASTROPY
-if [[ $ASTROPY_VERSION == dev ]]
-then
-  $PIP_INSTALL git+http://github.com/astropy/astropy.git
+  export CONDA_PACKAGES="python=$PYTHON_VERSION pip pycodestyle"
+# EVERYTHING ELSE:
 else
-  $CONDA_INSTALL astropy=$ASTROPY_VERSION
+  # core dependencies
+  export CONDA_PACKAGES="python=$PYTHON_VERSION pip pytest  numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION astropy=$ASTROPY_VERSION cython extinction"
+
+  # optional dependencies
+  if $OPTIONAL_DEPS
+  then
+    export CONDA_PACKAGES="$CONDA_PACKAGES matplotlib iminuit"
+    export PIP_INSTALL="pip install --no-deps nestle"
+  fi
+
+  # doc dependencies
+  if [[ $MAIN_CMD == *docs* ]]
+  then
+    export CONDA_PACKAGES="$CONDA_PACKAGES sphinx sphinx-gallery pygments matplotlib pillow sphinx_rtd_theme numpydoc"
+  fi
+
+  # coverage dependencies
+  if [[ $MAIN_CMD == *"--cov"* ]]
+  then
+    export CONDA_PACKAGES="$CONDA_PACKAGES coverage coveralls pytest-cov"
+  fi
 fi
 
-# OPTIONAL DEPENDENCIES
-if $OPTIONAL_DEPS
-then
-  $CONDA_INSTALL matplotlib
-  $PIP_INSTALL emcee nestle iminuit
-fi
-
-# DOCUMENTATION DEPENDENCIES
-# build_sphinx needs sphinx as well as matplotlib (for plot_directive)
-# Note that this matplotlib will *not* work with py 3.x, but our sphinx
-# build is currently 2.7, so that's fine
-if [[ $SETUP_CMD == build_sphinx* ]]
-then
-  $PIP_INSTALL sphinx-gallery astropy-helpers
-  $CONDA_INSTALL sphinx pygments matplotlib pillow sphinx_rtd_theme
-fi
-
-# COVERAGE DEPENDENCIES
-if [[ $SETUP_CMD == *"--coverage"* ]]
-then
-  # TODO can use latest version of coverage (4.0) once
-  # https://github.com/astropy/astropy/issues/4175 is addressed in
-  # astropy release version.
-  pip install coverage==3.7.1
-  pip install coveralls
-fi
+conda create --yes -n test $CONDA_PACKAGES
+source activate test
+$PIP_INSTALL

@@ -1,9 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions for supernova light curve I/O"""
 
-from __future__ import print_function
-
-from warnings import warn
 import math
 import os
 import sys
@@ -15,7 +12,6 @@ import numpy as np
 from astropy.table import Table
 from astropy.io import fits
 from astropy import wcs
-from astropy.extern import six
 
 from .utils import dict_to_array
 from .bandpasses import get_bandpass
@@ -35,10 +31,10 @@ def _stripcomment(line, char='#'):
 def _cast_str(s):
     try:
         return int(s)
-    except:
+    except ValueError:
         try:
             return float(s)
-        except:
+        except ValueError:
             return s.strip()
 
 
@@ -63,7 +59,7 @@ def read_griddata_ascii(name_or_obj):
         2-d array of shape (len(x0), len(x1)).
     """
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f = open(name_or_obj, 'r')
     else:
         f = name_or_obj
@@ -103,6 +99,42 @@ def read_griddata_ascii(name_or_obj):
 
     f.close()
     return np.array(x0), np.array(x1), np.array(y)
+
+
+def read_multivector_griddata_ascii(name_or_obj):
+    """Read 2-d grid data from a text file.
+
+    Each line has values `x0 x1 y0 y1 ...`. Space separated.
+    Assumed to be grid of values.
+
+    Parameters
+    ----------
+    name_or_obj : str or file-like object
+        The name of the file or a file-like object containing the
+        data.
+
+    Returns
+    -------
+    x0 : numpy.ndarray
+        1-d array.
+    x1 : numpy.ndarray
+        1-d array.
+    y : numpy.ndarray
+        3-d array of shape ``(n, len(x0), len(x1))`` where ``n`` is
+        the number of y values on each line.
+    """
+    data = np.loadtxt(name_or_obj)
+
+    x0 = np.sort(np.unique(data[:, 0]))
+    x1 = np.sort(np.unique(data[:, 1]))
+    y = np.zeros((len(data[0]) - 2, len(x0), len(x1)))
+
+    for i0, p in enumerate(x0):
+        for i1, q in enumerate(x1):
+            ind = (data[:, 0] == p) & (data[:, 1] == q)
+            y[:, i0, i1] = data[ind, 2:]
+
+    return x0, x1, y
 
 
 def read_griddata_fits(name_or_obj, ext=0):
@@ -163,7 +195,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
         Filename to write to or open file.
     """
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f = open(name_or_obj, 'w')
     else:
         f = name_or_obj
@@ -172,7 +204,7 @@ def write_griddata_ascii(x0, x1, y, name_or_obj):
         for i in range(len(x1)):
             f.write("{0:.7g} {1:.7g} {2:.7g}\n".format(x0[j], x1[i], y[j, i]))
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f.close()
 
 
@@ -283,7 +315,7 @@ def _read_salt2(name_or_obj, read_covmat=False, expand_bands=False):
     There is optionally a line containing '#end' before the start of data.
     """
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f = open(name_or_obj, 'r')
     else:
         f = name_or_obj
@@ -337,7 +369,7 @@ def _read_salt2(name_or_obj, read_covmat=False, expand_bands=False):
         for col, item in zip(cols, items):
             col.append(_cast_str(item))
 
-    if isinstance(name_or_obj, six.string_types):
+    if isinstance(name_or_obj, str):
         f.close()
 
     # read covariance matrix file, if requested and present
@@ -414,8 +446,7 @@ def _read_salt2_old(dirname, filenames=None):
         # Add the instrument/band to the file data, in anticipation of
         # aggregating it with other files.
 
-        # PY3: next(iter(filedata.vlues()))
-        firstcol = six.next(six.itervalues(filedata))
+        firstcol = next(iter(filedata.values()))
         data_length = len(firstcol)
         filter_name = '{0}::{1}'.format(filemeta.pop('INSTRUMENT'),
                                         filemeta.pop('BAND'))
@@ -518,7 +549,7 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
     Read an ascii format file that includes metadata (``StringIO``
     behaves like a file object):
 
-    >>> from astropy.extern.six import StringIO
+    >>> from io import StringIO
     >>> f = StringIO('''
     ... @id 1
     ... @RA 36.0
@@ -546,7 +577,7 @@ def read_lc(file_or_dir, format='ascii', **kwargs):
 
     if format == 'salt2-old':
         meta, data = readfunc(file_or_dir, **kwargs)
-    elif isinstance(file_or_dir, six.string_types):
+    elif isinstance(file_or_dir, str):
         with open(file_or_dir, 'r') as f:
             meta, data = readfunc(f, **kwargs)
     else:
@@ -567,7 +598,7 @@ def _write_ascii(f, data, meta, **kwargs):
     metachar = kwargs.get('metachar', '@')
 
     if meta is not None:
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             f.write('{0}{1}{2}{3}\n'.format(metachar, key, delim, str(val)))
 
     keys = data.dtype.names
@@ -578,6 +609,7 @@ def _write_ascii(f, data, meta, **kwargs):
     for i in range(length):
         f.write(delim.join([str(data[key][i]) for key in keys]))
         f.write('\n')
+
 
 # -----------------------------------------------------------------------------
 # Writer: salt2
@@ -605,7 +637,7 @@ def _write_salt2(f, data, meta, **kwargs):
     pedantic = kwargs.get('pedantic', True)
 
     if meta is not None:
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SALT2KEY_META.get(key, key)
@@ -662,7 +694,7 @@ def _write_snana(f, data, meta, **kwargs):
     # Write metadata
     keys_as_written = []
     if meta is not None:
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             if not raw:
                 key = key.upper()
                 key = KEY_TO_SNANAKEY_META.get(key, key)

@@ -1,7 +1,5 @@
 """Tools for simulation of transients."""
 
-from __future__ import print_function
-
 import sys
 import math
 import copy
@@ -12,7 +10,6 @@ from numpy import random
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
-from astropy.extern.six.moves import range
 
 from .utils import alias_map
 

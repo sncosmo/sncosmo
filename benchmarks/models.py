@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Run benchmarks for model synthetic photometry"""
 
-from __future__ import print_function, division
-
 import time
 import os
 import glob

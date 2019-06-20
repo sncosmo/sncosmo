@@ -1,10 +1,9 @@
 cython
-numpy
+numpy>=1.13
 matplotlib
 scipy
 extinction
 astropy
-astropy_helpers
 sphinx_gallery
 pillow
 iminuit

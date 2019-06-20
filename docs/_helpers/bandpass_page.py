@@ -11,8 +11,8 @@ __all__ = []  # so that bandpass_table is not documented.
 ASCII_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 bandpass_meta = _BANDPASSES.get_loaders_metadata()
-table_delim = "  ".join([15 * '=', 80 * '=', 14 * '=', 8 * '=', 12 * '='])
-table_colnames = ("{0:15}  {1:80}  {2:14}  {3:8}  {4:12}"
+table_delim = "  ".join([15 * '=', 80 * '=', 24 * '=', 8 * '=', 12 * '='])
+table_colnames = ("{0:15}  {1:80}  {2:24}  {3:8}  {4:12}"
                   .format('Name', 'Description', 'Reference', 'Data URL',
                           'Retrieved'))
 urlnums = {}
@@ -51,7 +51,7 @@ def bandpass_table(setname):
         if 'retrieved' in m:
             retrieved = m['retrieved']
 
-        lines.append("{0!r:15}  {1:80}  {2:14}  {3:8}  {4:12}".format(
+        lines.append("{0!r:15}  {1:80}  {2:24}  {3:8}  {4:12}".format(
             m['name'], m['description'], reflink, urllink, retrieved))
 
     lines.append(table_delim)

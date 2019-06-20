@@ -1,5 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
-from __future__ import print_function
 
 from os.path import join, dirname
 
