@@ -9,9 +9,11 @@ from collections import OrderedDict
 import numpy as np
 
 from .photdata import photometric_data
-from .utils import Interp1D, Result, ppf
+from .photdata import spectroscopic_data, select_data
+from .utils import Interp1D, Result ppf
+from .bandpasses import get_bandpass
 
-__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
+__all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq', 'fit_sts']
 
 
 class DataQualityError(Exception):
@@ -91,6 +93,20 @@ def chisq(data, model, modelcov=False):
         diff = data.flux - mflux
         return np.dot(np.dot(diff, invcov), diff)
 
+def chisq_sts(data, model, modelcov=False):
+    """ Like chisq but with spectral data
+    """
+
+    if modelcov:
+        raise ValueError("Model covariance isn't implemented yet")
+    else:
+        chi_total = 0
+        for time in set(data.time):
+            mask = (data.time == time) & (data.fluxerr > 0.0)
+            mflux = model.flux(time, data.wave[mask])
+            chi_total += np.sum(((data.flux[mask] - mflux) / 
+                                 data.fluxerr[mask])**2)
+        return chi_total
 
 def flatten_result(res):
     """Turn a result from fit_lc into a simple dictionary of key, value pairs.
@@ -172,6 +188,36 @@ def cut_bands(data, model, z_bounds=None, warn=True):
 
     return data, mask
 
+def _warn_dropped_wavelengths(data, mask):
+    """Warn that we are dropping some bands from the data:"""
+    drop_wavelengths = ['%d' % b for b in set(data.wave[np.invert(mask)])]
+    warnings.warn("Dropping following wavelengths from data: " +
+                  ", ".join(drop_wavelengths) +
+                  "(out of model wavelength range)", RuntimeWarning)
+
+def _mask_wavelengths(data, model, z_bounds=None):
+
+    if z_bounds is None:
+        return ((data.wave > model.minwave()) &
+                (data.wave < model.maxwave()))
+    else:
+        raise ValueError('sts fit with redshift fit not yet implemented')
+
+def cut_wavelengths(data, model, z_bounds=None, warn=True):
+    mask = _mask_wavelengths(data, model, z_bounds=z_bounds)
+
+    if not np.all(mask):
+
+        # Fail if there are no overlapping bands whatsoever.
+        if not np.any(mask):
+            raise RuntimeError('No bands in data overlap the model.')
+
+        if warn:
+            _warn_dropped_wavelengths(data, mask)
+
+        data = data[mask]
+
+    return data, mask
 
 def t0_bounds(data, model):
     """Determine bounds on t0 parameter of the model.
@@ -236,6 +282,79 @@ def guess_t0_and_amplitude(data, model, minsnr):
     return t0, amplitude
 
 
+def guess_t0_and_amplitude_sts(data, model, minsnr):
+    """Guess t0 and amplitude of the model based on the data."""
+
+    # get data above the signal-to-noise ratio cut
+    significant_data = data[(data.flux / data.fluxerr) > minsnr]
+
+    if len(significant_data) == 0:
+        raise DataQualityError('No data points with S/N > {0}. Initial '
+                               'guessing failed.'.format(minsnr))
+
+    # grid on which to evaluate model light curve
+    timegrid = np.linspace(model.mintime(), model.maxtime(),
+                           int(model.maxtime() - model.mintime() + 1))
+
+
+    model_lc = {}
+    data_flux = {}
+    data_time = {}
+    data_waves = np.unique(significant_data.wave)
+    model_flux = model.flux(timegrid, data_waves) / model.parameters[2]
+    data_flux = significant_data.flux
+    data_time = significant_data.time
+    """
+    for band in set(significant_data.band):
+        model_lc[band] = (
+            model.bandflux(band, timegrid, zp=25., zpsys='ab') /
+            model.parameters[2])
+        mask = significant_data.band == band
+        data_flux[band] = norm_flux[mask]
+        data_time[band] = significant_data.time[mask]
+    """
+    if model_flux.size == 0:
+        raise DataQualityError('No data points with S/N > {0}. Initial '
+                               'guessing failed.'.format(minsnr))
+
+    # find band with biggest ratio of maximum data flux to maximum model flux
+    maxratio = float("-inf")
+    """
+    maxband = None
+    for band in model_lc:
+        ratio = np.max(data_flux[band]) / np.max(model_lc[band])
+        if ratio > maxratio:
+            maxratio = ratio
+            maxband = band
+    """
+    maxwave = None
+    maxratios = np.empty_like(data_waves)
+    maxdates = np.empty_like(data_waves)
+    modelmaxes = np.empty_like(data_waves)
+    for w, wave in enumerate(data_waves):
+        ind = significant_data.wave == wave
+        ratio = np.max(data_flux[ind]) / np.max(model_flux[:,w])
+        maxratios[w] = ratio
+        maxdates[w] = data_time[ind][data_flux[ind].argmax()]
+        modelmaxes[w] = timegrid[model_flux[:,w].argmax()]
+        #if ratio > maxratio:
+        #    maxratio = ratio
+        #    maxwave = wave
+    # amplitude guess is the largest ratio
+    #amplitude = abs(maxratio)
+    amplitude = np.median(maxratios)
+
+    # time guess is time of max in the band with the biggest ratio
+    max_ind = significant_data.wave == maxwave
+    #data_tmax = data_time[max_ind][np.argmax(data_flux[max_ind])]
+    data_tmax = np.median(maxdates)
+    #model_tmax = timegrid[np.argmax(model_flux[:, data_waves==maxwave])]
+    model_tmax = np.median(modelmaxes)
+    t0 = model.get('t0') + data_tmax - model_tmax
+
+    return t0, amplitude
+
+
 def _print_iminuit_params(names, kwargs):
     """Verbose printing of parameters to pass to Minuit"""
     for name in names:
@@ -253,7 +372,6 @@ def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
         data_phase = (data.time - t0) / (1.0 + z)
         phase_mask = ((data_phase > phase_range[0]) &
                       (data_phase < phase_range[1]))
-
     if wave_range is not None:
         data_obswave = np.array([b.wave_eff for b in data.band])
         data_restwave = data_obswave / (1.0 + z)
@@ -532,6 +650,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                            print_level=(1 if verbose >= 2 else 0),
                            throw_nan=True, **kwargs)
         d, l = m.migrad(ncall=maxcall)
+
         if verbose:
             print("{} function calls; {} dof.".format(d.nfcn, ndof))
 
@@ -546,7 +665,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                                               model.get('z'),
                                               phase_range, wave_range)
             data_mask = range_mask & support_mask
-
+            if not np.any(data_mask):
+                raise RuntimeError('No bands in data overlap the model.')
         # if model covariance, we need to re-run iteratively until convergence
         # if phase range is given, we need to rerun if there are any
         # masked points.
@@ -554,6 +674,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                               np.any(data_mask != support_mask)))
         nfit = 1
         while refit:
+
             # set new starting point to last point
             for name in vparam_names:
                 kwargs[name] = model.get(name)
@@ -566,7 +687,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             # re-crop data based on ranges, if necessary
             if (phase_range or wave_range):
                 fitdata = data[data_mask]
-
+            
             ndof = len(fitdata) - len(vparam_names)
 
             # generate chisq function based on new starting point
@@ -591,6 +712,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             # only consider refitting if we got a valid answer and we're under
             # the maximum number of iterations:
             if d.is_valid and nfit < 22:
+
                 # recalculate data mask based on new t0, z
                 if phase_range or wave_range:
                     old_data_mask = data_mask
@@ -598,10 +720,11 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
                                                       model.get('z'),
                                                       phase_range, wave_range)
                     data_mask = support_mask & range_mask
-
                     # we'll refit if we changed any data
                     refit = np.any(data_mask != old_data_mask)
-
+                    if not np.any(data_mask):
+                        raise RuntimeError('No bands in data overlap'
+                                           ' the model.')
                 # refit if *any* parameter changed by more than 10% of
                 # statistical error bar
                 if modelcov:
@@ -667,6 +790,217 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     else:
         raise ValueError("unknown method {0:r}".format(method))
 
+    return res, model
+
+def fit_sts(data, model, vparam_names, bounds=None, method='minuit',
+            guess_amplitude=True, guess_t0=True, guess_z=True,
+            minsnr=5., modelcov=False, verbose=False, maxcall=10000, warn=True,
+            **kwargs):
+    """Fit model parameters to spectral time series data by minimizing chi^2
+
+    Works like fit_lc but with spectra.
+
+    Returns
+    -------
+    res : Result
+        The optimization result represented as a ``Result`` object, which is
+        a `dict` subclass with attribute access. Therefore, ``res.keys()``
+        provides a list of the attributes. Attributes are:
+
+        - ``success``: boolean describing whether fit succeeded.
+        - ``message``: string with more information about exit status.
+        - ``ncall``: number of function evaluations.
+        - ``chisq``: minimum chi^2 value.
+        - ``ndof``: number of degrees of freedom
+          (len(data) - len(vparam_names)).
+        - ``param_names``: same as ``model.param_names``.
+        - ``parameters``: 1-d `~numpy.ndarray` of best-fit values
+          (including fixed parameters) corresponding to ``param_names``.
+        - ``vparam_names``: list of varied parameter names.
+        - ``covariance``: 2-d `~numpy.ndarray` of parameter covariance;
+          indicies correspond to order of ``vparam_names``.
+        - ``errors``: OrderedDict of varied parameter uncertainties.
+          Corresponds to square root of diagonal entries in covariance matrix.
+
+    fitmodel : `~sncosmo.Model`
+        A copy of the model with parameters set to best-fit values.
+    """
+    data = spectroscopic_data(data)
+
+    # Make a copy of the model so we can modify it with impunity.
+    model = copy.copy(model)
+
+    # Check that vparam_names isn't empty and contains only parameters
+    # known to the model.
+    if len(vparam_names) == 0:
+        raise ValueError("no parameters supplied")
+    for s in vparam_names:
+        if s not in model.param_names:
+            raise ValueError("Parameter not in model: " + repr(s))
+
+    # Order vparam_names the same way it is ordered in the model:
+    vparam_names = [s for s in model.param_names if s in vparam_names]
+
+    # initialize bounds
+    if bounds is None:
+        bounds = {}
+
+    # Check that 'z' is bounded (if it is going to be fit).
+    if 'z' in vparam_names:
+        if 'z' not in bounds or None in bounds['z']:
+            raise ValueError('z must be bounded if fit.')
+        if guess_z:
+            model.set(z=sum(bounds['z']) / 2.)
+        if model.get('z') < bounds['z'][0] or model.get('z') > bounds['z'][1]:
+            raise ValueError('z out of range.')
+
+    # Cut wavelengths outside the wavelength range of the model.
+    fitdata, support_mask = cut_wavelengths(data, model,
+                                            z_bounds=bounds.get('z', None),
+                                            warn=False)
+    data_mask = support_mask
+    # Find t0 bounds to use, if not explicitly given
+    if 't0' in vparam_names and 't0' not in bounds:
+        bounds['t0'] = t0_bounds(fitdata, model)
+
+    # Note that in the parameter guessing below, we assume that the source
+    # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
+
+    # Turn off guessing if we're not fitting the parameter.
+    if model.param_names[2] not in vparam_names:
+        guess_amplitude = False
+    if 't0' not in vparam_names:
+        guess_t0 = False
+
+    # Make guesses for t0 and amplitude.
+    # (For now, we assume it is the 3rd parameter of the model.)
+    if (guess_amplitude or guess_t0):
+        t0, amplitude = guess_t0_and_amplitude_sts(fitdata, model, minsnr)
+        if guess_amplitude:
+            model.parameters[2] = amplitude
+        if guess_t0:
+            model.set(t0=t0)
+
+    ndof = len(fitdata) - len(vparam_names)
+
+    if method == 'minuit':
+        try:
+            import iminuit
+        except ImportError:
+            raise ValueError("Minimization method 'minuit' requires the "
+                             "iminuit package")
+
+        # The iminuit minimizer expects the function signature to have an
+        # argument for each parameter.
+        def fitchisq(*parameters):
+            model.parameters = parameters
+            return chisq_sts(fitdata, model, modelcov=modelcov)
+
+        # Set up keyword arguments to pass to Minuit initializer.
+        kwargs = {}
+        for name in model.param_names:
+            kwargs[name] = model.get(name)  # Starting point.
+
+            # Fix parameters not being varied in the fit.
+            if name not in vparam_names:
+                kwargs['fix_' + name] = True
+                kwargs['error_' + name] = 0.
+                continue
+
+            # Bounds
+            if name in bounds:
+                if None in bounds[name]:
+                    raise ValueError('one-sided bounds not allowed for '
+                                     'minuit minimizer')
+                kwargs['limit_' + name] = bounds[name]
+
+            # Initial step size
+            if name in bounds:
+                step = 0.02 * (bounds[name][1] - bounds[name][0])
+            elif model.get(name) != 0.:
+                step = 0.1 * model.get(name)
+            else:
+                step = 1.
+            kwargs['error_' + name] = step
+
+        if verbose:
+            print("Initial parameters:")
+            for name in vparam_names:
+                print(name, kwargs[name], 'step=', kwargs['error_' + name],
+                      end=" ")
+                if 'limit_' + name in kwargs:
+                    print('bounds=', kwargs['limit_' + name], end=" ")
+                print()
+
+        m = iminuit.Minuit(fitchisq, errordef=1.,
+                           forced_parameters=model.param_names,
+                           print_level=(1 if verbose else 0),
+                           throw_nan=True, **kwargs)
+        d, l = m.migrad(ncall=maxcall)
+
+        # Build a message.
+        message = []
+        if d.has_reached_call_limit:
+            message.append('Reached call limit.')
+        if d.hesse_failed:
+            message.append('Hesse Failed.')
+        if not d.has_covariance:
+            message.append('No covariance.')
+        elif not d.has_accurate_covar:  # iminuit docs wrong
+            message.append('Covariance may not be accurate.')
+        if not d.has_posdef_covar:  # iminuit docs wrong
+            message.append('Covariance not positive definite.')
+        if d.has_made_posdef_covar:
+            message.append('Covariance forced positive definite.')
+        if not d.has_valid_parameters:
+            message.append('Parameter(s) value and/or error invalid.')
+        if len(message) == 0:
+            message.append('Minimization exited successfully.')
+        # iminuit: m.np_matrix() doesn't work
+
+        # numpy array of best-fit values (including fixed parameters).
+        parameters = np.array([m.values[name] for name in model.param_names])
+        model.parameters = parameters  # set model parameters to best fit.
+
+
+        # Covariance matrix (only varied parameters) as numpy array.
+        if m.covariance is None:
+            covariance = None
+        else:
+            covariance = np.array([
+                [m.covariance[(n1, n2)] for n1 in vparam_names]
+                for n2 in vparam_names])
+
+        # OrderedDict of errors
+        if m.errors is None:
+            errors = None
+        else:
+            errors = OrderedDict([(name, m.errors[name]) for 
+                                  name in vparam_names])
+
+        # Compile results
+        res = Result(success=d.is_valid,
+                     message=' '.join(message),
+                     ncall=d.nfcn,
+                     chisq=d.fval,
+                     ndof=ndof,
+                     param_names=model.param_names,
+                     parameters=parameters,
+                     vparam_names=vparam_names,
+                     covariance=covariance,
+                     errors=errors,
+                     data_mask=data_mask)
+
+    else:
+        raise ValueError("unknown method {0:r}".format(method))
+
+    # TODO remove this in a future release.
+    if "flatten" in kwargs:
+        warn("The `flatten` keyword is deprecated in sncosmo v1.0 "
+             "and will be removed in v1.1. Use the flatten_result() "
+             "function instead.")
+        if kwargs["flatten"]:
+            res = flatten_result(res)
     return res, model
 
 
