@@ -90,7 +90,7 @@ def load_bandpass_remote_um(relpath, name=None):
 
 def load_bandpass_remote_wfc3(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
-    _, wave, trans = np.loadtxt(abspath, unpack=True)
+    wave, trans = np.loadtxt(abspath, unpack=True)
     return Bandpass(wave, trans, wave_unit=u.AA,
                     trim_level=BANDPASS_TRIM_LEVEL, name=name)
 
@@ -195,7 +195,6 @@ _BANDPASSES.alias('acswf::f606w', 'f606w')
 _BANDPASSES.alias('acswf::f775w', 'f775w')
 _BANDPASSES.alias('acswf::f850lp', 'f850lp')
 
-
 # HST NICMOS NIC2 bandpasses: remote
 nicmos_meta = {'filterset': 'nicmos-nic2',
                'dataurl': 'http://www.stsci.edu/hst/',
@@ -211,52 +210,58 @@ _BANDPASSES.alias('nicmos2::f110w', 'nicf110w')
 _BANDPASSES.alias('nicmos2::f160w', 'nicf160w')
 
 
-# WFC3 IR bandpasses: remote
+# WFC3 IR bandpasses: location changed on STSCI, now in sncosmo.github.io
 wfc3ir_meta = {'filterset': 'wfc3-ir',
-               'dataurl': 'http://www.stsci.edu/hst/wfc3/ins_performance/'
-                          'throughputs/Throughput_Tables',
-               'retrieved': 'direct download',
+               'dataurl': 'http://www.stsci.edu/hst/instrumentation/wfc3/'
+                          'performance/throughputs',
+               'retrieved': '22 Aug 2019',
                'description': 'Hubble Space Telescope WFC3 IR filters'}
-for name, fname in [('f098m', 'bandpasses/wfc3-ir/f098m.IR.tab'),
-                    ('f105w', 'bandpasses/wfc3-ir/f105w.IR.tab'),
-                    ('f110w', 'bandpasses/wfc3-ir/f110w.IR.tab'),
-                    ('f125w', 'bandpasses/wfc3-ir/f125w.IR.tab'),
-                    ('f127m', 'bandpasses/wfc3-ir/f127m.IR.tab'),
-                    ('f139m', 'bandpasses/wfc3-ir/f139m.IR.tab'),
-                    ('f140w', 'bandpasses/wfc3-ir/f140w.IR.tab'),
-                    ('f153m', 'bandpasses/wfc3-ir/f153m.IR.tab'),
-                    ('f160w', 'bandpasses/wfc3-ir/f160w.IR.tab')]:
+for name, fname in [('f098m', 'bandpasses/wfc3-ir/f098m.tab'),
+                    ('f105w', 'bandpasses/wfc3-ir/f105w.tab'),
+                    ('f110w', 'bandpasses/wfc3-ir/f110w.tab'),
+                    ('f125w', 'bandpasses/wfc3-ir/f125w.tab'),
+                    ('f127m', 'bandpasses/wfc3-ir/f127m.tab'),
+                    ('f139m', 'bandpasses/wfc3-ir/f139m.tab'),
+                    ('f140w', 'bandpasses/wfc3-ir/f140w.tab'),
+                    ('f153m', 'bandpasses/wfc3-ir/f153m.tab'),
+                    ('f160w', 'bandpasses/wfc3-ir/f160w.tab')]:
     _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
                                 args=(fname,), meta=wfc3ir_meta)
 
 
 wfc3uvis_meta = {'filterset': 'wfc3-uvis',
-                 'dataurl': 'http://www.stsci.edu/hst/wfc3/ins_performance/'
-                            'throughputs/Throughput_Tables',
-                 'retrieved': 'direct download',
+                 'dataurl': 'http://www.stsci.edu/hst/instrumentation/wfc3/'
+                            'performance/throughputs',
+                 'retrieved': '22 Aug 2019',
                  'description': ('Hubble Space Telescope WFC3 UVIS filters '
-                                 '(CCD 2)')}
-for name, fname in [('f218w', "bandpasses/wfc3-uvis/f218w.UVIS2.tab"),
-                    ('f225w', "bandpasses/wfc3-uvis/f225w.UVIS2.tab"),
-                    ('f275w', "bandpasses/wfc3-uvis/f275w.UVIS2.tab"),
-                    ('f300x', "bandpasses/wfc3-uvis/f300x.UVIS2.tab"),
-                    ('f336w', "bandpasses/wfc3-uvis/f336w.UVIS2.tab"),
-                    ('f350lp', "bandpasses/wfc3-uvis/f350lp.UVIS2.tab"),
-                    ('f390w', "bandpasses/wfc3-uvis/f390w.UVIS2.tab"),
-                    ('f689m', "bandpasses/wfc3-uvis/f689m.UVIS2.tab"),
-                    ('f763m', "bandpasses/wfc3-uvis/f763m.UVIS2.tab"),
-                    ('f845m', "bandpasses/wfc3-uvis/f845m.UVIS2.tab"),
-                    ('f438w', "bandpasses/wfc3-uvis/f438w.UVIS2.tab"),
-                    ('uvf475w', "bandpasses/wfc3-uvis/f475w.UVIS2.tab"),
-                    ('uvf555w', "bandpasses/wfc3-uvis/f555w.UVIS2.tab"),
-                    ('uvf606w', "bandpasses/wfc3-uvis/f606w.UVIS2.tab"),
-                    ('uvf625w', "bandpasses/wfc3-uvis/f625w.UVIS2.tab"),
-                    ('uvf775w', "bandpasses/wfc3-uvis/f775w.UVIS2.tab"),
-                    ('uvf814w', "bandpasses/wfc3-uvis/f814w.UVIS2.tab"),
-                    ('uvf850lp', "bandpasses/wfc3-uvis/f850lp.UVIS2.tab")]:
+                                 '(Average of Chips 1 and 2)')}
+for name, fname in [('f200lp', "bandpasses/wfc3-uvis/f200lp.tab"),
+                    ('f218w', "bandpasses/wfc3-uvis/f218w.tab"),
+                    ('f225w', "bandpasses/wfc3-uvis/f225w.tab"),
+                    ('f275w', "bandpasses/wfc3-uvis/f275w.tab"),
+                    ('f300x', "bandpasses/wfc3-uvis/f300x.tab"),
+                    ('f336w', "bandpasses/wfc3-uvis/f336w.tab"),
+                    ('f350lp', "bandpasses/wfc3-uvis/f350lp.tab"),
+                    ('f390m', "bandpasses/wfc3-uvis/f390m.tab"),
+                    ('f390w', "bandpasses/wfc3-uvis/f390w.tab"),
+                    ('f438w', "bandpasses/wfc3-uvis/f438w.tab"),
+                    ('f467m', "bandpasses/wfc3-uvis/f467m.tab"),
+                    ('f547m', "bandpasses/wfc3-uvis/f547m.tab"),
+                    ('f600lp', "bandpasses/wfc3-uvis/f600lp.tab"),
+                    ('f621m', "bandpasses/wfc3-uvis/f621m.tab"),
+                    ('f689m', "bandpasses/wfc3-uvis/f689m.tab"),
+                    ('f763m', "bandpasses/wfc3-uvis/f763m.tab"),
+                    ('f845m', "bandpasses/wfc3-uvis/f845m.tab"),
+                    ('uvf410m', "bandpasses/wfc3-uvis/f410m.tab"),
+                    ('uvf475w', "bandpasses/wfc3-uvis/f475w.tab"),
+                    ('uvf555w', "bandpasses/wfc3-uvis/f555w.tab"),
+                    ('uvf606w', "bandpasses/wfc3-uvis/f606w.tab"),
+                    ('uvf625w', "bandpasses/wfc3-uvis/f625w.tab"),
+                    ('uvf775w', "bandpasses/wfc3-uvis/f775w.tab"),
+                    ('uvf814w', "bandpasses/wfc3-uvis/f814w.tab"),
+                    ('uvf850lp', "bandpasses/wfc3-uvis/f850lp.tab")]:
     _BANDPASSES.register_loader(name, load_bandpass_remote_wfc3,
                                 args=(fname,), meta=wfc3uvis_meta)
-
 
 # Kepler
 kepler_meta = {
