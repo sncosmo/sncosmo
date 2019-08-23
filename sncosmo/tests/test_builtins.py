@@ -15,3 +15,8 @@ def test_hst_bands():
 def test_jwst_miri_bands():
     for bandname in ['f1130w']:
         sncosmo.get_bandpass(bandname)
+
+
+@pytest.mark.might_download
+def test_ztf_bandpass():
+    bp = sncosmo.get_bandpass('ztfg')
