@@ -90,7 +90,7 @@ def load_bandpass_remote_um(relpath, name=None):
 
 def load_bandpass_remote_wfc3(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
-    wave, trans = np.loadtxt(abspath, unpack=True)
+    _, wave, trans = np.loadtxt(abspath, unpack=True)
     return Bandpass(wave, trans, wave_unit=u.AA,
                     trim_level=BANDPASS_TRIM_LEVEL, name=name)
 
