@@ -439,8 +439,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
     vparam_names = [s for s in model.param_names if s in vparam_names]
 
     # initialize bounds
-    if bounds is None:
-        bounds = {}
+    bounds = copy.deepcopy(bounds) if bounds else {}
 
     # Check that 'z' is bounded (if it is going to be fit).
     if 'z' in vparam_names:
@@ -1067,8 +1066,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
 
-    if bounds is None:
-        bounds = {}
+    bounds = copy.deepcopy(bounds) if bounds else {}
     if priors is None:
         priors = {}
 
