@@ -1,7 +1,11 @@
 #!/usr/bin/env python3.7
 # -*- coding: UTF-8 -*-
 
+<<<<<<< Updated upstream
 """Tests for the ``fit_funcs`` module."""
+=======
+"""Tests for argument mutation by fitting functions."""
+>>>>>>> Stashed changes
 
 from copy import deepcopy
 from unittest import TestCase
