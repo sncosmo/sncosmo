@@ -12,9 +12,11 @@ import itertools
 
 import numpy as np
 from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
-                               RectBivariateSpline as Spline2d)
+                               RectBivariateSpline as Spline2d,
+                               splmake, spleval)
 from astropy.utils.misc import isiterable
 from astropy import (cosmology, units as u, constants as const)
+from astropy.extern import six
 import extinction
 
 from .io import (read_griddata_ascii, read_griddata_fits,
@@ -28,7 +30,8 @@ from .constants import HC_ERG_AA, MODEL_BANDFLUX_SPACING
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SALT2Source', 'MLCS2k2Source', 'SNEMOSource', 'Model',
-           'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
+           'SUGARSource', 'PropagationEffect', 'CCM89Dust', 'OD94Dust',
+           'F99Dust']
 
 _SOURCES = Registry()
 
@@ -418,7 +421,7 @@ class Source(_ModelBase):
         nsamples = int(ceil((self.maxphase()-self.minphase()) / sampling)) + 1
         phases = np.linspace(self.minphase(), self.maxphase(), nsamples)
 
-        if isinstance(band_or_wave, (str, Bandpass)):
+        if isinstance(band_or_wave, (six.string_types, Bandpass)):
             fluxes = self.bandflux(band_or_wave, phases)
         else:
             fluxes = self.flux(phases, band_or_wave)[:, 0]
@@ -573,6 +576,97 @@ class StretchSource(Source):
         return (self._parameters[0] *
                 self._model_flux(phase / self._parameters[1], wave))
 
+class SUGARSource(Source):
+    """
+    The SUGAR Type Ia supernova spectral time series template.
+
+    The spectral energy distribution of this model is given by
+
+    .. math::
+
+    F(t, \\lambda) = Xgr 10^{-0.4 (M_0(t, \\lambda)
+                                + q_1 \alpha_1(t, \\lambda)
+                                + q_2 \alpha_2(t, \\lambda)
+                                + q_3 \alpha_3(t, \\lambda)
+                                + Av CCM(\\lambda))} (10^{-3} c\\lambda^{2})
+
+    where ``Xgr``, ``q_1``, ``q_2``, ``q_3``  and ``Av`` are the free parameters
+    of the model,``alpha_0``, ``alpha_1``, `alpha_2``, `alpha_3``, `CCM`` are the template vectors
+    of the model.
+
+    Parameters
+    ----------
+    modeldir : str, optional
+        Directory path containing model component files. Default is `None`,
+        which means that no directory is prepended to filenames when
+        determining their path.
+        m0file, alpha1file, alpha2file, alpha3file, CCMfile: str or fileobj, optional
+        Filenames of various model components. Defaults are:
+
+        * m0file = 'sugar_template_0.dat' (2-d grid)
+        * alpha1file = 'sugar_template_1.dat' (2-d grid)
+        * alpha2file = 'sugar_template_2.dat' (2-d grid)
+        * alpha3file = 'sugar_template_3.dat' (2-d grid)
+        * CCMfile = 'sugar_template_4.dat' (2-d grid)
+
+    Notes
+    -----
+    The "2-d grid" files have the format ``<phase> <wavelength>
+    <value>`` on each line.
+    """
+    _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
+    param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
+
+    def __init__(self, modeldir=None,
+                 m0file='sugar_template_0.dat',
+                 alpha1file='sugar_template_1.dat',
+                 alpha2file='sugar_template_2.dat',
+                 alpha3file='sugar_template_3.dat',
+                 CCMfile='sugar_template_4.dat',
+                 name=None, version=None):
+
+        self.name = name
+        self.version = version
+        self._model = {}
+        self._parameters = np.array([1e-15, 1., 1., 1., 0.])
+        self.M_keys = ['M0', 'ALPHA1', 'ALPHA2', 'ALPHA3', 'CCM']
+        names_or_objs = {'M0': m0file,
+                         'ALPHA1': alpha1file,
+                         'ALPHA2': alpha2file,
+                         'ALPHA3': alpha3file,
+                         'CCM': CCMfile}
+
+        # Make filenames into full paths.
+        if modeldir is not None:
+            for k in names_or_objs:
+                v = names_or_objs[k]
+                if (v is not None and isinstance(v, six.string_types)):
+                    names_or_objs[k] = os.path.join(modeldir, v)
+
+        for i, key in enumerate(self.M_keys):
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+            if key == 'M0':
+                # The "native" phases and wavelengths of the model are those
+                self._phase = np.linspace(-12., 48, 21)
+                self._wave = wave
+
+    def _flux(self, phase, wave):
+        mag_sugar = self._model['M0'](phase, wave)
+        for i, key in enumerate(self.M_keys):
+            if key != 'M0':
+                mag_sugar += self._model[key](phase, wave) * self._parameters[i]
+
+        mag_sugar += 48.59 # mag AB used in the training of SUGAR.
+        wave_factor = (wave ** 2 / 299792458. * 1.e-10)
+        return (self._parameters[0] * 10. ** (-0.4 * mag_sugar) /  wave_factor)
+
+    def bandflux_rcov(self, band, phase):
+        """
+        Model error is comming.
+        """
+        return np.zeros(phase.shape, dtype=np.float64)
+
 
 class SALT2Source(Source):
     """The SALT2 Type Ia supernova spectral timeseries model.
@@ -661,7 +755,7 @@ class SALT2Source(Source):
         if modeldir is not None:
             for k in names_or_objs:
                 v = names_or_objs[k]
-                if (v is not None and isinstance(v, str)):
+                if (v is not None and isinstance(v, six.string_types)):
                     names_or_objs[k] = os.path.join(modeldir, v)
 
         # model components are interpolated to 2nd order
@@ -732,9 +826,7 @@ class SALT2Source(Source):
         # negatives to 0.0001)
         v[v < 0.0] = 0.0001
 
-        # avoid warnings due to evaluating 0. / 0. in f0 / ftot
-        with np.errstate(invalid='ignore'):
-            result = v * (f0 / ftot)**2 * scale**2
+        result = v * (f0 / ftot)**2 * scale**2
 
         # treat cases where ftot is negative the same as snfit
         result[ftot <= 0.0] = 10000.
@@ -829,7 +921,7 @@ class SALT2Source(Source):
         """Read color law file and set the internal colorlaw function."""
 
         # Read file
-        if isinstance(name_or_obj, str):
+        if isinstance(name_or_obj, six.string_types):
             f = open(name_or_obj, 'r')
         else:
             f = name_or_obj
@@ -1516,12 +1608,14 @@ class Model(_ModelBase):
             The return value is an `~numpy.ndarray` if phase is iterable.
         """
 
-        band1_isiterable = isiterable(band1) and not isinstance(band1, str)
-        band2_isiterable = isiterable(band2) and not isinstance(band2, str)
-        if band1_isiterable or band2_isiterable:
+        if (((isiterable(band1)) and
+           not (isinstance(band1, six.string_types))) or
+           ((isiterable(band2)) and
+           not (isinstance(band2, six.string_types)))):
             raise TypeError("Band arguments must be scalars.")
 
-        if (isiterable(magsys) and not isinstance(magsys, str)):
+        if ((isiterable(magsys)) and
+           not (isinstance(magsys, six.string_types))):
             raise TypeError("Magnitude system argument must be scalar.")
 
         return (self.bandmag(band1, magsys, time) -
@@ -1645,7 +1739,7 @@ class Model(_ModelBase):
                     effects=self._effects,
                     effect_names=self._effect_names,
                     effect_frames=self._effect_frames)
-        new._parameters[:] = self._parameters
+        new._parameters[0:2] = self._parameters[0:2]
         return new
 
     def __deepcopy__(self, memo):

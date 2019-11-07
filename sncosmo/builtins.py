@@ -18,12 +18,13 @@ import numpy as np
 from astropy import wcs, units as u
 from astropy.io import ascii, fits
 from astropy.config import ConfigItem, get_cache_dir
+from astropy.extern import six
 from astropy.utils.data import get_pkg_data_filename
 
 from . import io
 from . import snfitio
 from .utils import download_file, download_dir, DataMirror
-from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source,
+from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source, SUGARSource,
                      SNEMOSource, _SOURCES)
 from .bandpasses import (Bandpass, read_bandpass, _BANDPASSES,
                          _BANDPASS_INTERPOLATORS)
@@ -402,25 +403,10 @@ for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
                     ('4shooter2::v', 'bandpasses/4shooter2/V_4Shooter2.txt'),
                     ('4shooter2::r', 'bandpasses/4shooter2/R_4Shooter2.txt'),
                     ('4shooter2::i', 'bandpasses/4shooter2/I_4Shooter2.txt')]:
-
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=fourshooter_meta)
-
-
-# ZTF
-ztf_meta = {
-    'filterset': 'ztf',
-    'retrieved': '7 Jun 2018',
-    'description': 'ZTF filters from Uli Feindt. No atmospheric correction.'}
-for name, fname in [('ztfg', 'bandpasses/ztf/P48_g.dat'),
-                    ('ztfr', 'bandpasses/ztf/P48_R.dat'),
-                    ('ztfi', 'bandpasses/ztf/P48_I.dat')]:
-    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
-                                args=(fname,),
-                                meta=ztf_meta)
-
 # =============================================================================
-# interpolators
+# bandpass interpolators
 
 megacam_meta = {'filterset': 'megacampsf'}
 
@@ -461,7 +447,6 @@ def load_timeseries_fits_local(pkg_data_name, name=None, version=None):
 def load_salt2model(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath, isdir=True)
     return SALT2Source(modeldir=abspath, name=name, version=version)
-
 
 def load_2011fe(relpath, name=None, version=None):
 
@@ -600,6 +585,7 @@ for topdir, ver, ref in [('salt2-2-0', '2.0', g10ref),
                              args=('models/salt2/'+topdir,),
                              version=ver, meta=meta)
 
+
 # SALT2 extended
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT2Source`',
@@ -609,14 +595,7 @@ _SOURCES.register_loader('salt2-extended', load_salt2model,
                          args=('models/snana/salt2_extended',), version='1.0',
                          meta=meta)
 
-ref = ('SNSEDExtend', 'Pierel et al. 2018'
-       '<https://arxiv.org/abs/1808.02534>')
-meta = {'type': 'SN Ia',
-        'subclass': '`~sncosmo.SALT2Source`', 'ref': ref}
-_SOURCES.register_loader('salt2-extended', load_salt2model,
-                         args=('models/pierel/salt2-extended',), version='2.0',
-                         meta=meta)
-
+# SALT2 H17
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT2Source`',
         'url': 'http://snana.uchicago.edu/',
@@ -624,14 +603,9 @@ meta = {'type': 'SN Ia',
         " model with wide wavelength range, Hounsell et al. 2017",
         'reference': ('H17', 'Hounsell et al. 2017 '
                       '<http://adsabs.harvard.edu/abs/2017arXiv170201747H>')}
-_SOURCES.register_loader('salt2-extended-h17', load_salt2model,
+_SOURCES.register_loader('salt2-h17', load_salt2model,
                          args=('models/snana/salt2-h17',),
                          version='1.0', meta=meta)
-
-# Alias to 'salt2-h17' for backwards-compatibility
-_SOURCES.alias('salt2-h17', 'salt2-extended-h17', new_version='1.0',
-               existing_version='1.0')
-
 
 # 2011fe
 meta = {'type': 'SN Ia',
@@ -700,57 +674,6 @@ for name, sntype, fn in models:
     _SOURCES.register_loader(name, load_timeseries_ascii,
                              args=(relpath,), version='1.0', meta=meta)
 
-# P18
-p18Models_CC = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
-                ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
-                ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),  # no IAU
-                ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
-                ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU
-                ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
-                ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),
-                ('snana-04d1la', 'SN Ic', 'SNLS-04D1la.SED'),
-                ('snana-04d4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
-                ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
-                ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
-                ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
-                ('snana-2004ib', 'SN Ib', 'SDSS-000020.SED'),
-                ('snana-2005hm', 'SN Ib', 'SDSS-002744.SED'),  # PSNID
-                ('snana-2006jo', 'SN Ib', 'SDSS-014492.SED'),  # PSNID
-                ('snana-2007nc', 'SN Ib', 'SDSS-019323.SED'),
-                ('snana-2004hx', 'SN IIP', 'SDSS-000018.SED'),  # PSNID
-                ('snana-2005gi', 'SN IIP', 'SDSS-003818.SED'),  # PSNID
-                ('snana-2006gq', 'SN IIP', 'SDSS-013376.SED'),
-                ('snana-2006kn', 'SN IIP', 'SDSS-014450.SED'),
-                ('snana-2006jl', 'SN IIP', 'SDSS-014599.SED'),  # PSNID
-                ('snana-2006iw', 'SN IIP', 'SDSS-015031.SED'),
-                ('snana-2006kv', 'SN IIP', 'SDSS-015320.SED'),
-                ('snana-2006ns', 'SN IIP', 'SDSS-015339.SED'),
-                ('snana-2007iz', 'SN IIP', 'SDSS-017564.SED'),
-                ('snana-2007nr', 'SN IIP', 'SDSS-017862.SED'),
-                ('snana-2007kw', 'SN IIP', 'SDSS-018109.SED'),
-                ('snana-2007ky', 'SN IIP', 'SDSS-018297.SED'),
-                ('snana-2007lj', 'SN IIP', 'SDSS-018408.SED'),
-                ('snana-2007lb', 'SN IIP', 'SDSS-018441.SED'),
-                ('snana-2007ll', 'SN IIP', 'SDSS-018457.SED'),
-                ('snana-2007nw', 'SN IIP', 'SDSS-018590.SED'),
-                ('snana-2007ld', 'SN IIP', 'SDSS-018596.SED'),
-                ('snana-2007md', 'SN IIP', 'SDSS-018700.SED'),
-                ('snana-2007lz', 'SN IIP', 'SDSS-018713.SED'),
-                ('snana-2007lx', 'SN IIP', 'SDSS-018734.SED'),
-                ('snana-2007og', 'SN IIP', 'SDSS-018793.SED'),
-                ('snana-2007ny', 'SN IIP', 'SDSS-018834.SED'),
-                ('snana-2007nv', 'SN IIP', 'SDSS-018892.SED'),
-                ('snana-2007pg', 'SN IIP', 'SDSS-020038.SED')]
-
-ref = ('SNSEDExtend', 'Pierel et al. 2018'
-       '<https://arxiv.org/abs/1808.02534>')
-for name, sntype, fn in p18Models_CC:
-    relpath = os.path.join('models', 'pierel', fn)
-    meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype,
-            'ref': ref}
-    _SOURCES.register_loader(name, load_timeseries_ascii,
-                             args=(relpath,), version='2.0', meta=meta)
-
 
 # Pop III CC SN models from D.Whalen et al. 2013.
 meta = {'type': 'PopIII',
@@ -811,6 +734,90 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
                              version=ver, meta=meta)
 
 
+#SUGAR models
+def load_sugarmodel(relpath, name=None, version=None):
+    rep_name = os.path.expanduser('~/.astropy/cache/sncosmo/models/')
+    listdir = os.listdir(rep_name)
+    if 'sugar' not in listdir:
+        import requests
+        connect204 = requests.get('http://supernovae.in2p3.fr/sugar_template/sugar.tar.gz')
+        file_out_name = os.path.join(rep_name, 'sugar.tar.gz')
+        open(file_out_name, 'wb').write(connect204.content)
+        connect204.close()
+        os.system('tar -zxvf %s -C %s'%((file_out_name, rep_name)))
+        os.system('rm %s'%(file_out_name))
+
+    abspath = os.path.join(rep_name, 'sugar')
+    return SUGARSource(modeldir=abspath, name=name, version=version)
+
+for name, files, ver in [('sugar', 'sugar', '1.0')]:
+
+    meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
+            'url': 'http://supernovae.in2p3.fr/sugar_template/',
+            'reference': ('Leget19',
+                          'Leget et al. 2019',
+                          '<https://arxiv.org/abs/1909.11239>')}
+
+    _SOURCES.register_loader(name, load_sugarmodel,
+                             args=['models/sugar/'+files],
+                             version=ver, meta=meta)
+
+# P18
+p18Models_CC = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
+                ('snana-2004gq', 'SN Ic', 'CSP-2004gq.SED'),
+                ('snana-sdss004012', 'SN Ic', 'SDSS-004012.SED'),  # no IAU
+                ('snana-2006fo', 'SN Ic', 'SDSS-013195.SED'),  # PSNID
+                ('snana-sdss014475', 'SN Ic', 'SDSS-014475.SED'),  # no IAU
+                ('snana-2006lc', 'SN Ic', 'SDSS-015475.SED'),
+                ('snana-2007ms', 'SN II-pec', 'SDSS-017548.SED'),
+                ('snana-04d1la', 'SN Ic', 'SNLS-04D1la.SED'),
+                ('snana-04d4jv', 'SN Ic', 'SNLS-04D4jv.SED'),
+                ('snana-2004gv', 'SN Ib', 'CSP-2004gv.SED'),
+                ('snana-2006ep', 'SN Ib', 'CSP-2006ep.SED'),
+                ('snana-2007Y', 'SN Ib', 'CSP-2007Y.SED'),
+                ('snana-2004ib', 'SN Ib', 'SDSS-000020.SED'),
+                ('snana-2005hm', 'SN Ib', 'SDSS-002744.SED'),  # PSNID
+                ('snana-2006jo', 'SN Ib', 'SDSS-014492.SED'),  # PSNID
+                ('snana-2007nc', 'SN Ib', 'SDSS-019323.SED'),
+                ('snana-2004hx', 'SN IIP', 'SDSS-000018.SED'),  # PSNID
+                ('snana-2005gi', 'SN IIP', 'SDSS-003818.SED'),  # PSNID
+                ('snana-2006gq', 'SN IIP', 'SDSS-013376.SED'),
+                ('snana-2006kn', 'SN IIP', 'SDSS-014450.SED'),
+                ('snana-2006jl', 'SN IIP', 'SDSS-014599.SED'),  # PSNID
+                ('snana-2006iw', 'SN IIP', 'SDSS-015031.SED'),
+                ('snana-2006kv', 'SN IIP', 'SDSS-015320.SED'),
+                ('snana-2006ns', 'SN IIP', 'SDSS-015339.SED'),
+                ('snana-2007iz', 'SN IIP', 'SDSS-017564.SED'),
+                ('snana-2007nr', 'SN IIP', 'SDSS-017862.SED'),
+                ('snana-2007kw', 'SN IIP', 'SDSS-018109.SED'),
+                ('snana-2007ky', 'SN IIP', 'SDSS-018297.SED'),
+                ('snana-2007lj', 'SN IIP', 'SDSS-018408.SED'),
+                ('snana-2007lb', 'SN IIP', 'SDSS-018441.SED'),
+                ('snana-2007ll', 'SN IIP', 'SDSS-018457.SED'),
+                ('snana-2007nw', 'SN IIP', 'SDSS-018590.SED'),
+                ('snana-2007ld', 'SN IIP', 'SDSS-018596.SED'),
+                ('snana-2007md', 'SN IIP', 'SDSS-018700.SED'),
+                ('snana-2007lz', 'SN IIP', 'SDSS-018713.SED'),
+                ('snana-2007lx', 'SN IIP', 'SDSS-018734.SED'),
+                ('snana-2007og', 'SN IIP', 'SDSS-018793.SED'),
+                ('snana-2007ny', 'SN IIP', 'SDSS-018834.SED'),
+                ('snana-2007nv', 'SN IIP', 'SDSS-018892.SED'),
+                ('snana-2007pg', 'SN IIP', 'SDSS-020038.SED')]
+
+ref = ('SNSEDExtend', 'Pierel et al. 2018'
+       '<https://arxiv.org/abs/1808.02534>')
+for name, sntype, fn in p18Models_CC:
+    relpath = os.path.join('models', 'pierel', 'cc_models', fn)
+    meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype,
+            'ref': ref}
+    _SOURCES.register_loader(name, load_timeseries_ascii,
+                             args=(relpath,), version='2.0', meta=meta)
+
+meta = {'type': 'SN Ia',
+        'subclass': '`~sncosmo.SALT2Source`', 'ref': ref}
+_SOURCES.register_loader('salt2-extended', load_salt2model,
+                         args=('models/pierel/salt2',), version='2.0',
+                         meta=meta)
 # =============================================================================
 # MagSystems
 
