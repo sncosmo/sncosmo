@@ -23,7 +23,7 @@ from astropy.utils.data import get_pkg_data_filename
 from . import io
 from . import snfitio
 from .utils import download_file, download_dir, DataMirror
-from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source,
+from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source, SUGARSource,
                      SNEMOSource, _SOURCES)
 from .bandpasses import (Bandpass, read_bandpass, _BANDPASSES,
                          _BANDPASS_INTERPOLATORS)
@@ -810,6 +810,34 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
                              args=['models/snemo/'+file],
                              version=ver, meta=meta)
 
+
+#SUGAR models
+def load_sugarmodel(relpath, name=None, version=None):
+    rep_name = os.path.expanduser('~/.astropy/cache/sncosmo/models/')
+    listdir = os.listdir(rep_name)
+    if 'sugar' not in listdir:
+        import requests
+        connect204 = requests.get('http://supernovae.in2p3.fr/sugar_template/sugar.tar.gz')
+        file_out_name = os.path.join(rep_name, 'sugar.tar.gz')
+        open(file_out_name, 'wb').write(connect204.content)
+        connect204.close()
+        os.system('tar -zxvf %s -C %s'%((file_out_name, rep_name)))
+        os.system('rm %s'%(file_out_name))
+
+    abspath = os.path.join(rep_name, 'sugar')
+    return SUGARSource(modeldir=abspath, name=name, version=version)
+
+for name, files, ver in [('sugar', 'sugar', '1.0')]:
+
+    meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
+            'url': 'http://supernovae.in2p3.fr/sugar_template/',
+            'reference': ('Leget19',
+                          'Leget et al. 2019',
+                          '<https://arxiv.org/abs/1909.11239>')}
+
+    _SOURCES.register_loader(name, load_sugarmodel,
+                             args=['models/sugar/'+files],
+                             version=ver, meta=meta)
 
 # =============================================================================
 # MagSystems
