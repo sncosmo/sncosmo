@@ -813,23 +813,8 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
 
 #SUGAR models
 def load_sugarmodel(relpath, name=None, version=None):
-    rep_name = os.path.expanduser('~/.astropy/cache/sncosmo/models/')
-    try:
-        listdir = os.listdir(rep_name)
-    except:
-        os.system('mkdir -p ~/.astropy/cache/sncosmo/models/')
-        listdir = os.listdir(rep_name)
-    if 'sugar' not in listdir:
-        import requests
-        connect204 = requests.get('http://supernovae.in2p3.fr/sugar_template/sugar.tar.gz')
-        file_out_name = os.path.join(rep_name, 'sugar.tar.gz')
-        open(file_out_name, 'wb').write(connect204.content)
-        connect204.close()
-        os.system('tar -zxvf %s -C %s'%((file_out_name, rep_name)))
-        os.system('rm %s'%(file_out_name))
-
-    abspath = os.path.join(rep_name, 'sugar')
-    return SUGARSource(modeldir=abspath, name=name, version=version)
+    abspath = DATADIR.abspath(relpath)
+    return SNEMOSource(abspath, name=name, version=version)
 
 for name, files, ver in [('sugar', 'sugar', '1.0')]:
 

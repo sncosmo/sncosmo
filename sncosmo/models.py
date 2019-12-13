@@ -625,8 +625,9 @@ class SUGARSource(Source):
         self.name = name
         self.version = version
         self._model = {}
-        self._parameters = np.array([1e-15, 1., 1., 1., 0.])
         self.M_keys = ['M0', 'ALPHA1', 'ALPHA2', 'ALPHA3', 'CCM']
+        self._parameters = np.zeros(len(self.M_keys))
+        self._parameters[0] = 1.0e10-15
         names_or_objs = {'M0': m0file,
                          'ALPHA1': alpha1file,
                          'ALPHA2': alpha2file,
@@ -657,12 +658,6 @@ class SUGARSource(Source):
         mag_sugar += 48.59 # mag AB used in the training of SUGAR.
         wave_factor = (wave ** 2 / 299792458. * 1.e-10)
         return (self._parameters[0] * 10. ** (-0.4 * mag_sugar) /  wave_factor)
-
-    def bandflux_rcov(self, band, phase):
-        """
-        Model error is comming.
-        """
-        return np.zeros(phase.shape, dtype=np.float64)
 
 class SALT2Source(Source):
     """The SALT2 Type Ia supernova spectral timeseries model.
