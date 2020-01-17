@@ -813,7 +813,7 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
 
 #SUGAR models
 def load_sugarmodel(relpath, name=None, version=None):
-    abspath = DATADIR.abspath(relpath)
+    abspath = DATADIR.abspath(relpath, isdir=True)
     return SUGARSource(abspath, name=name, version=version)
 
 for name, files, ver in [('sugar', 'sugar', '1.0')]:

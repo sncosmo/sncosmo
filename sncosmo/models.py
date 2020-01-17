@@ -597,9 +597,9 @@ class SUGARSource(Source):
         Directory path containing model component files. Default is `None`,
         which means that no directory is prepended to filenames when
         determining their path.
-        m0file, alpha1file, alpha2file, alpha3file, CCMfile: str or fileobj, optional
+        
+    m0file, alpha1file, alpha2file, alpha3file, CCMfile: str or fileobj, optional
         Filenames of various model components. Defaults are:
-
         * m0file = 'sugar_template_0.dat' (2-d grid)
         * alpha1file = 'sugar_template_1.dat' (2-d grid)
         * alpha2file = 'sugar_template_2.dat' (2-d grid)
@@ -627,7 +627,7 @@ class SUGARSource(Source):
         self._model = {}
         self.M_keys = ['M0', 'ALPHA1', 'ALPHA2', 'ALPHA3', 'CCM']
         self._parameters = np.zeros(len(self.M_keys))
-        self._parameters[0] = 1.0e10-15
+        self._parameters[0] = 1e-15
         names_or_objs = {'M0': m0file,
                          'ALPHA1': alpha1file,
                          'ALPHA2': alpha2file,
