@@ -4,7 +4,6 @@ sphinx documentation via the automodule directive."""
 
 import string
 
-from astropy.extern import six
 from sncosmo.models import _SOURCES
 
 
@@ -53,7 +52,7 @@ lines.extend([lines[1], ''])
 for refkey, ref in allrefs:
     lines.append('.. [{0}] `{1}`__'.format(refkey, ref))
 lines.append('')
-for url, urlnum in six.iteritems(urlnums):
+for url, urlnum in urlnums.items():
     lines.append('.. _`{0}`: {1}'.format(string.ascii_letters[urlnum], url))
 lines.append('')
 for i, note in enumerate(allnotes):

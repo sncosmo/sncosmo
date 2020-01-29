@@ -2,7 +2,6 @@
 and save it to this module's docstring for the purpose of including in
 sphinx documentation via the automodule directive."""
 
-from astropy.extern import six
 from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS
 
 __all__ = []  # so that bandpass_table is not documented.

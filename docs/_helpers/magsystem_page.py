@@ -4,7 +4,6 @@ sphinx documentation via the automodule directive."""
 
 import string
 
-from astropy.extern import six
 from sncosmo.magsystems import _MAGSYSTEMS
 
 
@@ -36,7 +35,7 @@ for m in _MAGSYSTEMS.get_loaders_metadata():
                  .format(m['name'], description, m['subclass'], urllink))
 
 lines.extend([lines[1], ''])
-for url, urlnum in six.iteritems(urlnums):
+for url, urlnum in urlnums.items():
     lines.append('.. _`{0}`: {1}'.format(string.ascii_letters[urlnum], url))
 lines.append('')
 __doc__ = '\n'.join(lines)
