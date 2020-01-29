@@ -63,21 +63,14 @@ class Spectrum(object):
 
         Parameters
         ----------
-        band : Bandpass object or name of registered bandpass.
+        band : Bandpass or str
+            Bandpass object or name of registered bandpass.
 
         Returns
         -------
-        bandflux : float
-            Total flux in ph/s/cm^2. If part of bandpass falls
-            outside the spectrum, `None` is returned instead.
-        bandfluxerr : float
-            Error on flux. Only returned if the `error` attribute is not
-            `None`.
+        float
+            Total flux in ph/s/cm^2.
         """
-
-        # TODO: There is some duplication between this method and
-        # models._bandflux_single.
-
         band = get_bandpass(band)
 
         # Check that bandpass wavelength range is fully contained in spectrum
