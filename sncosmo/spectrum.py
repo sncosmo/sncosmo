@@ -89,6 +89,8 @@ class Spectrum(object):
 
         if self.wave.shape != self.flux.shape:
             raise ValueError('shape of wavelength and flux must match')
+        if self.fluxerr is not None and self.fluxerr.shape != self.flux.shape:
+            raise ValueError('shape of flux and fluxerr must match')
         if self.wave.ndim != 1:
             raise ValueError('only 1-d arrays supported')
 
@@ -158,7 +160,7 @@ class Spectrum(object):
 
         # Check that we have flux uncertainty information if we are trying to
         # evaluate the uncertainty.
-        if uncertainty and self.flux is None:
+        if uncertainty and self.fluxerr is None:
             raise ValueError("need to have the uncertainty on the spectrum to "
                              "evaluate the uncertainty on the band flux")
 
