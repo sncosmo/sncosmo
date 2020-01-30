@@ -21,12 +21,12 @@ def _estimate_bin_edges(wave):
     other more exotic forms of binning such as logarithmic bins. We do a second
     order correction to try to get the bin widths as accurately as possible.
 
-    For linear binning there is only machine precision error with either a first
-    or second order estimate.
+    For linear binning there is only machine precision error with either a
+    first or second order estimate.
 
     For higher order binnings (eg: log), the fractional error is of order (dA /
-    A)**2 for linear estimate and (dA / A)**4 for the second order estimate that
-    we do here.
+    A)**2 for linear estimate and (dA / A)**4 for the second order estimate
+    that we do here.
 
     Parameters
     ----------
@@ -121,7 +121,8 @@ class Spectrum(object):
             # wavelength list.
             bin_starts, bin_ends = _estimate_bin_edges(self.wave)
             bin_widths = bin_ends - bin_starts
-            self._tck_var = splrep(self.wave, self.fluxerr**2 * bin_widths, k=1)
+            self._tck_var = splrep(self.wave, self.fluxerr**2 * bin_widths,
+                                   k=1)
 
     def bandflux(self, band, zp, zpsys, uncertainty=False):
         """Perform synthentic photometry in a given bandpass.
