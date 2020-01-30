@@ -178,7 +178,7 @@ class SpectralMagSystem(MagSystem):
         self._refspectrum = refspectrum
 
     def _refspectrum_bandflux(self, band):
-        return self._refspectrum.bandflux(band)
+        return self._refspectrum.bandflux(band, None, None)
 
 
 class ABMagSystem(MagSystem):
