@@ -52,6 +52,49 @@ class TestFitting:
         self.data = data
         self.params = params
 
+    def _test_mutation(self, fit_func):
+        """Test a pipeline fitting function does not mutate arguments"""
+
+        # Use sncosmo example data for testing
+        data = sncosmo.load_example_data()
+        model = sncosmo.Model('salt2')
+        params = model.param_names
+        bounds = {'z': (0.3, 0.7)}
+
+        # Preserve original input data
+        original_data = deepcopy(data)
+        original_model = deepcopy(model)
+        original_bounds = deepcopy(bounds)
+        original_params = deepcopy(params)
+
+        # Check for argument mutation
+        fit_func(data, model, vparam_names=model.param_names, bounds=bounds)
+        self.assertTrue(
+            all(original_data == data),
+            '``data`` argument was mutated')
+
+        self.assertSequenceEqual(
+            original_params, params,
+            '``vparam_names`` argument was mutated')
+
+        self.assertEqual(
+            original_bounds, bounds,
+            '``bounds`` argument was mutated')
+
+        self.assertSequenceEqual(
+            original_model.parameters.tolist(),
+            model.parameters.tolist(),
+            '``model`` argument was mutated')
+
+    def test_fitlc_arg_mutation(self):
+        self._test_mutation(sncosmo.fit_lc)
+
+    def test_nestlc_arg_mutation(self):
+        self._test_mutation(sncosmo.nest_lc)
+
+    def test_mcmclc_arg_mutation(self):
+        self._test_mutation(sncosmo.mcmc_lc)
+
     @pytest.mark.skipif('not HAS_IMINUIT')
     def test_fit_lc(self):
         """Ensure that fit results match input model parameters (data are
