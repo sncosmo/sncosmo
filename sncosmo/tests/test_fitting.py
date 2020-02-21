@@ -77,9 +77,11 @@ class TestFitting:
     def test_fitlc_arg_mutation(self):
         self._test_mutation(sncosmo.fit_lc)
 
+    @pytest.mark.skipif('not HAS_NESTLE')
     def test_nestlc_arg_mutation(self):
         self._test_mutation(sncosmo.nest_lc)
 
+    @pytest.mark.skipif('not HAS_IMINUIT')
     def test_mcmclc_arg_mutation(self):
         self._test_mutation(sncosmo.mcmc_lc)
 
