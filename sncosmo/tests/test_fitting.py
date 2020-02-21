@@ -69,22 +69,10 @@ class TestFitting:
 
         # Check for argument mutation
         fit_func(data, model, vparam_names=model.param_names, bounds=bounds)
-        self.assertTrue(
-            all(original_data == data),
-            '``data`` argument was mutated')
-
-        self.assertSequenceEqual(
-            original_params, params,
-            '``vparam_names`` argument was mutated')
-
-        self.assertEqual(
-            original_bounds, bounds,
-            '``bounds`` argument was mutated')
-
-        self.assertSequenceEqual(
-            original_model.parameters.tolist(),
-            model.parameters.tolist(),
-            '``model`` argument was mutated')
+        assert all(original_data == data), '``data`` argument was mutated'
+        assert original_bounds == bounds, '``bounds`` argument was mutated'
+        assert all(a == b for a, b in zip(original_params, params)), '``vparam_names`` argument was mutated'
+        assert all(a == b for a, b in zip(original_model.parameters, model.parameters.tolist())), '``model`` argument was mutated'
 
     def test_fitlc_arg_mutation(self):
         self._test_mutation(sncosmo.fit_lc)
