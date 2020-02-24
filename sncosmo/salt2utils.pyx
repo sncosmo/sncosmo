@@ -13,16 +13,6 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from libc.math cimport fabs
 from libc.string cimport memcpy
 
-cimport
-numpy as np
-import numpy as np
-from cpython.mem import PyMem_Free, PyMem_Malloc
-from libc.math cimport
-
-fabs
-from libc.string cimport
-
-memcpy
 
 cdef int find_index_binary(double *values, int n, double x):
     """Find index i in array such that values[i] <= x < values[i+1].
