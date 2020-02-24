@@ -14,14 +14,23 @@ import sncosmo
 try:
     import iminuit
     HAS_IMINUIT = True
+
 except ImportError:
     HAS_IMINUIT = False
 
 try:
     import nestle
     HAS_NESTLE = True
+
 except ImportError:
     HAS_NESTLE = False
+
+try:
+    import emcee
+    HAS_EMCEE = True
+
+except ImportError:
+    HAS_EMCEE = False
 
 
 class TestFitting:
@@ -54,36 +63,45 @@ class TestFitting:
         self.params = params
 
     def _test_mutation(self, fit_func):
-        """Test a pipeline fitting function does not mutate arguments"""
+        """Test a fitting function does not mutate arguments"""
 
-        # Use sncosmo example data for testing
-        data = sncosmo.load_example_data()
-        model = sncosmo.Model('salt2')
-        params = model.param_names
-        bounds = {'z': (0.3, 0.7)}
+        # Some fitting functions require bounds for all varied parameters
+        bounds = {}
+        for param, param_val in zip(params, model.parameters):
+            bounds[param] = (param_val * .9, param_val * 1.1)
 
         # Preserve original input data
-        original_data = deepcopy(data)
-        original_model = deepcopy(model)
-        original_bounds = deepcopy(bounds)
-        original_params = deepcopy(params)
+        test_data = deepcopy(self.data)
+        test_model = deepcopy(self.model)
+        test_bounds = deepcopy(bounds)
+        test_params = deepcopy(self.params)
 
         # Check for argument mutation
-        fit_func(data, model, vparam_names=model.param_names, bounds=bounds)
-        assert all(original_data == data), '``data`` argument was mutated'
-        assert original_bounds == bounds, '``bounds`` argument was mutated'
-        assert all(a == b for a, b in zip(original_params, params)), '``vparam_names`` argument was mutated'
-        assert all(a == b for a, b in zip(original_model.parameters, model.parameters.tolist())), '``model`` argument was mutated'
+        fit_func(test_data, test_model, test_params, bounds=test_bounds)
+        vparams_mutated = all(a == b for a, b in zip(self.params, test_params))
+        model_mutated = all(a == b for a, b in zip(self.model.parameters, test_model.parameters))
+
+        err_msg = '``{}`` argument was mutated'
+        assert all(self.data == test_data), err_msg.format('data')
+        assert bounds == test_bounds, err_msg.format('bounds')
+        assert vparams_mutated, err_msg.format('vparam_names')
+        assert model_mutated, err_msg.format('model')
 
     def test_fitlc_arg_mutation(self):
+        """Test ``fit_lc`` does not mutate it's arguemts"""
+
         self._test_mutation(sncosmo.fit_lc)
 
     @pytest.mark.skipif('not HAS_NESTLE')
     def test_nestlc_arg_mutation(self):
+        """Test ``nest_lc`` does not mutate it's arguemts"""
+
         self._test_mutation(sncosmo.nest_lc)
 
-    @pytest.mark.skipif('not HAS_IMINUIT')
+    @pytest.mark.skipif('not HAS_EMCEE')
     def test_mcmclc_arg_mutation(self):
+        """Test ``mcmc_lc`` does not mutate it's arguemts"""
+
         self._test_mutation(sncosmo.mcmc_lc)
 
     @pytest.mark.skipif('not HAS_IMINUIT')
