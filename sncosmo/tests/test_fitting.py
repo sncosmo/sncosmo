@@ -79,7 +79,8 @@ class TestFitting:
         # Check for argument mutation
         fit_func(test_data, test_model, test_params, bounds=test_bounds)
         vparams_mutated = all(a == b for a, b in zip(self.params, test_params))
-        model_mutated = all(a == b for a, b in zip(self.model.parameters, test_model.parameters))
+        model_mutated = all(a == b for a, b in
+                            zip(self.model.parameters, test_model.parameters))
 
         err_msg = '``{}`` argument was mutated'
         assert all(self.data == test_data), err_msg.format('data')
