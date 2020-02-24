@@ -13,6 +13,7 @@ import sncosmo
 
 try:
     import iminuit
+
     HAS_IMINUIT = True
 
 except ImportError:
@@ -20,6 +21,7 @@ except ImportError:
 
 try:
     import nestle
+
     HAS_NESTLE = True
 
 except ImportError:
@@ -27,6 +29,7 @@ except ImportError:
 
 try:
     import emcee
+
     HAS_EMCEE = True
 
 except ImportError:
@@ -48,12 +51,14 @@ class TestFitting:
         model.set(**params)
         flux = model.bandflux(bands, times, zp=zp, zpsys=zpsys)
         fluxerr = len(bands) * [0.1 * np.max(flux)]
-        data = Table({'time': times,
-                      'band': bands,
-                      'flux': flux,
-                      'fluxerr': fluxerr,
-                      'zp': zp,
-                      'zpsys': zpsys})
+        data = Table({
+            'time': times,
+            'band': bands,
+            'flux': flux,
+            'fluxerr': fluxerr,
+            'zp': zp,
+            'zpsys': zpsys
+        })
 
         # reset parameters
         model.set(z=0., t0=0., amplitude=1.)
@@ -78,30 +83,33 @@ class TestFitting:
 
         # Check for argument mutation
         fit_func(test_data, test_model, test_params, bounds=test_bounds)
-        vparams_mutated = all(a == b for a, b in zip(self.params, test_params))
-        model_mutated = all(a == b for a, b in
-                            zip(self.model.parameters, test_model.parameters))
+        param_preserved = all(a == b for a, b in zip(self.params, test_params))
+        model_preserved = all(
+            a == b for a, b in
+            zip(self.model.parameters, test_model.parameters)
+        )
 
         err_msg = '``{}`` argument was mutated'
         assert all(self.data == test_data), err_msg.format('data')
         assert bounds == test_bounds, err_msg.format('bounds')
-        assert vparams_mutated, err_msg.format('vparam_names')
-        assert model_mutated, err_msg.format('model')
+        assert param_preserved, err_msg.format('vparam_names')
+        assert model_preserved, err_msg.format('model')
 
+    @pytest.mark.skipif('not HAS_IMINUIT')
     def test_fitlc_arg_mutation(self):
-        """Test ``fit_lc`` does not mutate it's arguemts"""
+        """Test ``fit_lc`` does not mutate it's arguments"""
 
         self._test_mutation(sncosmo.fit_lc)
 
     @pytest.mark.skipif('not HAS_NESTLE')
     def test_nestlc_arg_mutation(self):
-        """Test ``nest_lc`` does not mutate it's arguemts"""
+        """Test ``nest_lc`` does not mutate it's arguments"""
 
         self._test_mutation(sncosmo.nest_lc)
 
     @pytest.mark.skipif('not HAS_EMCEE')
     def test_mcmclc_arg_mutation(self):
-        """Test ``mcmc_lc`` does not mutate it's arguemts"""
+        """Test ``mcmc_lc`` does not mutate it's arguments"""
 
         self._test_mutation(sncosmo.mcmc_lc)
 
