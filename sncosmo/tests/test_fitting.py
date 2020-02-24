@@ -72,18 +72,19 @@ class TestFitting:
 
         # Some fitting functions require bounds for all varied parameters
         bounds = {}
-        for param, param_val in zip(self.params, self.model.parameters):
-            bounds[param] = (param_val * .9, param_val * 1.1)
+        for param, param_val in self.params.items():
+            bounds[param] = (param_val * .95, param_val * 1.05)
 
         # Preserve original input data
+        vparams = list(self.params.keys())
         test_data = deepcopy(self.data)
         test_model = deepcopy(self.model)
         test_bounds = deepcopy(bounds)
-        test_params = deepcopy(self.params)
+        test_vparams = deepcopy(vparams)
 
         # Check for argument mutation
-        fit_func(test_data, test_model, test_params, bounds=test_bounds)
-        param_preserved = all(a == b for a, b in zip(self.params, test_params))
+        fit_func(test_data, test_model, test_vparams, bounds=test_bounds)
+        param_preserved = all(a == b for a, b in zip(vparams, test_vparams))
         model_preserved = all(
             a == b for a, b in
             zip(self.model.parameters, test_model.parameters)
