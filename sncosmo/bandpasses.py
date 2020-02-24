@@ -2,15 +2,15 @@
 
 import copy
 
-import numpy as np
-from scipy.interpolate import splrep, splev
-from astropy.utils import lazyproperty
-from astropy.io import ascii
 import astropy.units as u
+import numpy as np
+from astropy.io import ascii
+from astropy.utils import lazyproperty
+from scipy.interpolate import splev, splrep
 
 from ._registry import Registry
-from .utils import integration_grid
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
+from .utils import integration_grid
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass', 'AggregateBandpass',
            'BandpassInterpolator']

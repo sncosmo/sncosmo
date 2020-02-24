@@ -1,9 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Public interface functions for registering and retrieving from registries"""
 
-from . import models
 from . import bandpasses
 from . import magsystems
+from . import models
 
 __all__ = ['register_loader', 'register']
 

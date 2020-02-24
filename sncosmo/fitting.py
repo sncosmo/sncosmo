@@ -1,17 +1,15 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import copy
-import time
 import math
-from collections import OrderedDict
+import time
 import warnings
+from collections import OrderedDict
 
 import numpy as np
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 
-from .photdata import photometric_data, select_data
-from .utils import Result, Interp1D, ppf
-from .bandpasses import get_bandpass
+from .photdata import photometric_data
+from .utils import Interp1D, Result, ppf
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq']
 

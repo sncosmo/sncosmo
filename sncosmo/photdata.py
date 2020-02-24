@@ -1,16 +1,15 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Convenience functions for photometric data."""
 
-from collections import OrderedDict
 import copy
-import math
+from collections import OrderedDict
 
 import numpy as np
 from astropy.table import Table
 
-from .utils import alias_map
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
+from .utils import alias_map
 
 __all__ = ['select_data']
 

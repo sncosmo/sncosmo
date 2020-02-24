@@ -6,32 +6,25 @@
 - MagSystems
 """
 
-import string
-import tarfile
-import warnings
 import os
+import warnings
 from os.path import join
-import codecs
-from collections import OrderedDict
 
 import numpy as np
-from astropy import wcs, units as u
-from astropy.io import ascii, fits
-from astropy.config import ConfigItem, get_cache_dir
+from astropy import units as u, wcs
+from astropy.config import get_cache_dir
+from astropy.io import fits
 from astropy.utils.data import get_pkg_data_filename
 
+from . import conf
 from . import io
 from . import snfitio
-from .utils import download_file, download_dir, DataMirror
-from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source,
-                     SNEMOSource, _SOURCES)
-from .bandpasses import (Bandpass, read_bandpass, _BANDPASSES,
-                         _BANDPASS_INTERPOLATORS)
-from .spectrum import Spectrum
-from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
-                         CompositeMagSystem, _MAGSYSTEMS)
-from . import conf
+from .bandpasses import (Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
 from .constants import BANDPASS_TRIM_LEVEL
+from .magsystems import (ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
+from .models import (MLCS2k2Source, SALT2Source, SNEMOSource, TimeSeriesSource, _SOURCES)
+from .spectrum import Spectrum
+from .utils import DataMirror
 
 # This module is only imported for its side effects.
 __all__ = []

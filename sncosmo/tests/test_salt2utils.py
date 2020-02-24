@@ -8,7 +8,6 @@ from scipy.interpolate import RectBivariateSpline
 import sncosmo
 from sncosmo.salt2utils import BicubicInterpolator, SALT2ColorLaw
 
-
 # On Python 2 highest protocol is 2.
 # Protocols 0 and 1 don't work on the classes here!
 TEST_PICKLE_PROTOCOLS = (2, 3, 4)

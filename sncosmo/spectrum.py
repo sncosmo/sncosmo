@@ -1,13 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-import numpy as np
 import astropy.units as u
-import astropy.constants as const
-from scipy.interpolate import splrep, splev
+import numpy as np
+from scipy.interpolate import splev, splrep
 
 from .bandpasses import get_bandpass
+from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 from .utils import integration_grid
-from .constants import SPECTRUM_BANDFLUX_SPACING, HC_ERG_AA
 
 __all__ = ['Spectrum']
 

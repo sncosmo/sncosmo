@@ -2,11 +2,11 @@
 
 from os.path import dirname, join
 
-import pytest
 import numpy as np
-from numpy.random import RandomState
-from numpy.testing import assert_allclose, assert_almost_equal
+import pytest
 from astropy.table import Table
+from numpy.random import RandomState
+from numpy.testing import assert_allclose
 
 import sncosmo
 
