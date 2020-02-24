@@ -67,7 +67,7 @@ class TestFitting:
 
         # Some fitting functions require bounds for all varied parameters
         bounds = {}
-        for param, param_val in zip(params, model.parameters):
+        for param, param_val in zip(self.params, self.model.parameters):
             bounds[param] = (param_val * .9, param_val * 1.1)
 
         # Preserve original input data
