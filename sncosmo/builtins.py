@@ -19,10 +19,16 @@ from astropy.utils.data import get_pkg_data_filename
 from . import conf
 from . import io
 from . import snfitio
-from .bandpasses import (Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
+from .bandpasses import (
+    Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
+
 from .constants import BANDPASS_TRIM_LEVEL
-from .magsystems import (ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
-from .models import (MLCS2k2Source, SALT2Source, SNEMOSource, TimeSeriesSource, _SOURCES)
+from .magsystems import (
+    ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
+
+from .models import (
+    MLCS2k2Source, SALT2Source, SNEMOSource, TimeSeriesSource, _SOURCES)
+
 from .spectrum import Spectrum
 from .utils import DataMirror
 
