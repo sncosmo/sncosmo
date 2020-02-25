@@ -1,9 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Constants used elsewhere in sncosmo."""
 
-import astropy.units as u
 import astropy.constants as const
-
+import astropy.units as u
 
 BANDPASS_TRIM_LEVEL = 0.001
 SPECTRUM_BANDFLUX_SPACING = 1.0

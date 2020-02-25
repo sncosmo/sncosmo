@@ -1,7 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal
 from astropy.table import Table
 
 import sncosmo

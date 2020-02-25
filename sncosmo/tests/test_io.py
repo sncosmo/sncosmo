@@ -1,15 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
-from io import StringIO, BytesIO
 import os
+from io import BytesIO, StringIO
 from os.path import dirname, join
-from tempfile import mkdtemp, NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal
-from astropy.table import Table
 from astropy import wcs
 from astropy.io import fits
+from astropy.table import Table
+from numpy.testing import assert_allclose
+
 import sncosmo
 
 # Dummy data used for read_lc/write_lc round-tripping tests

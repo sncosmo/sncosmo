@@ -3,10 +3,9 @@
 import math
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal
-from astropy import units as u
-from astropy.utils.data import get_pkg_data_filename
 import pytest
+from astropy import units as u
+from numpy.testing import assert_allclose, assert_almost_equal
 
 import sncosmo
 

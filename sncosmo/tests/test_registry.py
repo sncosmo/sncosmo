@@ -2,6 +2,7 @@
 """Test registry functions."""
 
 import numpy as np
+
 import sncosmo
 
 

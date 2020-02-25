@@ -1,20 +1,18 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions for supernova light curve I/O"""
 
+import json
 import math
 import os
-import sys
-import re
-import json
 from collections import OrderedDict
 
 import numpy as np
-from astropy.table import Table
-from astropy.io import fits
 from astropy import wcs
+from astropy.io import fits
+from astropy.table import Table
 
-from .utils import dict_to_array
 from .bandpasses import get_bandpass
+from .utils import dict_to_array
 
 __all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
            'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']

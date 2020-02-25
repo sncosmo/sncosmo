@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
 from io import StringIO
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_approx_equal
 

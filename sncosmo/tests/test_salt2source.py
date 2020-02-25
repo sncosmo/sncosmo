@@ -5,8 +5,8 @@
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_approx_equal
 import pytest
+from numpy.testing import assert_allclose
 
 import sncosmo
 

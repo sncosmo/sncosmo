@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
-from os.path import join, dirname
+from os.path import dirname, join
 
 from numpy.testing import assert_allclose
 
