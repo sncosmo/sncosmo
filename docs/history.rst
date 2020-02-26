@@ -8,6 +8,21 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.1.0 (2020-02-25)
+===================
+
+- Add ZTF transmission functions
+
+- Bugfixes
+
+  - Corrected pyproject.toml; should help cases where the wrong numpy
+    version was being installed.
+
+  - Remove all references to the six package
+
+  - Fix accidental mutation of ``bounds`` inputs in ``fit_lc`` and
+    ``mcmc_lc``.
+
 v2.0.0 (2019-06-08)
 ===================
 
