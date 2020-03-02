@@ -8,9 +8,8 @@ from collections import OrderedDict
 
 import numpy as np
 
-from .photdata import photometric_data
-from .photdata import spectroscopic_data, select_data
-from .utils import Interp1D, Result ppf
+from .photdata import photometric_data, spectroscopic_data, select_data
+from .utils import Interp1D, Result, ppf
 from .bandpasses import get_bandpass
 
 __all__ = ['fit_lc', 'nest_lc', 'mcmc_lc', 'flatten_result', 'chisq', 'fit_sts']
