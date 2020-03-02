@@ -37,6 +37,8 @@ def generate_chisq(data, model, signature='iminuit', modelcov=False):
     # parameters)
     if signature == 'iminuit':
         def chisq(*parameters):
+            if np.any(np.isnan(parameters)):
+                return np.nan
             model.parameters = parameters
             model_flux = model.bandflux(data.band, data.time,
                                         zp=data.zp, zpsys=data.zpsys)
