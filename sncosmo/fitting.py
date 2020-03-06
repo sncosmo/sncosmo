@@ -37,6 +37,12 @@ def generate_chisq(data, model, signature='iminuit', modelcov=False):
     # parameters)
     if signature == 'iminuit':
         def chisq(*parameters):
+            # When a fit fails, iminuit sometimes calls the chisq function with the
+            # parameters set to nan. This sometimes leads to a segfault in sncosmo
+            # because the internal functions (specifically BicubicInterpolator) aren't
+            # designed to handle that. See https://github.com/sncosmo/sncosmo/issues/266
+            # for details. For now, return nan to minuit if it tries to set any
+            # parameter to nan.
             if np.any(np.isnan(parameters)):
                 return np.nan
             model.parameters = parameters
