@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from os.path import dirname, join
+from collections import defaultdict
 
 import numpy as np
 import pytest
@@ -60,11 +61,28 @@ class TestFitting:
             'zpsys': zpsys
         })
 
+        # generate fake spectral time series data with no errors
+        wave = np.geomspace(model.minwave()+1, model.maxwave()-1, 300)
+        times = np.arange(model.mintime(), model.maxtime(), 3)
+        sts_data = defaultdict(list)
+        for time in times:
+            flux = model.flux(time, wave)
+            flux_err = 0.1 * np.max(flux) * np.ones(len(flux))
+            sts_data['time'].append(time * np.ones(len(flux)))
+            sts_data['wave'].append(wave)
+            sts_data['flux'].append(flux)
+            sts_data['flux_err'].append(flux_err)
+
+        for key, val in sts_data.items():
+            sts_data[key] = np.array(val).flatten()
+        sts_data = Table(sts_data)
+
         # reset parameters
         model.set(z=0., t0=0., amplitude=1.)
 
         self.model = model
         self.data = data
+        self.sts_data = sts_data
         self.params = params
 
     def _test_mutation(self, fit_func):
@@ -126,6 +144,17 @@ class TestFitting:
                                        bounds={'z': (0., 1.0)})
 
         # set model to true parameters and compare to fit results.
+        self.model.set(**self.params)
+        assert_allclose(res.parameters, self.model.parameters, rtol=1.e-3)
+
+    @pytest.mark.skipif('not HAS_IMINUIT')
+    def test_fit_sts(self):
+        """Ensure that spectral time series fit results match model parameters
+        when data are noise-free.
+
+        Note that redshift fitting is not yet implemented"""
+        res, fitmodel = sncosmo.fit_sts(self.sts_data, self.model,
+                                        ['amplitude', 't0'])
         self.model.set(**self.params)
         assert_allclose(res.parameters, self.model.parameters, rtol=1.e-3)
 
