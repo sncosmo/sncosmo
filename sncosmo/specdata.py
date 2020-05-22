@@ -4,23 +4,29 @@
 
 import numpy as np
 from astropy.table import Table
+from scipy.linalg import block_diag
 
-from .bandpasses import Bandpass
+from .bandpasses import Bandpass, get_bandpass
 from .photdata import PhotometricData
+from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
+from .utils import integration_grid
 
 __all__ = ['SpectrumData']
 
 
 def _estimate_bin_edges(wave):
     """Estimate the edges of a set of wavelength bins given the bin centers.
+
     This function is designed to work for standard linear binning along with
     other more exotic forms of binning such as logarithmic bins. We do a second
-    order correction to try to get the bin widths as accurately as possible.
-    For linear binning there is only machine precision error with either a
-    first or second order estimate.
+    order correction to try to get the bin widths as accurately as possible. For
+    linear binning there is only machine precision error with either a first or
+    second order estimate.
+
     For higher order binnings (eg: log), the fractional error is of order (dA /
     A)**2 for linear estimate and (dA / A)**4 for the second order estimate
     that we do here.
+
     Parameters
     ----------
     wave : array-like
@@ -79,6 +85,10 @@ def _parse_wavelength_information(wave, bin_edges, bin_starts, bin_ends):
         bin_ends = bin_edges[1:]
     elif bin_starts is None or bin_ends is None:
         raise ValueError('must specify both bin_starts and bin_ends')
+
+    # Make sure that the bin ends are larger than the bin starts.
+    if np.any(bin_starts >= bin_ends):
+        raise ValueError('bin_ends must be larger than bin_starts')
 
     return bin_starts, bin_ends
 
@@ -199,11 +209,48 @@ class SpectrumData(object):
 
         return photdata
 
-    def apply_binning(self, wave=None, bin_edges=None, bin_starts=None,
-                      bin_ends=None, method='average_interpolate',
-                      weighting='variance', integrate=False, interpolate=False,
-                      **binning_data):
-        """Bin the spectrum with the given bin edges."""
+    def merge(self, other):
+        """Merge two spectra.
+
+        This doesn't do any rebinning, it keeps all of the bins from the two
+        original spectra. Call .rebin() if you want to get a contiguous
+        spectrum.
+        """
+
+        # Figure out what to do with the uncertainties.
+        if self.has_uncertainties() != other.has_uncertainties():
+            raise ValueError("one spectrum has uncertainties but the other "
+                             "doesn't. can't handle.")
+        elif not (self.has_uncertainties() or other.has_uncertainties()):
+            # No uncertainties for either spectrum.
+            merge_fluxerr = None
+            merge_fluxcov = None
+        if self._fluxerr is not None and other._fluxerr is not None:
+            # Have uncorrelated uncertainties for both.
+            merge_fluxerr = np.concatenate([self._fluxerr, other._fluxerr])
+            merge_fluxcov = None
+        else:
+            # Have a covariance matrix for one. Build a combined covariance
+            # matrix assuming that the two spectra have no covariance between
+            # them.
+            merge_fluxerr = None
+            merge_fluxcov = block_diag(self.fluxcov, other.fluxcov)
+
+        return SpectrumData(
+            bin_starts=np.concatenate([self.bin_starts, other.bin_starts]),
+            bin_ends=np.concatenate([self.bin_ends, other.bin_ends]),
+            flux=np.concatenate([self.flux, other.flux]),
+            fluxerr=merge_fluxerr,
+            fluxcov=merge_fluxcov,
+            time=self.time,
+        )
+
+
+    def rebin(self, wave=None, bin_edges=None, bin_starts=None, bin_ends=None):
+        """Rebin the spectrum with the given bin edges.
+
+        TODO: variance weighting or things like that?
+        """
         new_bin_starts, new_bin_ends = (
             _parse_wavelength_information(wave, bin_edges, bin_starts, bin_ends)
         )
@@ -234,7 +281,67 @@ class SpectrumData(object):
             bin_ends=new_bin_ends,
             flux=new_flux,
             fluxcov=new_fluxcov,
+            time=self.time,
         )
+
+    def is_contiguous(self):
+        """Check whether the spectral elements are contiguous."""
+        return np.all(self.bin_starts[1:] == self.bin_ends[:-1])
+
+    def has_uncertainties(self):
+        """Check whether there is uncertainty information available."""
+        return self._fluxcov is not None or self._fluxerr is not None
+
+    def bandflux(self, band):
+        """Perform synthentic photometry in a given bandpass.
+
+        The bandpass transmission is interpolated onto the wavelength grid of
+        the spectrum. The result is a weighted sum of the spectral flux density
+        values (weighted by transmission values).
+
+        TODO docs
+
+        Parameters
+        ----------
+        band : Bandpass or str
+            Bandpass object or name of registered bandpass.
+
+        Returns
+        -------
+        float
+            Total flux in ph/s/cm^2.
+        """
+        if not self.is_contiguous():
+            raise ValueError('spectral elements are not contiguous. rebin '
+                             'before calculating synthetic photometry')
+
+        band = get_bandpass(band)
+
+        # Check that bandpass wavelength range is fully contained in spectrum
+        # wavelength range.
+        if (band.minwave() < self.bin_starts[0] or band.maxwave() >
+                self.bin_ends[-1]):
+            raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                             'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                             .format(band.name, band.minwave(), band.maxwave(),
+                                     self.bin_starts[0], self.bin_ends[-1]))
+
+        # Calculate the weight for each spectral element.
+        weights = np.zeros(len(self))
+        for bin_idx in range(len(self)):
+            wave, dwave = integration_grid(self.bin_starts[bin_idx],
+                                           self.bin_ends[bin_idx],
+                                           SPECTRUM_BANDFLUX_SPACING)
+            trans = band(wave)
+
+            bin_weight = np.sum(wave * trans * dwave) / HC_ERG_AA
+            weights[bin_idx] = bin_weight
+
+        # Calculate the flux and uncertainties.
+        bandflux = self.flux.dot(weights)
+        bandfluxerr = np.sqrt(self.fluxcov.dot(weights).dot(weights))
+
+        return bandflux, bandfluxerr
 
     def __len__(self):
         return len(self.flux)
