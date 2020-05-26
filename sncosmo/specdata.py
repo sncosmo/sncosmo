@@ -54,14 +54,12 @@ def _estimate_bin_edges(wave):
 
     # Stack everything together
     bin_edges = np.hstack([f1, f2, o2, b2, b1])
-    bin_starts = bin_edges[:-1]
-    bin_ends = bin_edges[1:]
 
-    return bin_starts, bin_ends
+    return bin_edges
 
 
-def _parse_wavelength_information(wave, bin_edges, bin_starts, bin_ends):
-    """Parse wavelength information and return a set of bin starts and ends
+def _parse_wavelength_information(wave, bin_edges):
+    """Parse wavelength information and return a set of bin edges.
 
     TODO: documentation
     """
@@ -71,26 +69,18 @@ def _parse_wavelength_information(wave, bin_edges, bin_starts, bin_ends):
         valid_count += 1
     if bin_edges is not None:
         valid_count += 1
-    if bin_starts is not None and bin_ends is not None:
-        valid_count += 1
     if valid_count != 1:
-        raise ValueError('must specify exactly one of wave, bin_edges, or '
-                         'bin_starts and bin_ends')
+        raise ValueError('must specify exactly one of wave or bin_edges')
 
     # Extract the bin starts and ends.
     if wave is not None:
-        bin_starts, bin_ends = _estimate_bin_edges(np.asarray(wave))
-    elif bin_edges is not None:
-        bin_starts = bin_edges[:-1]
-        bin_ends = bin_edges[1:]
-    elif bin_starts is None or bin_ends is None:
-        raise ValueError('must specify both bin_starts and bin_ends')
+        bin_edges = _estimate_bin_edges(np.asarray(wave))
 
     # Make sure that the bin ends are larger than the bin starts.
-    if np.any(bin_starts >= bin_ends):
-        raise ValueError('bin_ends must be larger than bin_starts')
+    if np.any(bin_edges[1:] <= bin_edges[:-1]):
+        raise ValueError('wavelength must be monotonically increasing')
 
-    return bin_starts, bin_ends
+    return bin_edges
 
 
 class SpectrumData(object):
@@ -116,18 +106,15 @@ class SpectrumData(object):
     TODO
 
     """
-    def __init__(self, wave=None, flux=None, fluxerr=None, fluxcov=None,
-                 bin_edges=None, bin_starts=None, bin_ends=None, time=None):
-        # Extract the bin starts and ends
-        bin_starts, bin_ends = _parse_wavelength_information(
-            wave, bin_edges, bin_starts, bin_ends
-        )
-        self.bin_starts = bin_starts
-        self.bin_ends = bin_ends
+    def __init__(self, wave=None, flux=None, fluxerr=None, fluxcov=None, bin_edges=None,
+                 time=None):
+        # Extract the bin edges
+        bin_edges = _parse_wavelength_information(wave, bin_edges)
+        self.bin_edges = bin_edges
 
         # Make sure that the flux data matches up with the wavelength data.
         self.flux = np.asarray(flux)
-        if not (len(self.bin_starts) == len(self.bin_ends) == len(self.flux)):
+        if not (len(self.bin_edges) - 1 == len(self.flux)):
             raise ValueError("unequal column lengths")
 
         # Extract uncertainty information in whatever form it came in.
@@ -138,15 +125,24 @@ class SpectrumData(object):
             if fluxcov is not None:
                 raise ValueError("can only specify one of fluxerr and fluxcov")
             self._fluxerr = np.array(fluxerr)
-            if len(self._fluxerr) != len(self.bin_starts):
+            if len(self._fluxerr) != len(self.flux):
                 raise ValueError("unequal column lengths")
         elif fluxcov is not None:
             self._fluxcov = np.array(fluxcov)
-            if not (len(self.bin_starts) == self._fluxcov.shape[0] ==
-                    self._fluxcov.shape[1]):
+            if not (len(self.flux) == self._fluxcov.shape[0] == self._fluxcov.shape[1]):
                 raise ValueError("unequal column lengths")
 
         self.time = time
+
+    @property
+    def bin_starts(self):
+        """Return the start of each bin."""
+        return self.bin_edges[:-1]
+
+    @property
+    def bin_ends(self):
+        """Return the end of each bin."""
+        return self.bin_edges[1:]
 
     @property
     def wave(self):
@@ -208,85 +204,6 @@ class SpectrumData(object):
 
         return photdata
 
-    def merge(self, other):
-        """Merge two spectra.
-
-        This doesn't do any rebinning, it keeps all of the bins from the two
-        original spectra. Call .rebin() if you want to get a contiguous
-        spectrum.
-        """
-
-        # Figure out what to do with the uncertainties.
-        if self.has_uncertainties() != other.has_uncertainties():
-            raise ValueError("one spectrum has uncertainties but the other "
-                             "doesn't. can't handle.")
-        elif not (self.has_uncertainties() or other.has_uncertainties()):
-            # No uncertainties for either spectrum.
-            merge_fluxerr = None
-            merge_fluxcov = None
-        if self._fluxerr is not None and other._fluxerr is not None:
-            # Have uncorrelated uncertainties for both.
-            merge_fluxerr = np.concatenate([self._fluxerr, other._fluxerr])
-            merge_fluxcov = None
-        else:
-            # Have a covariance matrix for one. Build a combined covariance
-            # matrix assuming that the two spectra have no covariance between
-            # them.
-            merge_fluxerr = None
-            merge_fluxcov = block_diag(self.fluxcov, other.fluxcov)
-
-        return SpectrumData(
-            bin_starts=np.concatenate([self.bin_starts, other.bin_starts]),
-            bin_ends=np.concatenate([self.bin_ends, other.bin_ends]),
-            flux=np.concatenate([self.flux, other.flux]),
-            fluxerr=merge_fluxerr,
-            fluxcov=merge_fluxcov,
-            time=self.time,
-        )
-
-
-    def rebin(self, wave=None, bin_edges=None, bin_starts=None, bin_ends=None):
-        """Rebin the spectrum with the given bin edges.
-
-        TODO: variance weighting or things like that?
-        """
-        new_bin_starts, new_bin_ends = (
-            _parse_wavelength_information(wave, bin_edges, bin_starts, bin_ends)
-        )
-
-        old_bin_starts = self.bin_starts
-        old_bin_ends = self.bin_ends
-
-        # Generate a weight matrix for the transformation.
-        overlap_starts = np.max(np.meshgrid(old_bin_starts, new_bin_starts),
-                                axis=0)
-        overlap_ends = np.min(np.meshgrid(old_bin_ends, new_bin_ends), axis=0)
-        overlaps = overlap_ends - overlap_starts
-        overlaps[overlaps < 0] = 0
-
-        # Normalize by the total overlap in each bin to keep everything in units
-        # of f_lambda
-        total_overlaps = np.sum(overlaps, axis=1)
-        if np.any(total_overlaps == 0):
-            raise ValueError("new binning not contained within original "
-                             "spectrum")
-        weight_matrix = overlaps / total_overlaps[:, None]
-
-        new_flux = weight_matrix.dot(self.flux)
-        new_fluxcov = weight_matrix.dot(self.fluxcov.dot(weight_matrix.T))
-
-        return SpectrumData(
-            bin_starts=new_bin_starts,
-            bin_ends=new_bin_ends,
-            flux=new_flux,
-            fluxcov=new_fluxcov,
-            time=self.time,
-        )
-
-    def is_contiguous(self):
-        """Check whether the spectral elements are contiguous."""
-        return np.all(self.bin_starts[1:] == self.bin_ends[:-1])
-
     def has_uncertainties(self):
         """Check whether there is uncertainty information available."""
         return self._fluxcov is not None or self._fluxerr is not None
@@ -310,10 +227,6 @@ class SpectrumData(object):
         float
             Total flux in ph/s/cm^2.
         """
-        if not self.is_contiguous():
-            raise ValueError('spectral elements are not contiguous. rebin '
-                             'before calculating synthetic photometry')
-
         band = get_bandpass(band)
 
         # Check that bandpass wavelength range is fully contained in spectrum
