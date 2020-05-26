@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-"""Convenience functions for manipulating spectra."""
+"""Convenience functions for interfacing with spectra."""
 
 import numpy as np
 from astropy.table import Table
@@ -176,13 +176,12 @@ class SpectrumData(object):
     def get_bands(self):
         """Return a list of bandpass objects for each wavelength element."""
 
-        dwave = 0.00001
         bands = []
 
         for bin_start, bin_end in zip(self.bin_starts, self.bin_ends):
             bands.append(Bandpass(
-                [bin_start, bin_start + dwave, bin_end, bin_end + dwave],
-                [0., 1., 1., 0.],
+                [bin_start, bin_end],
+                [1., 1.],
             ))
 
         bands = np.array(bands)
