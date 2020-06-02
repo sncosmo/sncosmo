@@ -138,7 +138,7 @@ from .simulation import *
 from .plotting import *
 from .photdata import *
 from .registry import *
-from .specdata import *
+from .specmodel import *
 
 # Register all the built-ins.
 from .builtins import *
