@@ -29,7 +29,7 @@ from .magsystems import (
 from .models import (
     MLCS2k2Source, SALT2Source, SNEMOSource, TimeSeriesSource, _SOURCES)
 
-from .spectrum import Spectrum
+from .specmodel import SpectrumModel
 from .utils import DataMirror
 
 # This module is only imported for its side effects.
@@ -824,8 +824,9 @@ def load_spectral_magsys_fits(relpath, name=None):
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
-    refspectrum = Spectrum(dispersion, flux_density,
-                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+    refspectrum = SpectrumModel(dispersion, flux_density,
+                                unit=(u.erg / u.s / u.cm**2 / u.AA),
+                                wave_unit=u.AA)
 
     return SpectralMagSystem(refspectrum, name=name)
 

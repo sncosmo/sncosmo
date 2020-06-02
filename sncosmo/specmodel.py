@@ -8,13 +8,13 @@ from .bandpasses import get_bandpass
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 from .utils import integration_grid
 
-__all__ = ['Spectrum']
+__all__ = ['SpectrumModel']
 
 FLAMBDA_UNIT = u.erg / u.s / u.cm**2 / u.AA
 
 
-class Spectrum(object):
-    """A spectrum, representing wavelength and spectral density values.
+class SpectrumModel(object):
+    """A model spectrum, representing wavelength and spectral density values.
 
     Parameters
     ----------

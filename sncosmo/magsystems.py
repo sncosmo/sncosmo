@@ -167,7 +167,7 @@ class SpectralMagSystem(MagSystem):
 
     Parameters
     ----------
-    refspectrum : `sncosmo.Spectrum`
+    refspectrum : `sncosmo.SpectrumModel`
         The spectrum of the fundamental spectrophotometric standard.
     """
 
