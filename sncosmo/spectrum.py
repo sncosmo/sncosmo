@@ -15,8 +15,8 @@ from .utils import integration_grid
 __all__ = ['Spectrum']
 
 
-def _estimate_bin_edges(wave):
-    """Estimate the edges of a set of wavelength bins given the bin centers.
+def _recover_bin_edges(wave):
+    """Recover the edges of a set of wavelength bins given the bin centers.
 
     This function is designed to work for standard linear binning along with
     other more exotic forms of binning such as logarithmic bins. We do a second
@@ -75,7 +75,7 @@ def _parse_wavelength_information(wave, bin_edges):
 
     # Extract the bin starts and ends.
     if wave is not None:
-        bin_edges = _estimate_bin_edges(np.asarray(wave))
+        bin_edges = _recover_bin_edges(np.asarray(wave))
 
     # Make sure that the bin ends are larger than the bin starts.
     if np.any(bin_edges[1:] <= bin_edges[:-1]):
@@ -135,19 +135,18 @@ class Spectrum(object):
 
         # internally, wavelength is in Angstroms:
         if wave_unit != u.AA:
-            self.wave = wave_unit.to(u.AA, self.wave, u.spectral())
+            self.bin_edges = wave_unit.to(u.AA, self.bin_edges, u.spectral())
         self._wave_unit = u.AA
 
         # internally, flux is in F_lambda:
         if unit != FLAMBDA_UNIT:
-            self.flux = unit.to(FLAMBDA_UNIT, self.flux,
-                                u.spectral_density(u.AA, self.wave))
+            unit_scale = unit.to(FLAMBDA_UNIT,
+                                 equivalencies=u.spectral_density(u.AA, self.wave))
+            self.flux = unit_scale * self.flux
             if self._fluxerr is not None:
-                self._fluxerr = unit.to(FLAMBDA_UNIT, self._fluxerr,
-                                        u.spectral_density(u.AA, self.wave))
+                self._fluxerr = unit_scale * self._fluxerr
             if self._fluxcov is not None:
-                self._fluxcov = (unit**2).to(FLAMBDA_UNIT**2, self._fluxcov,
-                                             u.spectral_density(u.AA, self.wave))
+                self._fluxcov = np.outer(unit_scale, unit_scale).dot(self._fluxcov)
         self._unit = FLAMBDA_UNIT
 
         self.time = time
