@@ -11,7 +11,7 @@ from .photdata import PhotometricData
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 from .utils import integration_grid
 
-__all__ = ['SpectrumData']
+__all__ = ['Spectrum']
 
 
 def _estimate_bin_edges(wave):
@@ -83,7 +83,7 @@ def _parse_wavelength_information(wave, bin_edges):
     return bin_edges
 
 
-class SpectrumData(object):
+class Spectrum(object):
     """Standardized representation of spectroscopic data.
 
     The edges of the spectral element wavelength bins are stored in
