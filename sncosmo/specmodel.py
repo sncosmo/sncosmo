@@ -5,12 +5,10 @@ import numpy as np
 from scipy.interpolate import splev, splrep
 
 from .bandpasses import get_bandpass
-from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
+from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING, FLAMBDA_UNIT
 from .utils import integration_grid
 
 __all__ = ['SpectrumModel']
-
-FLAMBDA_UNIT = u.erg / u.s / u.cm**2 / u.AA
 
 
 class SpectrumModel(object):

@@ -2,13 +2,14 @@
 
 """Convenience functions for interfacing with spectra."""
 
-import numpy as np
 from astropy.table import Table
 from scipy.linalg import block_diag
+import astropy.units as u
+import numpy as np
 
 from .bandpasses import Bandpass, get_bandpass
+from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING, FLAMBDA_UNIT
 from .photdata import PhotometricData
-from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 from .utils import integration_grid
 
 __all__ = ['Spectrum']
@@ -107,7 +108,7 @@ class Spectrum(object):
 
     """
     def __init__(self, wave=None, flux=None, fluxerr=None, fluxcov=None, bin_edges=None,
-                 time=None):
+                 wave_unit=u.AA, unit=FLAMBDA_UNIT, time=None):
         # Extract the bin edges
         bin_edges = _parse_wavelength_information(wave, bin_edges)
         self.bin_edges = bin_edges
@@ -131,6 +132,23 @@ class Spectrum(object):
             self._fluxcov = np.array(fluxcov)
             if not (len(self.flux) == self._fluxcov.shape[0] == self._fluxcov.shape[1]):
                 raise ValueError("unequal column lengths")
+
+        # internally, wavelength is in Angstroms:
+        if wave_unit != u.AA:
+            self.wave = wave_unit.to(u.AA, self.wave, u.spectral())
+        self._wave_unit = u.AA
+
+        # internally, flux is in F_lambda:
+        if unit != FLAMBDA_UNIT:
+            self.flux = unit.to(FLAMBDA_UNIT, self.flux,
+                                u.spectral_density(u.AA, self.wave))
+            if self._fluxerr is not None:
+                self._fluxerr = unit.to(FLAMBDA_UNIT, self._fluxerr,
+                                        u.spectral_density(u.AA, self.wave))
+            if self._fluxcov is not None:
+                self._fluxcov = (unit**2).to(FLAMBDA_UNIT**2, self._fluxcov,
+                                             u.spectral_density(u.AA, self.wave))
+        self._unit = FLAMBDA_UNIT
 
         self.time = time
 
