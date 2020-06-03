@@ -210,7 +210,7 @@ class Spectrum(object):
         # Check if we have cached the sampling matrix already.
         if self._cache_sampling_matrix is not None:
             cache_bin_edges, sampling_matrix_result = self._cache_sampling_matrix
-            if np.all(cache_bin_edges == cache_bin_edges):
+            if np.all(cache_bin_edges == self.bin_edges):
                 # No changes to the spectral elements so the sampling matrix hasn't
                 # changed.
                 return sampling_matrix_result
