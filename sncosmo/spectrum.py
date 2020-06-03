@@ -195,41 +195,6 @@ class Spectrum(object):
         """Check whether there is uncertainty information available."""
         return self._fluxcov is not None or self._fluxerr is not None
 
-    def get_bands(self):
-        """Return a list of bandpass objects for each wavelength element."""
-
-        bands = []
-
-        for bin_start, bin_end in zip(self.bin_starts, self.bin_ends):
-            bands.append(Bandpass(
-                [bin_start, bin_end],
-                [1., 1.],
-            ))
-
-        bands = np.array(bands)
-
-        return bands
-
-    def get_table(self):
-        """Convert the spectrum into an `astropy.Table` object"""
-        bands = self.get_bands()
-        wave = self.wave
-
-        # TODO: move this to the constants file or something. This is the
-        # conversion between AB mag and f_lambda
-        scale = wave**2 / 3e8 / 1e10 * 10**(0.4 * 48.60)
-
-        photdata = Table({
-            'time': np.ones(len(self)) * self.time,
-            'band': self.get_bands(),
-            'flux': self.flux * scale,
-            'fluxerr': self.fluxerr * scale,
-            'zp': np.zeros(len(self)),
-            'zpsys': np.array(['ab'] * len(self)),
-        })
-
-        return photdata
-
     def _get_sampling_matrix(self):
         """Build an appropriate sampling for the spectral elements.
 
