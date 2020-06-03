@@ -135,12 +135,12 @@ class Spectrum(object):
             if not (len(self.flux) == self._fluxcov.shape[0] == self._fluxcov.shape[1]):
                 raise ValueError("unequal column lengths")
 
-        # internally, wavelength is in Angstroms:
+        # Internally, wavelength is in Angstroms:
         if wave_unit != u.AA:
             self.bin_edges = wave_unit.to(u.AA, self.bin_edges, u.spectral())
         self._wave_unit = u.AA
 
-        # internally, flux is in F_lambda:
+        # Internally, flux is in F_lambda:
         if unit != FLAMBDA_UNIT:
             unit_scale = unit.to(FLAMBDA_UNIT,
                                  equivalencies=u.spectral_density(u.AA, self.wave))
@@ -152,6 +152,10 @@ class Spectrum(object):
         self._unit = FLAMBDA_UNIT
 
         self.time = time
+
+        # We use a sampling matrix to evaluate models/bands for the spectrum. This
+        # matrix is expensive to compute but rarely changes, so we cache it.
+        self._cache_sampling_matrix = None
 
     def __len__(self):
         return len(self.flux)
@@ -203,6 +207,14 @@ class Spectrum(object):
 
         TODO: cache the results?
         """
+        # Check if we have cached the sampling matrix already.
+        if self._cache_sampling_matrix is not None:
+            cache_bin_edges, sampling_matrix_result = self._cache_sampling_matrix
+            if np.all(cache_bin_edges == cache_bin_edges):
+                # No changes to the spectral elements so the sampling matrix hasn't
+                # changed.
+                return sampling_matrix_result
+
         indices = []
         sample_wave = []
         sample_dwave = []
@@ -228,7 +240,11 @@ class Spectrum(object):
             dtype=np.float64,
         )
 
-        return sampling_matrix, sample_wave, sample_dwave
+        # Cache the result
+        sampling_matrix_result = (sampling_matrix, sample_wave, sample_dwave)
+        self._cache_sampling_matrix = (self.bin_edges.copy(), sampling_matrix_result)
+
+        return sampling_matrix_result
 
     def _band_weights(self, band, zp, zpsys):
         """Calculate the weights for each spectral element for synthetic photometry.
