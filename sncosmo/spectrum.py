@@ -4,11 +4,13 @@
 
 from astropy.table import Table
 from scipy.linalg import block_diag
+from scipy.sparse import csr_matrix
 import astropy.units as u
 import numpy as np
 
 from .bandpasses import Bandpass, get_bandpass
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING, FLAMBDA_UNIT
+from .magsystems import get_magsystem
 from .photdata import PhotometricData
 from .utils import integration_grid
 
@@ -151,6 +153,9 @@ class Spectrum(object):
 
         self.time = time
 
+    def __len__(self):
+        return len(self.flux)
+
     @property
     def bin_starts(self):
         """Return the start of each bin."""
@@ -185,6 +190,10 @@ class Spectrum(object):
             return np.diag(self._fluxerr**2)
         else:
             raise ValueError("no uncertainty information available")
+
+    def has_uncertainties(self):
+        """Check whether there is uncertainty information available."""
+        return self._fluxcov is not None or self._fluxerr is not None
 
     def get_bands(self):
         """Return a list of bandpass objects for each wavelength element."""
@@ -221,11 +230,99 @@ class Spectrum(object):
 
         return photdata
 
-    def has_uncertainties(self):
-        """Check whether there is uncertainty information available."""
-        return self._fluxcov is not None or self._fluxerr is not None
+    def _get_sampling_matrix(self):
+        """Build an appropriate sampling for the spectral elements.
 
-    def bandflux(self, band):
+        TODO documentation: This returns the wavelengths to sample at along with a
+        matrix that converts everything and the dwave.
+
+        TODO: cache the results?
+        """
+        indices = []
+        sample_wave = []
+        sample_dwave = []
+
+        for bin_idx in range(len(self.flux)):
+            bin_start = self.bin_starts[bin_idx]
+            bin_end = self.bin_ends[bin_idx]
+
+            bin_wave, bin_dwave = integration_grid(bin_start, bin_end,
+                                                   SPECTRUM_BANDFLUX_SPACING)
+
+            indices.append(bin_idx * np.ones_like(bin_wave, dtype=int))
+            sample_wave.append(bin_wave)
+            sample_dwave.append(bin_dwave * np.ones_like(bin_wave))
+
+        indices = np.hstack(indices)
+        sample_wave = np.hstack(sample_wave)
+        sample_dwave = np.hstack(sample_dwave)
+
+        sampling_matrix = csr_matrix(
+            (np.ones_like(indices), (indices, np.arange(len(indices)))),
+            shape=(len(self), len(indices)),
+            dtype=np.float64,
+        )
+
+        return sampling_matrix, sample_wave, sample_dwave
+
+    def _band_weights(self, band, zp, zpsys):
+        """Calculate the weights for each spectral element for synthetic photometry.
+
+        Parameters
+        ----------
+        band : `~sncosmo.Bandpass`, str or list_like
+            Bandpass, name of bandpass in registry, or list or array thereof.
+
+        Returns
+        -------
+        band_weights : numpy.array
+            The weights to multiply each bin by for synthetic photometry in the given
+            band(s). This has a shape of (number of bands, number of spectral elements).
+            The dot product of this array with the flux array gives the desired band
+            flux.
+        """
+        band_weights = []
+
+        if zp is not None and zpsys is None:
+            raise ValueError('zpsys must be given if zp is not None')
+
+        # broadcast arrays
+        if zp is None:
+            band = np.atleast_1d(band)
+        else:
+            band, zp, zpsys = np.broadcast_arrays(np.atleast_1d(band), zp, zpsys)
+
+        for idx in range(len(band)):
+            iter_band = get_bandpass(band[idx])
+
+            # Check that bandpass wavelength range is fully contained in spectrum
+            # wavelength range.
+            if (iter_band.minwave() < self.bin_starts[0]
+                    or iter_band.maxwave() > self.bin_ends[-1]):
+                raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                                 'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                                 .format(iter_band.name, iter_band.minwave(),
+                                         iter_band.maxwave(), self.bin_starts[0],
+                                         self.bin_ends[-1]))
+
+            sampling_matrix, sample_wave, sample_dwave = self._get_sampling_matrix()
+            trans = iter_band(sample_wave)
+            sample_weights = sample_wave * trans * sample_dwave / HC_ERG_AA
+            row_band_weights = sampling_matrix * sample_weights
+
+            if zp is not None:
+                ms = get_magsystem(zpsys[idx])
+                zp_bandflux = ms.zpbandflux(iter_band)
+                zpnorm = 10. ** (0.4 * zp[idx]) / zp_bandflux
+                row_band_weights *= zpnorm
+
+            band_weights.append(row_band_weights)
+
+        band_weights = np.vstack(band_weights)
+
+        return band_weights
+
+    def bandflux(self, band, zp=None, zpsys=None):
         """Perform synthentic photometry in a given bandpass.
 
         The bandpass transmission is interpolated onto the wavelength grid of
@@ -244,33 +341,48 @@ class Spectrum(object):
         float
             Total flux in ph/s/cm^2.
         """
-        band = get_bandpass(band)
+        ndim = np.ndim(band)
 
-        # Check that bandpass wavelength range is fully contained in spectrum
-        # wavelength range.
-        if (band.minwave() < self.bin_starts[0] or band.maxwave() >
-                self.bin_ends[-1]):
-            raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-                             'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                             .format(band.name, band.minwave(), band.maxwave(),
-                                     self.bin_starts[0], self.bin_ends[-1]))
+        band_weights = self._band_weights(band, zp, zpsys)
+        band_flux = band_weights.dot(self.flux)
 
-        # Calculate the weight for each spectral element.
-        weights = np.zeros(len(self))
-        for bin_idx in range(len(self)):
-            wave, dwave = integration_grid(self.bin_starts[bin_idx],
-                                           self.bin_ends[bin_idx],
-                                           SPECTRUM_BANDFLUX_SPACING)
-            trans = band(wave)
+        if ndim == 0:
+            band_flux = band_flux[0]
 
-            bin_weight = np.sum(wave * trans * dwave) / HC_ERG_AA
-            weights[bin_idx] = bin_weight
+        return band_flux
 
-        # Calculate the flux and uncertainties.
-        bandflux = self.flux.dot(weights)
-        bandfluxerr = np.sqrt(self.fluxcov.dot(weights).dot(weights))
+    def bandfluxcov(self, band, zp=None, zpsys=None):
+        """Like bandflux(), but also returns model covariance on values.
 
-        return bandflux, bandfluxerr
+        Parameters
+        ----------
+        band : `~sncosmo.bandpass` or str or list_like
+            Bandpass(es) or name(s) of bandpass(es) in registry.
+        time : float or list_like
+            time(s) in days.
+        zp : float or list_like, optional
+            If given, zeropoint to scale flux to. if `none` (default) flux
+            is not scaled.
+        zpsys : `~sncosmo.magsystem` or str (or list_like), optional
+            Determines the magnitude system of the requested zeropoint.
+            cannot be `none` if `zp` is not `none`.
 
-    def __len__(self):
-        return len(self.flux)
+        Returns
+        -------
+        bandflux : float or `~numpy.ndarray`
+            Model bandfluxes.
+        cov : float or `~numpy.array`
+            Covariance on ``bandflux``. If ``bandflux`` is an array, this
+            will be a 2-d array.
+        """
+        ndim = np.ndim(band)
+
+        band_weights = self._band_weights(band, zp, zpsys)
+        band_flux = band_weights.dot(self.flux)
+        band_cov = band_weights.dot(self.fluxcov).dot(band_weights.T)
+
+        if ndim == 0:
+            band_flux = band_flux[0]
+            band_cov = band_cov[0, 0]
+
+        return band_flux, band_cov
