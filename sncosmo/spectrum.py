@@ -386,3 +386,27 @@ class Spectrum(object):
             band_cov = band_cov[0, 0]
 
         return band_flux, band_cov
+
+    def bandmag(self, band, magsys):
+        """Magnitude at the given phase(s) through the given
+        bandpass(es), and for the given magnitude system(s).
+
+        TODO: docs
+
+        Parameters
+        ----------
+        band : str or list_like
+            Name(s) of bandpass in registry.
+        magsys : str or list_like
+            Name(s) of `~sncosmo.MagSystem` in registry.
+        phase : float or list_like
+            Phase(s) in days.
+
+        Returns
+        -------
+        mag : float or `~numpy.ndarray`
+            Magnitude for each item in band, magsys, phase.
+            The return value is a float if all parameters are not iterables.
+            The return value is an `~numpy.ndarray` if any are iterable.
+        """
+        return -2.5 * np.log10(self.bandflux(band, 0., magsys))
