@@ -18,7 +18,7 @@ class DataQualityError(Exception):
     pass
 
 
-def generate_chisq(data, model, signature='iminuit', modelcov=False):
+def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
     """Define and return a chisq function for use in optimization.
 
     This function pre-computes and saves the inverse covariance matrix,
@@ -32,6 +32,16 @@ def generate_chisq(data, model, signature='iminuit', modelcov=False):
                                     zp=data.zp, zpsys=data.zpsys)
         cov = cov + mcov
     invcov = np.linalg.pinv(cov)
+
+    # If we have spectra, build the covariance matrix for them individually.
+    if spectra is not None:
+        if modelcov:
+            raise ValueError('modelcov not supported for spectra')
+
+        spectra = np.atleast_1d(spectra)
+        spectra_invcovs = []
+        for spectrum in spectra:
+            spectra_invcovs.append(np.linalg.pinv(spectrum.fluxcov))
 
     # iminuit expects each parameter to be a separate argument (including fixed
     # parameters)
@@ -49,8 +59,22 @@ def generate_chisq(data, model, signature='iminuit', modelcov=False):
             model_flux = model.bandflux(data.band, data.time,
                                         zp=data.zp, zpsys=data.zpsys)
             diff = data.flux - model_flux
-            return np.dot(np.dot(diff, invcov), diff)
+            full_chisq = np.dot(np.dot(diff, invcov), diff)
 
+            if spectra is not None:
+                for spectrum, spec_invcov in zip(spectra, spectra_invcovs):
+                    sample_wave, sampling_matrix = spectrum.get_sampling_matrix()
+                    sample_flux = model.flux(spectrum.time, sample_wave)
+                    spec_model_flux = (
+                        sampling_matrix.dot(sample_flux) /
+                        sampling_matrix.dot(np.ones_like(sample_flux))
+                    )
+                    spec_diff = spectrum.flux - spec_model_flux
+                    spec_chisq = spec_invcov.dot(spec_diff).dot(spec_diff)
+
+                    full_chisq += spec_chisq
+
+            return full_chisq
     else:
         raise ValueError("unknown signature: {!r}".format(signature))
 
@@ -277,10 +301,10 @@ def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
     return None
 
 
-def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
-           guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5.0, modelcov=False, verbose=False, maxcall=10000,
-           phase_range=None, wave_range=None, warn=True):
+def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit',
+           guess_amplitude=True, guess_t0=True, guess_z=True, minsnr=5.0,
+           modelcov=False, verbose=False, maxcall=10000, phase_range=None,
+           wave_range=None, warn=True):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -330,6 +354,8 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
         *New in version 1.5.0*
 
+    spectra : `~sncosmo.Spectrum` or list of `~sncosmo.Spectrum` objects
+        A list of spectra to include in the fit.
     wave_range : (float, float), optional
         If given, discard data with bandpass effective wavelengths outside
         this range.
@@ -531,7 +557,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
 
         # run once with no model covariance, regardless of whether
         # modelcov=True
-        fitchisq = generate_chisq(fitdata, model, signature='iminuit',
+        fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
                                   modelcov=False)
         ndof = len(fitdata) - len(vparam_names)
 
@@ -578,7 +604,7 @@ def fit_lc(data, model, vparam_names, bounds=None, method='minuit',
             ndof = len(fitdata) - len(vparam_names)
 
             # generate chisq function based on new starting point
-            fitchisq = generate_chisq(fitdata, model, signature='iminuit',
+            fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
                                       modelcov=modelcov)
 
             m = iminuit.Minuit(fitchisq, errordef=1.,

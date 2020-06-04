@@ -199,7 +199,7 @@ class Spectrum(object):
         """Check whether there is uncertainty information available."""
         return self._fluxcov is not None or self._fluxerr is not None
 
-    def _get_sampling_matrix(self):
+    def get_sampling_matrix(self):
         """Build an appropriate sampling for the spectral elements.
 
         TODO documentation: This returns the wavelengths to sample at along with a
@@ -235,13 +235,13 @@ class Spectrum(object):
         sample_dwave = np.hstack(sample_dwave)
 
         sampling_matrix = csr_matrix(
-            (np.ones_like(indices), (indices, np.arange(len(indices)))),
+            (sample_dwave, (indices, np.arange(len(indices)))),
             shape=(len(self), len(indices)),
             dtype=np.float64,
         )
 
         # Cache the result
-        sampling_matrix_result = (sampling_matrix, sample_wave, sample_dwave)
+        sampling_matrix_result = (sample_wave, sampling_matrix)
         self._cache_sampling_matrix = (self.bin_edges.copy(), sampling_matrix_result)
 
         return sampling_matrix_result
@@ -286,9 +286,9 @@ class Spectrum(object):
                                          iter_band.maxwave(), self.bin_starts[0],
                                          self.bin_ends[-1]))
 
-            sampling_matrix, sample_wave, sample_dwave = self._get_sampling_matrix()
+            sample_wave, sampling_matrix = self.get_sampling_matrix()
             trans = iter_band(sample_wave)
-            sample_weights = sample_wave * trans * sample_dwave / HC_ERG_AA
+            sample_weights = sample_wave * trans / HC_ERG_AA
             row_band_weights = sampling_matrix * sample_weights
 
             if zp is not None:
