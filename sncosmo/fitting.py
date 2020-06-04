@@ -544,6 +544,12 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
     else:
         sortidx = None
 
+    if spectra is not None:
+        # Make sure that we have times for all of the spectra
+        for spectrum in np.atleast_1d(spectra):
+            if spectrum.time is None:
+                raise TypeError("'time' must be set for each spectrum")
+
     if model is None:
         raise TypeError("missing required argument 'model'")
 
