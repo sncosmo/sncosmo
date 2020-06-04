@@ -333,6 +333,9 @@ def _guess_t0_and_amplitude_spectra(spectra, model, minsnr):
         'zpsys': ['ab'] * len(all_fluxes),
     })
 
+    # Sort the photometry by time
+    photometry = photometry[np.argsort(photometry.time)]
+
     return _guess_t0_and_amplitude_photometry(photometry, model, minsnr)
 
 
