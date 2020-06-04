@@ -8,6 +8,7 @@ from collections import OrderedDict
 
 import numpy as np
 
+from .bandpasses import Bandpass
 from .photdata import photometric_data
 from .utils import Interp1D, Result, ppf
 
@@ -232,9 +233,8 @@ def t0_bounds(data, model, spectra=None):
     return (model.get('t0') + np.min(times) - model.maxtime(),
             model.get('t0') + np.max(times) - model.mintime())
 
-
-def guess_t0_and_amplitude(data, model, minsnr):
-    """Guess t0 and amplitude of the model based on the data."""
+def _guess_t0_and_amplitude_photometry(data, model, minsnr):
+    """Guess t0 and amplitude of the model from photometry."""
 
     # get data above the signal-to-noise ratio cut
     significant_data = data[(data.flux / data.fluxerr) > minsnr]
@@ -283,6 +283,71 @@ def guess_t0_and_amplitude(data, model, minsnr):
     t0 = model.get('t0') + data_tmax - model_tmax
 
     return t0, amplitude
+
+
+def _guess_t0_and_amplitude_spectra(spectra, model, minsnr):
+    """Guess t0 and amplitude of the model from spectra.
+
+    The spectra don't necessarily have the same binning which makes this challenging. To
+    handle this, we synthesize photometry in a range of different synthetic filters. We
+    then call the guess function that operates on photometry.
+    """
+
+    # Build a set of bands to use for synthetic photometry.
+    target_band_width = 500     # Angstroms
+    minwave = model.minwave()
+    maxwave = model.maxwave()
+    band_count = int(math.ceil((maxwave - minwave) / target_band_width))
+    band_edges = np.linspace(minwave, maxwave, band_count+1)
+    band_starts = band_edges[:-1]
+    band_ends = band_edges[1:]
+
+    bandpasses = np.array([Bandpass([start, end], [1., 1.]) for start, end
+                           in zip(band_starts, band_ends)])
+
+    all_bands = []
+    all_fluxes = []
+    all_fluxerrs = []
+    all_times = []
+
+    for spectrum in np.atleast_1d(spectra):
+        # Find the bandpasses that overlap this spectrum.
+        band_mask = ((spectrum.bin_edges[0] <= band_starts)
+                     & (spectrum.bin_edges[-1] >= band_ends))
+        spec_bands = bandpasses[band_mask]
+
+        spec_flux, spec_fluxcov = spectrum.bandfluxcov(spec_bands, zp=25., zpsys='ab')
+        spec_fluxerr = np.sqrt(np.diag(spec_fluxcov))
+
+        all_bands.extend(spec_bands)
+        all_fluxes.extend(spec_flux)
+        all_fluxerrs.extend(spec_fluxerr)
+        all_times.extend(np.ones_like(spec_flux) * spectrum.time)
+
+    photometry = photometric_data({
+        'band': all_bands,
+        'flux': all_fluxes,
+        'fluxerr': all_fluxerrs,
+        'time': all_times,
+        'zp': [25.] * len(all_fluxes),
+        'zpsys': ['ab'] * len(all_fluxes),
+    })
+
+    return _guess_t0_and_amplitude_photometry(photometry, model, minsnr)
+
+
+def guess_t0_and_amplitude(data, model, minsnr, spectra=None):
+    """Guess t0 and amplitude of the model based on the data.
+
+    If we have photometry, we use it for the guessing. If not, we use all available
+    spectra instead.
+    """
+    if data is not None:
+        return _guess_t0_and_amplitude_photometry(data, model, minsnr)
+    elif spectra is not None:
+        return _guess_t0_and_amplitude_spectra(spectra, model, minsnr)
+    else:
+        raise ValueError('need either photometry or spectra to guess t0 and amplitude.')
 
 
 def _print_iminuit_params(names, kwargs):
@@ -534,16 +599,11 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
     # Make guesses for t0 and amplitude.
     # (For now, we assume it is the 3rd parameter of the model.)
     if (guess_amplitude or guess_t0):
-        if data is not None:
-            # Use photometry for the guess
-            t0, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr)
-            if guess_amplitude:
-                model.parameters[2] = amplitude
-            if guess_t0:
-                model.set(t0=t0)
-        else:
-            # Use spectra for the guess
-            raise ValueError('TODO: implement guessing for spectra')
+        t0, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr, spectra)
+        if guess_amplitude:
+            model.parameters[2] = amplitude
+        if guess_t0:
+            model.set(t0=t0)
 
     if method == 'minuit':
         try:
