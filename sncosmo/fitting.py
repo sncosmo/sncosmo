@@ -26,12 +26,13 @@ def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
     is fixed at the time the chisq function is generated."""
 
     # precompute inverse covariance matrix
-    cov = np.diag(data.fluxerr**2) if data.fluxcov is None else data.fluxcov
-    if modelcov:
-        _, mcov = model.bandfluxcov(data.band, data.time,
-                                    zp=data.zp, zpsys=data.zpsys)
-        cov = cov + mcov
-    invcov = np.linalg.pinv(cov)
+    if data is not None:
+        cov = np.diag(data.fluxerr**2) if data.fluxcov is None else data.fluxcov
+        if modelcov:
+            _, mcov = model.bandfluxcov(data.band, data.time,
+                                        zp=data.zp, zpsys=data.zpsys)
+            cov = cov + mcov
+        invcov = np.linalg.pinv(cov)
 
     # If we have spectra, build the covariance matrix for them individually.
     if spectra is not None:
@@ -56,10 +57,15 @@ def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
             if np.any(np.isnan(parameters)):
                 return np.nan
             model.parameters = parameters
-            model_flux = model.bandflux(data.band, data.time,
-                                        zp=data.zp, zpsys=data.zpsys)
-            diff = data.flux - model_flux
-            full_chisq = np.dot(np.dot(diff, invcov), diff)
+
+            full_chisq = 0.
+
+            if data is not None:
+                model_flux = model.bandflux(data.band, data.time,
+                                            zp=data.zp, zpsys=data.zpsys)
+                diff = data.flux - model_flux
+                phot_chisq = np.dot(np.dot(diff, invcov), diff)
+                full_chisq += phot_chisq
 
             if spectra is not None:
                 for spectrum, spec_invcov in zip(spectra, spectra_invcovs):
@@ -301,9 +307,9 @@ def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
     return None
 
 
-def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit',
-           guess_amplitude=True, guess_t0=True, guess_z=True, minsnr=5.0,
-           modelcov=False, verbose=False, maxcall=10000, phase_range=None,
+def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
+           method='minuit', guess_amplitude=True, guess_t0=True, guess_z=True,
+           minsnr=5.0, modelcov=False, verbose=False, maxcall=10000, phase_range=None,
            wave_range=None, warn=True):
     """Fit model parameters to data by minimizing chi^2.
 
@@ -443,18 +449,24 @@ def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit'
 
     """
 
-    # Standardize data
-    data = photometric_data(data)
+    if data is not None:
+        # Standardize data
+        data = photometric_data(data)
 
-    # sort by time (some sources require this)
-    # We keep track of indicies that sort the array because we want to be
-    # able to report the indexes of the original data that were used in the
-    # fit.
-    if not np.all(np.ediff1d(data.time) >= 0.0):
-        sortidx = np.argsort(data.time)
-        data = data[sortidx]
+        # sort by time (some sources require this)
+        # We keep track of indicies that sort the array because we want to be
+        # able to report the indexes of the original data that were used in the
+        # fit.
+        if not np.all(np.ediff1d(data.time) >= 0.0):
+            sortidx = np.argsort(data.time)
+            data = data[sortidx]
+        else:
+            sortidx = None
     else:
         sortidx = None
+
+    if model is None:
+        raise TypeError("missing required argument 'model'")
 
     # Make a copy of the model so we can modify it with impunity.
     model = copy.copy(model)
@@ -482,18 +494,22 @@ def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit'
         if model.get('z') < bounds['z'][0] or model.get('z') > bounds['z'][1]:
             raise ValueError('z out of range.')
 
-    # Cut bands that are not allowed by the wavelength range of the model.
-    fitdata, support_mask = cut_bands(data, model,
-                                      z_bounds=bounds.get('z', None),
-                                      warn=warn)
-    data_mask = support_mask  # Initially this is the complete mask on data.
+    if data is not None:
+        # Cut bands that are not allowed by the wavelength range of the model.
+        fitdata, support_mask = cut_bands(data, model,
+                                          z_bounds=bounds.get('z', None),
+                                          warn=warn)
+        data_mask = support_mask  # Initially this is the complete mask on data.
 
-    # Unique set of bands in data
-    bands = set(fitdata.band.tolist())
+        # Unique set of bands in data
+        bands = set(fitdata.band.tolist())
 
-    # Find t0 bounds to use, if not explicitly given
-    if 't0' in vparam_names and 't0' not in bounds:
-        bounds['t0'] = t0_bounds(fitdata, model)
+        # Find t0 bounds to use, if not explicitly given
+        if 't0' in vparam_names and 't0' not in bounds:
+            bounds['t0'] = t0_bounds(fitdata, model)
+    else:
+        fitdata = None
+        data_mask = None
 
     # Note that in the parameter guessing below, we assume that the source
     # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
@@ -507,14 +523,16 @@ def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit'
     # Make guesses for t0 and amplitude.
     # (For now, we assume it is the 3rd parameter of the model.)
     if (guess_amplitude or guess_t0):
-        t0, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr)
-        if guess_amplitude:
-            model.parameters[2] = amplitude
-        if guess_t0:
-            model.set(t0=t0)
-
-    # count degrees of freedom
-    ndof = len(fitdata) - len(vparam_names)
+        if data is not None:
+            # Use photometry for the guess
+            t0, amplitude = guess_t0_and_amplitude(fitdata, model, minsnr)
+            if guess_amplitude:
+                model.parameters[2] = amplitude
+            if guess_t0:
+                model.set(t0=t0)
+        else:
+            # Use spectra for the guess
+            raise ValueError('TODO: implement guessing for spectra')
 
     if method == 'minuit':
         try:
@@ -559,7 +577,15 @@ def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit'
         # modelcov=True
         fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
                                   modelcov=False)
-        ndof = len(fitdata) - len(vparam_names)
+
+        # count degrees of freedom
+        ndof = 0
+        if data is not None:
+            ndof += len(fitdata)
+        elif spectra is not None:
+            for spectrum in np.atleast_1d(spectra):
+                ndof += len(spectrum)
+        ndof -= len(vparam_names)
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
                            forced_parameters=model.param_names,
@@ -575,17 +601,22 @@ def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit'
 
         # Iterative Fitting
 
-        if phase_range or wave_range:
-            range_mask = _phase_and_wave_mask(data, model.get('t0'),
-                                              model.get('z'),
-                                              phase_range, wave_range)
-            data_mask = range_mask & support_mask
+        if data is not None:
+            if phase_range or wave_range:
+                range_mask = _phase_and_wave_mask(data, model.get('t0'),
+                                                  model.get('z'),
+                                                  phase_range, wave_range)
+                data_mask = range_mask & support_mask
 
-        # if model covariance, we need to re-run iteratively until convergence
-        # if phase range is given, we need to rerun if there are any
-        # masked points.
-        refit = (modelcov or ((phase_range or wave_range) and
-                              np.any(data_mask != support_mask)))
+            # if model covariance, we need to re-run iteratively until convergence
+            # if phase range is given, we need to rerun if there are any
+            # masked points.
+            refit = (modelcov or ((phase_range or wave_range) and
+                                  np.any(data_mask != support_mask)))
+        else:
+            # Refitting isn't supported if we only have spectra.
+            refit = False
+
         nfit = 1
         while refit:
             # set new starting point to last point
@@ -601,7 +632,14 @@ def fit_lc(data, model, vparam_names, bounds=None, spectra=None, method='minuit'
             if (phase_range or wave_range):
                 fitdata = data[data_mask]
 
-            ndof = len(fitdata) - len(vparam_names)
+            # count degrees of freedom
+            ndof = 0
+            if data is not None:
+                ndof += len(fitdata)
+            elif spectra is not None:
+                for spectrum in np.atleast_1d(spectra):
+                    ndof += len(spectrum)
+            ndof -= len(vparam_names)
 
             # generate chisq function based on new starting point
             fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
