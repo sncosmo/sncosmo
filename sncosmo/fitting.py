@@ -211,15 +211,26 @@ def cut_bands(data, model, z_bounds=None, warn=True):
     return data, mask
 
 
-def t0_bounds(data, model):
+def t0_bounds(data, model, spectra=None):
     """Determine bounds on t0 parameter of the model.
 
     The lower bound is such that the latest model time is equal to the
     earliest data time. The upper bound is such that the earliest
     model time is equal to the latest data time."""
 
-    return (model.get('t0') + np.min(data.time) - model.maxtime(),
-            model.get('t0') + np.max(data.time) - model.mintime())
+    times = []
+
+    if data is not None:
+        times.append(data.time)
+
+    if spectra is not None:
+        for spec in np.atleast_1d(spectra):
+            times.append(spec.time)
+
+    times = np.hstack(times)
+
+    return (model.get('t0') + np.min(times) - model.maxtime(),
+            model.get('t0') + np.max(times) - model.mintime())
 
 
 def guess_t0_and_amplitude(data, model, minsnr):
@@ -503,13 +514,13 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
 
         # Unique set of bands in data
         bands = set(fitdata.band.tolist())
-
-        # Find t0 bounds to use, if not explicitly given
-        if 't0' in vparam_names and 't0' not in bounds:
-            bounds['t0'] = t0_bounds(fitdata, model)
     else:
         fitdata = None
         data_mask = None
+
+    # Find t0 bounds to use, if not explicitly given
+    if 't0' in vparam_names and 't0' not in bounds:
+        bounds['t0'] = t0_bounds(fitdata, model, spectra)
 
     # Note that in the parameter guessing below, we assume that the source
     # amplitude is the 3rd parameter of the Model (1st parameter of the Source)
