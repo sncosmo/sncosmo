@@ -199,6 +199,40 @@ class Spectrum(object):
         """Check whether there is uncertainty information available."""
         return self._fluxcov is not None or self._fluxerr is not None
 
+    def rebin(self, wave=None, bin_edges=None):
+        """Rebin the spectrum with the given bin edges."""
+        new_bin_edges = _parse_wavelength_information(wave, bin_edges)
+        new_bin_starts = new_bin_edges[:-1]
+        new_bin_ends = new_bin_edges[1:]
+
+        old_bin_starts = self.bin_starts
+        old_bin_ends = self.bin_ends
+
+        # Generate a weight matrix for the transformation.
+        overlap_starts = np.max(np.meshgrid(old_bin_starts, new_bin_starts),
+                                axis=0)
+        overlap_ends = np.min(np.meshgrid(old_bin_ends, new_bin_ends), axis=0)
+        overlaps = overlap_ends - overlap_starts
+        overlaps[overlaps < 0] = 0
+
+        # Normalize by the total overlap in each bin to keep everything in units
+        # of f_lambda
+        total_overlaps = np.sum(overlaps, axis=1)
+        if np.any(total_overlaps == 0):
+            raise ValueError("new binning not contained within original "
+                             "spectrum")
+        weight_matrix = overlaps / total_overlaps[:, None]
+
+        new_flux = weight_matrix.dot(self.flux)
+        new_fluxcov = weight_matrix.dot(self.fluxcov.dot(weight_matrix.T))
+
+        return Spectrum(
+            bin_edges=new_bin_edges,
+            flux=new_flux,
+            fluxcov=new_fluxcov,
+            time=self.time,
+        )
+
     def get_sampling_matrix(self):
         """Build an appropriate sampling for the spectral elements.
 
