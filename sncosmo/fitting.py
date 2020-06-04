@@ -581,6 +581,7 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
         bands = set(fitdata.band.tolist())
     else:
         fitdata = None
+        support_mask = None
         data_mask = None
 
     # Find t0 bounds to use, if not explicitly given
@@ -672,21 +673,20 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
 
         # Iterative Fitting
 
-        if data is not None:
-            if phase_range or wave_range:
-                range_mask = _phase_and_wave_mask(data, model.get('t0'),
-                                                  model.get('z'),
-                                                  phase_range, wave_range)
-                data_mask = range_mask & support_mask
+        if phase_range or wave_range:
+            if spectra is not None:
+                raise ValueError('phase_range and wave_range are not supported for '
+                                 'spectra')
+            range_mask = _phase_and_wave_mask(data, model.get('t0'),
+                                              model.get('z'),
+                                              phase_range, wave_range)
+            data_mask = range_mask & support_mask
 
-            # if model covariance, we need to re-run iteratively until convergence
-            # if phase range is given, we need to rerun if there are any
-            # masked points.
-            refit = (modelcov or ((phase_range or wave_range) and
-                                  np.any(data_mask != support_mask)))
-        else:
-            # Refitting isn't supported if we only have spectra.
-            refit = False
+        # if model covariance, we need to re-run iteratively until convergence
+        # if phase range is given, we need to rerun if there are any
+        # masked points.
+        refit = (modelcov or ((phase_range or wave_range) and
+                              np.any(data_mask != support_mask)))
 
         nfit = 1
         while refit:
