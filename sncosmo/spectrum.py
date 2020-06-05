@@ -34,12 +34,11 @@ def _recover_bin_edges(wave):
     ----------
     wave : array-like
         Central wavelength values of each wavelength bin.
+
     Returns
     -------
-    bin_starts : `~numpy.ndarray`
-        The estimated start of each wavelength bin.
-    bin_ends : `~numpy.ndarray`
-        The estimated end of each wavelength bin.
+    bin_edges : `~numpy.ndarray`
+        The recovered edges of each wavelength bin.
     """
     wave = np.asarray(wave)
 
@@ -64,7 +63,10 @@ def _recover_bin_edges(wave):
 def _parse_wavelength_information(wave, bin_edges):
     """Parse wavelength information and return a set of bin edges.
 
-    TODO: documentation
+    Either the central wavelength for each bin can be passed as ``wave``, or the bin
+    edges can be passed directly as ``bin_edges``. This function will recover the bin
+    edges from either input and verify that they are a valid monotonically-increasing
+    list.
     """
     # Make sure that a valid combination of inputs was given.
     valid_count = 0
@@ -87,27 +89,46 @@ def _parse_wavelength_information(wave, bin_edges):
 
 
 class Spectrum(object):
-    """Standardized representation of spectroscopic data.
+    """An observed spectrum of an object.
 
-    The edges of the spectral element wavelength bins are stored in
-    ``bin_edges`` as a numpy array. ``flux`` and ``fluxerr`` are the
-    corresponding flux values and uncertainties of the spectrum for each
-    spectral element, and are both numpy arrays with lengths of one less than
-    the size of ``bin_edges``.
+    This class is designed to represent an observed spectrum. An observed spectrum is a
+    set of contiguous bins in wavelength (referred to as "spectral elements") with
+    associated flux measurements. We assume that each spectral element has uniform
+    transmission in wavelength. A spectrum can optionally have associated uncertainties
+    or covariance between the observed fluxes of the different spectral elements. A
+    spectrum can also optionally have a time associated with it.
 
-    Optionally, there is a single ``time`` associated with all of the
-    observations.
-
-    TODO: calibrated spectra? See spectrum.py where there is wave_unit and unit,
-    and everything is converted internally.
-    TODO: covariance?
-
-    Has attribute ``fluxcov`` which may be ``None``.
+    Internally, we store the edges of each of the spectral element wavelength bins.
+    These are automatically recovered in the common case where a user has a list of
+    central wavelengths for each bin. The wavelengths are stored internally in units of
+    Angstroms. The flux is stored as a spectral flux density F_λ (units of erg / s /
+    cm^2 / Angstrom).
 
     Parameters
     ----------
-    TODO
-
+    wave : list-like
+        Central wavelengths of each spectral element. This must be monotonically
+        increasing. This is assumed to be in units of Angstroms unless ``wave_unit`` is
+        specified.
+    flux : list-like
+        Observed fluxes for each spectral element. By default this is assumed to be a
+        spectral flux density F_λ unless ``unit`` is explicitly specified.
+    fluxerr : list-like
+        Uncertainties on the observed fluxes for each spectral element.
+    fluxcov : two-dimensional `~numpy.ndarray`
+        Covariance of the observed fluxes for each spectral element. Only one of
+        ``fluxerr`` and ``fluxcov`` may be specified.
+    bin_edges : list-like
+        Edges of each spectral element in wavelength. This should be a list that is
+        length one longer than ``flux``. Only one of ``wave`` and ``bin_edges`` may be
+        specified.
+    wave_unit : `~astropy.units.Unit`
+        Wavelength unit. Default is Angstroms.
+    unit : `~astropy.units.Unit`
+        Flux unit. Default is F_λ (erg / s / cm^2 / Angstrom).
+    time : float
+        The time associated with the spectrum. This is required if fitting a model to
+        the spectrum.
     """
     def __init__(self, wave=None, flux=None, fluxerr=None, fluxcov=None, bin_edges=None,
                  wave_unit=u.AA, unit=FLAMBDA_UNIT, time=None):
@@ -200,7 +221,24 @@ class Spectrum(object):
         return self._fluxcov is not None or self._fluxerr is not None
 
     def rebin(self, wave=None, bin_edges=None):
-        """Rebin the spectrum with the given bin edges."""
+        """Rebin the spectrum on a new wavelength grid.
+
+        Rebinning often introduces covariance between spectral elements. This function
+        propagates that covariance.
+
+        Parameters
+        ----------
+        wave : list-like
+            Central wavelengths of the rebinned spectrum.
+        bin_edges : list-like
+            Bin edges of the rebinned spectrum. Only one of ``wave`` and ``bin_edges``
+            may be specified.
+
+        Returns
+        -------
+        rebinned_spectrum : `~sncosmo.Spectrum`
+            A new `~sncosmo.Spectrum` with the rebinned spectrum.
+        """
         new_bin_edges = _parse_wavelength_information(wave, bin_edges)
         new_bin_starts = new_bin_edges[:-1]
         new_bin_ends = new_bin_edges[1:]
@@ -236,10 +274,27 @@ class Spectrum(object):
     def get_sampling_matrix(self):
         """Build an appropriate sampling for the spectral elements.
 
-        TODO documentation: This returns the wavelengths to sample at along with a
-        matrix that converts everything and the dwave.
+        For spectra with wide spectral elements, it is important to integrate models
+        over the spectral element rather than simply sampling at the central wavelength.
+        This function first determines where to sample for each spectral element and
+        returns the corresponding list of wavelengths ``sample_wave``. This function
+        also returns a matrix ``sampling_matrix`` that provided the mapping between the
+        sampled wavelengths and the spectral elements. Given a set of model fluxes
+        evaluated at ``sample_wave``, the dot product of ``sampling_matrix`` with these
+        fluxes gives the corresponding fluxes in each spectral element in units of (erg
+        / s / cm^2).
 
-        TODO: cache the results?
+        ``sampling_matrix`` is stored as a compressed sparse row matrix that can be very
+        efficiently used for dot products with vectors. This matrix is somewhat
+        expensive to calculate and only changes if the bin edges of the spectral
+        elements change, so we cache it and only recompute it if the bin edges change.
+
+        Returns
+        -------
+        sample_wave : `~numpy.ndarray`
+            Wavelengths to sample a model at.
+        sampling_matrix : `~scipy.sparse.csr_matrix`
+            Matrix giving the mapping from the sampled bins to the spectral elements.
         """
         # Check if we have cached the sampling matrix already.
         if self._cache_sampling_matrix is not None:
@@ -287,6 +342,12 @@ class Spectrum(object):
         ----------
         band : `~sncosmo.Bandpass`, str or list_like
             Bandpass, name of bandpass in registry, or list or array thereof.
+        zp : float or list_like, optional
+            If given, zeropoint to scale flux to (must also supply ``zpsys``).
+            If not given, flux is not scaled.
+        zpsys : str or list_like, optional
+            Name of a magnitude system in the registry, specifying the system
+            that ``zp`` is in.
 
         Returns
         -------
@@ -340,21 +401,29 @@ class Spectrum(object):
     def bandflux(self, band, zp=None, zpsys=None):
         """Perform synthentic photometry in a given bandpass.
 
-        The bandpass transmission is interpolated onto the wavelength grid of
-        the spectrum. The result is a weighted sum of the spectral flux density
-        values (weighted by transmission values).
-
-        TODO docs
+        We assume that the spectrum is constant for each spectral element with a value
+        given by its observed flux. The bandpass is sampled on an appropriate
+        high-resolution grid and multiplied with the observed fluxes to give the
+        corresponding integrated band flux over this band.
 
         Parameters
         ----------
-        band : Bandpass or str
-            Bandpass object or name of registered bandpass.
+        band : `~sncosmo.bandpass` or str or list_like
+            Bandpass(es) or name(s) of bandpass(es) in registry.
+        zp : float or list_like, optional
+            If given, zeropoint to scale flux to. if `none` (default) flux
+            is not scaled.
+        zpsys : `~sncosmo.magsystem` or str (or list_like), optional
+            Determines the magnitude system of the requested zeropoint.
+            cannot be `none` if `zp` is not `none`.
 
         Returns
         -------
-        float
-            Total flux in ph/s/cm^2.
+        bandflux : float or `~numpy.ndarray`
+            Flux in photons / s /cm^2, unless `zp` and `zpsys` are
+            given, in which case flux is scaled so that it corresponds
+            to the requested zeropoint. Return value is `float` if all
+            input parameters are scalars, `~numpy.ndarray` otherwise.
         """
         ndim = np.ndim(band)
 
@@ -373,8 +442,6 @@ class Spectrum(object):
         ----------
         band : `~sncosmo.bandpass` or str or list_like
             Bandpass(es) or name(s) of bandpass(es) in registry.
-        time : float or list_like
-            time(s) in days.
         zp : float or list_like, optional
             If given, zeropoint to scale flux to. if `none` (default) flux
             is not scaled.
@@ -403,10 +470,8 @@ class Spectrum(object):
         return band_flux, band_cov
 
     def bandmag(self, band, magsys):
-        """Magnitude at the given phase(s) through the given
-        bandpass(es), and for the given magnitude system(s).
-
-        TODO: docs
+        """Magnitude through the given bandpass(es), and for the given magnitude
+        system(s).
 
         Parameters
         ----------
@@ -414,13 +479,11 @@ class Spectrum(object):
             Name(s) of bandpass in registry.
         magsys : str or list_like
             Name(s) of `~sncosmo.MagSystem` in registry.
-        phase : float or list_like
-            Phase(s) in days.
 
         Returns
         -------
         mag : float or `~numpy.ndarray`
-            Magnitude for each item in band, magsys, phase.
+            Magnitude for each item in band, magsys.
             The return value is a float if all parameters are not iterables.
             The return value is an `~numpy.ndarray` if any are iterable.
         """

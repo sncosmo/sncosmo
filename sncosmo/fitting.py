@@ -290,7 +290,7 @@ def _guess_t0_and_amplitude_spectra(spectra, model, minsnr):
 
     The spectra don't necessarily have the same binning which makes this challenging. To
     handle this, we synthesize photometry in a range of different synthetic filters. We
-    then call the guess function that operates on photometry.
+    then call `_guess_t0_and_amplitude_photometry` on this photometry.
     """
 
     # Build a set of bands to use for synthetic photometry.
@@ -413,6 +413,8 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
         phase of the model lines up with the earliest data point and
         the maximum bound is such that the earliest phase of the model
         lines up with the latest data point.
+    spectra : `~sncosmo.Spectrum` or list of `~sncosmo.Spectrum` objects
+        A list of spectra to include in the fit.
     guess_amplitude : bool, optional
         Whether or not to guess the amplitude from the data. If false, the
         current model amplitude is taken as the initial value. Only has an
@@ -439,8 +441,6 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
 
         *New in version 1.5.0*
 
-    spectra : `~sncosmo.Spectrum` or list of `~sncosmo.Spectrum` objects
-        A list of spectra to include in the fit.
     wave_range : (float, float), optional
         If given, discard data with bandpass effective wavelengths outside
         this range.
