@@ -422,7 +422,7 @@ class Spectrum(object):
         Returns
         -------
         bandflux : float or `~numpy.ndarray`
-            Flux in photons / s /cm^2, unless `zp` and `zpsys` are
+            Flux in photons / s / cm^2, unless `zp` and `zpsys` are
             given, in which case flux is scaled so that it corresponds
             to the requested zeropoint. Return value is `float` if all
             input parameters are scalars, `~numpy.ndarray` otherwise.
