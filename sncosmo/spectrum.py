@@ -223,8 +223,10 @@ class Spectrum(object):
     def rebin(self, wave=None, bin_edges=None):
         """Rebin the spectrum on a new wavelength grid.
 
-        Rebinning often introduces covariance between spectral elements. This function
-        propagates that covariance.
+        We assume that the spectrum is constant for each spectral element with a value
+        given by its observed flux. If the new bin edges are not aligned with the old
+        ones, then this will introduce covariance between spectral elements. We
+        propagate that covariance properly.
 
         Parameters
         ----------
