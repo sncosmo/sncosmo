@@ -28,6 +28,7 @@ possible.
    bandpasses
    magsystems
    photdata
+   spectrum
    cuts
    simulation
    registry
