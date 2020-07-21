@@ -17,7 +17,8 @@ except ImportError:
 
 
 def test_bin_edges_linear():
-    """Ensure that we can recover consistent bin edges for a spectrum from bin centers.
+    """Ensure that we can recover consistent bin edges for a spectrum from bin
+    centers.
 
     Internally, the bin edges are stored rather than the bin centers.
     """
@@ -29,7 +30,8 @@ def test_bin_edges_linear():
 
 
 def test_bin_edges_log():
-    """Ensure that we can recover consistent bin edges for a spectrum from bin centers.
+    """Ensure that we can recover consistent bin edges for a spectrum from bin
+    centers.
 
     Internally, the bin edges are stored rather than the bin centers.
     """
@@ -48,9 +50,10 @@ class TestSpectrum:
         start_params = {'t0': 0., 'amplitude': 1., 'z': 0.}
         model.set(**params)
 
-        # generate a fake spectrum with no errors. note: we simulate a high resolution
-        # spectrum and then bin it up. we also include large covariance between spectral
-        # elements to verify that we are handling covariance properly.
+        # generate a fake spectrum with no errors. note: we simulate a high
+        # resolution spectrum and then bin it up. we also include large
+        # covariance between spectral elements to verify that we are handling
+        # covariance properly.
         spec_time = params['t0'] + 5.
         sim_wave = np.arange(3000, 9000)
         sim_flux = model.flux(spec_time, sim_wave)
@@ -92,8 +95,8 @@ class TestSpectrum:
     def test_bandflux(self):
         """Check synthetic photometry.
 
-        We compare synthetic photometry on high and low resolution spectra. It should
-        stay the same.
+        We compare synthetic photometry on high and low resolution spectra. It
+        should stay the same.
         """
         bandflux_highres = self.spectrum.bandflux('sdssg')
         bandflux_lowres = self.bin_spectrum.bandflux('sdssg')
@@ -137,7 +140,8 @@ class TestSpectrum:
     def test_fit_lc_spectra(self):
         """Check fit results for a single high-resolution spectrum."""
         self.model.set(**self.start_params)
-        res, fitmodel = sncosmo.fit_lc(model=self.model, spectra=self.bin_spectrum,
+        res, fitmodel = sncosmo.fit_lc(model=self.model,
+                                       spectra=self.bin_spectrum,
                                        vparam_names=['amplitude', 'z', 't0'],
                                        bounds={'z': (0., 0.3)})
 
@@ -163,7 +167,8 @@ class TestSpectrum:
         """Check fit results for multiple spectra."""
         self.model.set(**self.start_params)
         res, fitmodel = sncosmo.fit_lc(model=self.model,
-                                       spectra=[self.bin_spectrum, self.bin_spectrum],
+                                       spectra=[self.bin_spectrum,
+                                                self.bin_spectrum],
                                        vparam_names=['amplitude', 'z', 't0'],
                                        bounds={'z': (0., 0.3)})
 

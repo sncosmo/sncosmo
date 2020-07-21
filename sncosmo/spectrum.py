@@ -22,9 +22,9 @@ def _recover_bin_edges(wave):
 
     This function is designed to work for standard linear binning along with
     other more exotic forms of binning such as logarithmic bins. We do a second
-    order correction to try to get the bin widths as accurately as possible. For
-    linear binning there is only machine precision error with either a first or
-    second order estimate.
+    order correction to try to get the bin widths as accurately as possible.
+    For linear binning there is only machine precision error with either a
+    first or second order estimate.
 
     For higher order binnings (eg: log), the fractional error is of order (dA /
     A)**2 for linear estimate and (dA / A)**4 for the second order estimate
@@ -63,10 +63,10 @@ def _recover_bin_edges(wave):
 def _parse_wavelength_information(wave, bin_edges):
     """Parse wavelength information and return a set of bin edges.
 
-    Either the central wavelength for each bin can be passed as ``wave``, or the bin
-    edges can be passed directly as ``bin_edges``. This function will recover the bin
-    edges from either input and verify that they are a valid monotonically-increasing
-    list.
+    Either the central wavelength for each bin can be passed as ``wave``, or
+    the bin edges can be passed directly as ``bin_edges``. This function will
+    recover the bin edges from either input and verify that they are a valid
+    monotonically-increasing list.
     """
     # Make sure that a valid combination of inputs was given.
     valid_count = 0
@@ -91,47 +91,49 @@ def _parse_wavelength_information(wave, bin_edges):
 class Spectrum(object):
     """An observed spectrum of an object.
 
-    This class is designed to represent an observed spectrum. An observed spectrum is a
-    set of contiguous bins in wavelength (referred to as "spectral elements") with
-    associated flux measurements. We assume that each spectral element has uniform
-    transmission in wavelength. A spectrum can optionally have associated uncertainties
-    or covariance between the observed fluxes of the different spectral elements. A
-    spectrum can also optionally have a time associated with it.
+    This class is designed to represent an observed spectrum. An observed
+    spectrum is a set of contiguous bins in wavelength (referred to as
+    "spectral elements") with associated flux measurements. We assume that each
+    spectral element has uniform transmission in wavelength. A spectrum can
+    optionally have associated uncertainties or covariance between the observed
+    fluxes of the different spectral elements. A spectrum can also optionally
+    have a time associated with it.
 
-    Internally, we store the edges of each of the spectral element wavelength bins.
-    These are automatically recovered in the common case where a user has a list of
-    central wavelengths for each bin. The wavelengths are stored internally in units of
-    Angstroms. The flux is stored as a spectral flux density F_λ (units of erg / s /
-    cm^2 / Angstrom).
+    Internally, we store the edges of each of the spectral element wavelength
+    bins. These are automatically recovered in the common case where a user has
+    a list of central wavelengths for each bin. The wavelengths are stored
+    internally in units of Angstroms. The flux is stored as a spectral flux
+    density F_λ (units of erg / s / cm^2 / Angstrom).
 
     Parameters
     ----------
     wave : list-like
-        Central wavelengths of each spectral element. This must be monotonically
-        increasing. This is assumed to be in units of Angstroms unless ``wave_unit`` is
-        specified.
+        Central wavelengths of each spectral element. This must be
+        monotonically increasing. This is assumed to be in units of Angstroms
+        unless ``wave_unit`` is specified.
     flux : list-like
-        Observed fluxes for each spectral element. By default this is assumed to be a
-        spectral flux density F_λ unless ``unit`` is explicitly specified.
+        Observed fluxes for each spectral element. By default this is assumed
+        to be a spectral flux density F_λ unless ``unit`` is explicitly
+        specified.
     fluxerr : list-like
         Uncertainties on the observed fluxes for each spectral element.
     fluxcov : two-dimensional `~numpy.ndarray`
-        Covariance of the observed fluxes for each spectral element. Only one of
-        ``fluxerr`` and ``fluxcov`` may be specified.
+        Covariance of the observed fluxes for each spectral element. Only one
+        of ``fluxerr`` and ``fluxcov`` may be specified.
     bin_edges : list-like
-        Edges of each spectral element in wavelength. This should be a list that is
-        length one longer than ``flux``. Only one of ``wave`` and ``bin_edges`` may be
-        specified.
+        Edges of each spectral element in wavelength. This should be a list
+        that is length one longer than ``flux``. Only one of ``wave`` and
+        ``bin_edges`` may be specified.
     wave_unit : `~astropy.units.Unit`
         Wavelength unit. Default is Angstroms.
     unit : `~astropy.units.Unit`
         Flux unit. Default is F_λ (erg / s / cm^2 / Angstrom).
     time : float
-        The time associated with the spectrum. This is required if fitting a model to
-        the spectrum.
+        The time associated with the spectrum. This is required if fitting a
+        model to the spectrum.
     """
-    def __init__(self, wave=None, flux=None, fluxerr=None, fluxcov=None, bin_edges=None,
-                 wave_unit=u.AA, unit=FLAMBDA_UNIT, time=None):
+    def __init__(self, wave=None, flux=None, fluxerr=None, fluxcov=None,
+                 bin_edges=None, wave_unit=u.AA, unit=FLAMBDA_UNIT, time=None):
         # Extract the bin edges
         bin_edges = _parse_wavelength_information(wave, bin_edges)
         self.bin_edges = bin_edges
@@ -153,7 +155,8 @@ class Spectrum(object):
                 raise ValueError("unequal column lengths")
         elif fluxcov is not None:
             self._fluxcov = np.array(fluxcov)
-            if not (len(self.flux) == self._fluxcov.shape[0] == self._fluxcov.shape[1]):
+            if not (len(self.flux) == self._fluxcov.shape[0] ==
+                    self._fluxcov.shape[1]):
                 raise ValueError("unequal column lengths")
 
         # Internally, wavelength is in Angstroms:
@@ -163,19 +166,22 @@ class Spectrum(object):
 
         # Internally, flux is in F_lambda:
         if unit != FLAMBDA_UNIT:
-            unit_scale = unit.to(FLAMBDA_UNIT,
-                                 equivalencies=u.spectral_density(u.AA, self.wave))
+            unit_scale = unit.to(
+                FLAMBDA_UNIT, equivalencies=u.spectral_density(u.AA, self.wave)
+            )
             self.flux = unit_scale * self.flux
             if self._fluxerr is not None:
                 self._fluxerr = unit_scale * self._fluxerr
             if self._fluxcov is not None:
-                self._fluxcov = np.outer(unit_scale, unit_scale).dot(self._fluxcov)
+                self._fluxcov = np.outer(unit_scale, unit_scale) \
+                    .dot(self._fluxcov)
         self._unit = FLAMBDA_UNIT
 
         self.time = time
 
-        # We use a sampling matrix to evaluate models/bands for the spectrum. This
-        # matrix is expensive to compute but rarely changes, so we cache it.
+        # We use a sampling matrix to evaluate models/bands for the spectrum.
+        # This matrix is expensive to compute but rarely changes, so we cache
+        # it.
         self._cache_sampling_matrix = None
 
     def __len__(self):
@@ -223,18 +229,18 @@ class Spectrum(object):
     def rebin(self, wave=None, bin_edges=None):
         """Rebin the spectrum on a new wavelength grid.
 
-        We assume that the spectrum is constant for each spectral element with a value
-        given by its observed flux. If the new bin edges are not aligned with the old
-        ones, then this will introduce covariance between spectral elements. We
-        propagate that covariance properly.
+        We assume that the spectrum is constant for each spectral element with
+        a value given by its observed flux. If the new bin edges are not
+        aligned with the old ones, then this will introduce covariance between
+        spectral elements. We propagate that covariance properly.
 
         Parameters
         ----------
         wave : list-like
             Central wavelengths of the rebinned spectrum.
         bin_edges : list-like
-            Bin edges of the rebinned spectrum. Only one of ``wave`` and ``bin_edges``
-            may be specified.
+            Bin edges of the rebinned spectrum. Only one of ``wave`` and
+            ``bin_edges`` may be specified.
 
         Returns
         -------
@@ -255,8 +261,8 @@ class Spectrum(object):
         overlaps = overlap_ends - overlap_starts
         overlaps[overlaps < 0] = 0
 
-        # Normalize by the total overlap in each bin to keep everything in units
-        # of f_lambda
+        # Normalize by the total overlap in each bin to keep everything in
+        # units of f_lambda
         total_overlaps = np.sum(overlaps, axis=1)
         if np.any(total_overlaps == 0):
             raise ValueError("new binning not contained within original "
@@ -276,34 +282,38 @@ class Spectrum(object):
     def get_sampling_matrix(self):
         """Build an appropriate sampling for the spectral elements.
 
-        For spectra with wide spectral elements, it is important to integrate models
-        over the spectral element rather than simply sampling at the central wavelength.
-        This function first determines where to sample for each spectral element and
-        returns the corresponding list of wavelengths ``sample_wave``. This function
-        also returns a matrix ``sampling_matrix`` that provided the mapping between the
-        sampled wavelengths and the spectral elements. Given a set of model fluxes
-        evaluated at ``sample_wave``, the dot product of ``sampling_matrix`` with these
-        fluxes gives the corresponding fluxes in each spectral element in units of (erg
-        / s / cm^2).
+        For spectra with wide spectral elements, it is important to integrate
+        models over the spectral element rather than simply sampling at the
+        central wavelength. This function first determines where to sample for
+        each spectral element and returns the corresponding list of wavelengths
+        ``sample_wave``. This function also returns a matrix
+        ``sampling_matrix`` that provided the mapping between the sampled
+        wavelengths and the spectral elements. Given a set of model fluxes
+        evaluated at ``sample_wave``, the dot product of ``sampling_matrix``
+        with these fluxes gives the corresponding fluxes in each spectral
+        element in units of (erg / s / cm^2).
 
-        ``sampling_matrix`` is stored as a compressed sparse row matrix that can be very
-        efficiently used for dot products with vectors. This matrix is somewhat
-        expensive to calculate and only changes if the bin edges of the spectral
-        elements change, so we cache it and only recompute it if the bin edges change.
+        ``sampling_matrix`` is stored as a compressed sparse row matrix that
+        can be very efficiently used for dot products with vectors. This matrix
+        is somewhat expensive to calculate and only changes if the bin edges of
+        the spectral elements change, so we cache it and only recompute it if
+        the bin edges change.
 
         Returns
         -------
         sample_wave : `~numpy.ndarray`
             Wavelengths to sample a model at.
         sampling_matrix : `~scipy.sparse.csr_matrix`
-            Matrix giving the mapping from the sampled bins to the spectral elements.
+            Matrix giving the mapping from the sampled bins to the spectral
+            elements.
         """
         # Check if we have cached the sampling matrix already.
         if self._cache_sampling_matrix is not None:
-            cache_bin_edges, sampling_matrix_result = self._cache_sampling_matrix
+            cache_bin_edges, sampling_matrix_result = \
+                self._cache_sampling_matrix
             if np.all(cache_bin_edges == self.bin_edges):
-                # No changes to the spectral elements so the sampling matrix hasn't
-                # changed.
+                # No changes to the spectral elements so the sampling matrix
+                # hasn't changed.
                 return sampling_matrix_result
 
         indices = []
@@ -333,12 +343,13 @@ class Spectrum(object):
 
         # Cache the result
         sampling_matrix_result = (sample_wave, sampling_matrix)
-        self._cache_sampling_matrix = (self.bin_edges.copy(), sampling_matrix_result)
+        self._cache_sampling_matrix = (self.bin_edges.copy(),
+                                       sampling_matrix_result)
 
         return sampling_matrix_result
 
     def _band_weights(self, band, zp, zpsys):
-        """Calculate the weights for each spectral element for synthetic photometry.
+        """Calculate the weights for synthetic photometry.
 
         Parameters
         ----------
@@ -354,10 +365,10 @@ class Spectrum(object):
         Returns
         -------
         band_weights : numpy.array
-            The weights to multiply each bin by for synthetic photometry in the given
-            band(s). This has a shape of (number of bands, number of spectral elements).
-            The dot product of this array with the flux array gives the desired band
-            flux.
+            The weights to multiply each bin by for synthetic photometry in the
+            given band(s). This has a shape of (number of bands, number of
+            spectral elements). The dot product of this array with the flux
+            array gives the desired band flux.
         """
         band_weights = []
 
@@ -368,20 +379,23 @@ class Spectrum(object):
         if zp is None:
             band = np.atleast_1d(band)
         else:
-            band, zp, zpsys = np.broadcast_arrays(np.atleast_1d(band), zp, zpsys)
+            band, zp, zpsys = np.broadcast_arrays(np.atleast_1d(band), zp,
+                                                  zpsys)
 
         for idx in range(len(band)):
             iter_band = get_bandpass(band[idx])
 
-            # Check that bandpass wavelength range is fully contained in spectrum
-            # wavelength range.
+            # Check that bandpass wavelength range is fully contained in
+            # spectrum wavelength range.
             if (iter_band.minwave() < self.bin_starts[0]
                     or iter_band.maxwave() > self.bin_ends[-1]):
-                raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
-                                 'outside spectral range [{3:.6g}, .., {4:.6g}]'
-                                 .format(iter_band.name, iter_band.minwave(),
-                                         iter_band.maxwave(), self.bin_starts[0],
-                                         self.bin_ends[-1]))
+                raise ValueError(
+                    'bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                    'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                    .format(iter_band.name, iter_band.minwave(),
+                            iter_band.maxwave(), self.bin_starts[0],
+                            self.bin_ends[-1])
+                )
 
             sample_wave, sampling_matrix = self.get_sampling_matrix()
             trans = iter_band(sample_wave)
@@ -403,10 +417,10 @@ class Spectrum(object):
     def bandflux(self, band, zp=None, zpsys=None):
         """Perform synthentic photometry in a given bandpass.
 
-        We assume that the spectrum is constant for each spectral element with a value
-        given by its observed flux. The bandpass is sampled on an appropriate
-        high-resolution grid and multiplied with the observed fluxes to give the
-        corresponding integrated band flux over this band.
+        We assume that the spectrum is constant for each spectral element with
+        a value given by its observed flux. The bandpass is sampled on an
+        appropriate high-resolution grid and multiplied with the observed
+        fluxes to give the corresponding integrated band flux over this band.
 
         Parameters
         ----------
@@ -472,8 +486,8 @@ class Spectrum(object):
         return band_flux, band_cov
 
     def bandmag(self, band, magsys):
-        """Magnitude through the given bandpass(es), and for the given magnitude
-        system(s).
+        """Magnitude through the given bandpass(es), and for the given
+        magnitude system(s).
 
         Parameters
         ----------

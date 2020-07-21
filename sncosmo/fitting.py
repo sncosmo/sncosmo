@@ -28,7 +28,8 @@ def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
 
     # precompute inverse covariance matrix
     if data is not None:
-        cov = np.diag(data.fluxerr**2) if data.fluxcov is None else data.fluxcov
+        cov = (np.diag(data.fluxerr**2) if data.fluxcov is None else
+               data.fluxcov)
         if modelcov:
             _, mcov = model.bandfluxcov(data.band, data.time,
                                         zp=data.zp, zpsys=data.zpsys)
@@ -49,12 +50,13 @@ def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
     # parameters)
     if signature == 'iminuit':
         def chisq(*parameters):
-            # When a fit fails, iminuit sometimes calls the chisq function with the
-            # parameters set to nan. This sometimes leads to a segfault in sncosmo
-            # because the internal functions (specifically BicubicInterpolator) aren't
-            # designed to handle that. See https://github.com/sncosmo/sncosmo/issues/266
-            # for details. For now, return nan to minuit if it tries to set any
-            # parameter to nan.
+            # When a fit fails, iminuit sometimes calls the chisq function with
+            # the parameters set to nan. This sometimes leads to a segfault in
+            # sncosmo because the internal functions (specifically
+            # BicubicInterpolator) aren't designed to handle that. See
+            # https://github.com/sncosmo/sncosmo/issues/266 for details. For
+            # now, return nan to minuit if it tries to set any parameter to
+            # nan.
             if np.any(np.isnan(parameters)):
                 return np.nan
             model.parameters = parameters
@@ -70,7 +72,8 @@ def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
 
             if spectra is not None:
                 for spectrum, spec_invcov in zip(spectra, spectra_invcovs):
-                    sample_wave, sampling_matrix = spectrum.get_sampling_matrix()
+                    sample_wave, sampling_matrix = \
+                        spectrum.get_sampling_matrix()
                     sample_flux = model.flux(spectrum.time, sample_wave)
                     spec_model_flux = (
                         sampling_matrix.dot(sample_flux) /
@@ -288,9 +291,10 @@ def _guess_t0_and_amplitude_photometry(data, model, minsnr):
 def _guess_t0_and_amplitude_spectra(spectra, model, minsnr):
     """Guess t0 and amplitude of the model from spectra.
 
-    The spectra don't necessarily have the same binning which makes this challenging. To
-    handle this, we synthesize photometry in a range of different synthetic filters. We
-    then call `_guess_t0_and_amplitude_photometry` on this photometry.
+    The spectra don't necessarily have the same binning which makes this
+    challenging. To handle this, we synthesize photometry in a range of
+    different synthetic filters. We then call
+    `_guess_t0_and_amplitude_photometry` on this photometry.
     """
 
     # Build a set of bands to use for synthetic photometry.
@@ -316,7 +320,8 @@ def _guess_t0_and_amplitude_spectra(spectra, model, minsnr):
                      & (spectrum.bin_edges[-1] >= band_ends))
         spec_bands = bandpasses[band_mask]
 
-        spec_flux, spec_fluxcov = spectrum.bandfluxcov(spec_bands, zp=25., zpsys='ab')
+        spec_flux, spec_fluxcov = spectrum.bandfluxcov(spec_bands, zp=25.,
+                                                       zpsys='ab')
         spec_fluxerr = np.sqrt(np.diag(spec_fluxcov))
 
         all_bands.extend(spec_bands)
@@ -342,15 +347,16 @@ def _guess_t0_and_amplitude_spectra(spectra, model, minsnr):
 def guess_t0_and_amplitude(data, model, minsnr, spectra=None):
     """Guess t0 and amplitude of the model based on the data.
 
-    If we have photometry, we use it for the guessing. If not, we use all available
-    spectra instead.
+    If we have photometry, we use it for the guessing. If not, we use all
+    available spectra instead.
     """
     if data is not None:
         return _guess_t0_and_amplitude_photometry(data, model, minsnr)
     elif spectra is not None:
         return _guess_t0_and_amplitude_spectra(spectra, model, minsnr)
     else:
-        raise ValueError('need either photometry or spectra to guess t0 and amplitude.')
+        raise ValueError('need either photometry or spectra to guess t0 and '
+                         'amplitude.')
 
 
 def _print_iminuit_params(names, kwargs):
@@ -388,8 +394,8 @@ def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
 
 def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
            method='minuit', guess_amplitude=True, guess_t0=True, guess_z=True,
-           minsnr=5.0, modelcov=False, verbose=False, maxcall=10000, phase_range=None,
-           wave_range=None, warn=True):
+           minsnr=5.0, modelcov=False, verbose=False, maxcall=10000,
+           phase_range=None, wave_range=None, warn=True):
     """Fit model parameters to data by minimizing chi^2.
 
     Ths function defines a chi^2 to minimize, makes initial guesses for
@@ -584,7 +590,8 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
         fitdata, support_mask = cut_bands(data, model,
                                           z_bounds=bounds.get('z', None),
                                           warn=warn)
-        data_mask = support_mask  # Initially this is the complete mask on data.
+        # Initially this is the complete mask on data.
+        data_mask = support_mask
 
         # Unique set of bands in data
         bands = set(fitdata.band.tolist())
@@ -684,8 +691,8 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
 
         if phase_range or wave_range:
             if spectra is not None:
-                raise ValueError('phase_range and wave_range are not supported for '
-                                 'spectra')
+                raise ValueError('phase_range and wave_range are not '
+                                 'supported for spectra')
             range_mask = _phase_and_wave_mask(data, model.get('t0'),
                                               model.get('z'),
                                               phase_range, wave_range)
@@ -722,8 +729,8 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
             ndof -= len(vparam_names)
 
             # generate chisq function based on new starting point
-            fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
-                                      modelcov=modelcov)
+            fitchisq = generate_chisq(fitdata, model, spectra,
+                                      signature='iminuit', modelcov=modelcov)
 
             m = iminuit.Minuit(fitchisq, errordef=1.,
                                forced_parameters=model.param_names,
