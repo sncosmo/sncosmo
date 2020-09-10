@@ -889,7 +889,7 @@ note= """Templates from Vincenzi et al. 19.
 Each template is extended in the ultra-violet (1600AA) and in the near infrared (10000AA).
 Each template can be used in its original version (v19_sn-name) or in its host dust extinction corrected version (v19_sn-name_corr)."""
 for name, vrs, sntype, fn in V19_CC_models:
-    ref = ('Vincenzi et al. 2019'
+    ref = ('V19_CC_models', 'Vincenzi et al. 2019'
        '<https://arxiv.org/abs/1908.05228>')
     relpath = os.path.join('models', 'vincenzi', fn)
     meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype,
