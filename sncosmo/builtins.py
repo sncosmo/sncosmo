@@ -886,8 +886,8 @@ V19_CC_models = [('v19-asassn14jb-corr', '1.0', 'SN II', 'V19_ASASSN14jb_HostExt
 ]
 
 note= """Templates from Vincenzi et al. 19.
-Each template is extended in the ultra-violet (1600AA) and in the near infrared (10000AA).
-Each template can be used in its original version (v19_sn-name) or in its host dust extinction corrected version (v19_sn-name_corr)."""
+Each template is extended in the ultraviolet (1600AA) and in the near infrared (10000AA).
+Each template can be used in its original version (v19-sn-name) or in its host dust extinction corrected version (v19-sn-name-corr)."""
 for name, vrs, sntype, fn in V19_CC_models:
     relpath = os.path.join('models', 'vincenzi', fn)
     meta = {'subclass': '`~sncosmo.TimeSeriesSource`',
