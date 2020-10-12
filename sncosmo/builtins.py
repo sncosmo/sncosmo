@@ -751,7 +751,8 @@ for name, sntype, fn in p18Models_CC:
                              args=(relpath,), version='2.0', meta=meta)
 
 # V19
-V19_CC_models = [('v19-asassn14jb-corr', '1.0', 'SN II', 'V19_ASASSN14jb_HostExtCorr.SED'),
+V19_CC_models = [
+    ('v19-asassn14jb-corr', '1.0', 'SN II', 'V19_ASASSN14jb_HostExtCorr.SED'),
     ('v19-asassn14jb', '1.0', 'SN II', 'V19_ASASSN14jb_noHostExtCorr.SED'),
     ('v19-asassn15oz-corr', '1.0', 'SN II', 'V19_ASASSN15oz_HostExtCorr.SED'),
     ('v19-asassn15oz', '1.0', 'SN II', 'V19_ASASSN15oz_noHostExtCorr.SED'),
@@ -885,18 +886,20 @@ V19_CC_models = [('v19-asassn14jb-corr', '1.0', 'SN II', 'V19_ASASSN14jb_HostExt
     ('v19-iptf13bvn', '1.0', 'SN Ib', 'V19_iPTF13bvn_noHostExtCorr.SED')
 ]
 
-note= """Templates from Vincenzi et al. 19.
-Each template is extended in the ultraviolet (1600AA) and in the near infrared (10000AA).
-Each template can be used in its original version (v19-sn-name) or in its host dust extinction corrected version (v19-sn-name-corr)."""
+note = """Templates from Vincenzi et al. 19. Each template is extended in the
+ultraviolet (1600AA) and in the near infrared (10000AA). Each template can be
+used in its original version (v19-sn-name) or in its host dust extinction
+corrected version (v19-sn-name-corr)."""
+
 for name, vrs, sntype, fn in V19_CC_models:
     relpath = os.path.join('models', 'vincenzi', fn)
     meta = {'subclass': '`~sncosmo.TimeSeriesSource`',
             'type': sntype,
             'ref': ('Vincenzi2019',
                     'Vincenzi et al. 2019 '
-                    '<https://arxiv.org/abs/1908.05228>'), 
-            'note' : note,
-            'url': 'https://github.com/maria-vincenzi/PyCoCo_templates'} 
+                    '<https://arxiv.org/abs/1908.05228>'),
+            'note': note,
+            'url': 'https://github.com/maria-vincenzi/PyCoCo_templates'}
     _SOURCES.register_loader(name, load_timeseries_ascii,
                              args=(relpath,), version=vrs, meta=meta)
 
