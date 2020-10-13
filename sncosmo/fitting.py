@@ -236,6 +236,7 @@ def t0_bounds(data, model, spectra=None):
     return (model.get('t0') + np.min(times) - model.maxtime(),
             model.get('t0') + np.max(times) - model.mintime())
 
+
 def _guess_t0_and_amplitude_photometry(data, model, minsnr):
     """Guess t0 and amplitude of the model from photometry."""
 
