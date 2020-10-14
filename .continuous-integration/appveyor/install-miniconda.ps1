@@ -39,17 +39,17 @@ if ($env:DEBUG) {
 # comma-separated list of individual strings (NOT a whitespace-separated
 # string)!
 # Correct usage example: $env:RETRY_ERRORS = "CondaHTTPError", "SomeOtherError"
-if (! (Test-Path env:RETRY_ERRORS)) {
+if (! (Test-Path $env:RETRY_ERRORS)) {
     $env:RETRY_ERRORS = "CondaHTTPError"
 }
 
 # Maximum number of retries (integer):
-if (! (Test-Path env:RETRY_MAX)) {
+if (! (Test-Path $env:RETRY_MAX)) {
     $env:RETRY_MAX = 3
 }
 
 # Delay before retrying in seconds (non-negative integer):
-if (! (Test-Path env:RETRY_DELAY)) {
+if (! (Test-Path $env:RETRY_DELAY)) {
     $env:RETRY_DELAY = 2
 }
 
@@ -107,7 +107,7 @@ function retry_on_known_error {
                                               -Action $_output_event_handler `
                                               -EventName 'ErrorDataReceived' `
                                               -MessageData $_stderr_builder
-        $_process.Start() | Out-Null
+        $_process.Start()
         $_process.BeginOutputReadLine()
         $_process.BeginErrorReadLine()
         $_process.WaitForExit()
@@ -144,22 +144,22 @@ function retry_on_known_error {
 $MINICONDA_URL = "https://repo.continuum.io/miniconda/"
 
 # We will use the 2.0.x releases as "stable" for Python 2.7 and 3.4
-if ((python -c "from distutils.version import LooseVersion; import os; print(LooseVersion(os.environ['PYTHON_VERSION']) < str(3.5))") -match "False") {
-    $env:LATEST_ASTROPY_STABLE = "3.0.5"
+if ((python -c "from distutils.version import LooseVersion; import os; print(LooseVersion(os.environ['PYTHON_VERSION']) < str(3.6))") -match "False") {
+    $env:LATEST_ASTROPY_STABLE = "4.0"
 }
 else {
-    $env:LATEST_ASTROPY_STABLE = "2.0.9"
+    $env:LATEST_ASTROPY_STABLE = "2.0.16"
     $env:NO_PYTEST_ASTROPY = "True"
 }
 
-$env:ASTROPY_LTS_VERSION = "2.0.9"
-$env:LATEST_NUMPY_STABLE = "1.15.2"
-$env:LATEST_SUNPY_STABLE = "0.9.2"
+$env:ASTROPY_LTS_VERSION = "4.0"
+$env:LATEST_NUMPY_STABLE = "1.17"
+$env:LATEST_SUNPY_STABLE = "1.0.6"
 
 # We pin the version for conda as it's not the most stable package from
 # release to release. Add note here if version is pinned due to a bug upstream.
 if (! $env:CONDA_VERSION) {
-   $env:CONDA_VERSION = "4.5.10"
+   $env:CONDA_VERSION = "4.7"
 }
 
 if (! $env:PIP_FALLBACK) {
@@ -229,14 +229,17 @@ function InstallMiniconda ($miniconda_version, $architecture, $python_home) {
 if (! $env:MINICONDA_VERSION) {
    # Note that we pin the Miniconda version to avoid issues when new versions are released.
    # This can be updated from time to time.
-   $env:MINICONDA_VERSION="4.5.4"
+   $env:MINICONDA_VERSION="4.7.10"
 }
 
 InstallMiniconda $env:MINICONDA_VERSION $env:PLATFORM $env:PYTHON
 checkLastExitCode
 
-# Set environment variables
-$env:PATH = "${env:PYTHON};${env:PYTHON}\Scripts;" + $env:PATH
+# Add conda to path
+& "${env:PYTHON}\Scripts\activate.bat"
+# Equivalent to conda init
+$env:PATH = "${env:PYTHON}\condabin;" + $env:PATH
+conda init cmd.exe
 
 # Conda config
 
@@ -252,19 +255,18 @@ if ($env:CONDA_CHANNELS) {
        conda config --add channels $CONDA_CHANNEL
        checkLastExitCode
    }
+   # This shouldn't be passed to conda.
+   Remove-Variable CONDA_CHANNELS
+   rm env:CONDA_CHANNELS
 }
 
-# These used to be in the conditional above, but even if empty it shouldn't
-# be passed to conda.
-Remove-Variable CONDA_CHANNELS
-rm env:CONDA_CHANNELS
-
 # Install the build and runtime dependencies of the project.
-retry_on_known_error conda install $QUIET conda=$env:CONDA_VERSION
+# Pulled out retry_on_knwon_error for now
+conda install $QUIET conda=$env:CONDA_VERSION
 checkLastExitCode
 
 if (! $env:CONDA_CHANNEL_PRIORITY) {
-   $CONDA_CHANNEL_PRIORITY="false"
+   $CONDA_CHANNEL_PRIORITY="disabled"
 } else {
    $CONDA_CHANNEL_PRIORITY=$env:CONDA_CHANNEL_PRIORITY.ToLower()
 }
@@ -276,17 +278,23 @@ checkLastExitCode
 
 # Create a conda environment using the astropy bonus packages
 if (! $env:CONDA_ENVIRONMENT ) {
-   retry_on_known_error conda create $QUIET -n test python=$env:PYTHON_VERSION
+   # This was preceded by retry_on_known_error but that
+   # appears to be broken.
+   conda create $QUIET -n test python=$env:PYTHON_VERSION
 } else {
-   retry_on_known_error conda env create $QUIET -n test -f $env:CONDA_ENVIRONMENT
+   conda env create $QUIET -n test -f $env:CONDA_ENVIRONMENT
 }
 checkLastExitCode
 
-activate test
+conda activate test
 checkLastExitCode
 
 # Set environment variables for environment (activate test doesn't seem to do the trick)
 $env:PATH = "${env:PYTHON}\envs\test;${env:PYTHON}\envs\test\Scripts;${env:PYTHON}\envs\test\Library\bin;" + $env:PATH
+
+if (! $env:MPLBACKEND) {
+   $env:MPLBACKEND = "Agg"
+}
 
 # Check that we have the expected version of Python
 python --version
@@ -297,11 +305,28 @@ checkLastExitCode
 # python version, as conda sometimes tries to upgrade from e.g. 3.5 to 3.6
 # and it's totally unaccapteble for CI.
 Add-Content ci-helpers\appveyor\pinned "`npython $env:PYTHON_VERSION*"
+
+if ($env:PYTEST_VERSION) {
+   Add-Content ci-helpers\appveyor\pinned "`npytest $env:PYTEST_VERSION*"
+}
+
 Copy-Item ci-helpers\appveyor\pinned ${env:PYTHON}\envs\test\conda-meta\pinned
 
-retry_on_known_error conda install $QUIET -n test pytest pip
+if ($env:DEBUG) {
+   Get-Content ${env:PYTHON}\envs\test\conda-meta\pinned
+}
+
+# Pulled out retry_on_known_error
+conda install $QUIET -n test pytest"$env:PYTEST_VERSION" pip
 checkLastExitCode
 
+# In case of older python versions there isn't an up-to-date version of pip
+# which may lead to ignore install dependencies of the package we test.
+# This update should not interfere with the rest of the functionalities
+# here.
+if ($env:PIP_NO_UPGRADE -notmatch "True") {
+    pip install --upgrade pip
+}
 # Check whether a specific version of Numpy is required
 if ($env:NUMPY_VERSION) {
     if($env:NUMPY_VERSION -match "stable") {
@@ -311,7 +336,8 @@ if ($env:NUMPY_VERSION) {
     } else {
         $NUMPY_OPTION = "numpy=" + $env:NUMPY_VERSION
     }
-    retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION
+    # Pulled out retry_on_known_error
+    conda install -n test $QUIET $NUMPY_OPTION
     checkLastExitCode
 } else {
     $NUMPY_OPTION = ""
@@ -333,7 +359,8 @@ if ($env:ASTROPY_VERSION) {
         $ASTROPY_OPTION = "astropy=" + $env:ASTROPY_VERSION
     }
     if ($env:PIP_FALLBACK -match "True") {
-      $output = retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION $ASTROPY_OPTION.Split(" ")
+      # Pulled out retry_on_known_error
+      $output = conda install -n test $QUIET $NUMPY_OPTION $ASTROPY_OPTION.Split(" ")
       Write-Host $output
       if ($output | select-string UnsatisfiableError) {
          Write-Warning "Installing astropy with conda was unsuccessful, using pip instead"
@@ -344,7 +371,8 @@ if ($env:ASTROPY_VERSION) {
         checkLastExitCode
       }
     } else {
-      retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION $ASTROPY_OPTION.Split(" ")
+      # Pulled out retry_on_known_error
+      conda install -n test $QUIET $NUMPY_OPTION $ASTROPY_OPTION.Split(" ")
       checkLastExitCode
     }
 
@@ -362,7 +390,8 @@ if ($env:SUNPY_VERSION) {
         $SUNPY_OPTION = "sunpy=" + $env:SUNPY_VERSION
     }
     if ($env:PIP_FALLBACK -match "True") {
-      $output = retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION $SUNPY_OPTION
+      # Pulled out retry_on_known_error
+      $output = conda install -n test $QUIET $NUMPY_OPTION $SUNPY_OPTION
       Write-Host $output
       if ($output | select-string UnsatisfiableError) {
          Write-Warning "Installing sunpy with conda was unsuccessful, using pip instead"
@@ -373,7 +402,8 @@ if ($env:SUNPY_VERSION) {
         checkLastExitCode
       }
     } else {
-      retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION $SUNPY_OPTION
+      # Pulled out retry_on_known_error
+      conda install -n test $QUIET $NUMPY_OPTION $SUNPY_OPTION
       checkLastExitCode
     }
 } else {
@@ -382,9 +412,6 @@ if ($env:SUNPY_VERSION) {
 
 # Install the specified versions of numpy and other dependencies
 if ($env:CONDA_DEPENDENCIES) {
-   if ($env:CONDA_DEPENDENCIES -match "matplotlib") {
-      $env:CONDA_DEPENDENCIES += " sip=4.18"
-   }
     $CONDA_DEPENDENCIES = $env:CONDA_DEPENDENCIES.split(" ")
 } else {
     $CONDA_DEPENDENCIES = ""
@@ -394,7 +421,8 @@ if ($env:CONDA_DEPENDENCIES) {
 if ($NUMPY_OPTION -or $CONDA_DEPENDENCIES) {
 
   if ($env:PIP_FALLBACK -match "True") {
-    $output = retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION $CONDA_DEPENDENCIES
+    # Pulled out retry_on_known_error
+    $output = conda install -n test $QUIET $NUMPY_OPTION $CONDA_DEPENDENCIES
     Write-Host $output
     if ($output | select-string UnsatisfiableError, PackageNotFoundError, PackagesNotFoundError) {
        Write-Warning "Installing dependencies with conda was unsuccessful, using pip instead"
@@ -404,7 +432,8 @@ if ($NUMPY_OPTION -or $CONDA_DEPENDENCIES) {
       checkLastExitCode
     }
   } else {
-    retry_on_known_error conda install -n test $QUIET $NUMPY_OPTION $CONDA_DEPENDENCIES
+    # Pulled out retry_on_known_error
+    conda install -n test $QUIET $NUMPY_OPTION $CONDA_DEPENDENCIES
     checkLastExitCode
   }
 
@@ -416,9 +445,11 @@ if ($env:NUMPY_VERSION -match "dev") {
    checkLastExitCode
 }
 
+# TODO: Use conda to install pyerfa when it is available.
 # Check whether the developer version of Astropy is required and if yes install
 # it. We need to include --no-deps to make sure that Numpy doesn't get upgraded.
 if ($env:ASTROPY_VERSION -match "dev") {
+   Invoke-Expression "${env:CMD_IN_ENV} pip install pyerfa --upgrade --no-deps"
    Invoke-Expression "${env:CMD_IN_ENV} pip install git+https://github.com/astropy/astropy.git#egg=astropy --upgrade --no-deps"
    checkLastExitCode
 }

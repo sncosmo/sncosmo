@@ -18,7 +18,7 @@ environment:
         NUMPY_VERSION: "1.12"
         ASTROPY_VERSION: "lts"
 
-      - PYTHON_VERSION: "3.6"
+      - PYTHON_VERSION: "3.8"
         NUMPY_VERSION: "stable"
         ASTROPY_VERSION: "stable"
         CONDA_DEPENDENCIES: "scipy cython matplotlib"
