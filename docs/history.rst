@@ -8,6 +8,19 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.2.0 (2020-10-23)
+===================
+
+- Add core-collapse models from Vincenzi et al. (2019)
+
+- New Spectrum class to handle processing and fitting spectral observations.
+
+- Removed appveyor builds.
+
+- Bugfixes:
+
+  - Prevent segfaults in light curve fitting when the minuit fit fails.
+
 v2.1.0 (2020-02-25)
 ===================
 
