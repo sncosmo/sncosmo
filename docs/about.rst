@@ -52,4 +52,5 @@ Alphabetical by last name:
 * Steve Rodney
 * Caroline Sofiatti
 * Rollin C. Thomas
+* Maria Vincenzi
 * Michael Wood-Vasey
