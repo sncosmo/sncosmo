@@ -215,7 +215,7 @@ cdef class BicubicInterpolator(object):
             y_j = yc[j]
 
             # if y is out of range, we won't be using the value at all
-            if (y_j < self.ymin or y_j > self.ymax):
+            if (not (y_j >= self.ymin and y_j <= self.ymax)):
                 yflagvec[j] = -1
             else:
                 iy = find_index_unsafe(self.yval, self.ny, y_j, iy)
@@ -243,7 +243,7 @@ cdef class BicubicInterpolator(object):
             x_i = xc[i]
 
             # precompute some stuff for x
-            if (x_i < self.xmin or x_i > self.xmax):
+            if (not (x_i >= self.xmin and x_i <= self.xmax)):
                 xflag = -1
             else:
                 ix = find_index_unsafe(self.xval, self.nx, x_i, ix)
