@@ -418,6 +418,27 @@ for name, fname in [('ztfg', 'bandpasses/ztf/P48_g.dat'),
                                 args=(fname,),
                                 meta=ztf_meta)
 
+
+# Swift UVOT
+swift_meta = {
+    'filterset': 'swift-uvot',
+    'retrieved': '19 May 2020',
+    'description': "Swift UVOT filters retreieved from the Spanish Virtual "
+                   "Observatory filter profile service."
+}
+
+for name, fname in [('uvot::b', 'bandpasses/swift/Swift_UVOT.B.dat'),
+                    ('uvot::u', 'bandpasses/swift/Swift_UVOT.U.dat'),
+                    ('uvot::uvm2', 'bandpasses/swift/Swift_UVOT.UVM2.dat'),
+                    ('uvot::uvw1', 'bandpasses/swift/Swift_UVOT.UVW1.dat'),
+                    ('uvot::uvw2', 'bandpasses/swift/Swift_UVOT.UVW2.dat'),
+                    ('uvot::v', 'bandpasses/swift/Swift_UVOT.V.dat'),
+                    ('uvot::white', 'bandpasses/swift/Swift_UVOT.white.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,),
+                                meta=swift_meta)
+
+
 # =============================================================================
 # interpolators
 
