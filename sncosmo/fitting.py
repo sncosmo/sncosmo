@@ -161,13 +161,13 @@ def flatten_result(res):
     for n1 in res.param_names:
         for n2 in res.param_names:
             key = n1 + '_' + n2 + '_cov'
-            if n1 not in res.cov_names or n2 not in res.cov_names:
+            if n1 not in res.vparam_names or n2 not in res.vparam_names:
                 flat[key] = 0.
             elif res.covariance is None:
                 flat[key] = float('nan')
             else:
-                i = res.cov_names.index(n1)
-                j = res.cov_names.index(n2)
+                i = res.vparam_names.index(n1)
+                j = res.vparam_names.index(n2)
                 flat[key] = res.covariance[i, j]
 
     return flat
