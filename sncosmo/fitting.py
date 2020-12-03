@@ -668,7 +668,7 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
         ndof -= len(vparam_names)
 
         m = iminuit.Minuit(fitchisq, errordef=1.,
-                           forced_parameters=model.param_names,
+                           name=model.param_names,
                            print_level=(1 if verbose >= 2 else 0),
                            throw_nan=True, **kwargs)
         d, l = m.migrad(ncall=maxcall)
@@ -725,7 +725,7 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                                       signature='iminuit', modelcov=modelcov)
 
             m = iminuit.Minuit(fitchisq, errordef=1.,
-                               forced_parameters=model.param_names,
+                               name=model.param_names,
                                print_level=(1 if verbose >= 2 else 0),
                                throw_nan=True, **kwargs)
             d, l = m.migrad(ncall=maxcall)
