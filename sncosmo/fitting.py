@@ -667,10 +667,16 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                 ndof += len(spectrum)
         ndof -= len(vparam_names)
 
+        # Minuit keywords changed in v1.4.3. Handle that gracefully.
+        from packaging import version
+        if version.parse(iminuit.__version__) >= version.parse("1.4.3"):
+            param_names_kwargs = {'name': model.param_names}
+        else:
+            param_names_kwargs = {'forced_parameters': model.param_names}
+
         m = iminuit.Minuit(fitchisq, errordef=1.,
-                           name=model.param_names,
                            print_level=(1 if verbose >= 2 else 0),
-                           throw_nan=True, **kwargs)
+                           throw_nan=True, **param_names_kwargs, **kwargs)
         d, l = m.migrad(ncall=maxcall)
         if verbose:
             print("{} function calls; {} dof.".format(d.nfcn, ndof))
@@ -725,9 +731,8 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                                       signature='iminuit', modelcov=modelcov)
 
             m = iminuit.Minuit(fitchisq, errordef=1.,
-                               name=model.param_names,
                                print_level=(1 if verbose >= 2 else 0),
-                               throw_nan=True, **kwargs)
+                               throw_nan=True, **param_names_kwargs, **kwargs)
             d, l = m.migrad(ncall=maxcall)
 
             if verbose:
