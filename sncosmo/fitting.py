@@ -668,8 +668,8 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
         ndof -= len(vparam_names)
 
         # Minuit keywords changed in v1.4.3. Handle that gracefully.
-        from packaging import version
-        if version.parse(iminuit.__version__) >= version.parse("1.4.3"):
+        from distutils.version import LooseVersion
+        if LooseVersion(iminuit.__version__) >= LooseVersion("1.4.3"):
             param_names_kwargs = {'name': model.param_names}
         else:
             param_names_kwargs = {'forced_parameters': model.param_names}
