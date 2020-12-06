@@ -9,3 +9,8 @@ requires = [
     "numpy==1.17.3; python_version>='3.8'",
 ]
 build-backend = 'setuptools.build_meta'
+
+[tool.pytest.ini_options]
+markers = [
+    "might_download: marks tests that might download a file",
+]
