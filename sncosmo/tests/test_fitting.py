@@ -162,6 +162,19 @@ class TestFitting:
 
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
 
+    @pytest.mark.skipif('not HAS_IMINUIT')
+    def test_flatten_result(self):
+        """Ensure that the flatten_result function works correctly."""
+        res, fitmodel = sncosmo.fit_lc(self.data, self.model,
+                                       ['amplitude', 'z', 't0'],
+                                       bounds={'z': (0., 1.0)})
+
+        flat_result = sncosmo.flatten_result(res)
+
+        # Make sure that we got a dictionary of results back.
+        assert isinstance(flat_result, dict)
+        assert len(flat_result) > 0
+
 
 @pytest.mark.might_download
 @pytest.mark.skipif('not HAS_IMINUIT')
