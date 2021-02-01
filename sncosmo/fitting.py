@@ -393,7 +393,7 @@ def _run_iminuit(chisq, parameter_names, start_values, start_errors, bounds,
     except ImportError:
         raise ValueError("Minimization method 'minuit' requires the iminuit "
                          "package")
-    
+
     # The iminuit API changed significantly in version 2. Handle both the new
     # and old APIs.
     from distutils.version import LooseVersion
@@ -447,8 +447,8 @@ def _run_iminuit(chisq, parameter_names, start_values, start_errors, bounds,
             kwargs['limit_' + key] = value
 
         for key in fixed_parameters:
-            kwargs['fix_' + name] = True
-            kwargs['error_' + name] = 0.
+            kwargs['fix_' + key] = True
+            kwargs['error_' + key] = 0.
 
         m = iminuit.Minuit(chisq, errordef=1.,
                            print_level=(1 if verbose >= 2 else 0),
@@ -457,6 +457,7 @@ def _run_iminuit(chisq, parameter_names, start_values, start_errors, bounds,
         fmin, params = m.migrad(ncall=maxcall)
 
     return m, fmin
+
 
 def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
            method='minuit', guess_amplitude=True, guess_t0=True, guess_z=True,
@@ -658,9 +659,6 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                                           warn=warn)
         # Initially this is the complete mask on data.
         data_mask = support_mask
-
-        # Unique set of bands in data
-        bands = set(fitdata.band.tolist())
     else:
         fitdata = None
         support_mask = None
@@ -689,18 +687,11 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
             model.set(t0=t0)
 
     if method == 'minuit':
-        try:
-            import iminuit
-        except ImportError:
-            raise ValueError("Minimization method 'minuit' requires the "
-                             "iminuit package")
-
         fixed_parameters = []
         start_values = {}
         start_errors = {}
 
-        # Set up keyword arguments to pass to Minuit initializer.
-        kwargs = {}
+        # Figure out parameters to pass to iminuit.
         for name in model.param_names:
             start_values[name] = model.get(name)
 
