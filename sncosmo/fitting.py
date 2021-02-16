@@ -351,13 +351,15 @@ def guess_t0_and_amplitude(data, model, minsnr, spectra=None):
                          'amplitude.')
 
 
-def _print_iminuit_params(names, kwargs):
+def _print_iminuit_params(names, fixed_parameters, start_values,
+                          start_errors, bounds):
     """Verbose printing of parameters to pass to Minuit"""
     for name in names:
-        print(name, kwargs[name], 'step=', kwargs['error_' + name],
-              end=" ")
-        if 'limit_' + name in kwargs:
-            print('bounds=', kwargs['limit_' + name], end=" ")
+        if name in fixed_parameters:
+            continue
+        print(name, start_values[name], 'step=', start_errors[name], end=" ")
+        if name in bounds:
+            print("bounds=", bounds[name], end=" ")
         print()
 
 
@@ -382,6 +384,79 @@ def _phase_and_wave_mask(data, t0, z, phase_range, wave_range):
     if wave_range:
         return wave_mask
     return None
+
+
+def _run_iminuit(chisq, parameter_names, start_values, start_errors, bounds,
+                 fixed_parameters, maxcall, verbose=False):
+    try:
+        import iminuit
+    except ImportError:
+        raise ValueError("Minimization method 'minuit' requires the iminuit "
+                         "package")
+
+    # The iminuit API changed significantly in version 2. Handle both the new
+    # and old APIs.
+    from distutils.version import LooseVersion
+    iminuit_version = LooseVersion(iminuit.__version__)
+
+    if verbose:
+        print("Initial parameters:")
+        _print_iminuit_params(parameter_names, fixed_parameters, start_values,
+                              start_errors, bounds)
+        print()
+
+    if iminuit_version >= LooseVersion("2.0.0"):
+        # New API
+        m = iminuit.Minuit(chisq, name=parameter_names, **start_values)
+
+        m.errordef = iminuit.Minuit.LEAST_SQUARES
+        m.print_level = 1 if verbose >= 2 else 0
+        m.throw_nan = True
+
+        for key, value in start_errors.items():
+            m.errors[key] = value
+
+        for key, value in bounds.items():
+            m.limits[key] = value
+
+        for key in fixed_parameters:
+            m.fixed[key] = True
+            m.errors[key] = 0.
+
+        m.migrad(ncall=maxcall)
+        fmin = m.fmin
+    else:
+        # Old API
+
+        # Set up keyword arguments to pass to Minuit initializer.
+        kwargs = {}
+
+        # forced_parameters/name keyword also changed in v1.4.3, handle that.
+        if iminuit_version >= LooseVersion("1.4.3"):
+            kwargs['name'] = parameter_names
+        else:
+            kwargs['forced_parameters'] = parameter_names
+
+        for key, value in start_values.items():
+            kwargs[key] = value
+
+        for key, value in start_errors.items():
+            kwargs['error_' + key] = value
+
+        for key, value in bounds.items():
+            kwargs['limit_' + key] = value
+
+        for key in fixed_parameters:
+            kwargs['fix_' + key] = True
+            kwargs['error_' + key] = 0.
+
+        m = iminuit.Minuit(chisq, errordef=1.,
+                           print_level=(1 if verbose >= 2 else 0),
+                           throw_nan=True, **kwargs)
+
+        fmin, params = m.migrad(ncall=maxcall)
+
+    return m, fmin
 
 
 def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
@@ -584,9 +659,6 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                                           warn=warn)
         # Initially this is the complete mask on data.
         data_mask = support_mask
-
-        # Unique set of bands in data
-        bands = set(fitdata.band.tolist())
     else:
         fitdata = None
         support_mask = None
@@ -615,29 +687,24 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
             model.set(t0=t0)
 
     if method == 'minuit':
-        try:
-            import iminuit
-        except ImportError:
-            raise ValueError("Minimization method 'minuit' requires the "
-                             "iminuit package")
+        fixed_parameters = []
+        start_values = {}
+        start_errors = {}
 
-        # Set up keyword arguments to pass to Minuit initializer.
-        kwargs = {}
+        # Figure out parameters to pass to iminuit.
         for name in model.param_names:
-            kwargs[name] = model.get(name)  # Starting point.
+            start_values[name] = model.get(name)
 
             # Fix parameters not being varied in the fit.
             if name not in vparam_names:
-                kwargs['fix_' + name] = True
-                kwargs['error_' + name] = 0.
+                fixed_parameters.append(name)
                 continue
 
-            # Bounds
+            # Check that the bounds are valid.
             if name in bounds:
                 if None in bounds[name]:
                     raise ValueError('one-sided bounds not allowed for '
                                      'minuit minimizer')
-                kwargs['limit_' + name] = bounds[name]
 
             # Initial step size
             if name in bounds:
@@ -646,17 +713,7 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                 step = 0.1 * model.get(name)
             else:
                 step = 1.
-            kwargs['error_' + name] = step
-
-        if verbose:
-            print("Initial parameters:")
-            _print_iminuit_params(vparam_names, kwargs)
-            print()
-
-        # run once with no model covariance, regardless of whether
-        # modelcov=True
-        fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
-                                  modelcov=False)
+            start_errors[name] = step
 
         # count degrees of freedom
         ndof = 0
@@ -667,13 +724,17 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                 ndof += len(spectrum)
         ndof -= len(vparam_names)
 
-        m = iminuit.Minuit(fitchisq, errordef=1.,
-                           forced_parameters=model.param_names,
-                           print_level=(1 if verbose >= 2 else 0),
-                           throw_nan=True, **kwargs)
-        d, l = m.migrad(ncall=maxcall)
+        # run once with no model covariance, regardless of whether
+        # modelcov=True
+        fitchisq = generate_chisq(fitdata, model, spectra, signature='iminuit',
+                                  modelcov=False)
+
+        m, fmin = _run_iminuit(fitchisq, model.param_names, start_values,
+                               start_errors, bounds, fixed_parameters, maxcall,
+                               verbose)
+
         if verbose:
-            print("{} function calls; {} dof.".format(d.nfcn, ndof))
+            print("{} function calls; {} dof.".format(fmin.nfcn, ndof))
 
         # numpy array of best-fit values (including fixed parameters).
         parameters = np.array([m.values[name] for name in model.param_names])
@@ -700,12 +761,7 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
         while refit:
             # set new starting point to last point
             for name in vparam_names:
-                kwargs[name] = model.get(name)
-
-            if verbose:
-                print("Initial parameters:")
-                _print_iminuit_params(vparam_names, kwargs)
-                print()
+                start_values[name] = model.get(name)
 
             # re-crop data based on ranges, if necessary
             if (phase_range or wave_range):
@@ -724,14 +780,12 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
             fitchisq = generate_chisq(fitdata, model, spectra,
                                       signature='iminuit', modelcov=modelcov)
 
-            m = iminuit.Minuit(fitchisq, errordef=1.,
-                               forced_parameters=model.param_names,
-                               print_level=(1 if verbose >= 2 else 0),
-                               throw_nan=True, **kwargs)
-            d, l = m.migrad(ncall=maxcall)
+            m, fmin = _run_iminuit(fitchisq, model.param_names, start_values,
+                                   start_errors, bounds, fixed_parameters,
+                                   maxcall, verbose)
 
             if verbose:
-                print("{} function calls; {} dof.".format(d.nfcn, ndof))
+                print("{} function calls; {} dof.".format(fmin.nfcn, ndof))
 
             parameters = np.array([m.values[name]
                                    for name in model.param_names])
@@ -741,7 +795,7 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
             refit = False
             # only consider refitting if we got a valid answer and we're under
             # the maximum number of iterations:
-            if d.is_valid and nfit < 22:
+            if fmin.is_valid and nfit < 22:
                 # recalculate data mask based on new t0, z
                 if phase_range or wave_range:
                     old_data_mask = data_mask
@@ -757,25 +811,25 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
                 # statistical error bar
                 if modelcov:
                     for name in vparam_names:
-                        frac_change = (abs(m.values[name] - kwargs[name]) /
-                                       m.errors[name])
+                        frac_change = (abs(m.values[name] - start_values[name])
+                                       / m.errors[name])
                         refit = refit or frac_change > 0.1
 
         # Build a message.
         message = []
-        if d.has_reached_call_limit:
+        if fmin.has_reached_call_limit:
             message.append('Reached call limit.')
-        if d.hesse_failed:
+        if fmin.hesse_failed:
             message.append('Hesse Failed.')
-        if not d.has_covariance:
+        if not fmin.has_covariance:
             message.append('No covariance.')
-        elif not d.has_accurate_covar:  # iminuit docs wrong
+        elif not fmin.has_accurate_covar:  # iminuit docs wrong
             message.append('Covariance may not be accurate.')
-        if not d.has_posdef_covar:  # iminuit docs wrong
+        if not fmin.has_posdef_covar:  # iminuit docs wrong
             message.append('Covariance not positive definite.')
-        if d.has_made_posdef_covar:
+        if fmin.has_made_posdef_covar:
             message.append('Covariance forced positive definite.')
-        if not d.has_valid_parameters:
+        if not fmin.has_valid_parameters:
             message.append('Parameter(s) value and/or error invalid.')
         if len(message) == 0:
             message.append('Minimization exited successfully.')
@@ -802,10 +856,10 @@ def fit_lc(data=None, model=None, vparam_names=[], bounds=None, spectra=None,
             data_mask = data_mask[unsort_idx]
 
         # Compile results
-        res = Result(success=d.is_valid,
+        res = Result(success=fmin.is_valid,
                      message=' '.join(message),
-                     ncall=d.nfcn,
-                     chisq=d.fval,
+                     ncall=fmin.nfcn,
+                     chisq=fmin.fval,
                      ndof=ndof,
                      param_names=model.param_names,
                      parameters=parameters,
