@@ -43,7 +43,7 @@ jobs:
 
           - name: oldest dependencies
             os: ubuntu-latest
-            python: 3.5
+            python: 3.6
             toxenv: py36-test-oldestdeps
             toxargs: -v
 
