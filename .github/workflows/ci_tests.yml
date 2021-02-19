@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 #    needs: cancel_ci
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
 
@@ -50,7 +50,7 @@ jobs:
           - name: Python 3.7 with all optional dependencies (MacOS X)
             os: macos-latest
             python: 3.7
-            toxenv: py37-test-alldeps
+            toxenv: py37-test
             toxargs: -v
 
           - name: Python 3.9 with coverage
