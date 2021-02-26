@@ -53,13 +53,13 @@ def test_sugarsource():
 
     for i in range(len(q1)):
 
-        fluxref =  sugar_model(Xgr=Xgr[i],
-                               q1=q1[i],
-                               q2=q2[i],
-                               q3=q3[i],
-                               A=A[i],
-                               phase=time,
-                               wave=wave)
+        fluxref = sugar_model(Xgr=Xgr[i],
+                              q1=q1[i],
+                              q2=q2[i],
+                              q3=q3[i],
+                              A=A[i],
+                              phase=time,
+                              wave=wave)
 
         model.set(z=0, t0=0, Xgr=Xgr[i],
                   q1=q1[i], q2=q2[i],
