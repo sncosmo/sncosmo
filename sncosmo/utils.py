@@ -1,10 +1,9 @@
-from collections import OrderedDict
-import os
-import sys
-import math
-import warnings
-import socket
 import codecs
+import math
+import os
+import socket
+import warnings
+from collections import OrderedDict
 
 import numpy as np
 from scipy import integrate, optimize
@@ -289,8 +288,6 @@ def download_file(remote_url, local_name):
     URLError
         Whenever there's a problem getting the remote file.
     """
-
-    from urllib.error import HTTPError, URLError
 
     # ensure target directory exists
     dn = os.path.dirname(local_name)

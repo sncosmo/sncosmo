@@ -4,27 +4,29 @@
 
 import abc
 import os
-from collections import OrderedDict as odict
 from copy import copy as cp
-from textwrap import dedent
 from math import ceil
-import itertools
+from textwrap import dedent
 
-import numpy as np
-from scipy.interpolate import (InterpolatedUnivariateSpline as Spline1d,
-                               RectBivariateSpline as Spline2d)
-from astropy.utils.misc import isiterable
-from astropy import (cosmology, units as u, constants as const)
 import extinction
+import numpy as np
+from astropy import (cosmology, units as u)
+from astropy.utils.misc import isiterable
+from scipy.interpolate import (
+    InterpolatedUnivariateSpline as Spline1d,
+    RectBivariateSpline as Spline2d
+)
 
-from .io import (read_griddata_ascii, read_griddata_fits,
-                 read_multivector_griddata_ascii)
 from ._registry import Registry
-from .bandpasses import get_bandpass, Bandpass
+from .bandpasses import Bandpass, get_bandpass
+from .constants import HC_ERG_AA, MODEL_BANDFLUX_SPACING
+from .io import (
+    read_griddata_ascii, read_griddata_fits,
+    read_multivector_griddata_ascii
+)
 from .magsystems import get_magsystem
 from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 from .utils import integration_grid
-from .constants import HC_ERG_AA, MODEL_BANDFLUX_SPACING
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SUGARSource', 'SALT2Source',  'MLCS2k2Source', 'SNEMOSource', 

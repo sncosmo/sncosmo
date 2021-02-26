@@ -1,6 +1,6 @@
-import sncosmo
-
 import pytest
+
+import sncosmo
 
 
 @pytest.mark.might_download

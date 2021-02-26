@@ -1,7 +1,6 @@
 from collections import OrderedDict as odict
 
 import numpy as np
-
 from astropy.io import fits
 from astropy.table import Table, vstack
 

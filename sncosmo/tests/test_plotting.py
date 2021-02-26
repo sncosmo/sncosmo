@@ -2,7 +2,9 @@
 
 import numpy as np
 import pytest
+
 import sncosmo
+
 try:
     from matplotlib.figure import Figure
     HAS_MATPLOTLIB = True

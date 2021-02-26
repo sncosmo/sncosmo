@@ -1,15 +1,13 @@
 """Tools for simulation of transients."""
 
-import sys
-import math
 import copy
 from collections import OrderedDict
 
 import numpy as np
+from astropy.cosmology import FlatLambdaCDM
+from astropy.table import Table
 from numpy import random
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from astropy.table import Table
-from astropy.cosmology import FlatLambdaCDM
 
 from .utils import alias_map
 

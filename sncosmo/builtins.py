@@ -6,32 +6,31 @@
 - MagSystems
 """
 
-import string
-import tarfile
-import warnings
 import os
+import warnings
 from os.path import join
-import codecs
-from collections import OrderedDict
 
 import numpy as np
-from astropy import wcs, units as u
-from astropy.io import ascii, fits
-from astropy.config import ConfigItem, get_cache_dir
+from astropy import units as u, wcs
+from astropy.config import get_cache_dir
+from astropy.io import fits
 from astropy.utils.data import get_pkg_data_filename
 
+from . import conf
 from . import io
 from . import snfitio
-from .utils import download_file, download_dir, DataMirror
-from .models import (Source, TimeSeriesSource, SALT2Source, MLCS2k2Source, SUGARSource,
-                     SNEMOSource, _SOURCES)
-from .bandpasses import (Bandpass, read_bandpass, _BANDPASSES,
-                         _BANDPASS_INTERPOLATORS)
-from .spectrum import Spectrum
-from .magsystems import (MagSystem, SpectralMagSystem, ABMagSystem,
-                         CompositeMagSystem, _MAGSYSTEMS)
-from . import conf
+from .bandpasses import (
+    Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
+
 from .constants import BANDPASS_TRIM_LEVEL
+from .magsystems import (
+    ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
+
+from .models import (
+    MLCS2k2Source, SALT2Source, SNEMOSource, SUGARSource, TimeSeriesSource, _SOURCES)
+
+from .specmodel import SpectrumModel
+from .utils import DataMirror
 
 # This module is only imported for its side effects.
 __all__ = []
@@ -419,6 +418,27 @@ for name, fname in [('ztfg', 'bandpasses/ztf/P48_g.dat'),
                                 args=(fname,),
                                 meta=ztf_meta)
 
+
+# Swift UVOT
+swift_meta = {
+    'filterset': 'swift-uvot',
+    'retrieved': '19 May 2020',
+    'description': "Swift UVOT filters retreieved from the Spanish Virtual "
+                   "Observatory filter profile service."
+}
+
+for name, fname in [('uvot::b', 'bandpasses/swift/Swift_UVOT.B.dat'),
+                    ('uvot::u', 'bandpasses/swift/Swift_UVOT.U.dat'),
+                    ('uvot::uvm2', 'bandpasses/swift/Swift_UVOT.UVM2.dat'),
+                    ('uvot::uvw1', 'bandpasses/swift/Swift_UVOT.UVW1.dat'),
+                    ('uvot::uvw2', 'bandpasses/swift/Swift_UVOT.UVW2.dat'),
+                    ('uvot::v', 'bandpasses/swift/Swift_UVOT.V.dat'),
+                    ('uvot::white', 'bandpasses/swift/Swift_UVOT.white.dat')]:
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(fname,),
+                                meta=swift_meta)
+
+
 # =============================================================================
 # interpolators
 
@@ -751,6 +771,158 @@ for name, sntype, fn in p18Models_CC:
     _SOURCES.register_loader(name, load_timeseries_ascii,
                              args=(relpath,), version='2.0', meta=meta)
 
+# V19
+V19_CC_models = [
+    ('v19-asassn14jb-corr', '1.0', 'SN II', 'V19_ASASSN14jb_HostExtCorr.SED'),
+    ('v19-asassn14jb', '1.0', 'SN II', 'V19_ASASSN14jb_noHostExtCorr.SED'),
+    ('v19-asassn15oz-corr', '1.0', 'SN II', 'V19_ASASSN15oz_HostExtCorr.SED'),
+    ('v19-asassn15oz', '1.0', 'SN II', 'V19_ASASSN15oz_noHostExtCorr.SED'),
+    ('v19-1987A-corr', '1.0', 'SN II', 'V19_SN1987A_HostExtCorr.SED'),
+    ('v19-1987A', '1.0', 'SN II', 'V19_SN1987A_noHostExtCorr.SED'),
+    ('v19-1993J-corr', '1.0', 'SN IIb', 'V19_SN1993J_HostExtCorr.SED'),
+    ('v19-1993J', '1.0', 'SN IIb', 'V19_SN1993J_noHostExtCorr.SED'),
+    ('v19-1994I-corr', '1.0', 'SN Ic', 'V19_SN1994I_HostExtCorr.SED'),
+    ('v19-1994I', '1.0', 'SN Ic', 'V19_SN1994I_noHostExtCorr.SED'),
+    ('v19-1998bw-corr', '1.0', 'SN Ic-BL', 'V19_SN1998bw_HostExtCorr.SED'),
+    ('v19-1998bw', '1.0', 'SN Ic-BL', 'V19_SN1998bw_noHostExtCorr.SED'),
+    ('v19-1999dn-corr', '1.0', 'SN IIb', 'V19_SN1999dn_HostExtCorr.SED'),
+    ('v19-1999dn', '1.0', 'SN IIb', 'V19_SN1999dn_noHostExtCorr.SED'),
+    ('v19-1999em-corr', '1.0', 'SN II', 'V19_SN1999em_HostExtCorr.SED'),
+    ('v19-1999em', '1.0', 'SN II', 'V19_SN1999em_noHostExtCorr.SED'),
+    ('v19-2002ap-corr', '1.0', 'SN Ic-BL', 'V19_SN2002ap_HostExtCorr.SED'),
+    ('v19-2002ap', '1.0', 'SN Ic-BL', 'V19_SN2002ap_noHostExtCorr.SED'),
+    ('v19-2004aw-corr', '1.0', 'SN Ic', 'V19_SN2004aw_HostExtCorr.SED'),
+    ('v19-2004aw', '1.0', 'SN Ic', 'V19_SN2004aw_noHostExtCorr.SED'),
+    ('v19-2004et-corr', '1.0', 'SN II', 'V19_SN2004et_HostExtCorr.SED'),
+    ('v19-2004et', '1.0', 'SN II', 'V19_SN2004et_noHostExtCorr.SED'),
+    ('v19-2004fe-corr', '1.0', 'SN Ic', 'V19_SN2004fe_HostExtCorr.SED'),
+    ('v19-2004fe', '1.0', 'SN Ic', 'V19_SN2004fe_noHostExtCorr.SED'),
+    ('v19-2004gq-corr', '1.0', 'SN Ib', 'V19_SN2004gq_HostExtCorr.SED'),
+    ('v19-2004gq', '1.0', 'SN Ib', 'V19_SN2004gq_noHostExtCorr.SED'),
+    ('v19-2004gt-corr', '1.0', 'SN Ic', 'V19_SN2004gt_HostExtCorr.SED'),
+    ('v19-2004gt', '1.0', 'SN Ic', 'V19_SN2004gt_noHostExtCorr.SED'),
+    ('v19-2004gv-corr', '1.0', 'SN Ib', 'V19_SN2004gv_HostExtCorr.SED'),
+    ('v19-2004gv', '1.0', 'SN Ib', 'V19_SN2004gv_noHostExtCorr.SED'),
+    ('v19-2005bf-corr', '1.0', 'SN Ib', 'V19_SN2005bf_HostExtCorr.SED'),
+    ('v19-2005bf', '1.0', 'SN Ib', 'V19_SN2005bf_noHostExtCorr.SED'),
+    ('v19-2005hg-corr', '1.0', 'SN Ib', 'V19_SN2005hg_HostExtCorr.SED'),
+    ('v19-2005hg', '1.0', 'SN Ib', 'V19_SN2005hg_noHostExtCorr.SED'),
+    ('v19-2006T-corr', '1.0', 'SN IIb', 'V19_SN2006T_HostExtCorr.SED'),
+    ('v19-2006T', '1.0', 'SN IIb', 'V19_SN2006T_noHostExtCorr.SED'),
+    ('v19-2006aa-corr', '1.0', 'SN IIn', 'V19_SN2006aa_HostExtCorr.SED'),
+    ('v19-2006aa', '1.0', 'SN IIn', 'V19_SN2006aa_noHostExtCorr.SED'),
+    ('v19-2006aj-corr', '1.0', 'SN Ic-BL', 'V19_SN2006aj_HostExtCorr.SED'),
+    ('v19-2006aj', '1.0', 'SN Ic-BL', 'V19_SN2006aj_noHostExtCorr.SED'),
+    ('v19-2006ep-corr', '1.0', 'SN Ib', 'V19_SN2006ep_HostExtCorr.SED'),
+    ('v19-2006ep', '1.0', 'SN Ib', 'V19_SN2006ep_noHostExtCorr.SED'),
+    ('v19-2007Y-corr', '1.0', 'SN Ib', 'V19_SN2007Y_HostExtCorr.SED'),
+    ('v19-2007Y', '1.0', 'SN Ib', 'V19_SN2007Y_noHostExtCorr.SED'),
+    ('v19-2007gr-corr', '1.0', 'SN Ic', 'V19_SN2007gr_HostExtCorr.SED'),
+    ('v19-2007gr', '1.0', 'SN Ic', 'V19_SN2007gr_noHostExtCorr.SED'),
+    ('v19-2007od-corr', '1.0', 'SN II', 'V19_SN2007od_HostExtCorr.SED'),
+    ('v19-2007od', '1.0', 'SN II', 'V19_SN2007od_noHostExtCorr.SED'),
+    ('v19-2007pk-corr', '1.0', 'SN IIn', 'V19_SN2007pk_HostExtCorr.SED'),
+    ('v19-2007pk', '1.0', 'SN IIn', 'V19_SN2007pk_noHostExtCorr.SED'),
+    ('v19-2007ru-corr', '1.0', 'SN Ic-BL', 'V19_SN2007ru_HostExtCorr.SED'),
+    ('v19-2007ru', '1.0', 'SN Ic-BL', 'V19_SN2007ru_noHostExtCorr.SED'),
+    ('v19-2007uy-corr', '1.0', 'SN Ib', 'V19_SN2007uy_HostExtCorr.SED'),
+    ('v19-2007uy', '1.0', 'SN Ib', 'V19_SN2007uy_noHostExtCorr.SED'),
+    ('v19-2008D-corr', '1.0', 'SN Ib', 'V19_SN2008D_HostExtCorr.SED'),
+    ('v19-2008D', '1.0', 'SN Ib', 'V19_SN2008D_noHostExtCorr.SED'),
+    ('v19-2008aq-corr', '1.0', 'SN IIb', 'V19_SN2008aq_HostExtCorr.SED'),
+    ('v19-2008aq', '1.0', 'SN IIb', 'V19_SN2008aq_noHostExtCorr.SED'),
+    ('v19-2008ax-corr', '1.0', 'SN IIb', 'V19_SN2008ax_HostExtCorr.SED'),
+    ('v19-2008ax', '1.0', 'SN IIb', 'V19_SN2008ax_noHostExtCorr.SED'),
+    ('v19-2008bj-corr', '1.0', 'SN II', 'V19_SN2008bj_HostExtCorr.SED'),
+    ('v19-2008bj', '1.0', 'SN II', 'V19_SN2008bj_noHostExtCorr.SED'),
+    ('v19-2008bo-corr', '1.0', 'SN IIb', 'V19_SN2008bo_HostExtCorr.SED'),
+    ('v19-2008bo', '1.0', 'SN IIb', 'V19_SN2008bo_noHostExtCorr.SED'),
+    ('v19-2008fq-corr', '1.0', 'SN IIn', 'V19_SN2008fq_HostExtCorr.SED'),
+    ('v19-2008fq', '1.0', 'SN IIn', 'V19_SN2008fq_noHostExtCorr.SED'),
+    ('v19-2008in-corr', '1.0', 'SN II', 'V19_SN2008in_HostExtCorr.SED'),
+    ('v19-2008in', '1.0', 'SN II', 'V19_SN2008in_noHostExtCorr.SED'),
+    ('v19-2009N-corr', '1.0', 'SN II', 'V19_SN2009N_HostExtCorr.SED'),
+    ('v19-2009N', '1.0', 'SN II', 'V19_SN2009N_noHostExtCorr.SED'),
+    ('v19-2009bb-corr', '1.0', 'SN Ic-BL', 'V19_SN2009bb_HostExtCorr.SED'),
+    ('v19-2009bb', '1.0', 'SN Ic-BL', 'V19_SN2009bb_noHostExtCorr.SED'),
+    ('v19-2009bw-corr', '1.0', 'SN II', 'V19_SN2009bw_HostExtCorr.SED'),
+    ('v19-2009bw', '1.0', 'SN II', 'V19_SN2009bw_noHostExtCorr.SED'),
+    ('v19-2009dd-corr', '1.0', 'SN II', 'V19_SN2009dd_HostExtCorr.SED'),
+    ('v19-2009dd', '1.0', 'SN II', 'V19_SN2009dd_noHostExtCorr.SED'),
+    ('v19-2009ib-corr', '1.0', 'SN II', 'V19_SN2009ib_HostExtCorr.SED'),
+    ('v19-2009ib', '1.0', 'SN II', 'V19_SN2009ib_noHostExtCorr.SED'),
+    ('v19-2009ip-corr', '1.0', 'SN IIn', 'V19_SN2009ip_HostExtCorr.SED'),
+    ('v19-2009ip', '1.0', 'SN IIn', 'V19_SN2009ip_noHostExtCorr.SED'),
+    ('v19-2009iz-corr', '1.0', 'SN Ib', 'V19_SN2009iz_HostExtCorr.SED'),
+    ('v19-2009iz', '1.0', 'SN Ib', 'V19_SN2009iz_noHostExtCorr.SED'),
+    ('v19-2009jf-corr', '1.0', 'SN Ib', 'V19_SN2009jf_HostExtCorr.SED'),
+    ('v19-2009jf', '1.0', 'SN Ib', 'V19_SN2009jf_noHostExtCorr.SED'),
+    ('v19-2009kr-corr', '1.0', 'SN II', 'V19_SN2009kr_HostExtCorr.SED'),
+    ('v19-2009kr', '1.0', 'SN II', 'V19_SN2009kr_noHostExtCorr.SED'),
+    ('v19-2010al-corr', '1.0', 'SN IIn', 'V19_SN2010al_HostExtCorr.SED'),
+    ('v19-2010al', '1.0', 'SN IIn', 'V19_SN2010al_noHostExtCorr.SED'),
+    ('v19-2011bm-corr', '1.0', 'SN Ic', 'V19_SN2011bm_HostExtCorr.SED'),
+    ('v19-2011bm', '1.0', 'SN Ic', 'V19_SN2011bm_noHostExtCorr.SED'),
+    ('v19-2011dh-corr', '1.0', 'SN IIb', 'V19_SN2011dh_HostExtCorr.SED'),
+    ('v19-2011dh', '1.0', 'SN IIb', 'V19_SN2011dh_noHostExtCorr.SED'),
+    ('v19-2011ei-corr', '1.0', 'SN IIb', 'V19_SN2011ei_HostExtCorr.SED'),
+    ('v19-2011ei', '1.0', 'SN IIb', 'V19_SN2011ei_noHostExtCorr.SED'),
+    ('v19-2011fu-corr', '1.0', 'SN IIb', 'V19_SN2011fu_HostExtCorr.SED'),
+    ('v19-2011fu', '1.0', 'SN IIb', 'V19_SN2011fu_noHostExtCorr.SED'),
+    ('v19-2011hs-corr', '1.0', 'SN IIb', 'V19_SN2011hs_HostExtCorr.SED'),
+    ('v19-2011hs', '1.0', 'SN IIb', 'V19_SN2011hs_noHostExtCorr.SED'),
+    ('v19-2011ht-corr', '1.0', 'SN IIn', 'V19_SN2011ht_HostExtCorr.SED'),
+    ('v19-2011ht', '1.0', 'SN IIn', 'V19_SN2011ht_noHostExtCorr.SED'),
+    ('v19-2012A-corr', '1.0', 'SN II', 'V19_SN2012A_HostExtCorr.SED'),
+    ('v19-2012A', '1.0', 'SN II', 'V19_SN2012A_noHostExtCorr.SED'),
+    ('v19-2012ap-corr', '1.0', 'SN Ic-BL', 'V19_SN2012ap_HostExtCorr.SED'),
+    ('v19-2012ap', '1.0', 'SN Ic-BL', 'V19_SN2012ap_noHostExtCorr.SED'),
+    ('v19-2012au-corr', '1.0', 'SN Ib', 'V19_SN2012au_HostExtCorr.SED'),
+    ('v19-2012au', '1.0', 'SN Ib', 'V19_SN2012au_noHostExtCorr.SED'),
+    ('v19-2012aw-corr', '1.0', 'SN II', 'V19_SN2012aw_HostExtCorr.SED'),
+    ('v19-2012aw', '1.0', 'SN II', 'V19_SN2012aw_noHostExtCorr.SED'),
+    ('v19-2013ab-corr', '1.0', 'SN II', 'V19_SN2013ab_HostExtCorr.SED'),
+    ('v19-2013ab', '1.0', 'SN II', 'V19_SN2013ab_noHostExtCorr.SED'),
+    ('v19-2013am-corr', '1.0', 'SN II', 'V19_SN2013am_HostExtCorr.SED'),
+    ('v19-2013am', '1.0', 'SN II', 'V19_SN2013am_noHostExtCorr.SED'),
+    ('v19-2013by-corr', '1.0', 'SN II', 'V19_SN2013by_HostExtCorr.SED'),
+    ('v19-2013by', '1.0', 'SN II', 'V19_SN2013by_noHostExtCorr.SED'),
+    ('v19-2013df-corr', '1.0', 'SN IIb', 'V19_SN2013df_HostExtCorr.SED'),
+    ('v19-2013df', '1.0', 'SN IIb', 'V19_SN2013df_noHostExtCorr.SED'),
+    ('v19-2013ej-corr', '1.0', 'SN II', 'V19_SN2013ej_HostExtCorr.SED'),
+    ('v19-2013ej', '1.0', 'SN II', 'V19_SN2013ej_noHostExtCorr.SED'),
+    ('v19-2013fs-corr', '1.0', 'SN II', 'V19_SN2013fs_HostExtCorr.SED'),
+    ('v19-2013fs', '1.0', 'SN II', 'V19_SN2013fs_noHostExtCorr.SED'),
+    ('v19-2013ge-corr', '1.0', 'SN Ic', 'V19_SN2013ge_HostExtCorr.SED'),
+    ('v19-2013ge', '1.0', 'SN Ic', 'V19_SN2013ge_noHostExtCorr.SED'),
+    ('v19-2014G-corr', '1.0', 'SN II', 'V19_SN2014G_HostExtCorr.SED'),
+    ('v19-2014G', '1.0', 'SN II', 'V19_SN2014G_noHostExtCorr.SED'),
+    ('v19-2016X-corr', '1.0', 'SN II', 'V19_SN2016X_HostExtCorr.SED'),
+    ('v19-2016X', '1.0', 'SN II', 'V19_SN2016X_noHostExtCorr.SED'),
+    ('v19-2016bkv-corr', '1.0', 'SN II', 'V19_SN2016bkv_HostExtCorr.SED'),
+    ('v19-2016bkv', '1.0', 'SN II', 'V19_SN2016bkv_noHostExtCorr.SED'),
+    ('v19-2016gkg-corr', '1.0', 'SN IIb', 'V19_SN2016gkg_HostExtCorr.SED'),
+    ('v19-2016gkg', '1.0', 'SN IIb', 'V19_SN2016gkg_noHostExtCorr.SED'),
+    ('v19-iptf13bvn-corr', '1.0', 'SN Ib', 'V19_iPTF13bvn_HostExtCorr.SED'),
+    ('v19-iptf13bvn', '1.0', 'SN Ib', 'V19_iPTF13bvn_noHostExtCorr.SED')
+]
+
+note = """Templates from Vincenzi et al. 19. Each template is extended in the
+ultraviolet (1600AA) and in the near infrared (10000AA). Each template can be
+used in its original version (v19-sn-name) or in its host dust extinction
+corrected version (v19-sn-name-corr)."""
+
+for name, vrs, sntype, fn in V19_CC_models:
+    relpath = os.path.join('models', 'vincenzi', fn)
+    meta = {'subclass': '`~sncosmo.TimeSeriesSource`',
+            'type': sntype,
+            'ref': ('Vincenzi2019',
+                    'Vincenzi et al. 2019 '
+                    '<https://arxiv.org/abs/1908.05228>'),
+            'note': note,
+            'url': 'https://github.com/maria-vincenzi/PyCoCo_templates'}
+    _SOURCES.register_loader(name, load_timeseries_ascii,
+                             args=(relpath,), version=vrs, meta=meta)
 
 # Pop III CC SN models from D.Whalen et al. 2013.
 meta = {'type': 'PopIII',
@@ -842,8 +1014,9 @@ def load_spectral_magsys_fits(relpath, name=None):
     dispersion = hdulist[1].data['WAVELENGTH']
     flux_density = hdulist[1].data['FLUX']
     hdulist.close()
-    refspectrum = Spectrum(dispersion, flux_density,
-                           unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
+    refspectrum = SpectrumModel(dispersion, flux_density,
+                                unit=(u.erg / u.s / u.cm**2 / u.AA),
+                                wave_unit=u.AA)
 
     return SpectralMagSystem(refspectrum, name=name)
 

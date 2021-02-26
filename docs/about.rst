@@ -41,13 +41,16 @@ Alphabetical by last name:
 * Kyle Barbary
 * Tom Barclay
 * Rahul Biswas
+* Kyle Boone
 * Matt Craig
 * Ulrich Feindt
 * Brian Friesen
 * Danny Goldstein
 * Saurabh Jha
+* Daniel Perrefort
 * Justin Pierel
 * Steve Rodney
 * Caroline Sofiatti
 * Rollin C. Thomas
+* Maria Vincenzi
 * Michael Wood-Vasey

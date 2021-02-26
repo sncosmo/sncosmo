@@ -1,13 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Functions to plot light curve data and models."""
 
-import math
-
 import numpy as np
 
-from .models import Model
 from .bandpasses import get_bandpass
 from .magsystems import get_magsystem
+from .models import Model
 from .photdata import photometric_data
 from .utils import format_value
 
@@ -170,7 +168,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
 
     from matplotlib import pyplot as plt
     from matplotlib import cm
-    from matplotlib.ticker import MaxNLocator, NullFormatter
+    from matplotlib.ticker import MaxNLocator
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     if data is None and model is None:

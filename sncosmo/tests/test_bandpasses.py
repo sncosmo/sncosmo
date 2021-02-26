@@ -2,8 +2,8 @@
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 import sncosmo
 from sncosmo import Bandpass

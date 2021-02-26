@@ -5,12 +5,13 @@ Functions for reading formats specific to snfit (SALT2) software.
 (except lightcurves, which are in io.py).
 """
 
-from collections import OrderedDict
 import os
+from collections import OrderedDict
 
 import numpy as np
+
+from .bandpasses import BandpassInterpolator
 from .io import _read_salt2
-from .bandpasses import Bandpass, BandpassInterpolator
 
 
 def _collect_scalars(values):

@@ -1,12 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
-from tempfile import mkdtemp
 import os
+from tempfile import mkdtemp
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_approx_equal
-from scipy.stats import norm
 import pytest
+from numpy.testing import assert_allclose
+from scipy.stats import norm
 
 from sncosmo import utils
 

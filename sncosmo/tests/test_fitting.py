@@ -1,26 +1,39 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
+from copy import deepcopy
 from os.path import dirname, join
 
-import pytest
 import numpy as np
-from numpy.random import RandomState
-from numpy.testing import assert_allclose, assert_almost_equal
+import pytest
 from astropy.table import Table
+from numpy.random import RandomState
+from numpy.testing import assert_allclose
 
 import sncosmo
 
 try:
     import iminuit
+
     HAS_IMINUIT = True
+
 except ImportError:
     HAS_IMINUIT = False
 
 try:
     import nestle
+
     HAS_NESTLE = True
+
 except ImportError:
     HAS_NESTLE = False
+
+try:
+    import emcee
+
+    HAS_EMCEE = True
+
+except ImportError:
+    HAS_EMCEE = False
 
 
 class TestFitting:
@@ -38,12 +51,14 @@ class TestFitting:
         model.set(**params)
         flux = model.bandflux(bands, times, zp=zp, zpsys=zpsys)
         fluxerr = len(bands) * [0.1 * np.max(flux)]
-        data = Table({'time': times,
-                      'band': bands,
-                      'flux': flux,
-                      'fluxerr': fluxerr,
-                      'zp': zp,
-                      'zpsys': zpsys})
+        data = Table({
+            'time': times,
+            'band': bands,
+            'flux': flux,
+            'fluxerr': fluxerr,
+            'zp': zp,
+            'zpsys': zpsys
+        })
 
         # reset parameters
         model.set(z=0., t0=0., amplitude=1.)
@@ -51,6 +66,53 @@ class TestFitting:
         self.model = model
         self.data = data
         self.params = params
+
+    def _test_mutation(self, fit_func):
+        """Test a fitting function does not mutate arguments"""
+
+        # Some fitting functions require bounds for all varied parameters
+        bounds = {}
+        for param, param_val in self.params.items():
+            bounds[param] = (param_val * .95, param_val * 1.05)
+
+        # Preserve original input data
+        vparams = list(self.params.keys())
+        test_data = deepcopy(self.data)
+        test_model = deepcopy(self.model)
+        test_bounds = deepcopy(bounds)
+        test_vparams = deepcopy(vparams)
+
+        # Check for argument mutation
+        fit_func(test_data, test_model, test_vparams, bounds=test_bounds)
+        param_preserved = all(a == b for a, b in zip(vparams, test_vparams))
+        model_preserved = all(
+            a == b for a, b in
+            zip(self.model.parameters, test_model.parameters)
+        )
+
+        err_msg = '``{}`` argument was mutated'
+        assert all(self.data == test_data), err_msg.format('data')
+        assert bounds == test_bounds, err_msg.format('bounds')
+        assert param_preserved, err_msg.format('vparam_names')
+        assert model_preserved, err_msg.format('model')
+
+    @pytest.mark.skipif('not HAS_IMINUIT')
+    def test_fitlc_arg_mutation(self):
+        """Test ``fit_lc`` does not mutate it's arguments"""
+
+        self._test_mutation(sncosmo.fit_lc)
+
+    @pytest.mark.skipif('not HAS_NESTLE')
+    def test_nestlc_arg_mutation(self):
+        """Test ``nest_lc`` does not mutate it's arguments"""
+
+        self._test_mutation(sncosmo.nest_lc)
+
+    @pytest.mark.skipif('not HAS_EMCEE')
+    def test_mcmclc_arg_mutation(self):
+        """Test ``mcmc_lc`` does not mutate it's arguments"""
+
+        self._test_mutation(sncosmo.mcmc_lc)
 
     @pytest.mark.skipif('not HAS_IMINUIT')
     def test_fit_lc(self):
@@ -99,6 +161,19 @@ class TestFitting:
             rstate=rstate)
 
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
+
+    @pytest.mark.skipif('not HAS_IMINUIT')
+    def test_flatten_result(self):
+        """Ensure that the flatten_result function works correctly."""
+        res, fitmodel = sncosmo.fit_lc(self.data, self.model,
+                                       ['amplitude', 'z', 't0'],
+                                       bounds={'z': (0., 1.0)})
+
+        flat_result = sncosmo.flatten_result(res)
+
+        # Make sure that we got a dictionary of results back.
+        assert isinstance(flat_result, dict)
+        assert len(flat_result) > 0
 
 
 @pytest.mark.might_download

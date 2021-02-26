@@ -1,7 +1,6 @@
 import os
 import pickle
 
-from astropy.extern import six
 import numpy as np
 from numpy.testing import assert_allclose
 from scipy.interpolate import RectBivariateSpline
@@ -9,10 +8,9 @@ from scipy.interpolate import RectBivariateSpline
 import sncosmo
 from sncosmo.salt2utils import BicubicInterpolator, SALT2ColorLaw
 
-
 # On Python 2 highest protocol is 2.
 # Protocols 0 and 1 don't work on the classes here!
-TEST_PICKLE_PROTOCOLS = (2,) if six.PY2 else (2, 3, 4)
+TEST_PICKLE_PROTOCOLS = (2, 3, 4)
 
 
 def test_bicubic_interpolator_vs_snfit():

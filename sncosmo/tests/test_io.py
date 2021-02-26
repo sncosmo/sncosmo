@@ -1,15 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSES
 
 import os
+from io import BytesIO, StringIO
 from os.path import dirname, join
-from tempfile import mkdtemp, NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal
-from astropy.table import Table
-from astropy.extern import six
 from astropy import wcs
 from astropy.io import fits
+from astropy.table import Table
+from numpy.testing import assert_allclose
+
 import sncosmo
 
 # Dummy data used for read_lc/write_lc round-tripping tests
@@ -27,7 +28,7 @@ lcdata = Table(data=(time, band, flux, fluxerr, zp, zpsys),
 def test_read_griddata_ascii():
 
     # Write a temporary test file.
-    f = six.StringIO()
+    f = StringIO()
     f.write("0. 0. 0.\n"
             "0. 1. 0.\n"
             "0. 2. 0.\n"
@@ -49,7 +50,7 @@ def test_write_griddata_ascii():
     x1 = np.array([0., 1., 2.])
     y = np.zeros((2, 3))
 
-    f = six.StringIO()
+    f = StringIO()
     sncosmo.write_griddata_ascii(x0, x1, y, f)
 
     # Read it back
@@ -79,7 +80,7 @@ def test_griddata_fits():
     x1 = np.array([0., 1., 2.])
     y = np.zeros((2, 3))
 
-    f = six.BytesIO()
+    f = BytesIO()
     sncosmo.write_griddata_fits(x0, x1, y, f)
 
     # Read it back
@@ -101,7 +102,7 @@ def test_griddata_fits():
     w.wcs.crval = [x2[0], x1[0], x0[0]]
     w.wcs.cdelt = [2., 1., 1.]
     hdu = fits.PrimaryHDU(y, header=w.to_header())
-    f = six.BytesIO()
+    f = BytesIO()
     hdu.writeto(f)
 
     # Read it back
@@ -116,7 +117,6 @@ def test_griddata_fits():
 
 
 def test_read_lc():
-    from astropy.extern.six import StringIO
     f = StringIO("""
 @id 1
 @RA 36.0
