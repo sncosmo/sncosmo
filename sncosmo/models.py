@@ -29,7 +29,7 @@ from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 from .utils import integration_grid
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SUGARSource', 'SALT2Source',  'MLCS2k2Source', 'SNEMOSource', 
+           'SUGARSource', 'SALT2Source',  'MLCS2k2Source', 'SNEMOSource',
            'Model', 'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 _SOURCES = Registry()
@@ -575,6 +575,7 @@ class StretchSource(Source):
         return (self._parameters[0] *
                 self._model_flux(phase / self._parameters[1], wave))
 
+
 class SUGARSource(Source):
     """
     The SUGAR Type Ia supernova spectral time series template.
@@ -587,11 +588,14 @@ class SUGARSource(Source):
                                 + q_1 \alpha_1(t, \\lambda)
                                 + q_2 \alpha_2(t, \\lambda)
                                 + q_3 \alpha_3(t, \\lambda)
-                                + Av CCM(\\lambda))} (10^{-3} c\\lambda^{2})
+                                + Av CCM(\\lambda))}
+                                (10^{-3} c\\lambda^{2})
 
-    where ``Xgr``, ``q_1``, ``q_2``, ``q_3``  and ``Av`` are the free parameters
-    of the model,``alpha_0``, ``alpha_1``, `alpha_2``, `alpha_3``, `CCM`` are the template vectors
-    of the model.
+    where ``Xgr``, ``q_1``, ``q_2``, ``q_3``,
+    and ``Av`` are the free parameters
+    of the model,``alpha_0``, ``alpha_1``,
+    `alpha_2``, `alpha_3``, `CCM`` are
+    the template vectors of the model.
 
     Parameters
     ----------
@@ -599,8 +603,12 @@ class SUGARSource(Source):
         Directory path containing model component files. Default is `None`,
         which means that no directory is prepended to filenames when
         determining their path.
-        
-    m0file, alpha1file, alpha2file, alpha3file, CCMfile: str or fileobj, optional
+
+    m0file : str or fileobj, optional
+    alpha1file : str or fileobj, optional
+    alpha2file : str or fileobj, optional
+    alpha3file : str or fileobj, optional
+    CCMfile: str or fileobj, optional
         Filenames of various model components. Defaults are:
         * m0file = 'sugar_template_0.dat' (2-d grid)
         * alpha1file = 'sugar_template_1.dat' (2-d grid)
@@ -655,11 +663,13 @@ class SUGARSource(Source):
         mag_sugar = self._model['M0'](phase, wave)
         for i, key in enumerate(self.M_keys):
             if key != 'M0':
-                mag_sugar += self._model[key](phase, wave) * self._parameters[i]
-
-        mag_sugar += 48.59 # mag AB used in the training of SUGAR.
+                comp = self._model[key](phase, wave) * self._parameters[i]
+                mag_sugar += comp
+        # Mag AB used in the training of SUGAR.
+        mag_sugar += 48.59
         wave_factor = (wave ** 2 / 299792458. * 1.e-10)
-        return (self._parameters[0] * 10. ** (-0.4 * mag_sugar) /  wave_factor)
+        return (self._parameters[0] * 10. ** (-0.4 * mag_sugar) / wave_factor)
+
 
 class SALT2Source(Source):
     """The SALT2 Type Ia supernova spectral timeseries model.
