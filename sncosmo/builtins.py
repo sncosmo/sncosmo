@@ -27,7 +27,8 @@ from .magsystems import (
     ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
 
 from .models import (
-    MLCS2k2Source, SALT2Source, SNEMOSource, SUGARSource, TimeSeriesSource, _SOURCES)
+    MLCS2k2Source, SALT2Source, SNEMOSource, SUGARSource,
+    TimeSeriesSource, _SOURCES)
 
 from .specmodel import SpectrumModel
 from .utils import DataMirror
@@ -983,10 +984,11 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
                              version=ver, meta=meta)
 
 
-#SUGAR models
+# SUGAR models
 def load_sugarmodel(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath, isdir=True)
     return SUGARSource(abspath, name=name, version=version)
+
 
 for name, files, ver in [('sugar', 'sugar', '1.0')]:
 
