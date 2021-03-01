@@ -994,9 +994,9 @@ for name, files, ver in [('sugar', 'sugar', '1.0')]:
 
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
             'url': 'http://supernovae.in2p3.fr/sugar_template/',
-            'reference': ('Leget19',
-                          'Leget et al. 2019',
-                          '<https://arxiv.org/abs/1909.11239>')}
+            'reference': ('Leget20',
+                          'Leget et al. 2020',
+                          '<https://doi.org/10.1051/0004-6361/201834954>')}
 
     _SOURCES.register_loader(name, load_sugarmodel,
                              args=['models/sugar/'+files],

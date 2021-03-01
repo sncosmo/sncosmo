@@ -584,18 +584,21 @@ class SUGARSource(Source):
 
     .. math::
 
-    F(t, \\lambda) = Xgr 10^{-0.4 (M_0(t, \\lambda)
-                                + q_1 \alpha_1(t, \\lambda)
-                                + q_2 \alpha_2(t, \\lambda)
-                                + q_3 \alpha_3(t, \\lambda)
-                                + Av CCM(\\lambda))}
-                                (10^{-3} c\\lambda^{2})
+    F(t, \\lambda) = q_0 10^{-0.4 (M_0(t, \\lambda)
+                             + q_1 \alpha_1(t, \\lambda)
+                             + q_2 \alpha_2(t, \\lambda)
+                             + q_3 \alpha_3(t, \\lambda)
+                             + A_v CCM(\\lambda))}
+                             (10^{-3} c\\lambda^{2})
 
-    where ``Xgr``, ``q_1``, ``q_2``, ``q_3``,
-    and ``Av`` are the free parameters
+    where ``q_0``, ``q_1``, ``q_2``, ``q_3``,
+    and ``A_v`` are the free parameters
     of the model,``alpha_0``, ``alpha_1``,
     `alpha_2``, `alpha_3``, `CCM`` are
     the template vectors of the model.
+    The ``q_0`` is the equivalent parameter
+    in flux of the ``Delta M_{gray}``
+    parameter define in Leget et al. 2020.
 
     Parameters
     ----------
@@ -621,8 +624,8 @@ class SUGARSource(Source):
     The "2-d grid" files have the format ``<phase> <wavelength>
     <value>`` on each line.
     """
-    _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
-    param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
+    _param_names = ['q0', 'q1', 'q2', 'q3', 'Av']
+    param_names_latex = ['q_0', 'q_1', 'q_2', 'q_3', 'A_v']
 
     def __init__(self, modeldir=None,
                  m0file='sugar_template_0.dat',
