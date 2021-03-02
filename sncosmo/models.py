@@ -674,11 +674,11 @@ class SUGARSource(Source):
         flux = (self._parameters[0] * 10. ** (-0.4 * mag_sugar) / wave_factor)
 
         if hasattr(phase, '__iter__'):
-            not_define = ~((phase>-12) & (phase<48))
+            not_define = ~((phase > -12) & (phase < 48))
             flux[not_define] = 0
             return flux
         else:
-            if phase<-12 or phase>48:
+            if phase < -12 or phase > 48:
                 return np.zeros_like(wave)
             else:
                 return flux
