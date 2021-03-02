@@ -29,8 +29,8 @@ from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 from .utils import integration_grid
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SALT2Source', 'MLCS2k2Source', 'SNEMOSource', 'Model',
-           'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
+           'SUGARSource', 'SALT2Source',  'MLCS2k2Source', 'SNEMOSource',
+           'Model', 'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
 
 _SOURCES = Registry()
 
@@ -574,6 +574,114 @@ class StretchSource(Source):
     def _flux(self, phase, wave):
         return (self._parameters[0] *
                 self._model_flux(phase / self._parameters[1], wave))
+
+
+class SUGARSource(Source):
+    """
+    The SUGAR Type Ia supernova spectral time series template.
+
+    The spectral energy distribution of this model is given by
+
+    .. math::
+
+    F(t, \\lambda) = q_0 10^{-0.4 (M_0(t, \\lambda)
+                             + q_1 \alpha_1(t, \\lambda)
+                             + q_2 \alpha_2(t, \\lambda)
+                             + q_3 \alpha_3(t, \\lambda)
+                             + A_v CCM(\\lambda))}
+                             (10^{-3} c\\lambda^{2})
+
+    where ``q_0``, ``q_1``, ``q_2``, ``q_3``,
+    and ``A_v`` are the free parameters
+    of the model,``alpha_0``, ``alpha_1``,
+    `alpha_2``, `alpha_3``, `CCM`` are
+    the template vectors of the model.
+    The ``q_0`` is the equivalent parameter
+    in flux of the ``Delta M_{gray}``
+    parameter define in Leget et al. 2020.
+
+    Parameters
+    ----------
+    modeldir : str, optional
+        Directory path containing model component files. Default is `None`,
+        which means that no directory is prepended to filenames when
+        determining their path.
+
+    m0file : str or fileobj, optional
+    alpha1file : str or fileobj, optional
+    alpha2file : str or fileobj, optional
+    alpha3file : str or fileobj, optional
+    CCMfile: str or fileobj, optional
+        Filenames of various model components. Defaults are:
+        * m0file = 'sugar_template_0.dat' (2-d grid)
+        * alpha1file = 'sugar_template_1.dat' (2-d grid)
+        * alpha2file = 'sugar_template_2.dat' (2-d grid)
+        * alpha3file = 'sugar_template_3.dat' (2-d grid)
+        * CCMfile = 'sugar_template_4.dat' (2-d grid)
+
+    Notes
+    -----
+    The "2-d grid" files have the format ``<phase> <wavelength>
+    <value>`` on each line.
+    """
+    _param_names = ['q0', 'q1', 'q2', 'q3', 'Av']
+    param_names_latex = ['q_0', 'q_1', 'q_2', 'q_3', 'A_v']
+
+    def __init__(self, modeldir=None,
+                 m0file='sugar_template_0.dat',
+                 alpha1file='sugar_template_1.dat',
+                 alpha2file='sugar_template_2.dat',
+                 alpha3file='sugar_template_3.dat',
+                 CCMfile='sugar_template_4.dat',
+                 name=None, version=None):
+
+        self.name = name
+        self.version = version
+        self._model = {}
+        self.M_keys = ['M0', 'ALPHA1', 'ALPHA2', 'ALPHA3', 'CCM']
+        self._parameters = np.zeros(len(self.M_keys))
+        self._parameters[0] = 1e-15
+        names_or_objs = {'M0': m0file,
+                         'ALPHA1': alpha1file,
+                         'ALPHA2': alpha2file,
+                         'ALPHA3': alpha3file,
+                         'CCM': CCMfile}
+
+        # Make filenames into full paths.
+        if modeldir is not None:
+            for k in names_or_objs:
+                v = names_or_objs[k]
+                if (v is not None and isinstance(v, str)):
+                    names_or_objs[k] = os.path.join(modeldir, v)
+
+        for i, key in enumerate(self.M_keys):
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+            if key == 'M0':
+                # The "native" phases and wavelengths of the model are those
+                self._phase = np.linspace(-12., 48, 21)
+                self._wave = wave
+
+    def _flux(self, phase, wave):
+        mag_sugar = self._model['M0'](phase, wave)
+        for i, key in enumerate(self.M_keys):
+            if key != 'M0':
+                comp = self._model[key](phase, wave) * self._parameters[i]
+                mag_sugar += comp
+        # Mag AB used in the training of SUGAR.
+        mag_sugar += 48.59
+        wave_factor = (wave ** 2 / 299792458. * 1.e-10)
+        flux = (self._parameters[0] * 10. ** (-0.4 * mag_sugar) / wave_factor)
+
+        if hasattr(phase, '__iter__'):
+            not_define = ~((phase > -12) & (phase < 48))
+            flux[not_define] = 0
+            return flux
+        else:
+            if phase < -12 or phase > 48:
+                return np.zeros_like(wave)
+            else:
+                return flux
 
 
 class SALT2Source(Source):

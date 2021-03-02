@@ -27,7 +27,8 @@ from .magsystems import (
     ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
 
 from .models import (
-    MLCS2k2Source, SALT2Source, SNEMOSource, TimeSeriesSource, _SOURCES)
+    MLCS2k2Source, SALT2Source, SNEMOSource, SUGARSource,
+    TimeSeriesSource, _SOURCES)
 
 from .specmodel import SpectrumModel
 from .utils import DataMirror
@@ -982,6 +983,24 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
                              args=['models/snemo/'+file],
                              version=ver, meta=meta)
 
+
+# SUGAR models
+def load_sugarmodel(relpath, name=None, version=None):
+    abspath = DATADIR.abspath(relpath, isdir=True)
+    return SUGARSource(abspath, name=name, version=version)
+
+
+for name, files, ver in [('sugar', 'sugar', '1.0')]:
+
+    meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
+            'url': 'http://supernovae.in2p3.fr/sugar_template/',
+            'reference': ('Leget20',
+                          'Leget et al. 2020',
+                          '<https://doi.org/10.1051/0004-6361/201834954>')}
+
+    _SOURCES.register_loader(name, load_sugarmodel,
+                             args=['models/sugar/'+files],
+                             version=ver, meta=meta)
 
 # =============================================================================
 # MagSystems
