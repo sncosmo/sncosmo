@@ -8,6 +8,19 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.4.0 (2021-03-05)
+===================
+
+- Add SUGAR model from Leget et al. (2020)
+
+- Add support for the iminuit 2.0 API (#291).
+
+- Update tox to work with any version of Python 3.
+
+- Bugfixes:
+
+  - Fix flatten_result bug due to API change (#285).
+
 v2.3.0 (2020-11-16)
 ===================
 
