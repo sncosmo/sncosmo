@@ -1161,7 +1161,7 @@ class SALT3Source(Source):
         with np.errstate(invalid='ignore'):
             # new SALT3 error prescription
             result = v/(ftot/(trans*wave*dwave).sum())/HC_ERG_AA/1e12
-            
+
         # treat cases where ftot is negative the same as snfit
         result[ftot <= 0.0] = 10000.
 
