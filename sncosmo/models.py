@@ -999,7 +999,7 @@ class SALT2Source(Source):
 class SALT3Source(Source):
     """The SALT3 Type Ia supernova spectral timeseries model.
     Kenworthy et al., 2021, ApJ, submitted.  Model definitions
-    are the same as SALT2 except for the errors, which are now 
+    are the same as SALT2 except for the errors, which are now
     given in flux space.
 
     The spectral flux density of this model is given by
@@ -1051,12 +1051,6 @@ class SALT3Source(Source):
     interpolation of the other model components.
 
     """
-
-    # These files are distributed with SALT2 model data but not currently
-    # used:
-    # v00file = 'salt2_spec_variance_0.dat'              : 2dgrid
-    # v11file = 'salt2_spec_variance_1.dat'              : 2dgrid
-    # v01file = 'salt2_spec_covariance_01.dat'           : 2dgrid
 
     _param_names = ['x0', 'x1', 'c']
     param_names_latex = ['x_0', 'x_1', 'c']
