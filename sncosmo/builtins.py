@@ -483,6 +483,7 @@ def load_salt2model(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath, isdir=True)
     return SALT2Source(modeldir=abspath, name=name, version=version)
 
+
 def load_salt3model(relpath, name=None, version=None):
     abspath = DATADIR.abspath(relpath, isdir=True)
     return SALT3Source(modeldir=abspath, name=name, version=version)

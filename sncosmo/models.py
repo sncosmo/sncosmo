@@ -29,8 +29,9 @@ from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 from .utils import integration_grid
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SUGARSource', 'SALT2Source', 'SALT3Source', 'MLCS2k2Source', 'SNEMOSource',
-           'Model', 'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
+           'SUGARSource', 'SALT2Source', 'SALT3Source', 'MLCS2k2Source',
+           'SNEMOSource', 'Model', 'PropagationEffect', 'CCM89Dust',
+           'OD94Dust', 'F99Dust']
 
 _SOURCES = Registry()
 
