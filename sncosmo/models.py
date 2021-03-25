@@ -996,6 +996,7 @@ class SALT2Source(Source):
         else:
             return self._colorlaw(wave)
 
+
 class SALT3Source(Source):
     """The SALT3 Type Ia supernova spectral timeseries model.
     Kenworthy et al., 2021, ApJ, submitted.  Model definitions
