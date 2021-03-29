@@ -196,7 +196,7 @@ class TestSALT3Source:
         cdfile.seek(0)  # return to start of file.
 
         # Create a SALT2Source
-        self.source = sncosmo.SALT2Source(m0file=files[0],
+        self.source = sncosmo.SALT3Source(m0file=files[0],
                                           m1file=files[1],
                                           clfile=clfile,
                                           errscalefile=files[2],
