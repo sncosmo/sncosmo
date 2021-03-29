@@ -78,7 +78,8 @@ class TestSALT2Source:
         phase = np.linspace(0., 100., 10)
         wave = np.linspace(1000., 10000., 100)
         vals1d = np.zeros(len(phase), dtype=np.float64)
-
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
+        
         # Create some 2-d grid files
         files = []
         for i in [0, 1]:
@@ -126,26 +127,30 @@ class TestSALT2Source:
         cdfile.close()
         clfile.close()
 
-        def test_bandflux_rcov(self):
+    def test_bandflux_rcov(self):
 
-            # component 1:
-            # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
-            # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
-            #
-            # component 2:
-            # cd^2 = 0.04
+        # component 1:
+        # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
+        # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
+        #
+        # component 2:
+        # cd^2 = 0.04
+        phase = np.linspace(0., 100., 10)
+        wave = np.linspace(1000., 10000., 100)
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
 
-            band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
-                    'besselli']
-            phase = [10., 20., 30., 40., 50.]
-            self.source.set(x1=0.0)
-            result = self.source.bandflux_rcov(band, phase)
-            expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
-                                 [0.04, 0.05, 0.,   0.,   0.],
-                                 [0.,   0.,   0.05, 0.04, 0.],
-                                 [0.,   0.,   0.04, 0.05, 0.],
-                                 [0.,   0.,   0.,   0.,   0.05]])
-            assert_allclose(result, expected)
+        band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
+                'besselli']
+        band = np.array([sncosmo.get_bandpass(b) for b in band])
+        phase = np.array([10., 20., 30., 40., 50.])
+        self.source.set(x1=0.0)
+        result = self.source.bandflux_rcov(band, phase)
+        expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
+                             [0.04, 0.05, 0.,   0.,   0.],
+                             [0.,   0.,   0.05, 0.04, 0.],
+                             [0.,   0.,   0.04, 0.05, 0.],
+                             [0.,   0.,   0.,   0.,   0.05]])
+        assert_allclose(result, expected)
 
 
 class TestSALT3Source:
@@ -205,27 +210,29 @@ class TestSALT3Source:
         cdfile.close()
         clfile.close()
 
-        def test_bandflux_rcov(self):
-
-            # component 1:
-            # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
-            # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
-            #
-            # component 2:
-            # cd^2 = 0.04
-
-            band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
-                    'besselli']
-            band = np.array([sncosmo.get_bandpass(b) for b in band])
-            phase = np.array([10., 20., 30., 40., 50.])
-            self.source.set(x1=0.0)
-            result = self.source.bandflux_rcov(band, phase)
-            expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
-                                 [0.04, 0.05, 0.,   0.,   0.],
-                                 [0.,   0., 0.05, 0.04, 0.],
-                                 [0.,   0., 0.04, 0.05, 0.],
-                                 [0.,   0., 0.,   0.,  0.05]])
-            assert_allclose(result, expected)
+    def test_bandflux_rcov(self):
+        
+        # component 1:
+        # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
+        # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
+        #
+        # component 2:
+        # cd^2 = 0.04
+        phase = np.linspace(0., 100., 10)
+        wave = np.linspace(1000., 10000., 100)
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
+        band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
+                'besselli']
+        band = np.array([sncosmo.get_bandpass(b) for b in band])
+        phase = np.array([10., 20., 30., 40., 50.])
+        self.source.set(x1=0.0)
+        result = self.source.bandflux_rcov(band, phase)
+        expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
+                             [0.04, 0.05, 0.,   0.,   0.],
+                             [0.,   0., 0.05, 0.04, 0.],
+                             [0.,   0., 0.04, 0.05, 0.],
+                             [0.,   0., 0.,   0.,  0.05]])
+        assert_allclose(result, expected)
 
 
 class TestModel:
