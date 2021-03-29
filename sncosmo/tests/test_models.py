@@ -79,7 +79,7 @@ class TestSALT2Source:
         wave = np.linspace(1000., 10000., 100)
         vals1d = np.zeros(len(phase), dtype=np.float64)
         vals = np.ones([len(phase), len(wave)], dtype=np.float64)
-        
+
         # Create some 2-d grid files
         files = []
         for i in [0, 1]:
@@ -211,7 +211,7 @@ class TestSALT3Source:
         clfile.close()
 
     def test_bandflux_rcov(self):
-        
+
         # component 1:
         # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
         # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
