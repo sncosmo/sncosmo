@@ -953,7 +953,7 @@ class SALT2Source(Source):
 
         # If there are more than 1+ncoeffs words in the file, we expect them to
         # be of the form `keyword value`.
-        version = 0
+        version = None
         colorlaw_range = [3000., 7000.]
         for i in range(1+ncoeffs, len(words), 2):
             if words[i] == 'Salt2ExtinctionLaw.version':
@@ -967,12 +967,12 @@ class SALT2Source(Source):
 
         # Set extinction function to use.
         if version == 0:
-            raise Exception("Salt2ExtinctionLaw.version 0 not supported.")
+            raise RuntimeError("Salt2ExtinctionLaw.version 0 not supported.")
         elif version == 1:
             self._colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
         else:
-            raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
-                            version)
+            raise RuntimeError('unrecognized Salt2ExtinctionLaw.version: ' +
+                               version)
 
     def colorlaw(self, wave=None):
         """Return the value of the CL function for the given wavelengths.
@@ -998,7 +998,7 @@ class SALT2Source(Source):
             return self._colorlaw(wave)
 
 
-class SALT3Source(Source):
+class SALT3Source(SALT2Source):
     """The SALT3 Type Ia supernova spectral timeseries model.
     Kenworthy et al., 2021, ApJ, submitted.  Model definitions
     are the same as SALT2 except for the errors, which are now
@@ -1109,12 +1109,6 @@ class SALT3Source(Source):
         w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
         self._colordisp = Spline1d(w, val,  k=1)  # linear interp.
 
-    def _flux(self, phase, wave):
-        m0 = self._model['M0'](phase, wave)
-        m1 = self._model['M1'](phase, wave)
-        return (self._parameters[0] * (m0 + self._parameters[1] * m1) *
-                10. ** (-0.4 * self._colorlaw(wave) * self._parameters[2]))
-
     def _bandflux_rvar_single(self, band, phase):
         """Model relative variance for a single bandpass."""
 
@@ -1162,151 +1156,6 @@ class SALT3Source(Source):
         result[ftot <= 0.0] = 10000.
 
         return result
-
-    def bandflux_rcov(self, band, phase):
-        """Return the *relative* model covariance (or "model error") on
-        synthetic photometry generated from the model in the given restframe
-        band(s).
-
-        This model covariance represents the scatter of real SNe about
-        the model.  The covariance matrix has two components. The
-        first component is diagonal (pure variance) and depends on the
-        phase :math:`t` and bandpass central wavelength
-        :math:`\\lambda_c` of each photometry point:
-
-        .. math::
-
-           (F_{0, \\mathrm{band}}(t) / F_{1, \\mathrm{band}}(t))^2
-           S(t, \\lambda_c)^2
-           (V_{00}(t, \\lambda_c) + 2 x_1 V_{01}(t, \\lambda_c) +
-            x_1^2 V_{11}(t, \\lambda_c))
-
-        where the 2-d functions :math:`S`, :math:`V_{00}`, :math:`V_{01}`,
-        and :math:`V_{11}` are given by the files ``errscalefile``,
-        ``lcrv00file``, ``lcrv01file``, and ``lcrv11file``
-        respectively and :math:`F_0` and :math:`F_1` are given by
-
-        .. math::
-
-           F_{0, \\mathrm{band}}(t) = \\int_\\lambda M_0(t, \\lambda)
-                                      T_\\mathrm{band}(\\lambda)
-                                      \\frac{\\lambda}{hc} d\\lambda
-
-        .. math::
-
-           F_{1, \\mathrm{band}}(t) = \\int_\\lambda
-                                      (M_0(t, \\lambda) + x_1 M_1(t, \\lambda))
-                                      T_\\mathrm{band}(\\lambda)
-                                      \\frac{\\lambda}{hc} d\\lambda
-
-        As this first component can sometimes be negative due to
-        interpolation, there is a floor applied wherein values less than zero
-        are set to ``0.01**2``. This is to match the behavior of the
-        original SALT2 code, snfit.
-
-        The second component is block diagonal. It has
-        constant covariance between all photometry points within a
-        bandpass (regardless of phase), and no covariance between
-        photometry points in different bandpasses:
-
-        .. math::
-
-           CD(\\lambda_c)^2
-
-        where the 1-d function :math:`CD` is given by the file ``cdfile``.
-        Adding these two components gives the *relative* covariance on model
-        photometry.
-
-        Parameters
-        ----------
-        band : `~numpy.ndarray` of `~sncosmo.Bandpass`
-            Bandpasses of observations.
-        phase : `~numpy.ndarray` (float)
-            Phases of observations.
-
-
-        Returns
-        -------
-        rcov : `~numpy.ndarray`
-            Model relative covariance for given bandpasses and phases.
-        """
-
-        # construct covariance array with relative variance on diagonal
-        diagonal = np.zeros(phase.shape, dtype=np.float64)
-        for b in set(band):
-            mask = band == b
-            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
-        result = np.diagflat(diagonal)
-
-        # add kcorr errors
-        for b in set(band):
-            mask1d = band == b
-            mask2d = mask1d * mask1d[:, None]  # mask for result array
-            kcorrerr = self._colordisp(b.wave_eff)
-            result[mask2d] += kcorrerr**2
-
-        return result
-
-    def _set_colorlaw_from_file(self, name_or_obj):
-        """Read color law file and set the internal colorlaw function."""
-
-        # Read file
-        if isinstance(name_or_obj, str):
-            f = open(name_or_obj, 'r')
-        else:
-            f = name_or_obj
-        words = f.read().split()
-        f.close()
-
-        # Get colorlaw coeffecients.
-        ncoeffs = int(words[0])
-        colorlaw_coeffs = [float(word) for word in words[1: 1 + ncoeffs]]
-
-        # If there are more than 1+ncoeffs words in the file, we expect them to
-        # be of the form `keyword value`.
-        version = 0
-        colorlaw_range = [2800., 8000.]
-        for i in range(1+ncoeffs, len(words), 2):
-            if words[i] == 'Salt2ExtinctionLaw.version':
-                version = int(words[i+1])
-            elif words[i] == 'Salt2ExtinctionLaw.min_lambda':
-                colorlaw_range[0] = float(words[i+1])
-            elif words[i] == 'Salt2ExtinctionLaw.max_lambda':
-                colorlaw_range[1] = float(words[i+1])
-            else:
-                raise RuntimeError("Unexpected keyword: {}".format(words[i]))
-
-        # Set extinction function to use.
-        if version == 0:
-            raise Exception("Salt2ExtinctionLaw.version 0 not supported.")
-        elif version == 1:
-            self._colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
-        else:
-            raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
-                            version)
-
-    def colorlaw(self, wave=None):
-        """Return the value of the CL function for the given wavelengths.
-
-        Parameters
-        ----------
-        wave : float or list_like
-
-        Returns
-        -------
-        colorlaw : float or `~numpy.ndarray`
-            Values of colorlaw function, which can be interpreted as extinction
-            in magnitudes.
-        """
-
-        if wave is None:
-            wave = self._wave
-        else:
-            wave = np.asarray(wave)
-        if wave.ndim == 0:
-            return self._colorlaw(np.ravel(wave))[0]
-        else:
-            return self._colorlaw(wave)
 
 
 class MLCS2k2Source(Source):
