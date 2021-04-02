@@ -22,7 +22,8 @@ Model & Components
    TimeSeriesSource
    StretchSource
    SALT2Source
-
+   SALT3Source
+   
 *Effect components of Model: interstellar dust extinction*
 
 .. autosummary::
@@ -130,7 +131,7 @@ magnitude systems*
 Class Inheritance Diagrams
 ==========================
 
-.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source
+.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source SALT3Source
    :parts: 1
 
 .. inheritance-diagram:: PropagationEffect F99Dust OD94Dust CCM89Dust
