@@ -1068,46 +1068,17 @@ class SALT3Source(SALT2Source):
                  lcrv11file='salt3_lc_variance_1.dat',
                  lcrv01file='salt3_lc_covariance_01.dat',
                  name=None, version=None):
-        self.name = name
-        self.version = version
-        self._model = {}
-        self._parameters = np.array([1., 0., 0.])
 
-        names_or_objs = {'M0': m0file, 'M1': m1file,
-                         'LCRV00': lcrv00file, 'LCRV11': lcrv11file,
-                         'LCRV01': lcrv01file, 'errscale': errscalefile,
-                         'cdfile': cdfile, 'clfile': clfile}
-
-        # Make filenames into full paths.
-        if modeldir is not None:
-            for k in names_or_objs:
-                v = names_or_objs[k]
-                if (v is not None and isinstance(v, str)):
-                    names_or_objs[k] = os.path.join(modeldir, v)
-
-        # model components are interpolated to 2nd order
-        for key in ['M0', 'M1']:
-            phase, wave, values = read_griddata_ascii(names_or_objs[key])
-            values *= self._SCALE_FACTOR
-            self._model[key] = BicubicInterpolator(phase, wave, values)
-
-            # The "native" phases and wavelengths of the model are those
-            # of the first model component.
-            if key == 'M0':
-                self._phase = phase
-                self._wave = wave
-
-        # model covariance is interpolated to 1st order
-        for key in ['LCRV00', 'LCRV11', 'LCRV01', 'errscale']:
-            phase, wave, values = read_griddata_ascii(names_or_objs[key])
-            self._model[key] = BicubicInterpolator(phase, wave, values)
-
-        # Set the colorlaw based on the "color correction" file.
-        self._set_colorlaw_from_file(names_or_objs['clfile'])
-
-        # Set the color dispersion from "color_dispersion" file
-        w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
-        self._colordisp = Spline1d(w, val,  k=1)  # linear interp.
+        super().__init__(modeldir=modeldir,
+                         m0file=m0file,
+                         m1file=m1file,
+                         clfile=clfile,
+                         cdfile=cdfile,
+                         errscalefile=errscalefile,
+                         lcrv00file=lcrv00file,
+                         lcrv11file=lcrv11file,
+                         lcrv01file=lcrv01file,
+                         name=name, version=version)
 
     def _bandflux_rvar_single(self, band, phase):
         """Model relative variance for a single bandpass."""
