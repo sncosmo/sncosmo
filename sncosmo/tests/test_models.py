@@ -199,7 +199,6 @@ class TestSALT3Source:
         self.source = sncosmo.SALT3Source(m0file=files[0],
                                           m1file=files[1],
                                           clfile=clfile,
-                                          errscalefile=files[2],
                                           lcrv00file=files[3],
                                           lcrv11file=files[4],
                                           lcrv01file=files[5],
