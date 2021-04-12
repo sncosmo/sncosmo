@@ -27,7 +27,7 @@ from .magsystems import (
     ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
 
 from .models import (
-    MLCS2k2Source, SALT2Source, SNEMOSource, SUGARSource,
+    MLCS2k2Source, SALT2Source, SALT3Source, SNEMOSource, SUGARSource,
     TimeSeriesSource, _SOURCES)
 
 from .specmodel import SpectrumModel
@@ -484,6 +484,11 @@ def load_salt2model(relpath, name=None, version=None):
     return SALT2Source(modeldir=abspath, name=name, version=version)
 
 
+def load_salt3model(relpath, name=None, version=None):
+    abspath = DATADIR.abspath(relpath, isdir=True)
+    return SALT3Source(modeldir=abspath, name=name, version=version)
+
+
 def load_2011fe(relpath, name=None, version=None):
 
     # filter warnings about RADESYS keyword in files
@@ -636,6 +641,15 @@ meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT2Source`', 'ref': ref}
 _SOURCES.register_loader('salt2-extended', load_salt2model,
                          args=('models/pierel/salt2-extended',), version='2.0',
+                         meta=meta)
+
+# SALT3
+meta = {'type': 'SN Ia',
+        'subclass': '`~sncosmo.SALT3Source`',
+        'url': 'https://salt3.readthedocs.io/en/latest/',
+        'note': "See Kenworthy et al. 2021, ApJ, submitted."}
+_SOURCES.register_loader('salt3', load_salt3model,
+                         args=('models/salt3/salt3-k21',), version='1.0',
                          meta=meta)
 
 meta = {'type': 'SN Ia',

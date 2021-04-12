@@ -78,6 +78,7 @@ class TestSALT2Source:
         phase = np.linspace(0., 100., 10)
         wave = np.linspace(1000., 10000., 100)
         vals1d = np.zeros(len(phase), dtype=np.float64)
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
 
         # Create some 2-d grid files
         files = []
@@ -126,26 +127,111 @@ class TestSALT2Source:
         cdfile.close()
         clfile.close()
 
-        def test_bandflux_rcov(self):
+    def test_bandflux_rcov(self):
 
-            # component 1:
-            # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
-            # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
-            #
-            # component 2:
-            # cd^2 = 0.04
+        # component 1:
+        # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
+        # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
+        #
+        # component 2:
+        # cd^2 = 0.04
+        phase = np.linspace(0., 100., 10)
+        wave = np.linspace(1000., 10000., 100)
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
 
-            band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
-                    'besselli']
-            phase = [10., 20., 30., 40., 50.]
-            self.source.set(x1=0.0)
-            result = self.source.bandflux_rcov(band, phase)
-            expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
-                                 [0.04, 0.05, 0.,   0.,   0.],
-                                 [0.,   0.,   0.05, 0.04, 0.],
-                                 [0.,   0.,   0.04, 0.05, 0.],
-                                 [0.,   0.,   0.,   0.,   0.05]])
-            assert_allclose(result, expected)
+        band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
+                'besselli']
+        band = np.array([sncosmo.get_bandpass(b) for b in band])
+        phase = np.array([10., 20., 30., 40., 50.])
+        self.source.set(x1=0.0)
+        result = self.source.bandflux_rcov(band, phase)
+        expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
+                             [0.04, 0.05, 0.,   0.,   0.],
+                             [0.,   0.,   0.05, 0.04, 0.],
+                             [0.,   0.,   0.04, 0.05, 0.],
+                             [0.,   0.,   0.,   0.,   0.05]])
+        assert_allclose(result, expected)
+
+
+class TestSALT3Source:
+
+    def setup_class(self):
+        """Create a SALT3 model with a lot of components set to 1."""
+
+        phase = np.linspace(0., 100., 10)
+        wave = np.linspace(1000., 10000., 100)
+        vals1d = np.zeros(len(phase), dtype=np.float64)
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
+
+        # Create some 2-d grid files
+        files = []
+        for i in [0, 1]:
+            f = StringIO()
+            sncosmo.write_griddata_ascii(phase, wave, vals, f)
+            f.seek(0)  # return to start of file.
+            files.append(f)
+
+        # CL file. The CL in magnitudes will be
+        # CL(wave) = -(wave - B) / (V - B)  [B = 4302.57, V = 5428.55]
+        # and transmission will be 10^(-0.4 * CL(wave))^c
+        clfile = StringIO()
+        clfile.write("1\n"
+                     "0.0\n"
+                     "Salt2ExtinctionLaw.version 1\n"
+                     "Salt2ExtinctionLaw.min_lambda 3000\n"
+                     "Salt2ExtinctionLaw.max_lambda 8000\n")
+        clfile.seek(0)
+
+        # Create some more 2-d grid files
+        for factor in [1., 0.01, 0.01, 0.01]:
+            f = StringIO()
+            sncosmo.write_griddata_ascii(phase, wave, factor * vals, f)
+            f.seek(0)  # return to start of file.
+            files.append(f)
+
+        # Create a 1-d grid file (color dispersion)
+        cdfile = StringIO()
+        for w in wave:
+            cdfile.write("{0:f} {1:f}\n".format(w, 0.2))
+        cdfile.seek(0)  # return to start of file.
+
+        # Create a SALT2Source
+        self.source = sncosmo.SALT3Source(m0file=files[0],
+                                          m1file=files[1],
+                                          clfile=clfile,
+                                          lcrv00file=files[3],
+                                          lcrv11file=files[4],
+                                          lcrv01file=files[5],
+                                          cdfile=cdfile)
+
+        for f in files:
+            f.close()
+        cdfile.close()
+        clfile.close()
+
+    def test_bandflux_rcov(self):
+
+        # component 1:
+        # ans = (F0/F1)^2 S^2 (V00 + 2 x1 V01 + x1^2 V11)
+        # when x1=0, this reduces to S^2 V00 = 1^2 * 0.01 = 0.01
+        #
+        # component 2:
+        # cd^2 = 0.04
+        phase = np.linspace(0., 100., 10)
+        wave = np.linspace(1000., 10000., 100)
+        vals = np.ones([len(phase), len(wave)], dtype=np.float64)
+        band = ['bessellb', 'bessellb', 'bessellr', 'bessellr',
+                'besselli']
+        band = np.array([sncosmo.get_bandpass(b) for b in band])
+        phase = np.array([10., 20., 30., 40., 50.])
+        self.source.set(x1=0.0)
+        result = self.source.bandflux_rcov(band, phase)
+        expected = np.array([[0.05, 0.04, 0.,   0.,   0.],
+                             [0.04, 0.05, 0.,   0.,   0.],
+                             [0.,   0., 0.05, 0.04, 0.],
+                             [0.,   0., 0.04, 0.05, 0.],
+                             [0.,   0., 0.,   0.,  0.05]])
+        assert_allclose(result, expected)
 
 
 class TestModel:
