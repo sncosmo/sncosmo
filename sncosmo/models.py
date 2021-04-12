@@ -1002,7 +1002,8 @@ class SALT3Source(SALT2Source):
     """The SALT3 Type Ia supernova spectral timeseries model.
     Kenworthy et al., 2021, ApJ, submitted.  Model definitions
     are the same as SALT2 except for the errors, which are now
-    given in flux space.
+    given in flux space.  Unlike SALT2, no file is used for scaling
+    the errors.
 
     The spectral flux density of this model is given by
 
@@ -1029,12 +1030,11 @@ class SALT3Source(SALT2Source):
         * m1file = 'salt2_template_1.dat' (2-d grid)
         * clfile = 'salt2_color_correction.dat'
 
-    errscalefile, lcrv00file, lcrv11file, lcrv01file, cdfile : str or fileobj
+    lcrv00file, lcrv11file, lcrv01file, cdfile : str or fileobj
         (optional) Filenames of various model components for
         model covariance in synthetic photometry. See
         ``bandflux_rcov`` for details.  Defaults are:
 
-        * errscalefile = 'salt2_lc_dispersion_scaling.dat' (2-d grid)
         * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
         * lcrv11file = 'salt2_lc_relative_variance_1.dat' (2-d grid)
         * lcrv01file = 'salt2_lc_relative_covariance_01.dat' (2-d grid)
@@ -1063,22 +1063,51 @@ class SALT3Source(SALT2Source):
                  m1file='salt3_template_1.dat',
                  clfile='salt3_color_correction.dat',
                  cdfile='salt3_color_dispersion.dat',
-                 errscalefile='salt3_lc_dispersion_scaling.dat',
                  lcrv00file='salt3_lc_variance_0.dat',
                  lcrv11file='salt3_lc_variance_1.dat',
                  lcrv01file='salt3_lc_covariance_01.dat',
                  name=None, version=None):
 
-        super().__init__(modeldir=modeldir,
-                         m0file=m0file,
-                         m1file=m1file,
-                         clfile=clfile,
-                         cdfile=cdfile,
-                         errscalefile=errscalefile,
-                         lcrv00file=lcrv00file,
-                         lcrv11file=lcrv11file,
-                         lcrv01file=lcrv01file,
-                         name=name, version=version)
+        self.name = name
+        self.version = version
+        self._model = {}
+        self._parameters = np.array([1., 0., 0.])
+
+        names_or_objs = {'M0': m0file, 'M1': m1file,
+                         'LCRV00': lcrv00file, 'LCRV11': lcrv11file,
+                         'LCRV01': lcrv01file,
+                         'cdfile': cdfile, 'clfile': clfile}
+
+        # Make filenames into full paths.
+        if modeldir is not None:
+            for k in names_or_objs:
+                v = names_or_objs[k]
+                if (v is not None and isinstance(v, str)):
+                    names_or_objs[k] = os.path.join(modeldir, v)
+
+        # model components are interpolated to 2nd order
+        for key in ['M0', 'M1']:
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            values *= self._SCALE_FACTOR
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+
+            # The "native" phases and wavelengths of the model are those
+            # of the first model component.
+            if key == 'M0':
+                self._phase = phase
+                self._wave = wave
+
+        # model covariance is interpolated to 1st order
+        for key in ['LCRV00', 'LCRV11', 'LCRV01']:
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+
+        # Set the colorlaw based on the "color correction" file.
+        self._set_colorlaw_from_file(names_or_objs['clfile'])
+
+        # Set the color dispersion from "color_dispersion" file
+        w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
+        self._colordisp = Spline1d(w, val,  k=1)  # linear interp.
 
     def _bandflux_rvar_single(self, band, phase):
         """Model relative variance for a single bandpass."""
@@ -1108,7 +1137,6 @@ class SALT3Source(SALT2Source):
         lcrv00 = self._model['LCRV00'](phase, band.wave_eff)[:, 0]
         lcrv11 = self._model['LCRV11'](phase, band.wave_eff)[:, 0]
         lcrv01 = self._model['LCRV01'](phase, band.wave_eff)[:, 0]
-        scale = self._model['errscale'](phase, band.wave_eff)[:, 0]
 
         v = lcrv00 + 2.0 * x1 * lcrv01 + x1 * x1 * lcrv11
 
