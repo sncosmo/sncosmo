@@ -61,6 +61,7 @@ maps, and more.*
    write_lc
    read_bandpass
    load_example_data
+   load_example_spectrum_data
    read_snana_ascii
    read_snana_fits
    read_snana_simlib
@@ -68,6 +69,16 @@ maps, and more.*
    read_griddata_fits
    write_griddata_ascii
    write_griddata_fits
+
+Spectra
+=======
+
+.. autosummary::
+   :toctree: api
+
+   Spectrum
+
+
 
 .. _fitting-api:
 
