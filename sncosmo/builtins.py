@@ -922,10 +922,10 @@ V19_CC_models = [
     ('v19-iptf13bvn', '1.0', 'SN Ib', 'V19_iPTF13bvn_noHostExtCorr.SED')
 ]
 
-note = """Templates from Vincenzi et al. 19. Each template is extended in the
-ultraviolet (1600AA) and in the near infrared (10000AA). Each template can be
-used in its original version (v19-sn-name) or in its host dust extinction
-corrected version (v19-sn-name-corr)."""
+note = "Templates from Vincenzi et al. 19. Each template is extended in the " \
+    "ultraviolet (1600AA) and in the near infrared (10000AA). Each template " \
+    "can be used in its original version (v19-sn-name) or in its host dust " \
+    "extinction corrected version (v19-sn-name-corr)."
 
 for name, vrs, sntype, fn in V19_CC_models:
     relpath = os.path.join('models', 'vincenzi', fn)
@@ -1009,7 +1009,7 @@ for name, files, ver in [('sugar', 'sugar', '1.0')]:
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
             'url': 'http://supernovae.in2p3.fr/sugar_template/',
             'reference': ('Leget20',
-                          'Leget et al. 2020',
+                          'Leget et al. 2020 '
                           '<https://doi.org/10.1051/0004-6361/201834954>')}
 
     _SOURCES.register_loader(name, load_sugarmodel,

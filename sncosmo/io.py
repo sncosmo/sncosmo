@@ -14,8 +14,10 @@ from astropy.table import Table
 from .bandpasses import get_bandpass
 from .utils import dict_to_array
 
-__all__ = ['read_lc', 'write_lc', 'load_example_data', 'read_griddata_ascii',
-           'read_griddata_fits', 'write_griddata_ascii', 'write_griddata_fits']
+__all__ = ['read_lc', 'write_lc', 'load_example_data',
+           'load_example_spectrum_data', 'read_griddata_ascii',
+           'read_griddata_fits', 'write_griddata_ascii',
+           'write_griddata_fits']
 
 
 def _stripcomment(line, char='#'):
@@ -816,3 +818,22 @@ def load_example_data():
     filename = get_pkg_data_filename(
         'data/examples/example_photometric_data.dat')
     return read_lc(filename, format='ascii')
+
+
+def load_example_spectrum_data():
+    """
+    Load example spectrum data.
+
+    Returns
+    -------
+    wave : `~numpy.array`
+        Wavelengths of each spectral bin
+    flux : `~numpy.array`
+        Flux in each spectral bin
+    fluxerr : `~numpy.array`
+        Flux error in each spectral bin
+    """
+    from astropy.utils.data import get_pkg_data_filename
+    filename = get_pkg_data_filename(
+        'data/examples/example_spectrum.dat')
+    return np.genfromtxt(filename).T
