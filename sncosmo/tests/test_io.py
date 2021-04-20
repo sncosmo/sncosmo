@@ -217,6 +217,7 @@ def test_write_lc_snana():
 def test_load_example_data():
     data = sncosmo.load_example_data()
 
+
 def test_load_example_spectrum_data():
     wave, flux, fluxerr = sncosmo.load_example_spectrum_data()
 
