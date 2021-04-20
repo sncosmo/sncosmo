@@ -103,10 +103,10 @@ specified. For example, to fit a single spectrum:
 
 .. code:: python
 
-    Create the spectrum object, and specify the time at which it was taken.
+    # Create the spectrum object, and specify the time at which it was taken.
     >>> spectrum = sncosmo.Spectrum(wave, flux, fluxerr, time=20.)
 
-    Fit a model to the spectrum.
+    # Fit a model to the spectrum.
     >>> model = sncosmo.Model(source='hsiao-subsampled')
     >>> sncosmo.fit_lc(model=model, spectra=spectrum,
     ...                vparam_names=['amplitude', 't0', 'z'],
