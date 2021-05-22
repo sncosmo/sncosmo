@@ -1129,6 +1129,8 @@ class SALT3Source(SALT2Source):
         m0 = self._model['M0'](phase, wave)
         m1 = self._model['M1'](phase, wave)
         tmp = trans * wave
+
+        # evaluate avg M0 + x1*M1 across a bandpass
         f0 = np.sum(m0 * tmp, axis=1)/tmp.sum()
         m1int = np.sum(m1 * tmp, axis=1)/tmp.sum()
         ftot = f0 + x1 * m1int
@@ -1139,6 +1141,8 @@ class SALT3Source(SALT2Source):
         lcrv11 = self._model['LCRV11'](phase, band.wave_eff)[:, 0]
         lcrv01 = self._model['LCRV01'](phase, band.wave_eff)[:, 0]
 
+        # variance in M0 + x1*M1 at the effective wavelength
+        # of a bandpass
         v = (lcrv00 + 2.0 * x1 * lcrv01 + x1 * x1 * lcrv11)
 
         # v is supposed to be variance but can go negative
@@ -1149,7 +1153,7 @@ class SALT3Source(SALT2Source):
 
         # avoid warnings due to evaluating 0. / 0. in f0 / ftot
         with np.errstate(invalid='ignore'):
-            # new SALT3 error prescription
+            # turn M0+x1*M1 error into a relative error
             result = v/ftot**2.
 
         # treat cases where ftot is negative the same as snfit
