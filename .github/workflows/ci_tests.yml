@@ -1,18 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches:
-    - master
-    - github-actions
-    tags:
-    - '*'
-  pull_request:
-    branches:
-    - master
-#  schedule:
-#    # run every Monday at 5am UTC
-#    - cron: '0 5 * * 1'
+  [push, pull_request]
 
 jobs:
 
