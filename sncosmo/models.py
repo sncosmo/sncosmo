@@ -29,8 +29,9 @@ from .salt2utils import BicubicInterpolator, SALT2ColorLaw
 from .utils import integration_grid
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
-           'SALT2Source', 'MLCS2k2Source', 'SNEMOSource', 'Model',
-           'PropagationEffect', 'CCM89Dust', 'OD94Dust', 'F99Dust']
+           'SUGARSource', 'SALT2Source', 'SALT3Source', 'MLCS2k2Source',
+           'SNEMOSource', 'Model', 'PropagationEffect', 'CCM89Dust',
+           'OD94Dust', 'F99Dust']
 
 _SOURCES = Registry()
 
@@ -576,6 +577,114 @@ class StretchSource(Source):
                 self._model_flux(phase / self._parameters[1], wave))
 
 
+class SUGARSource(Source):
+    """
+    The SUGAR Type Ia supernova spectral time series template.
+
+    The spectral energy distribution of this model is given by
+
+    .. math::
+
+    F(t, \\lambda) = q_0 10^{-0.4 (M_0(t, \\lambda)
+                             + q_1 \alpha_1(t, \\lambda)
+                             + q_2 \alpha_2(t, \\lambda)
+                             + q_3 \alpha_3(t, \\lambda)
+                             + A_v CCM(\\lambda))}
+                             (10^{-3} c\\lambda^{2})
+
+    where ``q_0``, ``q_1``, ``q_2``, ``q_3``,
+    and ``A_v`` are the free parameters
+    of the model,``alpha_0``, ``alpha_1``,
+    `alpha_2``, `alpha_3``, `CCM`` are
+    the template vectors of the model.
+    The ``q_0`` is the equivalent parameter
+    in flux of the ``Delta M_{gray}``
+    parameter define in Leget et al. 2020.
+
+    Parameters
+    ----------
+    modeldir : str, optional
+        Directory path containing model component files. Default is `None`,
+        which means that no directory is prepended to filenames when
+        determining their path.
+
+    m0file : str or fileobj, optional
+    alpha1file : str or fileobj, optional
+    alpha2file : str or fileobj, optional
+    alpha3file : str or fileobj, optional
+    CCMfile: str or fileobj, optional
+        Filenames of various model components. Defaults are:
+        * m0file = 'sugar_template_0.dat' (2-d grid)
+        * alpha1file = 'sugar_template_1.dat' (2-d grid)
+        * alpha2file = 'sugar_template_2.dat' (2-d grid)
+        * alpha3file = 'sugar_template_3.dat' (2-d grid)
+        * CCMfile = 'sugar_template_4.dat' (2-d grid)
+
+    Notes
+    -----
+    The "2-d grid" files have the format ``<phase> <wavelength>
+    <value>`` on each line.
+    """
+    _param_names = ['q0', 'q1', 'q2', 'q3', 'Av']
+    param_names_latex = ['q_0', 'q_1', 'q_2', 'q_3', 'A_v']
+
+    def __init__(self, modeldir=None,
+                 m0file='sugar_template_0.dat',
+                 alpha1file='sugar_template_1.dat',
+                 alpha2file='sugar_template_2.dat',
+                 alpha3file='sugar_template_3.dat',
+                 CCMfile='sugar_template_4.dat',
+                 name=None, version=None):
+
+        self.name = name
+        self.version = version
+        self._model = {}
+        self.M_keys = ['M0', 'ALPHA1', 'ALPHA2', 'ALPHA3', 'CCM']
+        self._parameters = np.zeros(len(self.M_keys))
+        self._parameters[0] = 1e-15
+        names_or_objs = {'M0': m0file,
+                         'ALPHA1': alpha1file,
+                         'ALPHA2': alpha2file,
+                         'ALPHA3': alpha3file,
+                         'CCM': CCMfile}
+
+        # Make filenames into full paths.
+        if modeldir is not None:
+            for k in names_or_objs:
+                v = names_or_objs[k]
+                if (v is not None and isinstance(v, str)):
+                    names_or_objs[k] = os.path.join(modeldir, v)
+
+        for i, key in enumerate(self.M_keys):
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+            if key == 'M0':
+                # The "native" phases and wavelengths of the model are those
+                self._phase = np.linspace(-12., 48, 21)
+                self._wave = wave
+
+    def _flux(self, phase, wave):
+        mag_sugar = self._model['M0'](phase, wave)
+        for i, key in enumerate(self.M_keys):
+            if key != 'M0':
+                comp = self._model[key](phase, wave) * self._parameters[i]
+                mag_sugar += comp
+        # Mag AB used in the training of SUGAR.
+        mag_sugar += 48.59
+        wave_factor = (wave ** 2 / 299792458. * 1.e-10)
+        flux = (self._parameters[0] * 10. ** (-0.4 * mag_sugar) / wave_factor)
+
+        if hasattr(phase, '__iter__'):
+            not_define = ~((phase > -12) & (phase < 48))
+            flux[not_define] = 0
+            return flux
+        else:
+            if phase < -12 or phase > 48:
+                return np.zeros_like(wave)
+            else:
+                return flux
+
+
 class SALT2Source(Source):
     """The SALT2 Type Ia supernova spectral timeseries model.
 
@@ -844,7 +953,7 @@ class SALT2Source(Source):
 
         # If there are more than 1+ncoeffs words in the file, we expect them to
         # be of the form `keyword value`.
-        version = 0
+        version = None
         colorlaw_range = [3000., 7000.]
         for i in range(1+ncoeffs, len(words), 2):
             if words[i] == 'Salt2ExtinctionLaw.version':
@@ -858,12 +967,12 @@ class SALT2Source(Source):
 
         # Set extinction function to use.
         if version == 0:
-            raise Exception("Salt2ExtinctionLaw.version 0 not supported.")
+            raise RuntimeError("Salt2ExtinctionLaw.version 0 not supported.")
         elif version == 1:
             self._colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
         else:
-            raise Exception('unrecognized Salt2ExtinctionLaw.version: ' +
-                            version)
+            raise RuntimeError('unrecognized Salt2ExtinctionLaw.version: ' +
+                               version)
 
     def colorlaw(self, wave=None):
         """Return the value of the CL function for the given wavelengths.
@@ -887,6 +996,165 @@ class SALT2Source(Source):
             return self._colorlaw(np.ravel(wave))[0]
         else:
             return self._colorlaw(wave)
+
+
+class SALT3Source(SALT2Source):
+    """The SALT3 Type Ia supernova spectral timeseries model.
+    Kenworthy et al., 2021, ApJ, submitted.  Model definitions
+    are the same as SALT2 except for the errors, which are now
+    given in flux space.  Unlike SALT2, no file is used for scaling
+    the errors.
+
+    The spectral flux density of this model is given by
+
+    .. math::
+
+       F(t, \\lambda) = x_0 (M_0(t, \\lambda) + x_1 M_1(t, \\lambda))
+                       \\times 10^{-0.4 CL(\\lambda) c}
+
+    where ``x0``, ``x1`` and ``c`` are the free parameters of the model,
+    ``M_0``, ``M_1`` are the zeroth and first components of the model, and
+    ``CL`` is the colorlaw, which gives the extinction in magnitudes for
+    ``c=1``.
+
+    Parameters
+    ----------
+    modeldir : str, optional
+        Directory path containing model component files. Default is `None`,
+        which means that no directory is prepended to filenames when
+        determining their path.
+    m0file, m1file, clfile : str or fileobj, optional
+        Filenames of various model components. Defaults are:
+
+        * m0file = 'salt2_template_0.dat' (2-d grid)
+        * m1file = 'salt2_template_1.dat' (2-d grid)
+        * clfile = 'salt2_color_correction.dat'
+
+    lcrv00file, lcrv11file, lcrv01file, cdfile : str or fileobj
+        (optional) Filenames of various model components for
+        model covariance in synthetic photometry. See
+        ``bandflux_rcov`` for details.  Defaults are:
+
+        * lcrv00file = 'salt2_lc_relative_variance_0.dat' (2-d grid)
+        * lcrv11file = 'salt2_lc_relative_variance_1.dat' (2-d grid)
+        * lcrv01file = 'salt2_lc_relative_covariance_01.dat' (2-d grid)
+        * cdfile = 'salt2_color_dispersion.dat' (1-d grid)
+
+    Notes
+    -----
+    The "2-d grid" files have the format ``<phase> <wavelength>
+    <value>`` on each line.
+
+    The phase and wavelength values of the various components don't
+    necessarily need to match. (In the most recent salt2 model data,
+    they do not all match.) The phase and wavelength values of the
+    first model component (in ``m0file``) are taken as the "native"
+    sampling of the model, even though these values might require
+    interpolation of the other model components.
+
+    """
+
+    _param_names = ['x0', 'x1', 'c']
+    param_names_latex = ['x_0', 'x_1', 'c']
+    _SCALE_FACTOR = 1e-12
+
+    def __init__(self, modeldir=None,
+                 m0file='salt3_template_0.dat',
+                 m1file='salt3_template_1.dat',
+                 clfile='salt3_color_correction.dat',
+                 cdfile='salt3_color_dispersion.dat',
+                 lcrv00file='salt3_lc_variance_0.dat',
+                 lcrv11file='salt3_lc_variance_1.dat',
+                 lcrv01file='salt3_lc_covariance_01.dat',
+                 name=None, version=None):
+
+        self.name = name
+        self.version = version
+        self._model = {}
+        self._parameters = np.array([1., 0., 0.])
+
+        names_or_objs = {'M0': m0file, 'M1': m1file,
+                         'LCRV00': lcrv00file, 'LCRV11': lcrv11file,
+                         'LCRV01': lcrv01file,
+                         'cdfile': cdfile, 'clfile': clfile}
+
+        # Make filenames into full paths.
+        if modeldir is not None:
+            for k in names_or_objs:
+                v = names_or_objs[k]
+                if (v is not None and isinstance(v, str)):
+                    names_or_objs[k] = os.path.join(modeldir, v)
+
+        # model components are interpolated to 2nd order
+        for key in ['M0', 'M1']:
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            values *= self._SCALE_FACTOR
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+
+            # The "native" phases and wavelengths of the model are those
+            # of the first model component.
+            if key == 'M0':
+                self._phase = phase
+                self._wave = wave
+
+        # model covariance is interpolated to 1st order
+        for key in ['LCRV00', 'LCRV11', 'LCRV01']:
+            phase, wave, values = read_griddata_ascii(names_or_objs[key])
+            self._model[key] = BicubicInterpolator(phase, wave, values)
+
+        # Set the colorlaw based on the "color correction" file.
+        self._set_colorlaw_from_file(names_or_objs['clfile'])
+
+        # Set the color dispersion from "color_dispersion" file
+        w, val = np.loadtxt(names_or_objs['cdfile'], unpack=True)
+        self._colordisp = Spline1d(w, val,  k=1)  # linear interp.
+
+    def _bandflux_rvar_single(self, band, phase):
+        """Model relative variance for a single bandpass."""
+
+        # Raise an exception if bandpass is out of model range.
+        if (band.minwave() < self._wave[0] or band.maxwave() > self._wave[-1]):
+            raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                             'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                             .format(band.name, band.wave[0], band.wave[-1],
+                                     self._wave[0], self._wave[-1]))
+
+        x1 = self._parameters[1]
+
+        # integrate m0 and m1 components
+        wave, dwave = integration_grid(band.minwave(), band.maxwave(),
+                                       MODEL_BANDFLUX_SPACING)
+        trans = band(wave)
+        m0 = self._model['M0'](phase, wave)
+        m1 = self._model['M1'](phase, wave)
+        tmp = trans * wave
+        f0 = np.sum(m0 * tmp, axis=1) * dwave / HC_ERG_AA
+        m1int = np.sum(m1 * tmp, axis=1) * dwave / HC_ERG_AA
+        ftot = f0 + x1 * m1int
+
+        # In the following, the "[:,0]" reduces from a 2-d array of shape
+        # (nphase, 1) to a 1-d array.
+        lcrv00 = self._model['LCRV00'](phase, band.wave_eff)[:, 0]
+        lcrv11 = self._model['LCRV11'](phase, band.wave_eff)[:, 0]
+        lcrv01 = self._model['LCRV01'](phase, band.wave_eff)[:, 0]
+
+        v = lcrv00 + 2.0 * x1 * lcrv01 + x1 * x1 * lcrv11
+
+        # v is supposed to be variance but can go negative
+        # due to interpolation.  Correct negative values to some small
+        # number. (at present, use prescription of snfit : set
+        # negatives to 0.0001)
+        v[v < 0.0] = 0.0001
+
+        # avoid warnings due to evaluating 0. / 0. in f0 / ftot
+        with np.errstate(invalid='ignore'):
+            # new SALT3 error prescription
+            result = v/(ftot/(trans*wave*dwave).sum())/HC_ERG_AA/1e12
+
+        # treat cases where ftot is negative the same as snfit
+        result[ftot <= 0.0] = 10000.
+
+        return result
 
 
 class MLCS2k2Source(Source):

@@ -47,9 +47,14 @@ Alphabetical by last name:
 * Brian Friesen
 * Danny Goldstein
 * Saurabh Jha
+* David Jones
+* Pierre-Francois Leget
+* Florian Mondon
 * Daniel Perrefort
 * Justin Pierel
+* Benjamin Rose
 * Steve Rodney
+* Clare Saunders
 * Caroline Sofiatti
 * Rollin C. Thomas
 * Maria Vincenzi

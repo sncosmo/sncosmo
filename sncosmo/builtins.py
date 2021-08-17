@@ -27,7 +27,8 @@ from .magsystems import (
     ABMagSystem, CompositeMagSystem, SpectralMagSystem, _MAGSYSTEMS)
 
 from .models import (
-    MLCS2k2Source, SALT2Source, SNEMOSource, TimeSeriesSource, _SOURCES)
+    MLCS2k2Source, SALT2Source, SALT3Source, SNEMOSource, SUGARSource,
+    TimeSeriesSource, _SOURCES)
 
 from .specmodel import SpectrumModel
 from .utils import DataMirror
@@ -483,6 +484,11 @@ def load_salt2model(relpath, name=None, version=None):
     return SALT2Source(modeldir=abspath, name=name, version=version)
 
 
+def load_salt3model(relpath, name=None, version=None):
+    abspath = DATADIR.abspath(relpath, isdir=True)
+    return SALT3Source(modeldir=abspath, name=name, version=version)
+
+
 def load_2011fe(relpath, name=None, version=None):
 
     # filter warnings about RADESYS keyword in files
@@ -635,6 +641,15 @@ meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT2Source`', 'ref': ref}
 _SOURCES.register_loader('salt2-extended', load_salt2model,
                          args=('models/pierel/salt2-extended',), version='2.0',
+                         meta=meta)
+
+# SALT3
+meta = {'type': 'SN Ia',
+        'subclass': '`~sncosmo.SALT3Source`',
+        'url': 'https://salt3.readthedocs.io/en/latest/',
+        'note': "See Kenworthy et al. 2021, ApJ, submitted."}
+_SOURCES.register_loader('salt3', load_salt3model,
+                         args=('models/salt3/salt3-k21',), version='1.0',
                          meta=meta)
 
 meta = {'type': 'SN Ia',
@@ -907,10 +922,10 @@ V19_CC_models = [
     ('v19-iptf13bvn', '1.0', 'SN Ib', 'V19_iPTF13bvn_noHostExtCorr.SED')
 ]
 
-note = """Templates from Vincenzi et al. 19. Each template is extended in the
-ultraviolet (1600AA) and in the near infrared (10000AA). Each template can be
-used in its original version (v19-sn-name) or in its host dust extinction
-corrected version (v19-sn-name-corr)."""
+note = "Templates from Vincenzi et al. 19. Each template is extended in the " \
+    "ultraviolet (1600AA) and in the near infrared (10000AA). Each template " \
+    "can be used in its original version (v19-sn-name) or in its host dust " \
+    "extinction corrected version (v19-sn-name-corr)."
 
 for name, vrs, sntype, fn in V19_CC_models:
     relpath = os.path.join('models', 'vincenzi', fn)
@@ -982,6 +997,24 @@ for name, file, ver in [('snemo2', 'snemo2_ev.dat', '1.0'),
                              args=['models/snemo/'+file],
                              version=ver, meta=meta)
 
+
+# SUGAR models
+def load_sugarmodel(relpath, name=None, version=None):
+    abspath = DATADIR.abspath(relpath, isdir=True)
+    return SUGARSource(abspath, name=name, version=version)
+
+
+for name, files, ver in [('sugar', 'sugar', '1.0')]:
+
+    meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
+            'url': 'http://supernovae.in2p3.fr/sugar_template/',
+            'reference': ('Leget20',
+                          'Leget et al. 2020 '
+                          '<https://doi.org/10.1051/0004-6361/201834954>')}
+
+    _SOURCES.register_loader(name, load_sugarmodel,
+                             args=['models/sugar/'+files],
+                             version=ver, meta=meta)
 
 # =============================================================================
 # MagSystems
