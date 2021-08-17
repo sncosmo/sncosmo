@@ -439,6 +439,21 @@ for name, fname in [('uvot::b', 'bandpasses/swift/Swift_UVOT.B.dat'),
                                 args=(fname,),
                                 meta=swift_meta)
 
+# Pan-STARRS1
+ps1_meta = {
+    'filterset': 'ps1',
+    'dataurl': 'https://ipp.ifa.hawaii.edu/ps1.filters/',
+    'reference': ('T12', '`Tonry 2012 <http://adsabs.harvard.edu/'
+                  'abs/2012ApJ...750...99T>`__, Table 3'),
+    'retrieved': '17 Aug 2021',
+    'description': 'Pan-STARRS1 filters at airmass 1.2'
+}
+for filter_id in ['open', 'g', 'r', 'i', 'z', 'y', 'w']:
+    name = 'ps1::{}'.format(filter_id)
+    fname = "bandpasses/ps1/ps1_{}.dat".format(filter_id)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_nm,
+                                args=(fname,),
+                                meta=ps1_meta)
 
 # =============================================================================
 # interpolators
