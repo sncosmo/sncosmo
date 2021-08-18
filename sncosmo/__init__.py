@@ -8,8 +8,6 @@ import os
 from astropy.config import ConfigItem, ConfigNamespace
 from astropy.config.configuration import update_default_config
 
-__version__ = "2.5.0"
-
 
 def test(package=None, test_path=None, args=None, plugins=None,
          verbose=False, pastebin=None, pep8=False,
@@ -119,9 +117,10 @@ class _Conf(ConfigNamespace):
 conf = _Conf()
 
 # Update the user's ~/.astropy/config/sncosmo.cfg if needed.
-update_default_config("sncosmo",  # pkg
-                      os.path.dirname(__file__),  # configdir
-                      version=__version__)
+update_default_config(
+    "sncosmo",  # pkg
+    os.path.dirname(__file__),  # configdir
+)
 
 # clean up namespace
 del os, ConfigItem, ConfigNamespace, update_default_config

@@ -1,7 +1,8 @@
 [build-system]
 requires = [
     "wheel",
-    "setuptools",
+    "setuptools>=42",
+    "setuptools_scm[toml]>=3.4",
     "cython>=0.29.2",
     "oldest-supported-numpy",
 ]
@@ -11,3 +12,5 @@ build-backend = 'setuptools.build_meta'
 markers = [
     "might_download: marks tests that might download a file",
 ]
+
+[tool.setuptools_scm]

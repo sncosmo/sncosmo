@@ -4,7 +4,6 @@
 import numpy
 from Cython.Build import cythonize
 import os
-import re
 
 from setuptools import setup
 from setuptools.extension import Extension
@@ -16,8 +15,4 @@ extensions = [Extension("sncosmo.salt2utils", source_files,
                         include_dirs=include_dirs)]
 extensions = cythonize(extensions)
 
-# Synchronize version from code.
-VERSION = re.findall(r"__version__ = \"(.*?)\"",
-                     open(os.path.join("sncosmo", "__init__.py")).read())[0]
-
-setup(version=VERSION, ext_modules=extensions)
+setup(ext_modules=extensions)
