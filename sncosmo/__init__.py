@@ -9,6 +9,24 @@ from astropy.config import ConfigItem, ConfigNamespace
 from astropy.config.configuration import update_default_config
 
 
+# Get the version from setuptools_scm
+try:
+    # Works for Python 3.8+
+    from importlib.metadata import version, PackageNotFoundError
+    __version__ = version("sncosmo")
+except ImportError:
+    # Python 3.7 or lower. Use setuptools to find the version.
+    from pkg_resources import get_distribution, DistributionNotFound
+    try:
+        __version__ = get_distribution("sncosmo").version
+    except DistributionNotFound:
+        # Package is not installed
+        __version__ = '0.0.0'
+except PackageNotFoundError:
+    # Package is not installed
+    __version__ = '0.0.0'
+
+
 def test(package=None, test_path=None, args=None, plugins=None,
          verbose=False, pastebin=None, pep8=False,
          pdb=False, coverage=False, open_files=False, **kwargs):
