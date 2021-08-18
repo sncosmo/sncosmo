@@ -14,7 +14,7 @@ jobs:
           - name: First check
             os: ubuntu-latest
             python: 3.7
-            toxenv: py37
+            toxenv: py37-test
 
           - name: Code style checks
             os: ubuntu-latest
@@ -30,25 +30,25 @@ jobs:
           - name: oldest dependencies
             os: ubuntu-latest
             python: 3.6
-            toxenv: py36-oldestdeps
+            toxenv: py36-test-oldestdeps
             toxargs: -v
 
           - name: Python 3.7 with all optional dependencies (MacOS X)
             os: macos-latest
             python: 3.7
-            toxenv: py37
+            toxenv: py37-test
             toxargs: -v
 
           - name: Python 3.9 with coverage
             os: ubuntu-latest
             python: 3.9
-            toxenv: py39-cov
+            toxenv: py39-test-cov
             toxargs: -v
 
           - name: Python 3.8 and disabling optional dependencies (Windows)
             os: windows-latest
             python: 3.8
-            toxenv: py38-core_only
+            toxenv: py38-test-core_only
             toxargs: -v
 
     steps:
@@ -67,18 +67,3 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         file: ./coverage.xml
-
-  egg_info:
-    name: egg_info with Python 3.7
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.7
-    - name: Run egg_info
-      run: python setup.py egg_info
