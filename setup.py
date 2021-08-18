@@ -15,4 +15,4 @@ extensions = [Extension("sncosmo.salt2utils", source_files,
                         include_dirs=include_dirs)]
 extensions = cythonize(extensions)
 
-setup(ext_modules=extensions)
+setup(use_scm_version=True, ext_modules=extensions)
