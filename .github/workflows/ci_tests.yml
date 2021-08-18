@@ -4,20 +4,17 @@ on:
   [push, pull_request]
 
 jobs:
-
   tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-#    needs: cancel_ci
     strategy:
       fail-fast: false
       matrix:
         include:
-
           - name: First check
             os: ubuntu-latest
             python: 3.7
-            toxenv: py37-test
+            toxenv: py37
 
           - name: Code style checks
             os: ubuntu-latest
@@ -33,32 +30,30 @@ jobs:
           - name: oldest dependencies
             os: ubuntu-latest
             python: 3.6
-            toxenv: py36-test-oldestdeps
+            toxenv: py36-oldestdeps
             toxargs: -v
 
           - name: Python 3.7 with all optional dependencies (MacOS X)
             os: macos-latest
             python: 3.7
-            toxenv: py37-test
+            toxenv: py37
             toxargs: -v
 
           - name: Python 3.9 with coverage
             os: ubuntu-latest
             python: 3.9
-            toxenv: py39-test-cov
+            toxenv: py39-cov
             toxargs: -v
 
           - name: Python 3.8 and disabling optional dependencies (Windows)
             os: windows-latest
             python: 3.8
-            toxenv: py38-test-core_only
+            toxenv: py38-core_only
             toxargs: -v
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
