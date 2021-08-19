@@ -16,7 +16,7 @@ jobs:
             python: 3.x
             toxenv: codestyle
 
-          - name: docs build
+          - name: Build the docs
             os: ubuntu-latest
             python: 3.8
             toxenv: build_docs
