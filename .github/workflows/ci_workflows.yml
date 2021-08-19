@@ -29,7 +29,7 @@ jobs:
           - name: Python 3.9 with full coverage
             os: ubuntu-latest
             python: 3.9
-            toxenv: py39-cov
+            toxenv: py39-alldeps-cov
 
           - name: Python 3.6 with oldest supported version of all dependencies
             os: ubuntu-latest
