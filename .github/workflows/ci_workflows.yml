@@ -61,4 +61,4 @@ jobs:
       if: contains(matrix.toxenv,'-cov')
       uses: coverallsapp/github-action@master
       with:
-        github-token ${{ secrests.GITHUB_TOKEN }}
+        github-token ${{ secrets.GITHUB_TOKEN }}
