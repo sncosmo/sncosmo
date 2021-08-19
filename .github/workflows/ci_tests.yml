@@ -11,11 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: First check
-            os: ubuntu-latest
-            python: 3.7
-            toxenv: py37-test
-
           - name: Code style checks
             os: ubuntu-latest
             python: 3.x
@@ -25,31 +20,31 @@ jobs:
             os: ubuntu-latest
             python: 3.8
             toxenv: build_docs
-            toxargs: -v
 
-          - name: oldest dependencies
+          - name: Python 3.9 with minimal dependencies
+            os: ubuntu-latest
+            python: 3.9
+            toxenv: py39-test
+
+          - name: Python 3.9 with full coverage
+            os: ubuntu-latest
+            python: 3.9
+            toxenv: py39-test-cov
+
+          - name: Python 3.6 with oldest supported version of all dependencies
             os: ubuntu-latest
             python: 3.6
             toxenv: py36-test-oldestdeps
-            toxargs: -v
 
           - name: Python 3.7 with all optional dependencies (MacOS X)
             os: macos-latest
             python: 3.7
-            toxenv: py37-test
-            toxargs: -v
+            toxenv: py37-test-alldeps
 
-          - name: Python 3.9 with coverage
-            os: ubuntu-latest
-            python: 3.9
-            toxenv: py39-test-cov
-            toxargs: -v
-
-          - name: Python 3.8 and disabling optional dependencies (Windows)
+          - name: Python 3.8 with all optional dependencies (Windows)
             os: windows-latest
             python: 3.8
-            toxenv: py38-test-core_only
-            toxargs: -v
+            toxenv: py38-test-alldeps
 
     steps:
     - name: Checkout code
