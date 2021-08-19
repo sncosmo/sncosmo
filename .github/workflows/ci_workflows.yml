@@ -24,27 +24,27 @@ jobs:
           - name: Python 3.9 with minimal dependencies
             os: ubuntu-latest
             python: 3.9
-            toxenv: py39-test
+            toxenv: py39
 
           - name: Python 3.9 with full coverage
             os: ubuntu-latest
             python: 3.9
-            toxenv: py39-test-cov
+            toxenv: py39-cov
 
           - name: Python 3.6 with oldest supported version of all dependencies
             os: ubuntu-latest
             python: 3.6
-            toxenv: py36-test-oldestdeps
+            toxenv: py36-oldestdeps
 
           - name: Python 3.7 with all optional dependencies (MacOS X)
             os: macos-latest
             python: 3.7
-            toxenv: py37-test-alldeps
+            toxenv: py37-alldeps
 
           - name: Python 3.8 with all optional dependencies (Windows)
             os: windows-latest
             python: 3.8
-            toxenv: py38-test-alldeps
+            toxenv: py38-alldeps
 
     steps:
     - name: Checkout code
