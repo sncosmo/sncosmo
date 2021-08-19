@@ -14,13 +14,14 @@ jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Pull full repo for setuptools_scm
 
       - uses: actions/setup-python@v2
         name: Install Python
@@ -28,6 +29,10 @@ jobs:
           python-version: '3.x'
 
       - name: Build wheels
+        # For very recent Python versions, wheels from e.g. numpy might not be
+        # available yet which can cause the build to fail. Keep going, and upload
+        # the wheels for all of the previous versions when that happens.
+        continue-on-error: true
         uses: pypa/cibuildwheel@v2.1.1
 
       - uses: actions/upload-artifact@v2
@@ -39,13 +44,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Pull full repo for setuptools_scm
 
       - uses: actions/setup-python@v2
         name: Install Python
         with:
           python-version: '3.x'
 
-      - name: Install build.
+      - name: Install build
         run: python -m pip install build
 
       - name: Build sdist
