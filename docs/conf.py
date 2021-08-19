@@ -74,7 +74,6 @@ sphinx_gallery_conf = {
     'backreferences_dir': 'modules/generated',  # path to store the module
                                              # using example template
     'doc_module': ('sncosmo',),  # documented module(s)
-    'download_section_examples': False,
     'download_all_examples': False,  # don't package up examples.
     'default_thumb_file': os.path.join(os.path.dirname(__file__), '_logo',
                                        'spectral_white_bkg.png')
