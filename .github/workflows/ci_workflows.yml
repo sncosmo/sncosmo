@@ -56,9 +56,9 @@ jobs:
     - name: Install Python dependencies
       run: python -m pip install --upgrade tox
     - name: Run tests
-      run: tox ${{ matrix.toxargs }} -e ${{ matrix.toxenv }} -- ${{ matrix.toxposargs }}
-    - name: Upload coverage to codecov
+      run: tox ${{ matrix.toxargs }} -e ${{ matrix.toxenv }}
+    - name: Upload coverage to coveralls.io
       if: contains(matrix.toxenv,'-cov')
-      uses: codecov/codecov-action@v1
+      uses: coverallsapp/github-action@master
       with:
-        file: ./coverage.xml
+        github-token ${{ secrests.GITHUB_TOKEN }}
