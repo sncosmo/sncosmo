@@ -2,7 +2,6 @@
 requires = [
     "wheel",
     "setuptools",
-    "setuptools_scm",
     "cython>=0.29.2",
     "oldest-supported-numpy",
     "extension-helpers",
