@@ -227,10 +227,11 @@ The release procedure is automated through GitHub Actions. To create a new
 release:
 
 - Update ``docs/history.rst`` with a summary of the new version's changes.
+- Bump version in ``sncosmo/__init__.py``.
 - Ensure that the tests have all completed successfully and that the docs are
   looking good.
 - Create a new release through the releases tab on GitHub, and tag it with the
-  latest version. e.g. ``v1.1.0``.
+  latest version.
 - Copy the change list into the release description.
 - Publish the release.
 
