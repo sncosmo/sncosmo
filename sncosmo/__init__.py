@@ -8,7 +8,7 @@ import os
 from astropy.config import ConfigItem, ConfigNamespace
 from astropy.config.configuration import update_default_config
 
-__version__ = '2.5.0'
+__version__ = "2.5.0"
 
 
 def test(package=None, test_path=None, args=None, plugins=None,
