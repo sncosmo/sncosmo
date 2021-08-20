@@ -36,12 +36,12 @@ jobs:
             python: 3.6
             toxenv: py36-oldestdeps
 
-          - name: Python 3.7 with all optional dependencies (MacOS X)
+          - name: Python 3.7 (MacOS X) with all optional dependencies
             os: macos-latest
             python: 3.7
             toxenv: py37-alldeps
 
-          - name: Python 3.8 with all optional dependencies (Windows)
+          - name: Python 3.8 (Windows) with all optional dependencies
             os: windows-latest
             python: 3.8
             toxenv: py38-alldeps
