@@ -64,11 +64,13 @@ version using ``git``::
 
 then::
 
-    ./setup.py install
+    pip install -e .
 
-As with the pip install instructions, you may want to use either
-``setup.py install --user`` or ``setup.py develop`` to alter where the
-package is installed.
+This will install a development version of the SNCosmo package that
+automatically picks up any changes that you made when you import sncosmo for
+the first time in a Python interpreter. If you make any edits to the Cython
+code in SNCosmo (files with .c or .pyx extensions), then you will need to run
+this command again to compile that code for your changes to be picked up.
 
 
 Optional dependencies

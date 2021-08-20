@@ -66,6 +66,16 @@ Do once:
    astropy documentation calls them "your-github-username" and
    "astropy" respectively.
 
+5. Install the SNCosmo package in development mode. From the git directory::
+
+      pip install -e .
+
+   If you are only editing Python code, the latest code will be used when you
+   import sncosmo in a Python interpreter for the first time. If you are
+   editing any of the Cython code in SNCosmo (files with .c or .pyx
+   extensions), then you will need to run this command again to compile that
+   code for your changes to be picked up.
+
 
 Every time you want to make a contribution:
 -------------------------------------------
@@ -161,37 +171,75 @@ you can delete it by doing ``git branch -D simulation-enhancements``.
 Obviously this isn't a complete guide to git, but hopefully it
 jump-starts the git learning process.
 
+Testing
+=======
+
+SNCosmo uses pytest to check that all of the code is running as expected. When
+you add new functionality to SNCosmo, you should write a test for that
+functionality. All of the tests can be found in the ``sncosmo/tests``
+directory.
+
+When a new PR is created, the testsuite will be run automatically on a range
+of different machines and conditions using `tox`. You can run these same tests
+locally using ``tox``. First, install `tox`::
+
+      pip install tox
+
+From within the SNCosmo directory, run the test suite::
+
+      tox -e py3
+
+The previous command will run the core test suite with the currently installed
+version of Python. You can run the full test suite with all of the optional
+dependencies by adding the ``-alldeps`` tag::
+
+      tox -e py3-alldeps
+
+Running the tests with the ``-cov`` tag will generate a coverage report::
+
+      tox -e py3-cov
+
+``tox`` can also be used to check the code style::
+
+      tox -e codestyle
+
+or to build the documentation::
+
+      tox -e build_docs
+
+``tox`` uses virtual environments for testing which can be somewhat slow. You
+can alternatively run the test in your own Python environment. First, install
+all of the testing dependencies from the ``test`` section of ``setup.cfg``.
+This can be done automatically when installing SNCosmo with the following
+command::
+
+      pip install -e .[test]
+
+The tests can then be run with the following command::
+
+      pytest --pyargs sncosmo
+
 
 Developer's documentation: release procedure
 ============================================
 
-These are notes mainly for the one person that manages releases.
-Yes, this could be more automated, but it isn't done very often,
-and involves some human verification.
+The release procedure is automated through GitHub Actions. To create a new
+release:
 
 - Update ``docs/history.rst`` with a summary of the new version's changes.
-- Bump version in ``sncosmo/__init__.py``.
-- Build package and docs and check that docs look good.
-- Commit.
-- ``git clean -dfx``
-- ``tox`` (test in clean virtual env and make sure everything passes.
-- ``setup.py sdist upload`` (register new version and upload.)
+- Ensure that the tests have all completed successfully and that the docs are
+  looking good.
+- Create a new release through the releases tab on GitHub, and tag it with the
+  latest version. e.g. ``v1.1.0``.
+- Copy the change list into the release description.
+- Publish the release.
 
-**Post-release steps:**
+**Packaging and Docs**
 
-- If not a bugfix release, create a feature branch. For example,
-  ``git branch v1.1.x``.
-- Tag the release. For example, ``git tag v1.1.0``.
-- On master, bump version in ``sncosmo/__init__.py`` to the next development
-  version.
-- Commit.
-- Push repo changes to GitHub. For example:
-  ``git push upstream master v1.1.x v1.1.0``.
-
-**Docs and conda**
-
+- GitHub Actions will trigger after each release and build compiled wheels and
+  source distributions. These will then be pushed to PyPI.
 - A conda build should start (with some delay) via a bot pull request
   at https://github.com/conda-forge/sncosmo-feedstock. Merge the PR
   once it passes all tests.
-- On readthedocs.org, set the new feature branch to "active"
-  and make it the default.
+- The docs for the release will show up on readthedocs.org as the new
+  ``stable`` version.
