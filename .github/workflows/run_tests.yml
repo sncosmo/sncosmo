@@ -1,0 +1,70 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+    - master
+    tags:
+    - '*'
+  pull_request:
+
+
+jobs:
+  tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Code style checks
+            os: ubuntu-latest
+            python: 3.x
+            toxenv: codestyle
+
+          - name: Build the docs
+            os: ubuntu-latest
+            python: 3.8
+            toxenv: build_docs
+
+          - name: Python 3.9 with minimal dependencies
+            os: ubuntu-latest
+            python: 3.9
+            toxenv: py39
+
+          - name: Python 3.9 with full coverage
+            os: ubuntu-latest
+            python: 3.9
+            toxenv: py39-alldeps-cov
+
+          - name: Python 3.6 with oldest supported version of all dependencies
+            os: ubuntu-latest
+            python: 3.6
+            toxenv: py36-oldestdeps
+
+          - name: Python 3.7 (MacOS X) with all optional dependencies
+            os: macos-latest
+            python: 3.7
+            toxenv: py37-alldeps
+
+          - name: Python 3.8 (Windows) with all optional dependencies
+            os: windows-latest
+            python: 3.8
+            toxenv: py38-alldeps
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install Python dependencies
+      run: python -m pip install --upgrade tox
+    - name: Run tests
+      run: tox ${{ matrix.toxargs }} -e ${{ matrix.toxenv }}
+    - name: Upload coverage to codecov
+      if: contains(matrix.toxenv,'-cov')
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml

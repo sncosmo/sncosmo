@@ -119,9 +119,10 @@ class _Conf(ConfigNamespace):
 conf = _Conf()
 
 # Update the user's ~/.astropy/config/sncosmo.cfg if needed.
-update_default_config("sncosmo",  # pkg
-                      os.path.dirname(__file__),  # configdir
-                      version=__version__)
+update_default_config(
+    "sncosmo",  # pkg
+    os.path.dirname(__file__),  # configdir
+)
 
 # clean up namespace
 del os, ConfigItem, ConfigNamespace, update_default_config
