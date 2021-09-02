@@ -142,11 +142,5 @@ magnitude systems*
 Class Inheritance Diagrams
 ==========================
 
-.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source SALT3Source
-   :parts: 1
-
-.. inheritance-diagram:: PropagationEffect F99Dust OD94Dust CCM89Dust
-   :parts: 1
-
-.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
+.. inheritance-diagram:: models magsystems bandpasses
    :parts: 1
