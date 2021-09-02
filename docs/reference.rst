@@ -21,8 +21,11 @@ Model & Components
    Source
    TimeSeriesSource
    StretchSource
+   MLCS2k2Source
    SALT2Source
    SALT3Source
+   SNEMOSource
+   SUGARSource
    
 *Effect components of Model: interstellar dust extinction*
 
@@ -79,7 +82,6 @@ Spectra
    Spectrum
 
 
-
 .. _fitting-api:
 
 Fitting Photometric Data
@@ -103,7 +105,6 @@ Fitting Photometric Data
    chisq
    flatten_result
 
-
 Plotting
 ========
 
@@ -113,7 +114,6 @@ Plotting
    :toctree: api
 
    plot_lc
-
 
 Simulation
 ==========
@@ -142,11 +142,5 @@ magnitude systems*
 Class Inheritance Diagrams
 ==========================
 
-.. inheritance-diagram:: Source TimeSeriesSource StretchSource SALT2Source SALT3Source
-   :parts: 1
-
-.. inheritance-diagram:: PropagationEffect F99Dust OD94Dust CCM89Dust
-   :parts: 1
-
-.. inheritance-diagram:: MagSystem ABMagSystem SpectralMagSystem
+.. inheritance-diagram:: models magsystems bandpasses
    :parts: 1

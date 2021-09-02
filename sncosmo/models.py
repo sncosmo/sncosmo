@@ -585,12 +585,12 @@ class SUGARSource(Source):
 
     .. math::
 
-    F(t, \\lambda) = q_0 10^{-0.4 (M_0(t, \\lambda)
-                             + q_1 \alpha_1(t, \\lambda)
-                             + q_2 \alpha_2(t, \\lambda)
-                             + q_3 \alpha_3(t, \\lambda)
-                             + A_v CCM(\\lambda))}
-                             (10^{-3} c\\lambda^{2})
+        F(t, \\lambda) = q_0 10^{-0.4 (M_0(t, \\lambda)
+                                + q_1 \\alpha_1(t, \\lambda)
+                                + q_2 \\alpha_2(t, \\lambda)
+                                + q_3 \\alpha_3(t, \\lambda)
+                                + A_v CCM(\\lambda))}
+                                (10^{-3} c\\lambda^{2})
 
     where ``q_0``, ``q_1``, ``q_2``, ``q_3``,
     and ``A_v`` are the free parameters
@@ -1232,8 +1232,9 @@ class SNEMOSource(Source):
 
     .. math::
        F(t, \\lambda) = c_0(e_0(t, \\lambda) +
-                           \\Sum_{i=1}^{n} c_i e_i(t, \\lambda))
+                           \\sum_{i=1}^{n} c_i e_i(t, \\lambda))
                            \\times FM07(\\lambda, A_s)
+
     where ``c_0``, ``c_i``, and ``A_s`` are the free parameters of the model.
 
     Parameters
