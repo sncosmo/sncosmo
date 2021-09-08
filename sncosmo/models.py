@@ -1143,7 +1143,7 @@ class SALT3Source(SALT2Source):
 
         # variance in M0 + x1*M1 at the effective wavelength
         # of a bandpass
-        v = (lcrv00 + 2.0 * x1 * lcrv01 + x1 * x1 * lcrv11)
+        v = lcrv00 + 2.0 * x1 * lcrv01 + x1 * x1 * lcrv11
 
         # v is supposed to be variance but can go negative
         # due to interpolation.  Correct negative values to some small
