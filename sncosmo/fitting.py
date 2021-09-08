@@ -1349,6 +1349,9 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     def lnprob(parameters):
         return lnprior(parameters) + lnlike(parameters)
 
+    # Moves to use
+    moves = emcee.moves.StretchMove(a=a)
+
     # Heuristic determination of walker initial positions: distribute
     # walkers uniformly over parameter space. If no bounds are
     # supplied for a given parameter, use a heuristically determined
@@ -1367,7 +1370,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                 pos[i] = np.random.uniform(low=ctr-scale, high=ctr+scale,
                                            size=(nwalkers, ntemps))
         pos = np.swapaxes(pos, 0, 2)
-        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnlike, lnprob, a=a)
+        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnlike, lnprob, moves=moves)
 
     # Heuristic determination of walker initial positions: distribute
     # walkers in a symmetric gaussian ball, with heuristically
@@ -1384,7 +1387,7 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
             else:
                 scale[i] = 0.1
         pos = ctr + scale * np.random.normal(size=(nwalkers, ndim))
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, a=a)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, moves=moves)
 
     else:
         raise ValueError('Invalid sampler type. Currently "pt" '
@@ -1393,8 +1396,8 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
     # Run the sampler.
     pos, prob, state = sampler.run_mcmc(pos, nburn)  # burn-in
     sampler.reset()
-    sampler.run_mcmc(pos, nsamples, thin=thin)  # production run
-    samples = sampler.flatchain.reshape(-1, ndim)
+    sampler.run_mcmc(pos, nsamples, thin_by=thin)  # production run
+    samples = sampler.get_chain(flat=True).reshape(-1, ndim)
 
     # Summary statistics.
     vparameters = np.mean(samples, axis=0)
