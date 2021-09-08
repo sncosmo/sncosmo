@@ -1370,7 +1370,8 @@ def mcmc_lc(data, model, vparam_names, bounds=None, priors=None,
                 pos[i] = np.random.uniform(low=ctr-scale, high=ctr+scale,
                                            size=(nwalkers, ntemps))
         pos = np.swapaxes(pos, 0, 2)
-        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnlike, lnprob, moves=moves)
+        sampler = emcee.PTSampler(ntemps, nwalkers, ndim, lnlike, lnprob,
+                                  moves=moves)
 
     # Heuristic determination of walker initial positions: distribute
     # walkers in a symmetric gaussian ball, with heuristically
