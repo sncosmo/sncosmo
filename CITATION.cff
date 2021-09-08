@@ -1,0 +1,84 @@
+cff-version: 1.2.0
+message: If you use SNCosmo, please cite it using these metadata.
+title: SNCosmo
+abstract: Python library for supernova cosmology
+repository-code: https://github.com/sncosmo/sncosmo
+license: BSD-3-Clause
+doi: 10.5281/zenodo.592747
+authors:
+- given-names: Kyle
+  family-names: Barbary
+  affiliation: University of California, Berkeley
+  orcid: https://orcid.org/0000-0002-2532-3696
+- given-names: Stephen
+  family-names: Bailey
+  affiliation: Lawrence Berkeley National Laboratory
+- given-names: Geert
+  family-names: Barentsen
+  affiliation: NASA
+- given-names: Tom
+  family-names: Barclay
+- given-names: Rahul
+  family-names: Biswas
+  affiliation: Oskar Klein Centre
+  orcid: https://orcid.org/0000-0002-5741-7195
+- given-names: Kyle
+  family-names: Boone
+  affiliation: University of Washington
+  orcid: https://orcid.org/0000-0002-5828-6211
+- given-names: Matt
+  family-names: Craig
+  affiliation: Minnesota State University Moorhead
+- given-names: Ulrich
+  family-names: Feindt
+  affiliation: Oskar Klein Centre
+- given-names: Brian
+  family-names: Friesen
+  affiliation: Lawrence Berkeley National Laboratory
+- given-names: Danny
+  family-names: Goldstein
+- given-names: Saurabh W.
+  family-names: Jha
+- given-names: David O.
+  family-names: Jones
+  orcid: https://orcid.org/0000-0002-6230-0151
+  affiliation: University of Santa Cruz
+- given-names: Florian
+  family-names: Mondon
+- given-names: Seméli 
+  family-names: Papadogiannakis
+- given-names: Daniel
+  family-names: Perrefort
+  orcid: https://orcid.org/0000-0002-3988-4881
+- given-names: Justin
+  family-names: Pierel
+  affiliation: Space Telescope Science Institute
+- given-names: Steve
+  family-names: Rodney
+  affiliation: University of South Carolina
+- given-names: Benjamin
+  family-names: Rose
+  affiliation: Duke University
+  orcid: https://orcid.org/0000-0002-1873-8973
+- given-names: Clare
+  family-names: Saunders
+  affiliation: Princeton University
+  orcid: https://orcid.org/0000-0002-4094-2102
+- given-names: Brigitta
+  family-names: Sipőcz
+  affiliation: California Institute of Technology/IPAC
+- given-names: Caroline
+  family-names: Sofiatti
+- given-names: Rollin C.
+  family-names: Thomas
+  affiliation: Lawrence Berkeley National Laboratory/NERSC
+- given-names: Jakob
+  family-names: van Santen
+- given-names: Maria
+  family-names: Vincenzi
+- given-names: David
+  family-names: Wang
+  affiliation: University of Washington
+- given-names: Michael
+  family-names: Wood-Vasey
+  affiliation: University of Pittsburgh
