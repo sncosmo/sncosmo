@@ -18,7 +18,7 @@ class TestPlotLC:
         # Create a TimeSeriesSource with a flat spectrum at all times.
         phase = np.linspace(0., 100., 10)
         wave = np.linspace(1000., 10000., 100)
-        flux = np.ones((len(phase), len(wave)), dtype=np.float)
+        flux = np.ones((len(phase), len(wave)), dtype=float)
         source = sncosmo.TimeSeriesSource(phase, wave, flux)
         self.model = sncosmo.Model(source=source)
 

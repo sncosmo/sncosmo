@@ -226,7 +226,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     # filled: used only if data is not None. Guarantee array of booleans
     if data is not None:
         if fill_data_marker is None:
-            fill_data_marker = np.ones(data.time.shape, dtype=np.bool)
+            fill_data_marker = np.ones(data.time.shape, dtype=bool)
         else:
             fill_data_marker = np.asarray(fill_data_marker)
             if fill_data_marker.shape != data.time.shape:

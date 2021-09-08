@@ -65,7 +65,7 @@ class PhotometricData(object):
         # if the original array already contains all bandpass objects,
         # but constructing a new array is simpler.)
         band_orig = data[mapping['band']]
-        self.band = np.empty(len(band_orig), dtype=np.object)
+        self.band = np.empty(len(band_orig), dtype=object)
         for i in range(len(band_orig)):
             self.band[i] = get_bandpass(band_orig[i])
 
@@ -145,7 +145,7 @@ class PhotometricData(object):
         the given zeropoint and zeropoint system."""
 
         normmagsys = get_magsystem(zpsys)
-        factor = np.empty(len(self), dtype=np.float)
+        factor = np.empty(len(self), dtype=float)
 
         for b in set(self.band.tolist()):
             mask = self.band == b

@@ -1079,7 +1079,7 @@ def nest_lc(data, model, vparam_names, bounds, guess_amplitude_bound=False,
         d = {}
         for i in range(npdim):
             d[iparam_names[i]] = ppflist[i](u[i])
-        v = np.empty(ndim, dtype=np.float)
+        v = np.empty(ndim, dtype=float)
         for i in range(ndim):
             key = vparam_names[i]
             if key in d:

@@ -15,7 +15,7 @@ zp = 25. * np.ones(40)
 zpsys = np.array(40 * ['ab'])
 
 flux = model.bandflux(bands, times, zp=zp, zpsys=zpsys)
-fluxerr = (0.05 * np.max(flux)) * np.ones(40, dtype=np.float)
+fluxerr = (0.05 * np.max(flux)) * np.ones(40, dtype=float)
 flux += fluxerr * np.random.randn(40)
 
 data = Table(odict([('time', times), ('band', bands), ('flux', flux),
