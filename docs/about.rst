@@ -35,27 +35,9 @@ science (radiative transfer simulations for instance).  Hence
 Contributors
 ============
 
-Alphabetical by last name:
-
-* Stephen Bailey
-* Kyle Barbary
-* Tom Barclay
-* Rahul Biswas
-* Kyle Boone
-* Matt Craig
-* Ulrich Feindt
-* Brian Friesen
-* Danny Goldstein
-* Saurabh Jha
-* David Jones
-* Pierre-Francois Leget
-* Florian Mondon
-* Daniel Perrefort
-* Justin Pierel
-* Benjamin Rose
-* Steve Rodney
-* Clare Saunders
-* Caroline Sofiatti
-* Rollin C. Thomas
-* Maria Vincenzi
-* Michael Wood-Vasey
+SNCosmo was originally written by Kyle Barbary in 2012. Since then, over 20 people have
+contributed to its development. A full list of contributors can be found in the
+`CITATION.cff <https://github.com/sncosmo/sncosmo/blob/master/CITATION.cff>`_ file.
+Parsed versions of the author list, including BibTeX entries that can be used to cite
+SNCosmo, are available on `GitHub <https://github.com/sncosmo/sncosmo>`_ and `Zenodo
+<https://doi.org/10.5281/zenodo.592747>`_.
