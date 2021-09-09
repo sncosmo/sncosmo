@@ -14,7 +14,7 @@ def flatsource():
     all times."""
     phase = np.linspace(0., 100., 10)
     wave = np.linspace(800., 20000., 100)
-    flux = np.ones((len(phase), len(wave)), dtype=np.float)
+    flux = np.ones((len(phase), len(wave)), dtype=float)
     return sncosmo.TimeSeriesSource(phase, wave, flux)
 
 

@@ -145,7 +145,7 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
         zpsys = np.atleast_1d(zpsys)
 
     # initialize output arrays
-    bandflux = np.zeros(time_or_phase.shape, dtype=np.float)
+    bandflux = np.zeros(time_or_phase.shape, dtype=float)
 
     # Loop over unique bands.
     for b in set(band):
@@ -182,7 +182,7 @@ def _bandmag(model, band, magsys, time_or_phase):
     magsys = magsys.ravel()
     bandflux = bandflux.ravel()
 
-    result = np.empty(bandflux.shape, dtype=np.float)
+    result = np.empty(bandflux.shape, dtype=float)
     for i, (b, ms, f) in enumerate(zip(band, magsys, bandflux)):
         ms = get_magsystem(ms)
         zpf = ms.zpbandflux(b)
@@ -1323,7 +1323,7 @@ class Model(_ModelBase):
         # Set parameter names, initial values (inital values set to zero)
         self._param_names = ['z', 't0']
         self.param_names_latex = ['z', 't_0']
-        self._parameters = np.zeros(2, dtype=np.float)
+        self._parameters = np.zeros(2, dtype=float)
 
         # Set source and add source parameter names
         self._source = get_source(source, copy=True)
@@ -1437,7 +1437,7 @@ class Model(_ModelBase):
 
         # allocate new array (zeros so that new 'free' effects redshifts
         # initialize to 0)
-        self._parameters = np.zeros(l, dtype=np.float)
+        self._parameters = np.zeros(l, dtype=float)
 
         # copy old parameters: we do this to make sure we copy
         # non-default values of any parameters that the model alone
@@ -1628,7 +1628,7 @@ class Model(_ModelBase):
         ndim = (band.ndim, z.ndim)
         band = band.ravel()
         z = z.ravel()
-        overlap = np.empty((len(band), len(z)), dtype=np.bool)
+        overlap = np.empty((len(band), len(z)), dtype=bool)
         shift = (1. + z)/(1+self._parameters[0])
         for i, b in enumerate(band):
             b = get_bandpass(b)
