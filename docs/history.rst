@@ -8,6 +8,36 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.6.0 (2021-09-09)
+===================
+
+This release mostly involves modernizing the SNCosmo build system.
+
+- Add Pan-STARRS1 bandpasses (#212)
+
+- Added support for wheels which should now be automatically uploaded to PyPI
+  for any new release (#304).
+
+- Fixed the Zenodo integration. New SNCosmo releases should now automatically
+  be archived to Zenodo.
+
+- Moved citations to the new CITATION.cff format. GitHub and Zenodo will now
+  provide BibTeX entries that can be used to cite SNCosmo (#302).
+
+- Update to the emcee version 3 API. Now only compatible with emcee>=3.
+
+- Migrate from Travis CI to GitHub Actions for continuous integration/tests
+  (#293).
+
+- Bugfixes:
+
+  - Fixed the implementation of the SALT3 error model (#300).
+
+  - Fixed numpy type deprecations.
+
+  - Fixed the documentation for models (#299).
+
+
 v2.5.0 (2021-04-20)
 ===================
 
