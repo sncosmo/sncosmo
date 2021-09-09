@@ -162,6 +162,26 @@ class TestFitting:
 
         assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
 
+    @pytest.mark.skipif('not HAS_EMCEE')
+    def test_mcmc_lc(self):
+        """Ensure that mcmc runs."""
+        self.model.set(**self.params)
+
+        res, fitmodel = sncosmo.mcmc_lc(self.data, self.model,
+                                        ['amplitude', 'z', 't0'],
+                                        bounds={'z': (0., 1.0)})
+
+        assert_allclose(fitmodel.parameters, self.model.parameters, rtol=0.05)
+
+    @pytest.mark.skipif('not HAS_EMCEE')
+    def test_mcmc_invalid_sampler(self):
+        """Ensure that mcmc runs."""
+        with pytest.raises(ValueError):
+            sncosmo.mcmc_lc(self.data, self.model,
+                            ['amplitude', 'z', 't0'],
+                            bounds={'z': (0., 1.0)},
+                            sampler='invalid_sampler')
+
     @pytest.mark.skipif('not HAS_IMINUIT')
     def test_flatten_result(self):
         """Ensure that the flatten_result function works correctly."""
