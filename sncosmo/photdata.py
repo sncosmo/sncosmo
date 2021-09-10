@@ -18,7 +18,7 @@ PHOTDATA_ALIASES = OrderedDict([
     ('band', {'band', 'bandpass', 'filter', 'flt'}),
     ('flux', {'flux', 'f'}),
     ('fluxerr', {'fluxerr', 'fe', 'fluxerror', 'flux_error', 'flux_err'}),
-    ('zp', {'zp', 'zpt', 'zeropoint', 'zero_point'}),
+    ('zp', {'zp', 'zpt', 'zeropoint', 'zero_point', 'zeropt'}),
     ('zpsys', {'zpsys', 'zpmagsys', 'magsys'}),
     ('fluxcov', {'cov', 'covar', 'covariance', 'covmat', 'fluxcov'})
     ])
