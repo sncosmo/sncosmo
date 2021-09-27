@@ -406,6 +406,23 @@ for name, fname in [('4shooter2::us', 'bandpasses/4shooter2/Us_4Shooter2.txt'),
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(fname,), meta=fourshooter_meta)
 
+roman_meta = {
+     'filterset': 'roman-wfi',
+     'dataurl': 'https://roman.gsfc.nasa.gov/science/WFI_technical.html',
+     'retrieved': '30 Nov 2020',
+     'description': 'Roamn filters from Jeff Kruk: '
+     'Roman_effarea_20201130.txt '}
+for name, fname in [('f062', 'roman_f063dat'),   # R
+                    ('f087', 'roman_f087.dat'),  # Z
+                    ('f106', 'roman_f106.dat'),  # Y
+                    ('f129', 'roman_f129.dat'),  # J
+                    ('f158', 'roman_f158.dat'),  # H
+                    ('f184', 'roman_f184.dat'),  # F
+                    ('f213', 'roman_f213.dat'),  # K
+                    ('f149', 'roman_f149.dat')]:  # Wide
+    _BANDPASSES.register_loader(name, load_bandpass_remote_um,
+                                args=('bandpasses/roman-wfi/' + fname,),
+                                meta=roman_meta)
 
 # ZTF
 ztf_meta = {

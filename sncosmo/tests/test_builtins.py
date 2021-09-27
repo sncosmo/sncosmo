@@ -20,3 +20,8 @@ def test_jwst_miri_bands():
 @pytest.mark.might_download
 def test_ztf_bandpass():
     bp = sncosmo.get_bandpass('ztfg')
+
+
+@pytest.mark.might_download
+def test_roman_bandpass():
+    bp = sncosmo.get_bandpass('f087')
