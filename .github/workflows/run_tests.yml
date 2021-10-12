@@ -52,7 +52,7 @@ jobs:
             python: 3.8
             toxenv: py38-alldeps
 
-          - name: Test downloading all of the builtins
+          - name: Download all of the builtins
             os: ubuntu-latest
             python: 3.9
             toxenv: builtins
