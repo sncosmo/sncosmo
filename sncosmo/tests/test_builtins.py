@@ -2,33 +2,38 @@ import pytest
 
 import sncosmo
 
-
-@pytest.mark.might_download
-def test_hst_bands():
-    """  check that the HST and JWST bands are accessible """
-    for bandname in ['f606w', 'uvf606w', 'f125w', 'f127m',
-                     'f115w']:  # jwst nircam
-        sncosmo.get_bandpass(bandname)
+from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS
+from sncosmo.magsystems import _MAGSYSTEMS
+from sncosmo.models import _SOURCES
 
 
-@pytest.mark.might_download
-def test_jwst_miri_bands():
-    for bandname in ['f1130w']:
-        sncosmo.get_bandpass(bandname)
+bandpasses = [i['name'] for i in _BANDPASSES.get_loaders_metadata()]
+bandpass_interpolators = [i['name'] for i in
+                          _BANDPASS_INTERPOLATORS.get_loaders_metadata()]
+magsystems = [i['name'] for i in _MAGSYSTEMS.get_loaders_metadata()]
+sources = [(i['name'], i['version']) for i in _SOURCES.get_loaders_metadata()]
 
 
 @pytest.mark.might_download
-def test_ztf_bandpass():
-    bp = sncosmo.get_bandpass('ztfg')
+@pytest.mark.parametrize("name", bandpasses)
+def test_builtin_bandpass(name):
+    sncosmo.get_bandpass(name)
 
 
 @pytest.mark.might_download
-def test_roman_bandpass():
-    sncosmo.get_bandpass('f062')
-    sncosmo.get_bandpass('f087')
-    sncosmo.get_bandpass('f106')
-    sncosmo.get_bandpass('f129')
-    sncosmo.get_bandpass('f158')
-    sncosmo.get_bandpass('f184')
-    sncosmo.get_bandpass('f213')
-    sncosmo.get_bandpass('f146')
+@pytest.mark.parametrize("name", bandpass_interpolators)
+def test_builtin_bandpass_interpolator(name):
+    interpolator = _BANDPASS_INTERPOLATORS.retrieve(name)
+    interpolator.at(interpolator.minpos())
+
+
+@pytest.mark.might_download
+@pytest.mark.parametrize("name,version", sources)
+def test_builtin_source(name, version):
+    sncosmo.get_source(name, version)
+
+
+@pytest.mark.might_download
+@pytest.mark.parametrize("name", magsystems)
+def test_builtin_magsystem(name):
+    sncosmo.get_magsystem(name)
