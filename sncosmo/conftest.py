@@ -1,7 +1,7 @@
 import pytest
 
 
-collect_ignore = ["tests/test_builtins.py"]
+collect_ignore = ["tests/test_download_builtins.py"]
 
 
 def pytest_addoption(parser):
