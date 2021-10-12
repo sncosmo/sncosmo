@@ -6,6 +6,14 @@ from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS
 from sncosmo.magsystems import _MAGSYSTEMS
 from sncosmo.models import _SOURCES
 
+"""Test downloading all of the builtins
+
+These tests download lots of files (~1.2 GB as of Oct. 12, 2021) so they
+aren't included by default with the regular tests. They can be run with
+`tox -e builtins`. This will make sure that the downloads happen in a clean
+environment without any caching.
+"""
+
 
 bandpasses = [i['name'] for i in _BANDPASSES.get_loaders_metadata()]
 bandpass_interpolators = [i['name'] for i in
