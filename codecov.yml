@@ -1,6 +1,1 @@
 comment: off
-
-ignore:
-  - "sncosmo/tests/*"
-  - "sncosmo/conftest.py"
-  - "sncosmo/__init__.py"
