@@ -1,6 +1,9 @@
 import pytest
 
 
+collect_ignore = ["tests/test_download_builtins.py"]
+
+
 def pytest_addoption(parser):
     parser.addoption("--no-downloads", action="store_true",
                      default=False,

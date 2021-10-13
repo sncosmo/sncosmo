@@ -52,6 +52,11 @@ jobs:
             python: 3.8
             toxenv: py38-alldeps
 
+          - name: Download all of the builtins
+            os: ubuntu-latest
+            python: 3.9
+            toxenv: builtins
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
