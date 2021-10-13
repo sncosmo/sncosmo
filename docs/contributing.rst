@@ -199,6 +199,12 @@ Running the tests with the ``-cov`` tag will generate a coverage report::
 
       tox -e py3-cov
 
+SNCosmo includes hundreds of builtin bandpasses and sources that are downloaded
+from external sites when they are loaded. ``tox`` can be used to check that all
+of these builtins are accessible with the following command::
+
+      tox -e builtins
+
 ``tox`` can also be used to check the code style::
 
       tox -e codestyle
