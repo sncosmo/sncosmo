@@ -2,6 +2,19 @@ import pytest
 
 import sncosmo
 
+"""Test all of the builtins code.
+
+This file is designed to test that all of the code that loads builtins works,
+and only tests a single example for each kind of builtin. A separate file
+(test_download_builtins.py) actually makes sure that all of the builtins can be
+downloaded and loaded, but that is slow and requires a lot of downloading so it
+isn't included as part of the standard test suite. If you add new builtins
+they should be picked up automatically by that file.
+
+You should only add a new test to this file if you created a new loader
+function.
+"""
+
 
 @pytest.mark.might_download
 def test_builtins_bessell():
