@@ -812,7 +812,7 @@ p18Models_CC = [('snana-2004fe', 'SN Ic', 'CSP-2004fe.SED'),
 ref = ('SNSEDExtend', 'Pierel et al. 2018'
        '<https://arxiv.org/abs/1808.02534>')
 for name, sntype, fn in p18Models_CC:
-    relpath = os.path.join('models', 'pierel', fn)
+    relpath = 'models/pierel/' + fn
     meta = {'subclass': '`~sncosmo.TimeSeriesSource`', 'type': sntype,
             'ref': ref}
     _SOURCES.register_loader(name, load_timeseries_ascii,
@@ -960,7 +960,7 @@ note = "Templates from Vincenzi et al. 19. Each template is extended in the " \
     "extinction corrected version (v19-sn-name-corr)."
 
 for name, vrs, sntype, fn in V19_CC_models:
-    relpath = os.path.join('models', 'vincenzi', fn)
+    relpath = 'models/vincenzi/' + fn
     meta = {'subclass': '`~sncosmo.TimeSeriesSource`',
             'type': sntype,
             'ref': ('Vincenzi2019',
