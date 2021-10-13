@@ -49,11 +49,6 @@ def test_builtins_timeseries_fits():
 
 
 @pytest.mark.might_download
-def test_builtins_timeseries_hsiao():
-    sncosmo.get_source('hsiao')
-
-
-@pytest.mark.might_download
 def test_builtins_timeseries_fits_local():
     sncosmo.get_source('hsiao-subsampled')
 
