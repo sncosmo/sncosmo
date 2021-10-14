@@ -368,6 +368,8 @@ def read_snana_simlib(fname):
     -------
     meta : `OrderedDict`
         Global meta data, not associated with any one LIBID.
+        May contain some value-less keys if parsing a simlib file
+        with a 'DOCUMENTATION' block.
     observation_sets : `OrderedDict` of `astropy.table.Table`
         keys are LIBIDs, values are observation sets.
 
@@ -382,6 +384,9 @@ def read_snana_simlib(fname):
       the keyword. These are (1) MJD, (2) IDEXPT, (3) FLT, (4) CCD GAIN,
       (5) CCD NOISE, (6) SKYSIG, (7) PSF1, (8) PSF2, (9) PSF 2/1 RATIO,
       (10) ZPTAVG, (11) ZPTSIG, (12) MAG.
+    * Column (2) may represent co-added observations in a '111*1' format. In
+      this case, the 'IDEXPT' column is split at the '*' into 'IDEXPT' and
+      'NEXPOSE'
     * Other lines inside a 'LIBID:'/'END_LIBID:' pair are treated as metadata
       for that LIBID.
     * Any other keywords outside a 'LIBID:'/'END_LIBID:' pair are treated
@@ -465,20 +470,42 @@ def read_snana_simlib(fname):
                 # Otherwise, read the line into the current obs set.
                 elif line[0:2] in ['S:', 'T:']:
                     words = line.split()
-                    for colname, val in [('SEARCH', words[0] == 'S:'),
-                                         ('MJD', float(words[1])),
-                                         ('IDEXPT', int(words[2])),
-                                         ('FLT', words[3]),
-                                         ('CCD_GAIN', float(words[4])),
-                                         ('CCD_NOISE', float(words[5])),
-                                         ('SKYSIG', float(words[6])),
-                                         ('PSF1', float(words[7])),
-                                         ('PSF2', float(words[8])),
-                                         ('PSFRATIO', float(words[9])),
-                                         ('ZPTAVG', float(words[10])),
-                                         ('ZPTSIG', float(words[11])),
-                                         ('MAG', float(words[12]))]:
-                        current_data[colname].append(val)
+                    try:
+                        for colname, val in [('SEARCH', words[0] == 'S:'),
+                                            ('MJD', float(words[1])),
+                                            ('IDEXPT', int(words[2])),
+                                            ('FLT', words[3]),
+                                            ('CCD_GAIN', float(words[4])),
+                                            ('CCD_NOISE', float(words[5])),
+                                            ('SKYSIG', float(words[6])),
+                                            ('PSF1', float(words[7])),
+                                            ('PSF2', float(words[8])),
+                                            ('PSFRATIO', float(words[9])),
+                                            ('ZPTAVG', float(words[10])),
+                                            ('ZPTSIG', float(words[11])),
+                                            ('MAG', float(words[12]))]:
+                            current_data[colname].append(val)
+                    except ValueError: 
+                        # catches ValueError: invalid literal for int() with base 10: '2063*2'
+                        # re-process assuming co-added expsoures ('IDEXPT' -> 'IDEXPT', 'NEXPOSE' )
+                        if 'NEXPOSE' not in current_data:
+                            # add an empty list only on the first line
+                            current_data['NEXPOSE'] = []
+                        for colname, val in [('SEARCH', words[0] == 'S:'),
+                                            ('MJD', float(words[1])),
+                                            ('IDEXPT', int(words[2].split('*')[0])),
+                                            ('NEXPOSE', int(words[2].split('*')[1])),
+                                            ('FLT', words[3]),
+                                            ('CCD_GAIN', float(words[4])),
+                                            ('CCD_NOISE', float(words[5])),
+                                            ('SKYSIG', float(words[6])),
+                                            ('PSF1', float(words[7])),
+                                            ('PSF2', float(words[8])),
+                                            ('PSFRATIO', float(words[9])),
+                                            ('ZPTAVG', float(words[10])),
+                                            ('ZPTSIG', float(words[11])),
+                                            ('MAG', float(words[12]))]:
+                            current_data[colname].append(val)
                 else:
                     current_meta.update(_parse_meta_from_line(line))
 

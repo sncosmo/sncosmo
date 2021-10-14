@@ -1,0 +1,69 @@
+DOCUMENTATION:
+    PURPOSE: LSST-DDF 3-year cadence for SNANA simulation
+    REF:
+    - AUTHOR: Kessler et al. 2019 (PLASTICC models)
+      ADS:    https://ui.adsabs.harvard.edu/abs/2019PASP..131i4501K
+    INTENT:   Nominal
+    USAGE_KEY:  SIMLIB_FILE
+    USAGE_CODE: snlc_sim.exe
+    NOTES:
+    - total DDF area is 47.6 sq degrees, or solid angle = 0.014509
+    - from OpSim outout /nfs/brahe/LSST/opsim/minion_1016_recalc.db
+    - created with /home/rbisw/src/OpSimSummary/scripts/make_simlibs.py
+    - This coadd SIMLIB was created with command
+    -     simlib_coadd.exe minion_1016_recalc_ddf.simlib
+    - and the following co-add cuts/options
+    -    + Select LIBID between 0 and 1000000
+    -    + Reject LIBID with < 3 exposures
+    -    + Combine consecutive exposures within 0.400 days
+    -    + Multiple exposures are SUMMED
+    VERSIONS:
+    - DATE:  2018-08
+      AUTHORS: R. Kessler, R.Biswas
+DOCUMENTATION_END:
+
+SURVEY: LSST
+FILTERS: ugrizY  TELESCOPE: LSST
+NLIBID: 2
+#NPE_PIXEL_SATURATE:   100000
+NPE_PIXEL_SATURATE:   3900000  # allow 4 mag brighter (Jul 25 2018)
+PHOTFLAG_SATURATE:    1024
+
+BEGIN LIBGEN
+
+
+# --------------------------------------------
+LIBID: 0
+RA: 149.414062   DECL: 2.238686   NOBS: 1039    MWEBV: 0.0000   PIXSIZE: 0.200
+
+#                           CCD  CCD         PSF1 PSF2 PSF2/1
+#     MJD      IDEXPT  FLT GAIN NOISE SKYSIG (pixels)  RATIO  ZPTAVG ZPTERR  MAG
+S: 59582.3282     2063*2 u  1.00  1.12  14.32 2.94 0.00 0.000  31.92  0.005  99.000
+S: 59583.2409     2589*2 u  1.00  1.12  13.86 2.38 0.00 0.000  31.79  0.005  99.000
+S: 59584.2432     3308*2 u  1.00  1.12  13.77 2.42 0.00 0.000  31.79  0.005  99.000
+S: 59585.2363     4017*2 u  1.00  1.12  13.71 2.75 0.00 0.000  31.78  0.005  99.000
+S: 59586.2371     4734*2 u  1.00  1.12  13.56 3.11 0.00 0.000  31.75  0.005  99.000
+S: 59588.2190     6145*2 r  1.00  1.12 117.96 2.11 0.00 0.000  34.77  0.005  99.000
+S: 59588.2266     6165*2 g  1.00  0.79  51.42 1.99 0.00 0.000  33.98  0.005  99.000
+S: 59588.2343     6175*2 i  1.00  1.12 157.96 1.75 0.00 0.000  34.55  0.005  99.000
+S: 59588.2452     6195*2 z  1.00  1.27 238.51 1.62 0.00 0.000  34.52  0.005  99.000
+##skipped data
+S: 63003.9798  2310046*2 u  1.00  1.12  14.94 2.93 0.00 0.000  31.95  0.005  99.000
+S: 63004.9797  2311102*2 u  1.00  1.12  15.24 2.13 0.00 0.000  31.99  0.005  99.000
+END_LIBID: 1
+# --------------------------------------------
+LIBID: 1
+RA: 352.711273   DECL: -63.823658   NOBS: 1172    MWEBV: 0.0000   PIXSIZE: 0.200
+
+#                           CCD  CCD         PSF1 PSF2 PSF2/1
+#     MJD      IDEXPT  FLT GAIN NOISE SKYSIG (pixels)  RATIO  ZPTAVG ZPTERR  MAG
+S: 59750.4229   124860*2 r  1.00  1.12 186.71 1.96 0.00 0.000  34.88  0.005  99.000
+S: 59750.4306   124880*2 g  1.00  0.79 125.65 2.14 0.00 0.000  34.20  0.005  99.000
+S: 59750.4383   124890*2 i  1.00  1.12 216.99 2.03 0.00 0.000  34.61  0.005  99.000
+S: 59750.4450   124910*2 z  1.00  0.56 182.59 2.00 0.00 0.000  32.77  0.005  99.000
+##skipped data
+S: 63172.0658  2415935*2 Y  1.00  1.12 190.39 2.39 0.00 0.000  33.30  0.005  99.000
+END_LIBID: 1
+
+
+END_OF_SIMLIB: 2 ENTRIES

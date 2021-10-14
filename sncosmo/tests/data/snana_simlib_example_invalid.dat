@@ -1,0 +1,16 @@
+SURVEY: LSST    FILTERS: ugrizY  TELESCOPE: LSST
+USER: cinabro     HOST: motor1
+COMMENT_newKeyName: LSST
+BEGIN LIBGEN
+
+
+# ----------------------------------------
+LIBID:  519
+RA:  69.453790    DECL: -53.470480   NOBS: 18279    MWEBV: 0.000   PIXSIZE: 0.200    FIELD:  519
+
+#                           CCD  CCD        PSF1 PSF2 PSF2/1
+#    MJD        IDEXPT_badkey  FLT GAIN NOISE_badkey SKYSIG (pixels)  RATIO  ZPTAVG ZPTSIG  MAG
+S: 49353.13317      10*519 g  1.00  0.25  260.07  2.13 0.00 0.000  35.34  0.005 -99.000
+S: 49353.17576      10519 g  1.00  0.25  197.00  2.10 0.00 0.000  34.57  0.005 -99.000 extra_item
+S: 49353.12388      10519 r  1.00  0.25  218.39  1.97 0.00 0.000  35.17  0.005 -99.000
+S: 49353.16647      10519 r  1.00  0.25  226.03  2.28 0.00 0.000  35.16  0.005 -99.000
