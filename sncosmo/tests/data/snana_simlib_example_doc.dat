@@ -1,0 +1,44 @@
+DOCUMENTATION:
+    PURPOSE:      Cadence for NGRST simulation of SNe
+    INTENT:       strategy studies
+    USAGE_KEY:    SIMLIB_FILE
+    USAGE_CODE:   snlc_sim.exe
+    INPUT_CONFIG: configs/NGRST_makeSimlib_SETEXP_KEVIN.config
+    TIME_TOTAL:   137  # total survey time, days
+    TIME_VISIT:   5.0  # time between visits, days
+    TIME_SLEW:    70   # slew time, seconds
+    TIERS:  # bands ntile nvisit Area  NLIBID  zMatch  t_expose
+    - DEEP     YJHF    25  383    7.03   300  1.70  300.0 300.0 300.0 900.0
+DOCUMENTATION_END:
+
+# ----------------------------------
+
+SURVEY:   NGRST
+FILTERS:  YFHJ
+PIXSIZE:  0.11  # arcsec
+SOLID_ANGLE:  0.0021   # (sr) sum of all tiers
+BEGIN LIBGEN
+
+# ===========================================
+LIBID: 1
+FIELD: DEEP    RA: 20.0   DEC: 0.0
+NOBS: 1528
+#                          READ          PSFSIG1,2
+#     MJD  IDEXPT FLT GAIN NOISE SKYSIG (pixels) RATIO  ZPTAVG ZPTERR  MAG
+S: 55000.0000    1  Y  1.0  10.13   8.91 0.711 0.0 0.0   31.980  0.001  99
+S: 55000.0028    2  J  1.0  10.33   8.39 0.767 0.0 0.0   31.860  0.001  99
+S: 55000.0054    3  H  1.0   9.88   9.02 0.891 0.0 0.0   32.054  0.001  99
+S: 55000.0083    4  F  1.0   7.42  14.01 0.990 0.0 0.0   32.583  0.001  99
+S: 55005.0000    5  Y  1.0  10.13   8.91 0.711 0.0 0.0   31.980  0.001  99
+S: 55005.0028    6  J  1.0  10.33   8.39 0.767 0.0 0.0   31.860  0.001  99
+S: 55005.0054    7  H  1.0   9.88   9.02 0.891 0.0 0.0   32.054  0.001  99
+# skipping lines
+S: 56310.0083 1524  F  1.0   7.42  14.01 0.990 0.0 0.0   32.583  0.001  99
+S: 56315.0000 1525  Y  1.0  10.13   8.91 0.711 0.0 0.0   31.980  0.001  99
+S: 56315.0028 1526  J  1.0  10.33   8.39 0.767 0.0 0.0   31.860  0.001  99
+S: 56315.0054 1527  H  1.0   9.88   9.02 0.891 0.0 0.0   32.054  0.001  99
+S: 56315.0083 1528  F  1.0   7.42  14.01 0.990 0.0 0.0   32.583  0.001  99
+END_LIBID: 1
+
+
+END_OF_SIMLIB:
