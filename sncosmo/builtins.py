@@ -572,7 +572,7 @@ def load_2011fe(relpath, name=None, version=None):
     phases = np.array(phases)
     phases.sort()
 
-    return TimeSeriesSource(phases, disp, flux,
+    return TimeSeriesSource(phases, disp, flux, spline_degree=1,
                             name=name, version=version)
 
 
