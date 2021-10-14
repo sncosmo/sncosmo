@@ -3,6 +3,7 @@
 from os.path import dirname, join
 
 from numpy.testing import assert_allclose
+import pytest
 
 import sncosmo
 
@@ -41,3 +42,17 @@ def test_read_snana_simlib_noend():
     fname = join(dirname(__file__), "data", "snana_simlib_example_noend.dat")
     meta, obs_sets = sncosmo.read_snana_simlib(fname)
     assert len(obs_sets) == 2
+
+
+def test_read_snana_simlib_coadd():
+    """Test when co-added `ID*NEXPOSE` key is used."""
+    fname = join(dirname(__file__), "data", "snana_simlib_example_coadd.dat")
+    meta, obs_sets = sncosmo.read_snana_simlib(fname)
+    assert len(obs_sets) == 2
+
+
+def test_read_snana_simlib_invalid():
+    """Test that we fails on improper simlib files."""
+    fname = join(dirname(__file__), "data", "snana_simlib_example_invalid.dat")
+    with pytest.raises(Exception) as e_info:
+        _ = sncosmo.read_snana_simlib(fname)
