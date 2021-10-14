@@ -3,6 +3,7 @@ from collections import OrderedDict as odict
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table, vstack
+import yaml
 
 __all__ = ['read_snana_ascii', 'read_snana_fits', 'read_snana_simlib']
 
@@ -367,9 +368,8 @@ def read_snana_simlib(fname):
     Returns
     -------
     meta : `OrderedDict`
-        Global meta data, not associated with any one LIBID.
-        May contain some value-less keys if parsing a simlib file
-        with a 'DOCUMENTATION' block.
+        Global meta data, not associated with any one LIBID. If
+        DOCANA is present, it is stored in `meta['DOCUMENTATION']`.
     observation_sets : `OrderedDict` of `astropy.table.Table`
         keys are LIBIDs, values are observation sets.
 
@@ -428,6 +428,8 @@ def read_snana_simlib(fname):
     observation_sets = odict()  # dictionary of tables indexed by LIBID
 
     reading_obsset = False
+    reading_docana = False
+    docana = ''
     with open(fname, 'r') as infile:
         for line in infile.readlines():
 
@@ -449,7 +451,21 @@ def read_snana_simlib(fname):
                     current_meta = _parse_meta_from_line(line)
                     current_data = odict([(key, []) for key in COLNAMES])
                 else:
-                    meta.update(_parse_meta_from_line(line))
+                    # If we're currently reading an documentation block, add to the DOCANA string.
+                    #  If we're not, check if this line is the start of one. update the global metadata.
+                    if reading_docana:
+                        if line[0:18] == 'DOCUMENTATION_END:':
+                            reading_docana = False   # And then skip line
+                            meta.update(odict({'DOCUMENTATION': yaml.safe_load(docana)}))
+                            docana = ''
+                        else:
+                            docana += line + '\n'
+                    else:
+                        if line[0:14] == 'DOCUMENTATION:':
+                            reading_docana = True    # And then skip line
+                        else:
+                            meta.update(_parse_meta_from_line(line))
+                        
 
             # If we are currently reading an obsset...
             else:

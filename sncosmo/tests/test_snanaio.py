@@ -44,6 +44,13 @@ def test_read_snana_simlib_noend():
     assert len(obs_sets) == 2
 
 
+def test_read_snana_simlib_doc():
+    """Test when DOCANA header is present in simlib"""
+    fname = join(dirname(__file__), "data", "snana_simlib_example_doc.dat")
+    meta, _ = sncosmo.read_snana_simlib(fname)
+    assert "DOCUMENTATION" in meta
+
+
 def test_read_snana_simlib_coadd():
     """Test when co-added `ID*NEXPOSE` key is used."""
     fname = join(dirname(__file__), "data", "snana_simlib_example_coadd.dat")
