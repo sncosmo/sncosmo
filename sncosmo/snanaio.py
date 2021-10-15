@@ -451,12 +451,17 @@ def read_snana_simlib(fname):
                     current_meta = _parse_meta_from_line(line)
                     current_data = odict([(key, []) for key in COLNAMES])
                 else:
-                    # If we're currently reading an documentation block, add to the DOCANA string.
-                    #  If we're not, check if this line is the start of one. update the global metadata.
+                    # If we're currently reading an documentation block, add
+                    # it to the DOCANA string.
+                    # If we're not, check if this line is the start of one,
+                    # then update the global metadata.
                     if reading_docana:
                         if line[0:18] == 'DOCUMENTATION_END:':
                             reading_docana = False   # And then skip line
-                            meta.update(odict({'DOCUMENTATION': yaml.safe_load(docana)}))
+                            meta.update(
+                                odict({'DOCUMENTATION':
+                                      yaml.safe_load(docana)})
+                                )
                             docana = ''
                         else:
                             docana += line + '\n'
@@ -465,7 +470,6 @@ def read_snana_simlib(fname):
                             reading_docana = True    # And then skip line
                         else:
                             meta.update(_parse_meta_from_line(line))
-                        
 
             # If we are currently reading an obsset...
             else:
@@ -488,39 +492,43 @@ def read_snana_simlib(fname):
                     words = line.split()
                     try:
                         for colname, val in [('SEARCH', words[0] == 'S:'),
-                                            ('MJD', float(words[1])),
-                                            ('IDEXPT', int(words[2])),
-                                            ('FLT', words[3]),
-                                            ('CCD_GAIN', float(words[4])),
-                                            ('CCD_NOISE', float(words[5])),
-                                            ('SKYSIG', float(words[6])),
-                                            ('PSF1', float(words[7])),
-                                            ('PSF2', float(words[8])),
-                                            ('PSFRATIO', float(words[9])),
-                                            ('ZPTAVG', float(words[10])),
-                                            ('ZPTSIG', float(words[11])),
-                                            ('MAG', float(words[12]))]:
+                                             ('MJD', float(words[1])),
+                                             ('IDEXPT', int(words[2])),
+                                             ('FLT', words[3]),
+                                             ('CCD_GAIN', float(words[4])),
+                                             ('CCD_NOISE', float(words[5])),
+                                             ('SKYSIG', float(words[6])),
+                                             ('PSF1', float(words[7])),
+                                             ('PSF2', float(words[8])),
+                                             ('PSFRATIO', float(words[9])),
+                                             ('ZPTAVG', float(words[10])),
+                                             ('ZPTSIG', float(words[11])),
+                                             ('MAG', float(words[12]))]:
                             current_data[colname].append(val)
-                    except ValueError: 
-                        # catches ValueError: invalid literal for int() with base 10: '2063*2'
-                        # re-process assuming co-added expsoures ('IDEXPT' -> 'IDEXPT', 'NEXPOSE' )
+                    except ValueError:
+                        # catches ValueError: invalid literal for int() with
+                        # base 10: '2063*2'
+                        # re-process assuming co-added expsoures and coverts
+                        # ('IDEXPT' -> 'IDEXPT', 'NEXPOSE' )
                         if 'NEXPOSE' not in current_data:
                             # add an empty list only on the first line
                             current_data['NEXPOSE'] = []
                         for colname, val in [('SEARCH', words[0] == 'S:'),
-                                            ('MJD', float(words[1])),
-                                            ('IDEXPT', int(words[2].split('*')[0])),
-                                            ('NEXPOSE', int(words[2].split('*')[1])),
-                                            ('FLT', words[3]),
-                                            ('CCD_GAIN', float(words[4])),
-                                            ('CCD_NOISE', float(words[5])),
-                                            ('SKYSIG', float(words[6])),
-                                            ('PSF1', float(words[7])),
-                                            ('PSF2', float(words[8])),
-                                            ('PSFRATIO', float(words[9])),
-                                            ('ZPTAVG', float(words[10])),
-                                            ('ZPTSIG', float(words[11])),
-                                            ('MAG', float(words[12]))]:
+                                             ('MJD', float(words[1])),
+                                             ('IDEXPT',
+                                              int(words[2].split('*')[0])),
+                                             ('NEXPOSE',
+                                              int(words[2].split('*')[1])),
+                                             ('FLT', words[3]),
+                                             ('CCD_GAIN', float(words[4])),
+                                             ('CCD_NOISE', float(words[5])),
+                                             ('SKYSIG', float(words[6])),
+                                             ('PSF1', float(words[7])),
+                                             ('PSF2', float(words[8])),
+                                             ('PSFRATIO', float(words[9])),
+                                             ('ZPTAVG', float(words[10])),
+                                             ('ZPTSIG', float(words[11])),
+                                             ('MAG', float(words[12]))]:
                             current_data[colname].append(val)
                 else:
                     current_meta.update(_parse_meta_from_line(line))
