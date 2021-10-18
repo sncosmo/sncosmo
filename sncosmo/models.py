@@ -514,8 +514,9 @@ class TimeSeriesSource(Source):
     _param_names = ['amplitude']
     param_names_latex = ['A']
 
-    def __init__(self, phase, wave, flux, zero_before=False, time_spline_degree=3,
-                 wave_spline_degree=3, name=None, version=None):
+    def __init__(self, phase, wave, flux, zero_before=False,
+                 time_spline_degree=3, wave_spline_degree=3, name=None,
+                 version=None):
         self.name = name
         self.version = version
         self._phase = phase
