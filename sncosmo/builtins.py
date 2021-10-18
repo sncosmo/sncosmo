@@ -590,15 +590,16 @@ l05ref = ('L05', 'Levan et al. 2005 '
 g99ref = ('G99', 'Gilliland, Nugent & Phillips 1999 '
           '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>')
 
-for suffix, ver, sntype, ref, time_spline_degree in [
-    ('sn1a', '1.2', 'SN Ia', n02ref, 3),
-    ('sn91t', '1.1', 'SN Ia', s04ref, 3),
-    ('sn91bg', '1.1', 'SN Ia', n02ref, 3),
-    ('sn1bc', '1.1', 'SN Ib/c', l05ref, 3),
-    ('hyper', '1.2', 'SN Ib/c', l05ref, 1),
-    ('sn2p', '1.2', 'SN IIP', g99ref, 1),
-    ('sn2l', '1.2', 'SN IIL', g99ref, 1),
-    ('sn2n', '2.1', 'SN IIn', g99ref, 1)]:
+nugent_models = [('sn1a', '1.2', 'SN Ia', n02ref, 3),
+                 ('sn91t', '1.1', 'SN Ia', s04ref, 3),
+                 ('sn91bg', '1.1', 'SN Ia', n02ref, 3),
+                 ('sn1bc', '1.1', 'SN Ib/c', l05ref, 3),
+                 ('hyper', '1.2', 'SN Ib/c', l05ref, 1),
+                 ('sn2p', '1.2', 'SN IIP', g99ref, 1),
+                 ('sn2l', '1.2', 'SN IIL', g99ref, 1),
+                 ('sn2n', '2.1', 'SN IIn', g99ref, 1)]
+
+for suffix, ver, sntype, ref, time_spline_degree in nugent_models:
     name = "nugent-" + suffix
     relpath = "models/nugent/{0}_flux.v{1}.dat".format(suffix, ver)
     _SOURCES.register_loader(name, load_timeseries_ascii,
