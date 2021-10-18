@@ -514,15 +514,15 @@ class TimeSeriesSource(Source):
     _param_names = ['amplitude']
     param_names_latex = ['A']
 
-    def __init__(self, phase, wave, flux, zero_before=False, spline_degree=3,
-                 name=None, version=None):
+    def __init__(self, phase, wave, flux, zero_before=False, time_spline_degree=3,
+                 wave_spline_degree=3, name=None, version=None):
         self.name = name
         self.version = version
         self._phase = phase
         self._wave = wave
         self._parameters = np.array([1.])
-        self._model_flux = Spline2d(phase, wave, flux, kx=spline_degree,
-                                    ky=spline_degree)
+        self._model_flux = Spline2d(phase, wave, flux, kx=time_spline_degree,
+                                    ky=wave_spline_degree)
         self._zero_before = zero_before
 
     def _flux(self, phase, wave):
