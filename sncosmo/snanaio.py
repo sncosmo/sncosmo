@@ -490,46 +490,28 @@ def read_snana_simlib(fname):
                 # Otherwise, read the line into the current obs set.
                 elif line[0:2] in ['S:', 'T:']:
                     words = line.split()
-                    try:
-                        for colname, val in [('SEARCH', words[0] == 'S:'),
-                                             ('MJD', float(words[1])),
-                                             ('IDEXPT', int(words[2])),
-                                             ('FLT', words[3]),
-                                             ('CCD_GAIN', float(words[4])),
-                                             ('CCD_NOISE', float(words[5])),
-                                             ('SKYSIG', float(words[6])),
-                                             ('PSF1', float(words[7])),
-                                             ('PSF2', float(words[8])),
-                                             ('PSFRATIO', float(words[9])),
-                                             ('ZPTAVG', float(words[10])),
-                                             ('ZPTSIG', float(words[11])),
-                                             ('MAG', float(words[12]))]:
-                            current_data[colname].append(val)
-                    except ValueError:
-                        # catches ValueError: invalid literal for int() with
-                        # base 10: '2063*2'
-                        # re-process assuming co-added expsoures and coverts
+                    colnames = ['SEARCH', 'MJD', 'IDEXPT','FLT', 'CCD_GAIN',
+                                'CCD_NOISE', 'SKYSIG', 'PSF1', 'PSF2', 'PSFRATIO',
+                                'ZPTAVG', 'ZPTSIG', 'MAG']
+                    values = [words[0] == 'S:', float(words[1]), None,
+                              words[3], float(words[4]), float(words[5]),
+                              float(words[6]), float(words[7]), float(words[8]),
+                              float(words[9]), float(words[10]), float(words[11]),
+                              float(words[12])]
+                    if "*" in words[2]:
+                        # 'IDEXPT' can be a co-add of the form: '2063*2'
+                        # re-process assuming co-added expsoures
                         # ('IDEXPT' -> 'IDEXPT', 'NEXPOSE' )
+                        colnames.insert(3, "NEXPOSE")
                         if 'NEXPOSE' not in current_data:
-                            # add an empty list only on the first line
+                            # add an empty list only on the first data line
                             current_data['NEXPOSE'] = []
-                        for colname, val in [('SEARCH', words[0] == 'S:'),
-                                             ('MJD', float(words[1])),
-                                             ('IDEXPT',
-                                              int(words[2].split('*')[0])),
-                                             ('NEXPOSE',
-                                              int(words[2].split('*')[1])),
-                                             ('FLT', words[3]),
-                                             ('CCD_GAIN', float(words[4])),
-                                             ('CCD_NOISE', float(words[5])),
-                                             ('SKYSIG', float(words[6])),
-                                             ('PSF1', float(words[7])),
-                                             ('PSF2', float(words[8])),
-                                             ('PSFRATIO', float(words[9])),
-                                             ('ZPTAVG', float(words[10])),
-                                             ('ZPTSIG', float(words[11])),
-                                             ('MAG', float(words[12]))]:
-                            current_data[colname].append(val)
+                        values[2] = int(words[2].split('*')[0])
+                        values.insert(3, int(words[2].split('*')[1]))
+                    else: 
+                        values[2] = int(words[2])
+                    for colname, val in zip(colnames, values):
+                        current_data[colname].append(val)
                 else:
                     current_meta.update(_parse_meta_from_line(line))
 
