@@ -505,6 +505,12 @@ class TimeSeriesSource(Source):
         If True, flux at phases before minimum phase will be zeroed. The
         default is False, in which case the flux at such phases will be equal
         to the flux at the minimum phase (``flux[0, :]`` in the input array).
+    time_spline_degree : int, optional
+        Degree of the spline used for interpolation in the time (phase)
+        direction. By default this is set to 3 (i.e. cubic spline). For models
+        that are defined with sparse time grids this can lead to large
+        interpolation uncertainties and negative fluxes. If this is a problem,
+        set time_spline_degree to 1 to use linear interpolation instead.
     name : str, optional
         Name of the model. Default is `None`.
     version : str, optional
@@ -514,14 +520,15 @@ class TimeSeriesSource(Source):
     _param_names = ['amplitude']
     param_names_latex = ['A']
 
-    def __init__(self, phase, wave, flux, zero_before=False, name=None,
-                 version=None):
+    def __init__(self, phase, wave, flux, zero_before=False,
+                 time_spline_degree=3, name=None, version=None):
         self.name = name
         self.version = version
         self._phase = phase
         self._wave = wave
         self._parameters = np.array([1.])
-        self._model_flux = Spline2d(phase, wave, flux, kx=3, ky=3)
+        self._model_flux = Spline2d(phase, wave, flux, kx=time_spline_degree,
+                                    ky=3)
         self._zero_before = zero_before
 
     def _flux(self, phase, wave):
