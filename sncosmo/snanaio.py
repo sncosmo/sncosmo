@@ -490,13 +490,14 @@ def read_snana_simlib(fname):
                 # Otherwise, read the line into the current obs set.
                 elif line[0:2] in ['S:', 'T:']:
                     words = line.split()
-                    colnames = ['SEARCH', 'MJD', 'IDEXPT','FLT', 'CCD_GAIN',
-                                'CCD_NOISE', 'SKYSIG', 'PSF1', 'PSF2', 'PSFRATIO',
-                                'ZPTAVG', 'ZPTSIG', 'MAG']
+                    colnames = ['SEARCH', 'MJD', 'IDEXPT', 'FLT', 'CCD_GAIN',
+                                'CCD_NOISE', 'SKYSIG', 'PSF1', 'PSF2',
+                                'PSFRATIO', 'ZPTAVG', 'ZPTSIG', 'MAG']
                     values = [words[0] == 'S:', float(words[1]), None,
                               words[3], float(words[4]), float(words[5]),
-                              float(words[6]), float(words[7]), float(words[8]),
-                              float(words[9]), float(words[10]), float(words[11]),
+                              float(words[6]), float(words[7]),
+                              float(words[8]), float(words[9]),
+                              float(words[10]), float(words[11]),
                               float(words[12])]
                     if "*" in words[2]:
                         # 'IDEXPT' can be a co-add of the form: '2063*2'
@@ -508,7 +509,7 @@ def read_snana_simlib(fname):
                             current_data['NEXPOSE'] = []
                         values[2] = int(words[2].split('*')[0])
                         values.insert(3, int(words[2].split('*')[1]))
-                    else: 
+                    else:
                         values[2] = int(words[2])
                     for colname, val in zip(colnames, values):
                         current_data[colname].append(val)
