@@ -55,11 +55,11 @@ def test_read_snana_simlib_coadd():
     """Test when co-added `ID*NEXPOSE` key is used."""
     fname = join(dirname(__file__), "data", "snana_simlib_example_coadd.dat")
     meta, obs_sets = sncosmo.read_snana_simlib(fname)
-    assert len(obs_sets) == 2
+    assert "NEXPOSE" in obs_sets[0].colnames
 
 
 def test_read_snana_simlib_invalid():
-    """Test that we fails on improper simlib files."""
+    """Test that we fails on simlib files with bad co-add columns."""
     fname = join(dirname(__file__), "data", "snana_simlib_example_invalid.dat")
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(ValueError) as e_info:
         _ = sncosmo.read_snana_simlib(fname)
