@@ -527,7 +527,8 @@ class TimeSeriesSource(Source):
         self._phase = phase
         self._wave = wave
         self._parameters = np.array([1.])
-        self._model_flux = Spline2d(phase, wave, flux, kx=time_spline_degree)
+        self._model_flux = Spline2d(phase, wave, flux, kx=time_spline_degree,
+                                    ky=3)
         self._zero_before = zero_before
 
     def _flux(self, phase, wave):
