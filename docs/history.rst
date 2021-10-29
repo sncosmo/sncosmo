@@ -8,6 +8,21 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.7.0 (2021-10-29)
+===================
+
+- New zeropoint alias for improved SNANA compatibility (#318)
+
+- Add Roman filters (#218, #322)
+
+- Add the ability to a use SNANA co-add simlibs (#247)
+
+- Fix file paths for Windows users (#324)
+
+- Fix the builtins with poor spline options (#203, #328, #329)
+
+- Various improvments to code and repo managment
+
 v2.6.0 (2021-09-09)
 ===================
 
