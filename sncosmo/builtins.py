@@ -478,7 +478,8 @@ atlas_meta = {
     'retrieved': '28 Dec 2021',
     'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
                 'format=ascii&id=Misc'),
-    'description': 'ATLAS filters from SVO (includes filter, optics, detector and atmosphere.)'}
+    'description': ('ATLAS filters from SVO (includes filter, optics,'
+                    'detector and atmosphere.)'}
 for filt in ['Cyan', 'Orange']:
     name = 'atlas' + filt[0].lower()
     relpath = 'bandpasses/atlas/Atlas.{}'.format(filt)
