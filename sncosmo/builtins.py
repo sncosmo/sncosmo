@@ -472,6 +472,20 @@ for filter_id in ['open', 'g', 'r', 'i', 'z', 'y', 'w']:
                                 args=(fname,),
                                 meta=ps1_meta)
 
+# ATLAS
+atlas_meta = {
+    'filterset': 'atlas',
+    'retrieved': '28 Dec 2021',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': ('ATLAS filters from SVO (includes filter, optics,'
+                    'detector and atmosphere.)')}
+for filt in ['Cyan', 'Orange']:
+    name = 'atlas' + filt[0].lower()
+    relpath = 'bandpasses/atlas/Atlas.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=atlas_meta)
+
 # =============================================================================
 # interpolators
 
