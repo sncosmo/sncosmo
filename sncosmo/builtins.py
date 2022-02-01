@@ -494,7 +494,7 @@ twomass_meta = {
                 'format=ascii&id=Misc'),
     'description': ('2MASS filters from SVO (includes filter, instrument,'
                     'and atmosphere.)')}
-for filt in ['J', 'H', Ks]:
+for filt in ['J', 'H', 'Ks']:
     name = '2mass' + filt.lower()
     relpath = 'bandpasses/2MASS/2MASS.{}'.format(filt)
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
