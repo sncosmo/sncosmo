@@ -486,6 +486,20 @@ for filt in ['Cyan', 'Orange']:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=atlas_meta)
 
+# 2MASS
+twomass_meta = {
+    'filterset': '2MASS',
+    'retrieved': '1 Feb 2022',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': ('2MASS filters from SVO (includes filter, instrument,'
+                    'and atmosphere.)')}
+for filt in ['J', 'H', 'Ks']:
+    name = '2mass' + filt.lower()
+    relpath = 'bandpasses/2mass/2mass.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=twomass_meta)
+
 # =============================================================================
 # interpolators
 
