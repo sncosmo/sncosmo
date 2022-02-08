@@ -496,7 +496,7 @@ twomass_meta = {
                     'and atmosphere.)')}
 for filt in ['J', 'H', 'Ks']:
     name = '2mass' + filt.lower()
-    relpath = 'bandpasses/2MASS/2MASS.{}'.format(filt)
+    relpath = 'bandpasses/2mass/2mass.{}'.format(filt)
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=twomass_meta)
 
