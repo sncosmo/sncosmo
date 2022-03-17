@@ -8,6 +8,13 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.8.0 (2022-03-16)
+===================
+
+- Add 2MASS filters (#338)
+
+- Add ATLAS filters (#336)
+
 v2.7.0 (2021-10-29)
 ===================
 
