@@ -712,7 +712,7 @@ _SOURCES.register_loader('salt2-extended', load_salt2model,
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT3Source`',
         'url': 'https://salt3.readthedocs.io/en/latest/',
-        'note': """See Kenworthy et al. 2021, ApJ, 923, 265K.  
+        'note': """See Kenworthy et al. 2021, ApJ, 923, 265K.
 Revised with Fragilistic calibration (Brout et al., 2022)"""}
 _SOURCES.register_loader('salt3', load_salt3model,
                          args=('models/salt3/salt3-f22',), version='2.0',
