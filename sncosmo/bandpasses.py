@@ -68,6 +68,8 @@ def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
         raise ValueError("format {0} not supported. Supported formats: 'ascii'"
                          .format(fmt))
     t = ascii.read(fname, names=['wave', 'trans'])
+    if len(t) == 0:
+        raise RuntimeError(f"Bandpass file {fname} corrupt")
     return Bandpass(t['wave'], t['trans'], wave_unit=wave_unit,
                     trans_unit=trans_unit, normalize=normalize,
                     trim_level=trim_level, name=name)
