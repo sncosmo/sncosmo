@@ -42,6 +42,7 @@ def test_bin_edges_log():
     assert_allclose(wave, spec.wave, rtol=1.e-5)
 
 
+@pytest.mark.might_download
 class TestSpectrum:
     def setup_class(self):
         # Simulate a spectrum
