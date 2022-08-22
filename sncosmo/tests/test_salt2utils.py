@@ -104,7 +104,7 @@ def test_salt2colorlaw_vs_python():
     colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
 
     wave = np.linspace(2000., 9200., 201)
-    assert np.all(colorlaw(wave) == colorlaw_python(wave))
+    np.testing.assert_allclose(colorlaw(wave), colorlaw_python(wave))
 
 
 def test_salt2colorlaw_pickle():
