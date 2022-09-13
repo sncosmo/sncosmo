@@ -708,6 +708,15 @@ _SOURCES.register_loader('salt2-extended', load_salt2model,
                          args=('models/pierel/salt2-extended',), version='2.0',
                          meta=meta)
 
+# SALT3-NIR
+meta = {'type': 'SN Ia',
+        'subclass': '`~sncosmo.SALT3Source`',
+        'url': 'https://doi.org/10.5281/zenodo.7068818',
+        'note': """See Pierel et al. 2022, ApJ."""}
+_SOURCES.register_loader('salt3', load_salt3model,
+                         args=('models/salt3-nir/salt3nir-p22',), version='1.0',
+                         meta=meta)
+
 # SALT3
 meta = {'type': 'SN Ia',
         'subclass': '`~sncosmo.SALT3Source`',
