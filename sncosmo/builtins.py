@@ -714,7 +714,7 @@ meta = {'type': 'SN Ia',
         'url': 'https://doi.org/10.5281/zenodo.7068818',
         'note': """See Pierel et al. 2022, ApJ."""}
 _SOURCES.register_loader('salt3-nir', load_salt3model,
-                         args=('models/salt3-nir/salt3nir-p22',), 
+                         args=('models/salt3-nir/salt3nir-p22',),
                          version='1.0',
                          meta=meta)
 
