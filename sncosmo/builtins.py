@@ -500,6 +500,20 @@ for filt in ['J', 'H', 'Ks']:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=twomass_meta)
 
+# Gaia
+gaia_meta = {
+    'filterset': 'gaia',
+    'retrieved': '27 Sep 2022',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': ('eDR3 Gaia filters from SVO (includes filter, instrument,'
+                    'and optics.)')}
+for filt in ['Gbp', 'G', 'Grp', 'Grvs']:
+    name = 'gaia::' + filt.lower()
+    relpath = 'bandpasses/gaia/gaia.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=gaia_meta)
+
 # =============================================================================
 # interpolators
 
