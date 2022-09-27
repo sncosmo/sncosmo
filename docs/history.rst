@@ -8,6 +8,17 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.9.0 (2022-09-27)
+===================
+
+- Add P22 SALT3-NIR model (#350)
+
+- Updated SALT3 input calibration (#339)
+
+- Add Gaia filters (#351)
+
+- Improvements to code management
+
 v2.8.0 (2022-03-16)
 ===================
 
