@@ -28,7 +28,7 @@ v2.7.0 (2021-10-29)
 
 - Fix the builtins with poor spline options (#203, #328, #329)
 
-- Various improvments to code and repo managment
+- Various improvements to code and repo management
 
 v2.6.0 (2021-09-09)
 ===================
