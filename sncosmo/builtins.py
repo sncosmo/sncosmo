@@ -523,7 +523,7 @@ tess_meta = {
     'description': 'TESS filter from SVO (includes filter and instrument)'
 }                
 for filt in ['Red']:
-    name = 'tess::' + filt.lower()
+    name = 'tess'
     relpath = 'bandpasses/tess/tess.{}'.format(filt)
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=tess_meta)
