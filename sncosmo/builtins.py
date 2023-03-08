@@ -520,7 +520,7 @@ tess_meta = {
     'retrieved': '7 March 2023',
     'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
                 'format=ascii&id=Misc'),
-    'description': 'TESS filter from SVO (includes filter and instrument'
+    'description': 'TESS filter from SVO (includes filter and instrument)'
 }                
 for filt in ['Red']:
     name = 'tess::' + filt.lower()
