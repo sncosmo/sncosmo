@@ -514,6 +514,21 @@ for filt in ['Gbp', 'G', 'Grp', 'Grvs']:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=gaia_meta)
 
+# TESS
+tess_meta = {                                                         
+    'filterset': 'tess',       
+    'retrieved': '7 March 2023',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': 'TESS filter from SVO (includes filter and instrument)'
+}                
+for filt in ['Red']:
+    name = 'tess'
+    relpath = 'bandpasses/tess/tess.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=tess_meta)
+
+
 # =============================================================================
 # interpolators
 
