@@ -1568,7 +1568,7 @@ class Model(_ModelBase):
                 effect_wave = wave * effect_a
                 effect_phase = obsphase * effect_a
 
-            f = effect.propagate(effect_phase,effect_wave, f)
+            f = effect.propagate(effect_phase, effect_wave, f)
 
         return f
 
@@ -1959,7 +1959,7 @@ class PropagationEffect(_ModelBase):
         return self._maxphase
 
     @abc.abstractmethod
-    def propagate(self,phase, wave, flux):
+    def propagate(self, phase, wave, flux):
         pass
 
     def _headsummary(self):
@@ -1967,9 +1967,9 @@ class PropagationEffect(_ModelBase):
         class           : {0}
         wavelength range: [{1:.6g}, {2:.6g}] Angstroms
         phase range     : [{3:.2g}, {4:.2g}]"""\
-        .format(self.__class__.__name__, 
+        .format(self.__class__.__name__,
                 self._minwave, self._maxwave,
-                self._minphase,self._maxphase)
+                self._minphase, self._maxphase)
         return dedent(summary)
 
 
@@ -1985,7 +1985,7 @@ class CCM89Dust(PropagationEffect):
     def __init__(self):
         self._parameters = np.array([0., 3.1])
 
-    def propagate(self,phase, wave, flux):
+    def propagate(self, phase, wave, flux):
         """Propagate the flux."""
         ebv, r_v = self._parameters
         return extinction.apply(extinction.ccm89(wave, ebv * r_v, r_v), flux)
@@ -2003,7 +2003,7 @@ class OD94Dust(PropagationEffect):
     def __init__(self):
         self._parameters = np.array([0., 3.1])
 
-    def propagate(self,phase, wave, flux):
+    def propagate(self, phase, wave, flux):
         """Propagate the flux."""
         ebv, r_v = self._parameters
         return extinction.apply(extinction.odonnell94(wave, ebv * r_v, r_v),
@@ -2024,7 +2024,7 @@ class F99Dust(PropagationEffect):
         self._r_v = r_v
         self._f = extinction.Fitzpatrick99(r_v=r_v)
 
-    def propagate(self,phase, wave, flux):
+    def propagate(self, phase, wave, flux):
         """Propagate the flux."""
         ebv = self._parameters[0]
         return extinction.apply(self._f(wave, ebv * self._r_v), flux)
