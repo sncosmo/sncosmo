@@ -250,3 +250,14 @@ release:
   once it passes all tests.
 - The docs for the release will show up on readthedocs.org as the new
   ``stable`` version.
+
+**Bumping supported python versions**
+
+Versions are hardcoded in 
+
+- tox.ini - update the ``envlist = py{...}`` line.
+- setup.cfg - update ``python_requires``
+- .github/workflows/run_tests.yml - update the ``python`` and 
+  ``toxenv`` lines
+- docs/install.rst - Ensure that the first line "SNCosmo works on 
+  Python 3.x+" is correct

@@ -2,7 +2,7 @@
 Installation
 ************
 
-SNCosmo works on Python 3.4+ and depends on the
+SNCosmo works on Python 3.7+ and depends on the
 following Python packages:
 
 - `numpy <http://www.numpy.org/>`_
