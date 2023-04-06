@@ -251,12 +251,12 @@ release:
 - The docs for the release will show up on readthedocs.org as the new
   ``stable`` version.
 
-**Bumping supported python versions**
+**Bumping Minimum Supported Python Version**
 
 Versions are hardcoded in 
 
 - tox.ini - update the ``envlist = py{...}`` line.
-- setup.cfg - update ``python_requires``
+- setup.cfg - update ``python_requires``, ``install_requires``, and ``oldestdeps`` as needed. 
 - .github/workflows/run_tests.yml - update the ``python`` and 
   ``toxenv`` lines
 - docs/install.rst - Ensure that the first line "SNCosmo works on 
