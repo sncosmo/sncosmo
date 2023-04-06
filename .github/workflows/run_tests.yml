@@ -7,6 +7,7 @@ on:
     tags:
     - '*'
   pull_request:
+  workflow_dispatch:
 
 
 jobs:
@@ -24,37 +25,42 @@ jobs:
 
           - name: Build the docs
             os: ubuntu-latest
-            python: 3.8
+            python: 3.x
             toxenv: build_docs
 
-          - name: Python 3.9 with minimal dependencies
+          - name: Latest Python with minimal dependencies
             os: ubuntu-latest
-            python: 3.9
-            toxenv: py39
+            python: 3.x
+            toxenv: py3
 
-          - name: Python 3.9 with full coverage
+          - name: Python 3.11 with full coverage
             os: ubuntu-latest
-            python: 3.9
-            toxenv: py39-alldeps-cov
+            python: 3.11
+            toxenv: py311-alldeps-cov
 
-          - name: Python 3.6 with oldest supported version of all dependencies
+          - name: Python 3.7 with oldest supported version of all dependencies
             os: ubuntu-latest
-            python: 3.6
-            toxenv: py36-oldestdeps
-
-          - name: Python 3.7 (MacOS X) with all optional dependencies
-            os: macos-latest
             python: 3.7
-            toxenv: py37-alldeps
+            toxenv: py37-oldestdeps
 
-          - name: Python 3.8 (Windows) with all optional dependencies
-            os: windows-latest
+          - name: Python 3.8 (MacOS X) with all optional dependencies
+            os: macos-latest
             python: 3.8
             toxenv: py38-alldeps
 
+          - name: Python 3.9 (Windows) with all optional dependencies
+            os: windows-latest
+            python: 3.9
+            toxenv: py39-alldeps
+          
+          - name: Python 3.10 with all optional dependencies
+            os: ubuntu-latest
+            python: "3.10"
+            toxenv: py310-alldeps
+
           - name: Download all of the builtins
             os: ubuntu-latest
-            python: 3.9
+            python: 3.x
             toxenv: builtins
 
     steps:
