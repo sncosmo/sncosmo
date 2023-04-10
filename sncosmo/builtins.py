@@ -712,8 +712,18 @@ g10ref = ('G10', 'Guy et al. 2010 '
           '<http://adsabs.harvard.edu/abs/2010A%26A...523A...7G>')
 b14ref = ('B14b', 'Betoule et al. 2014 '
           '<http://adsabs.harvard.edu/abs/2014A%26A...568A..22B>')
+t21ref = ('T21', 'Taylor et al. 2021 '
+          '<https://ui.adsabs.harvard.edu/abs/2021MNRAS.504.4111T>')
+b22ref = ('B22', 'Brout et al. 2022 '
+          '<https://ui.adsabs.harvard.edu/abs/2022ApJ...938..111B>')
+t23ref = ('T23', 'Taylor et al. 2023 '
+          '<https://ui.adsabs.harvard.edu/abs/2023MNRAS.520.5209T>')
 for topdir, ver, ref in [('salt2-2-0', '2.0', g10ref),
-                         ('salt2-4', '2.4', b14ref)]:
+                         ('salt2-4', '2.4', b14ref),
+                         ('salt2-T21', 'T21', t21ref),
+                         ('salt2-Pan+', 'B22', b22ref),
+                         ('salt2-k21-frag', 'T23', t23ref),
+                         ]:
     meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SALT2Source`',
             'url': website, 'reference': ref}
     _SOURCES.register_loader('salt2', load_salt2model,
