@@ -71,46 +71,46 @@ DATADIR = DataMirror(get_rootdir, "http://sncosmo.github.io/data")
 # =============================================================================
 # Bandpasses
 
-
-def load_bandpass_bessell(pkg_data_name, name=None):
-    """Bessell bandpasses have (1/energy) transmission units."""
-    fname = get_pkg_data_filename(pkg_data_name)
+def _safe_read_bandpass(fname, *args, **kwargs):
+    """Read bandpass from file; remove if the file is corrupt"""
     try:
-        return read_bandpass(fname, wave_unit=u.AA, trans_unit=u.erg**-1,
-                             normalize=True, name=name)
+        return read_bandpass(fname, *args, **kwargs)
     except:
         rm(fname)
         raise
 
 
+def load_bandpass_bessell(pkg_data_name, name=None):
+    """Bessell bandpasses have (1/energy) transmission units."""
+    fname = get_pkg_data_filename(pkg_data_name)
+    return _safe_read_bandpass(
+        fname, wave_unit=u.AA, trans_unit=u.erg**-1,
+        normalize=True, name=name
+    )
+
+
 def load_bandpass_remote_aa(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
-    try:
-        return read_bandpass(abspath, wave_unit=u.AA,
-                             trim_level=BANDPASS_TRIM_LEVEL, name=name)
-    except:
-        rm(abspath)
-        raise
+    return _safe_read_bandpass(
+        abspath, wave_unit=u.AA,
+        trim_level=BANDPASS_TRIM_LEVEL, name=name
+    )
 
 
 def load_bandpass_remote_nm(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
-    try:
-        return read_bandpass(abspath, wave_unit=u.nm,
-                             trim_level=BANDPASS_TRIM_LEVEL, name=name)
-    except:
-        rm(abspath)
-        raise
+    return _safe_read_bandpass(
+        abspath, wave_unit=u.nm,
+        trim_level=BANDPASS_TRIM_LEVEL, name=name
+    )
 
 
 def load_bandpass_remote_um(relpath, name=None):
     abspath = DATADIR.abspath(relpath)
-    try:
-        return read_bandpass(abspath, wave_unit=u.micron,
-                             trim_level=BANDPASS_TRIM_LEVEL, name=name)
-    except:
-        rm(abspath)
-        raise
+    return _safe_read_bandpass(
+        abspath, wave_unit=u.micron,
+        trim_level=BANDPASS_TRIM_LEVEL, name=name
+    )
 
 
 def load_bandpass_remote_wfc3(relpath, name=None):
