@@ -2,16 +2,13 @@
 
 """Convenience functions for interfacing with spectra."""
 
-from astropy.table import Table
-from scipy.linalg import block_diag
 from scipy.sparse import csr_matrix
 import astropy.units as u
 import numpy as np
 
-from .bandpasses import Bandpass, get_bandpass
+from .bandpasses import get_bandpass
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING, FLAMBDA_UNIT
 from .magsystems import get_magsystem
-from .photdata import PhotometricData
 from .utils import integration_grid
 
 __all__ = ['Spectrum']

@@ -6,7 +6,6 @@ sncosmo: A Python package for supernova cosmology
 import os
 
 from astropy.config import ConfigItem, ConfigNamespace
-from astropy.config.configuration import update_default_config
 
 __version__ = "2.9.0"
 
@@ -118,14 +117,8 @@ class _Conf(ConfigNamespace):
 # in some parts of the library.
 conf = _Conf()
 
-# Update the user's ~/.astropy/config/sncosmo.cfg if needed.
-update_default_config(
-    "sncosmo",  # pkg
-    os.path.dirname(__file__),  # configdir
-)
-
 # clean up namespace
-del os, ConfigItem, ConfigNamespace, update_default_config
+del os, ConfigItem, ConfigNamespace
 
 # import all the things into the top-level namespace
 from .bandpasses import *

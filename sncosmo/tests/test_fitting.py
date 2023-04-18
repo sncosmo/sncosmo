@@ -190,8 +190,10 @@ class TestFitting:
 def test_fit_lc_vs_snfit():
     """Test fit_lc versus snfit result for one SN."""
 
+    # keep the same SALT2 version as snfit results
+    source = sncosmo.get_source("salt2", "2.4")
     # purposefully use CCM dust to match snfit
-    model = sncosmo.Model(source='salt2',
+    model = sncosmo.Model(source=source,
                           effects=[sncosmo.CCM89Dust()],
                           effect_names=['mw'],
                           effect_frames=['obs'])
