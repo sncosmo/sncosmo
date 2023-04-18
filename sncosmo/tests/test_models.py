@@ -2,6 +2,8 @@
 
 from io import StringIO
 
+import scipy
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_approx_equal
 
@@ -18,9 +20,48 @@ def flatsource():
     return sncosmo.TimeSeriesSource(phase, wave, flux)
 
 
+class AchromaticMicrolensing(sncosmo.PropagationEffect):
+    """
+    An achromatic microlensing object. Tests phase dependence.
+    """
+    _param_names = []
+    param_names_latex = []
+    _minwave = np.nan
+    _maxwave = np.nan
+    _minphase = np.nan
+    _maxphase = np.nan
+
+    def __init__(self, time, magnification):
+        """
+        Parameters
+            ----------
+            time: :class:`~list` or :class:`~numpy.array`
+                A time array for your microlensing
+            dmag: :class:`~list` or :class:`~numpy.array`
+                microlensing magnification
+        """
+        self._parameters = np.array([])
+        self.mu = scipy.interpolate.interp1d(time,
+                                             magnification,
+                                             bounds_error=False,
+                                             fill_value=1.)
+        self._minphase = np.min(time)
+        self._maxphase = np.max(time)
+
+    def propagate(self, wave, flux, phase):
+        """
+        Propagate the magnification onto the model's flux output.
+        """
+
+        mu = np.expand_dims(np.atleast_1d(self.mu(phase)), 1)
+        return flux * mu
+
+
 class StepEffect(sncosmo.PropagationEffect):
-    """Effect with transmission 0 below cutoff wavelength, 1 above.
-    Useful for testing behavior with redshift."""
+    """
+    Effect with transmission 0 below cutoff wavelength, 1 above.
+    Useful for testing behavior with redshift.
+    """
 
     _param_names = ['stepwave']
     param_names_latex = [r'\lambda_{s}']
@@ -312,3 +353,17 @@ def test_effect_frame_free():
 
     wave = np.array([12000., 13000., 14000., 14999., 15000., 16000.])
     assert_allclose(model.flux(0., wave), [0., 0., 0., 0., 0.5, 0.5])
+
+
+def test_effect_phase_dependent():
+    """Test Model with PropagationEffect with phase dependence"""
+
+    model = sncosmo.Model(source=flatsource())
+    flux = model.flux(50., 5000.).flatten()
+
+    model_micro = sncosmo.Model(source=flatsource(),
+                                effects=[AchromaticMicrolensing([40., 60.],
+                                                                [10., 10.])],
+                                effect_frames=['rest'],
+                                effect_names=['micro'])
+    assert_approx_equal(model_micro.flux(50., 5000.).flatten(), flux*10.)

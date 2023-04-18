@@ -1567,9 +1567,10 @@ class Model(_ModelBase):
                 effect_a = 1. / (1. + self._parameters[zindex])
                 effect_wave = wave * effect_a
                 effect_phase = obsphase * effect_a
-
-            f = effect.propagate(effect_phase, effect_wave, f)
-
+            try:
+                f = effect.propagate(effect_wave, f, phase=effect_phase)
+            except:
+                f = effect.propagate(effect_wave, f)
         return f
 
     def flux(self, time, wave):
@@ -1959,7 +1960,7 @@ class PropagationEffect(_ModelBase):
         return self._maxphase
 
     @abc.abstractmethod
-    def propagate(self, phase, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         pass
 
     def _headsummary(self):
@@ -1985,7 +1986,7 @@ class CCM89Dust(PropagationEffect):
     def __init__(self):
         self._parameters = np.array([0., 3.1])
 
-    def propagate(self, phase, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         """Propagate the flux."""
         ebv, r_v = self._parameters
         return extinction.apply(extinction.ccm89(wave, ebv * r_v, r_v), flux)
@@ -2003,7 +2004,7 @@ class OD94Dust(PropagationEffect):
     def __init__(self):
         self._parameters = np.array([0., 3.1])
 
-    def propagate(self, phase, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         """Propagate the flux."""
         ebv, r_v = self._parameters
         return extinction.apply(extinction.odonnell94(wave, ebv * r_v, r_v),
@@ -2024,7 +2025,7 @@ class F99Dust(PropagationEffect):
         self._r_v = r_v
         self._f = extinction.Fitzpatrick99(r_v=r_v)
 
-    def propagate(self, phase, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         """Propagate the flux."""
         ebv = self._parameters[0]
         return extinction.apply(self._f(wave, ebv * self._r_v), flux)
