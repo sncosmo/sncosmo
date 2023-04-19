@@ -1961,7 +1961,7 @@ class PropagationEffect(_ModelBase):
 
     def maxphase(self):
         try:
-            return self._minphase
+            return self._maxphase
         except AttributeError:
             return np.nan
 
