@@ -1569,7 +1569,7 @@ class Model(_ModelBase):
                 effect_phase = obsphase * effect_a
             try:
                 f = effect.propagate(effect_wave, f, phase=effect_phase)
-            except:
+            except TypeError:
                 f = effect.propagate(effect_wave, f)
         return f
 
@@ -1954,10 +1954,16 @@ class PropagationEffect(_ModelBase):
         return self._maxwave
 
     def minphase(self):
-        return self._minphase
+        try:
+            return self._minphase
+        except AttributeError:
+            return np.nan
 
     def maxphase(self):
-        return self._maxphase
+        try:
+            return self._minphase
+        except AttributeError:
+            return np.nan
 
     @abc.abstractmethod
     def propagate(self, wave, flux, phase=None):
@@ -1970,7 +1976,7 @@ class PropagationEffect(_ModelBase):
         phase range     : [{3:.2g}, {4:.2g}]"""\
         .format(self.__class__.__name__,
                 self._minwave, self._maxwave,
-                self._minphase, self._maxphase)
+                self.minphase(), self.maxphase())
         return dedent(summary)
 
 
@@ -1980,8 +1986,6 @@ class CCM89Dust(PropagationEffect):
     param_names_latex = ['E(B-V)', 'R_V']
     _minwave = 1000.
     _maxwave = 33333.33
-    _minphase = np.nan
-    _maxphase = np.nan
 
     def __init__(self):
         self._parameters = np.array([0., 3.1])
@@ -1998,8 +2002,6 @@ class OD94Dust(PropagationEffect):
     param_names_latex = ['E(B-V)', 'R_V']
     _minwave = 909.09
     _maxwave = 33333.33
-    _minphase = np.nan
-    _maxphase = np.nan
 
     def __init__(self):
         self._parameters = np.array([0., 3.1])
@@ -2015,8 +2017,6 @@ class F99Dust(PropagationEffect):
     """Fitzpatrick (1999) extinction model dust with fixed R_V."""
     _minwave = 909.09
     _maxwave = 60000.
-    _minphase = np.nan
-    _maxphase = np.nan
 
     def __init__(self, r_v=3.1):
         self._param_names = ['ebv']
