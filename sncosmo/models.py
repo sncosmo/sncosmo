@@ -1943,6 +1943,7 @@ class PropagationEffect(_ModelBase):
     """Abstract base class for propagation effects.
 
     Derived classes must define _minwave (float), _maxwave (float).
+    They may also define _minphase (float), and _maxphase (float).
     """
 
     __metaclass__ = abc.ABCMeta
