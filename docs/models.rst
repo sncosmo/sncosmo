@@ -246,6 +246,17 @@ this value is perfectly known from the dust map. Therefore, when using
 a function such as `~sncosmo.fit_lc` to fit the parameters, be sure *not* to
 include ``'mwebv'`` in the list of parameters to vary.
 
+Phase Dependant effects
+=======================
+
+Primarily to simulate lensed transients, phase dependant effects can also be
+applied. Derived classes of `~sncosmo.PropagationEffect` can add the
+```self._minphase`` and ``self._maxphase`` parameters. Once your phase dependant
+effect is defined, it can be added to a model in the same way as chromatic
+effects, by specifying the appropriate ``effects``, ``effect_frames``, and
+``effect_names`` when defining your `~sncosmo.Model`.
+
+
 Model spectrum
 ==============
 
