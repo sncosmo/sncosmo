@@ -1546,26 +1546,31 @@ class Model(_ModelBase):
         """Array flux function."""
 
         a = 1. / (1. + self._parameters[0])
-        phase = (time - self._parameters[1]) * a
+        obsphase = (time - self._parameters[1])
+        restphase = obsphase * a
         restwave = wave * a
 
         # Note that below we multiply by the scale factor to conserve
         # bolometric luminosity.
-        f = a * self._source._flux(phase, restwave)
+        f = a * self._source._flux(restphase, restwave)
 
         # Pass the flux through the PropagationEffects.
         for effect, frame, zindex in zip(self._effects, self._effect_frames,
                                          self._effect_zindicies):
             if frame == 'obs':
                 effect_wave = wave
+                effect_phase = obsphase
             elif frame == 'rest':
                 effect_wave = restwave
+                effect_phase = restphase
             else:  # frame == 'free'
                 effect_a = 1. / (1. + self._parameters[zindex])
                 effect_wave = wave * effect_a
-
-            f = effect.propagate(effect_wave, f)
-
+                effect_phase = obsphase * effect_a
+            try:
+                f = effect.propagate(effect_wave, f, phase=effect_phase)
+            except TypeError:
+                f = effect.propagate(effect_wave, f)
         return f
 
     def flux(self, time, wave):
@@ -1948,15 +1953,30 @@ class PropagationEffect(_ModelBase):
     def maxwave(self):
         return self._maxwave
 
+    def minphase(self):
+        try:
+            return self._minphase
+        except AttributeError:
+            return np.nan
+
+    def maxphase(self):
+        try:
+            return self._maxphase
+        except AttributeError:
+            return np.nan
+
     @abc.abstractmethod
-    def propagate(self, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         pass
 
     def _headsummary(self):
         summary = """\
         class           : {0}
-        wavelength range: [{1:.6g}, {2:.6g}] Angstroms"""\
-        .format(self.__class__.__name__, self._minwave, self._maxwave)
+        wavelength range: [{1:.6g}, {2:.6g}] Angstroms
+        phase range     : [{3:.2g}, {4:.2g}]"""\
+        .format(self.__class__.__name__,
+                self._minwave, self._maxwave,
+                self.minphase(), self.maxphase())
         return dedent(summary)
 
 
@@ -1970,7 +1990,7 @@ class CCM89Dust(PropagationEffect):
     def __init__(self):
         self._parameters = np.array([0., 3.1])
 
-    def propagate(self, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         """Propagate the flux."""
         ebv, r_v = self._parameters
         return extinction.apply(extinction.ccm89(wave, ebv * r_v, r_v), flux)
@@ -1986,7 +2006,7 @@ class OD94Dust(PropagationEffect):
     def __init__(self):
         self._parameters = np.array([0., 3.1])
 
-    def propagate(self, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         """Propagate the flux."""
         ebv, r_v = self._parameters
         return extinction.apply(extinction.odonnell94(wave, ebv * r_v, r_v),
@@ -2005,7 +2025,7 @@ class F99Dust(PropagationEffect):
         self._r_v = r_v
         self._f = extinction.Fitzpatrick99(r_v=r_v)
 
-    def propagate(self, wave, flux):
+    def propagate(self, wave, flux, phase=None):
         """Propagate the flux."""
         ebv = self._parameters[0]
         return extinction.apply(self._f(wave, ebv * self._r_v), flux)
