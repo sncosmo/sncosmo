@@ -7,12 +7,22 @@ import os
 
 from astropy.config import ConfigItem, ConfigNamespace
 
-__version__ = "2.9.0"
+__version__ = "2.10.0"
 
 
-def test(package=None, test_path=None, args=None, plugins=None,
-         verbose=False, pastebin=None, pep8=False,
-         pdb=False, coverage=False, open_files=False, **kwargs):
+def test(
+    package=None,
+    test_path=None,
+    args=None,
+    plugins=None,
+    verbose=False,
+    pastebin=None,
+    pep8=False,
+    pdb=False,
+    coverage=False,
+    open_files=False,
+    **kwargs
+):
     """
     Run the tests using py.test. A proper set of arguments is constructed and
     passed to `pytest.main`.
@@ -86,30 +96,40 @@ def test(package=None, test_path=None, args=None, plugins=None,
     runner = TestRunner(os.path.dirname(__file__))
 
     return runner.run_tests(
-        package=package, test_path=test_path, args=args,
-        plugins=plugins, verbose=verbose, pastebin=pastebin,
-        pep8=pep8, pdb=pdb,
-        coverage=coverage, open_files=open_files, **kwargs)
+        package=package,
+        test_path=test_path,
+        args=args,
+        plugins=plugins,
+        verbose=verbose,
+        pastebin=pastebin,
+        pep8=pep8,
+        pdb=pdb,
+        coverage=coverage,
+        open_files=open_files,
+        **kwargs
+    )
 
 
 # Create default configurations. The file sncosmo.cfg should be
 # kept in sync with the ConfigItems here.
 class _Conf(ConfigNamespace):
     """Configuration parameters for sncosmo."""
+
     data_dir = ConfigItem(
         None,
         "Directory where sncosmo will store and read downloaded data "
         "resources. If None, ASTROPY_CACHE_DIR/sncosmo is created and "
         "used. Example: data_dir = /home/user/data/sncosmo",
-        cfgtype='string(default=None)')
+        cfgtype="string(default=None)",
+    )
     sfd98_dir = ConfigItem(
         None,
         "Directory containing SFD (1998) dust maps, with names: "
         "'SFD_dust_4096_ngp.fits' and 'SFD_dust_4096_sgp.fits'. "
         "Example: sfd98_dir = /home/user/data/sfd98",
-        cfgtype='string(default=None)')
-    remote_timeout = ConfigItem(
-        10.0, "Remote timeout in seconds.")
+        cfgtype="string(default=None)",
+    )
+    remote_timeout = ConfigItem(10.0, "Remote timeout in seconds.")
 
 
 # Create an instance of the class we just defined.

@@ -8,6 +8,21 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.10.0 (2023-04-27)
+====================
+
+Major Changes:
+
+- Dropped support for Python <3.7 (#361)
+
+- Add phase dependence option to PropagationEffect (#359)
+
+Additions & Improvements:
+
+- Add retrained SALT2 models from the DES and Pantheon+ teams (#355)
+  
+- Add TESS filter (#357)
+
 v2.9.0 (2022-09-27)
 ===================
 
