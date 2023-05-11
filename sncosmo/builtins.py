@@ -142,7 +142,8 @@ des_meta = {
     'filterset': 'des',
     'retrieved': '22 March 2013',
     'description': 'Dark Energy Camera grizy filter set at airmass 1.3'}
-for name, fname in [('desg', 'bandpasses/des/des_g.dat'),
+for name, fname in [('desu', 'bandpasses/des/des_u.dat'),
+                    ('desg', 'bandpasses/des/des_g.dat'),
                     ('desr', 'bandpasses/des/des_r.dat'),
                     ('desi', 'bandpasses/des/des_i.dat'),
                     ('desz', 'bandpasses/des/des_z.dat'),
