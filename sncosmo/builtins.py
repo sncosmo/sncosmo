@@ -539,7 +539,7 @@ goto_meta = {
     'description': ('GOTO filters from SVO (includes filter, optics,'
                     'detector and atmosphere.)')}
 for filt in ['B', 'G', 'L', 'R']:
-    name = 'atlas' + filt[0].lower()
+    name = 'goto' + filt[0].lower()
     relpath = 'bandpasses/goto/goto.{}'.format(filt)
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=goto_meta)
