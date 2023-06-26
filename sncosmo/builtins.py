@@ -530,6 +530,20 @@ for filt in ['Red']:
                                 args=(relpath,), meta=tess_meta)
 
 
+# GOTO
+goto_meta = {
+    'filterset': 'goto',
+    'retrieved': '16 June 2023',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': ('GOTO filters from SVO (includes filter, optics,'
+                    'detector and atmosphere.)')}
+for filt in ['B', 'G', 'L', 'R']:
+    name = 'goto' + filt[0].lower()
+    relpath = 'bandpasses/goto/goto.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=goto_meta)
+
 # =============================================================================
 # interpolators
 
