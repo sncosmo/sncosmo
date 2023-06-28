@@ -8,6 +8,15 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+
+v2.10.1 (2023-06-28)
+====================
+
+- Add GOTO_ (#374) and `DES u`_ (#371) filters.
+
+.. _GOTO: https://goto-observatory.org/
+.. _DES u: https://noirlab.edu/science/programs/ctio/filters/Dark-Energy-Camera
+
 v2.10.0 (2023-04-27)
 ====================
 
