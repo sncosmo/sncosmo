@@ -2035,7 +2035,7 @@ class F99Dust(PropagationEffect):
 class G10(PropagationEffect):
     """Guy (2010) SNe Ia non-coherent scattering.
     
-    Implementation from arxiv:1209.2482."""
+    Implementation is done following arxiv:1209.2482."""
 
     _param_names = ['L0', 'F0', 'F1', 'dL']
     param_names_latex = [r'\lambda_0', 'F_0', 'F_1', 'd_L']
@@ -2069,8 +2069,8 @@ class G10(PropagationEffect):
         idx_inf[idx_inf==len(lam_nodes) - 1] = -2
         lam_node_inf = lam_nodes[idx_inf]
         lam_node_sup = lam_nodes[idx_inf + 1]
-        smear_inf = siglam[idx_inf]
-        smear_sup = siglam[idx_inf + 1]
+        smear_inf = siglam_values[idx_inf]
+        smear_sup = siglam_values[idx_inf + 1]
         sin_interp = np.sin(np.pi * (wave - 0.5 * (lam_node_inf + lam_node_sup)) / (lam_node_sup - lam_node_inf))
         
         magscat = 0.5 * (smear_sup + smear_inf) + 0.5 * (smear_sup - smear_inf) * sin_interp
