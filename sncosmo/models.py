@@ -2051,6 +2051,8 @@ class G10(PropagationEffect):
         """Computes the sigma nodes."""
         L0, F0, F1, dL = self._parameters
         lam_nodes = np.arange(self._minwave, self._maxwave, dL)
+        if lam_nodes.max() < self._maxwave:
+            lam_nodes = np.append(lam_nodes, self._maxwave)
         siglam_values = self._colordisp(lam_nodes) 
         
         siglam_values[lam_nodes < L0] *= 1 + (lam_nodes[lam_nodes < L0] - L0) * F0
