@@ -2030,3 +2030,49 @@ class F99Dust(PropagationEffect):
         """Propagate the flux."""
         ebv = self._parameters[0]
         return extinction.apply(self._f(wave, ebv * self._r_v), flux)
+
+
+class G10(PropagationEffect):
+    """Guy (2010) SNe Ia non-coherent scattering.
+    
+    Implementation from arxiv:1209.2482."""
+
+    _param_names = ['L0', 'F0', 'F1', 'dL']
+    param_names_latex = [r'\lambda_0', 'F_0', 'F_1', 'd_L']
+
+    def __init__(self, SALTsource):
+        """Initialize G10 class."""
+        self._parameters = np.array([2157.3, 0.0, 1.08e-4, 800])
+        self._colordisp = SALTsource._colordisp
+        self._minwave = SALTsource.minwave()
+        self._maxwave = SALTsource.maxwave()
+
+    def compute_sigma_nodes(self):
+        """Computes the sigma nodes."""
+        L0, F0, F1, dL = self._parameters
+        lam_nodes = np.arange(self._minwave, self._maxwave, dL)
+        siglam_values = self._colordisp(lam_nodes) 
+        
+        siglam_values[lam_nodes < L0] *= 1 + (lam_nodes[lam_nodes < L0] - L0) * F0
+        siglam_values[lam_nodes > L0] *= 1 + (lam_nodes[lam_nodes > L0] - L0) * F1
+        siglam_values *= np.random.normal(size=len(lam_nodes))
+        
+        return lam_nodes, siglam_values
+
+    def propagate(self, wave, flux):
+        """Propagate the effect to the flux."""
+        lam_nodes, siglam_values = self.compute_sigma_nodes()
+        
+        # Compute the sinus interpolation
+        sup_bound = np.vstack([wave >= l for l in lam_nodes])
+        idx_inf = np.sum(sup_bound, axis=0) - 1
+        idx_inf[idx_inf==len(lam_nodes) - 1] = -2
+        lam_node_inf = lam_nodes[idx_inf]
+        lam_node_sup = lam_nodes[idx_inf + 1]
+        smear_inf = siglam[idx_inf]
+        smear_sup = siglam[idx_inf + 1]
+        sin_interp = np.sin(np.pi * (wave - 0.5 * (lam_node_inf + lam_node_sup)) / (lam_node_sup - lam_node_inf))
+        
+        magscat = 0.5 * (smear_sup + smear_inf) + 0.5 * (smear_sup - smear_inf) * sin_interp
+        
+        return flux * 10**(-0.4 * magscat)
