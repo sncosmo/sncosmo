@@ -539,3 +539,25 @@ def warn_once(name, depver, rmver, extra=None):
             msg += " " + extra
         warnings.warn(msg, stacklevel=2)
         warned.append(name)
+
+
+def sine_interp(x_new, fun_x, fun_y):
+    """Sinus interpolation for intrinsic scattering models."""
+    if len(fun_x) != len(fun_y):
+        raise ValueError('x and y must have the same len')
+    if (x_new > fun_x[-1]).any() or (x_new < fun_x[0]).any():
+        raise ValueError('x_new is out of range of fun_x')
+
+    sup_bound = np.vstack([x_new >= x for x in fun_x])
+    
+    idx_inf = np.sum(sup_bound, axis=0) - 1
+    idx_inf[idx_inf==len(fun_x) - 1] = -2
+    
+    x_inf = fun_x[idx_inf]
+    x_sup = fun_x[idx_inf + 1]
+    fun_y_inf = fun_y[idx_inf]
+    fun_y_sup = fun_y[idx_inf + 1]
+    
+    sin_interp = np.sin(np.pi * (x_new - 0.5 * (x_inf + x_sup)) / (x_sup - x_inf))
+    values = 0.5 * (fun_y_sup + fun_y_inf) + 0.5 * (fun_y_sup - fun_y_inf) * sin_interp
+    return values

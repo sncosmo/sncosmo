@@ -26,7 +26,7 @@ from .io import (
 )
 from .magsystems import get_magsystem
 from .salt2utils import BicubicInterpolator, SALT2ColorLaw
-from .utils import integration_grid
+from .utils import integration_grid, sine_interp
 
 __all__ = ['get_source', 'Source', 'TimeSeriesSource', 'StretchSource',
            'SUGARSource', 'SALT2Source', 'SALT3Source', 'MLCS2k2Source',
@@ -2064,17 +2064,61 @@ class G10(PropagationEffect):
     def propagate(self, wave, flux):
         """Propagate the effect to the flux."""
         lam_nodes, siglam_values = self.compute_sigma_nodes()
+        magscat = sine_interp(wave, lam_nodes, siglam_values)
+        return flux * 10**(-0.4 * magscat)
+
+
+class C11(PropagationEffect):
+    """C11 scattering effect for sncosmo.
+    Use COV matrix between the vUBVRI bands from N. Chottard thesis.
+        Implementation is done following arxiv:1209.2482."""
+
+    _param_names = ["C_vU", 'S_f']
+    param_names_latex = ["\rho_\mathrm{vU}", 'S_f']
+    _minwave = 2000
+    _maxwave = 11000
+
+    def __init__(self):
+        """Initialise C11 class."""
+        self._parameters = np.array([0., 1.3])
+
+        # vUBVRI lambda eff
+        self._lam_nodes = np.array([2500.0, 3560.0, 4390.0, 5490.0, 6545.0, 8045.0])
         
-        # Compute the sinus interpolation
-        sup_bound = np.vstack([wave >= l for l in lam_nodes])
-        idx_inf = np.sum(sup_bound, axis=0) - 1
-        idx_inf[idx_inf==len(lam_nodes) - 1] = -2
-        lam_node_inf = lam_nodes[idx_inf]
-        lam_node_sup = lam_nodes[idx_inf + 1]
-        smear_inf = siglam_values[idx_inf]
-        smear_sup = siglam_values[idx_inf + 1]
-        sin_interp = np.sin(np.pi * (wave - 0.5 * (lam_node_inf + lam_node_sup)) / (lam_node_sup - lam_node_inf))
+        # vUBVRI correlation matrix extract from SNANA, came from N.Chotard thesis
+        self._corr_matrix = np.array(
+            [
+                [+1.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000],
+                [ 0.000000, +1.000000, -0.118516, -0.768635, -0.908202, -0.219447],
+                [ 0.000000, -0.118516, +1.000000, +0.570333, -0.238470, -0.888611],
+                [ 0.000000, -0.768635, +0.570333, +1.000000, +0.530320, -0.399538],
+                [ 0.000000, -0.908202, -0.238470, +0.530320, +1.000000, +0.490134],
+                [ 0.000000, -0.219447, -0.888611, -0.399538, +0.490134, +1.000000]
+            ]
+            ) 
+
+        self._corr_matrix[0, 1:] = self._parameters[0] * self._corr_matrix[1, 1:]
+        self._corr_matrix[1:, 0] = self._parameters[0] * self._corr_matrix[1:, 1]
+
+        # vUBVRI sigma
+        self._siglam_values = np.array([0.5900, 0.06001, 0.040034, 0.050014, 0.040017, 0.080007])
         
-        magscat = 0.5 * (smear_sup + smear_inf) + 0.5 * (smear_sup - smear_inf) * sin_interp
+        # Convert corr to cov
+        self._cov_matrix = self._corr_matrix * np.outer(self._siglam_values, 
+                                                        self._siglam_values) 
+        # Rescale covariance as in arXiv:1209.2482
+        self._cov_matrix *= self._parameters[1]
+    
+    def propagate(self, wave, flux):
+        """Propagate the effect to the flux."""
+        siglam_values = np.random.multivariate_normal(np.zeros(len(self._lam_nodes)), self._cov_matrix)
+        
+        inf_mask = wave <= self._lam_nodes[0]
+        sup_mask = wave >= self._lam_nodes[-1]
+        
+        magscat = np.zeros(len(wave))
+        magscat[inf_mask] = siglam_values[0]
+        magscat[sup_mask] = siglam_values[-1]
+        magscat[~inf_mask & ~sup_mask] = sine_interp(wave[~inf_mask & ~sup_mask], self._lam_nodes, siglam_values)
         
         return flux * 10**(-0.4 * magscat)
