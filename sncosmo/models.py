@@ -2082,10 +2082,10 @@ class C11(PropagationEffect):
         """Initialise C11 class."""
         self._parameters = np.array([0., 1.3])
 
-        # U'UBVRI lambda eff
+        # vUBVRI lambda eff
         self._lam_nodes = np.array([2500.0, 3560.0, 4390.0, 5490.0, 6545.0, 8045.0])
         
-        # U'UBVRI correlation matrix extract from SNANA, came from N.Chotard thesis
+        # vUBVRI correlation matrix extract from SNANA, came from N.Chotard thesis
         self._corr_matrix = np.array(
             [
                 [+1.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000],
