@@ -2070,7 +2070,8 @@ class G10(PropagationEffect):
 
 class C11(PropagationEffect):
     """C11 scattering effect for sncosmo.
-    Use COV matrix between vUBVRI bands from N. Chottard thesis and follow SNANA formalism a arXiv:1209.2482"""
+    Use COV matrix between the vUBVRI bands from N. Chottard thesis.
+        Implementation is done following arxiv:1209.2482."""
 
     _param_names = ["C_vU", 'S_f']
     param_names_latex = ["\rho_\mathrm{vU}", 'S_f']
