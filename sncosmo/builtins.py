@@ -563,6 +563,7 @@ for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
 
 ultrasat_meta = {'filterset': 'ultrasat'}
 
+
 def load_ultrasat(name=None):
     abspath = DATADIR.abspath('bandpasses/ultrasat')
     wavelengths = os.path.join(abspath, 'Wavelength.dat')
@@ -579,6 +580,7 @@ def load_ultrasat(name=None):
         radial_transmissions.append((r, wavelengths*u.AA, tr))
 
     return BandpassInterpolator([], radial_transmissions, name=name)
+
 
 _BANDPASS_INTERPOLATORS.register_loader('ultrasat',
                                         load_ultrasat,
