@@ -565,10 +565,9 @@ ultrasat_meta = {'filterset': 'ultrasat'}
 
 
 def load_ultrasat(name=None):
-    abspath = DATADIR.abspath('bandpasses/ultrasat')
-    wavelengths = os.path.join(abspath, 'Wavelength.dat')
-    Rdeg = os.path.join(abspath, 'Rdeg.dat')
-    transmission = os.path.join(abspath, 'ULTRASAT_TR.dat')
+    wavelengths = DATADIR.abspath('bandpasses/ultrasat/Wavelength.dat')
+    Rdeg = DATADIR.abspath('bandpasses/ultrasat/Rdeg.dat')
+    transmission = DATADIR.abspath('bandpasses/ultrasat/ULTRASAT_TR.dat')
 
     wavelengths = np.loadtxt(wavelengths)
     Rdeg = np.loadtxt(Rdeg)
