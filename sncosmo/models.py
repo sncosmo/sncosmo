@@ -2047,6 +2047,10 @@ class G10(PropagationEffect):
         self._minwave = SALTsource.minwave()
         self._maxwave = SALTsource.maxwave()
 
+        # Draw the scattering
+        self._lam_nodes, self._siglam_values = self.compute_sigma_nodes()
+
+
     def compute_sigma_nodes(self):
         """Computes the sigma nodes."""
         L0, F0, F1, dL = self._parameters
@@ -2063,8 +2067,7 @@ class G10(PropagationEffect):
 
     def propagate(self, wave, flux):
         """Propagate the effect to the flux."""
-        lam_nodes, siglam_values = self.compute_sigma_nodes()
-        magscat = sine_interp(wave, lam_nodes, siglam_values)
+        magscat = sine_interp(wave, self._lam_nodes, self._siglam_values)
         return flux * 10**(-0.4 * magscat)
 
 
@@ -2108,17 +2111,20 @@ class C11(PropagationEffect):
                                                         self._siglam_values) 
         # Rescale covariance as in arXiv:1209.2482
         self._cov_matrix *= self._parameters[1]
+
+        # Draw the scattering
+        self._siglam_values = np.random.multivariate_normal(np.zeros(len(self._lam_nodes)), self._cov_matrix)
+
     
     def propagate(self, wave, flux):
         """Propagate the effect to the flux."""
-        siglam_values = np.random.multivariate_normal(np.zeros(len(self._lam_nodes)), self._cov_matrix)
         
         inf_mask = wave <= self._lam_nodes[0]
         sup_mask = wave >= self._lam_nodes[-1]
         
         magscat = np.zeros(len(wave))
-        magscat[inf_mask] = siglam_values[0]
-        magscat[sup_mask] = siglam_values[-1]
-        magscat[~inf_mask & ~sup_mask] = sine_interp(wave[~inf_mask & ~sup_mask], self._lam_nodes, siglam_values)
+        magscat[inf_mask] = self._siglam_values[0]
+        magscat[sup_mask] = self._siglam_values[-1]
+        magscat[~inf_mask & ~sup_mask] = sine_interp(wave[~inf_mask & ~sup_mask], self._lam_nodes, self._siglam_values)
         
         return flux * 10**(-0.4 * magscat)
