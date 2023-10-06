@@ -246,6 +246,32 @@ this value is perfectly known from the dust map. Therefore, when using
 a function such as `~sncosmo.fit_lc` to fit the parameters, be sure *not* to
 include ``'mwebv'`` in the list of parameters to vary.
 
+Adding color dependant scatter model
+====================================
+
+The intrinsic scattering of SNe Ia is color dependant it can be modelled for simulation purpose
+by G10 or C11 models. They both act as random variation in the spectra model of the SN Ia. The G10 and C11 models implemented in 
+`~sncosmo.Model` can be added to a model as:
+
+    >>> source = 'salt2'
+    >>> SALTSource = sncosmo.models.get_source(name=source)
+    >>> G10 = snc.models.G10(SALTSource)
+    >>> SALTwithG10 = sncosmo.Model(source='salt2',
+                                    effects=[G10],
+                                    effect_names=['G10'],
+                                    effect_frames=['rest'])
+
+and
+
+    >>> C11 = snc.models.C11()
+    >>> SALTwithC11 = sncosmo.Model(source='salt2',
+                                    effects=[C11],
+                                    effect_names=['C11'],
+                                    effect_frames=['rest'])
+
+
+
+
 Phase Dependant effects
 =======================
 
@@ -373,4 +399,4 @@ parameters:
     >>> source = sncosmo.SALT2Source(modeldir='/path/to/dir',
     ...                              m0file='mytemplate0file.dat')
 
-See `~sncosmo.SALT2Source` for more details.
+See  for more details.
