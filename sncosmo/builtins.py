@@ -20,7 +20,8 @@ from . import conf
 from . import io
 from . import snfitio
 from .bandpasses import (
-    Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
+    Bandpass, BandpassInterpolator,
+    _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
 
 from .constants import BANDPASS_TRIM_LEVEL
 from .magsystems import (
@@ -559,6 +560,30 @@ for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
     _BANDPASS_INTERPOLATORS.register_loader('megacampsf::' + letter,
                                             load_megacampsf, args=(letter,),
                                             meta=megacam_meta)
+
+ultrasat_meta = {'filterset': 'ultrasat'}
+
+
+def load_ultrasat(name=None):
+    wavelengths = DATADIR.abspath('bandpasses/ultrasat/Wavelength.dat')
+    Rdeg = DATADIR.abspath('bandpasses/ultrasat/Rdeg.dat')
+    transmission = DATADIR.abspath('bandpasses/ultrasat/ULTRASAT_TR.dat')
+
+    wavelengths = np.loadtxt(wavelengths)
+    Rdeg = np.loadtxt(Rdeg)
+    transmission = np.loadtxt(transmission, delimiter=',').T
+
+    # transmission functions at each radius
+    radial_transmissions = []
+    for r, tr in zip(Rdeg, transmission):
+        radial_transmissions.append((r, wavelengths*u.AA, tr))
+
+    return BandpassInterpolator([], radial_transmissions, name=name)
+
+
+_BANDPASS_INTERPOLATORS.register_loader('ultrasat',
+                                        load_ultrasat,
+                                        meta=ultrasat_meta)
 
 # =============================================================================
 # Sources

@@ -9,6 +9,13 @@ exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
 
+v2.10.2 (2023-09-29)
+====================
+
+- Add ultrasat_ bandpasses (#381).
+
+.._ultrasat: https://www.weizmann.ac.il/ultrasat/
+
 v2.10.1 (2023-06-28)
 ====================
 
