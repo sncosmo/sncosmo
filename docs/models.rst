@@ -250,18 +250,29 @@ Adding color dependant scatter model
 ====================================
 
 The intrinsic scattering of SNe Ia is color dependant it can be modelled for simulation purpose
-by G10 or C11 models. They both act as random variation in the spectra model of the SN Ia. The G10 and C11 models implemented in 
-`~sncosmo.Model` can be added to a model as:
+by G10 or C11 models. The implemention is based on Kessler et al. 2012.
+They both act as random variation in the spectra model of a `~sncosmo.SALT2Source` or `~sncosmo.SALT3Source`.
+
+The G10 model take a `SALTSource` as an argument and can be added to your `~sncosmo.Model` as:
+
+.. code:: python
 
     >>> source = 'salt2'
     >>> SALTSource = sncosmo.models.get_source(name=source)
-    >>> G10 = snc.models.G10(SALTSource)
+    >>> G10 = snc.models.G10(SALTsource=SALTSource)
     >>> SALTwithG10 = sncosmo.Model(source='salt2',
                                     effects=[G10],
                                     effect_names=['G10'],
                                     effect_frames=['rest'])
 
-and
+The G10 model parameters are:   
+
+* ``L0``, ``F0`` and ``F1`` are used in the multiplicative factor introduced in Kessler et al. 2012. Their default values are ``L0=2157.3``, ``F0=0`` and ``F1=1.08e-4``.
+* ``dL`` the wavelength range between each scatter node. Following Kessler et al. 2012 it is set by default to 800A.
+
+The C11 model can be added to your `~sncosmo.Model` as:
+
+.. code:: python
 
     >>> C11 = snc.models.C11()
     >>> SALTwithC11 = sncosmo.Model(source='salt2',
@@ -269,6 +280,10 @@ and
                                     effect_names=['C11'],
                                     effect_frames=['rest'])
 
+The C11 model parameters are:
+
+* ``C_vU`` the correlation coefficient between the v and U band that could be -1, 0 or 1.
+* ``S_f`` a scale factor fixed by default to ``S_f=1.3`` according to Kessler et al. 2012.
 
 
 
