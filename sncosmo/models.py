@@ -2047,9 +2047,8 @@ class G10(PropagationEffect):
         self._minwave = SALTsource.minwave()
         self._maxwave = SALTsource.maxwave()
 
-        # Draw the scattering
-        self._lam_nodes, self._siglam_values = self.compute_sigma_nodes()
-        self._siglam_values *= np.random.normal(size=len(self._lam_nodes))
+        self._seed = np.random.SeedSequence()
+        
 
     def compute_sigma_nodes(self):
         """Computes the sigma nodes."""
@@ -2065,8 +2064,10 @@ class G10(PropagationEffect):
         return lam_nodes, siglam_values
 
     def propagate(self, wave, flux):
-        """Propagate the effect to the flux."""
-        magscat = sine_interp(wave, self._lam_nodes, self._siglam_values)
+        """Propagate the effect to the flux."""# Draw the scattering
+        lam_nodes, siglam_values = self.compute_sigma_nodes()
+        siglam_values *= np.random.default_rng(self._seed).normal(size=len(lam_nodes))
+        magscat = sine_interp(wave, lam_nodes, siglam_values)
         return flux * 10**(-0.4 * magscat)
 
 
@@ -2075,7 +2076,7 @@ class C11(PropagationEffect):
     Use COV matrix between the vUBVRI bands from N. Chottard thesis.
         Implementation is done following arxiv:1209.2482."""
 
-    _param_names = ["C_vU", 'S_f']
+    _param_names = ["CvU", 'Sf']
     param_names_latex = ["\rho_\mathrm{vU}", 'S_f']
     _minwave = 2000
     _maxwave = 11000
@@ -2099,31 +2100,44 @@ class C11(PropagationEffect):
             ]
             ) 
 
-        self._corr_matrix[0, 1:] = self._parameters[0] * self._corr_matrix[1, 1:]
-        self._corr_matrix[1:, 0] = self._parameters[0] * self._corr_matrix[1:, 1]
-
         # vUBVRI sigma
-        self._siglam_values = np.array([0.5900, 0.06001, 0.040034, 0.050014, 0.040017, 0.080007])
+        self._variance = np.array([0.5900, 0.06001, 0.040034, 0.050014, 0.040017, 0.080007])
         
+        self._seed = np.random.SeedSequence()
+
+    def build_cov(self):
+        CvU, Sf = self._parameters
+        
+        cov_matrix = self._corr_matrix.copy()
+        
+        # Set up the vU correlation
+        cov_matrix[0, 1:] = CvU * self._corr_matrix[1, 1:]
+        cov_matrix[1:, 0] = CvU * self._corr_matrix[1:, 1]
+
         # Convert corr to cov
-        self._cov_matrix = self._corr_matrix * np.outer(self._siglam_values, 
-                                                        self._siglam_values) 
+        cov_matrix *= np.outer(self._variance, 
+                               self._variance)
+        
         # Rescale covariance as in arXiv:1209.2482
-        self._cov_matrix *= self._parameters[1]
-
-        # Draw the scattering
-        self._siglam_values = np.random.multivariate_normal(np.zeros(len(self._lam_nodes)), self._cov_matrix)
-
-    
+        cov_matrix *= Sf
+        return cov_matrix
+        
     def propagate(self, wave, flux):
         """Propagate the effect to the flux."""
         
+        cov_matrix = self.build_cov()
+        
+        # Draw the scattering
+        siglam_values = np.random.default_rng(self._seed).multivariate_normal(np.zeros(len(self._lam_nodes)), 
+                                                                              cov_matrix)
+
         inf_mask = wave <= self._lam_nodes[0]
         sup_mask = wave >= self._lam_nodes[-1]
         
         magscat = np.zeros(len(wave))
-        magscat[inf_mask] = self._siglam_values[0]
-        magscat[sup_mask] = self._siglam_values[-1]
-        magscat[~inf_mask & ~sup_mask] = sine_interp(wave[~inf_mask & ~sup_mask], self._lam_nodes, self._siglam_values)
+        magscat[inf_mask] = siglam_values[0]
+        magscat[sup_mask] = siglam_values[-1]
+        magscat[~inf_mask & ~sup_mask] = sine_interp(wave[~inf_mask & ~sup_mask], 
+                                                     self._lam_nodes, siglam_values)
         
         return flux * 10**(-0.4 * magscat)
