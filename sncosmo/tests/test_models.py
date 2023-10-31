@@ -367,3 +367,30 @@ def test_effect_phase_dependent():
                                 effect_frames=['rest'],
                                 effect_names=['micro'])
     assert_approx_equal(model_micro.flux(50., 5000.).flatten(), flux*10.)
+
+
+def test_G10():
+    """Test Model with G10 color dependant scatter"""
+
+    SALT2Source = sncosmo.models.get_source('salt2', version='2.4')
+    ModelRef = sncosmo.Model(SALT2Source)
+    
+    G10 = sncosmo.models.G10(SALT2Source)
+    ModelWithG10 = sncosmo.Model(source=SALT2Source,
+                                 effects=[G10],
+                                 effect_frames=['rest'],
+                                 effect_names=['G10'])
+    
+    # Test how nodes are computed
+    assert_allclose(G10._lam_nodes, np.array([2000., 2800., 3600., 4400., 5200., 
+                                              6000., 6800., 7600., 8400., 9200.]))
+    
+    # Test how siglam values are computed
+    _, lam_values = G10.compute_sigma_nodes()
+    assert_allclose(lam_values, np.array([1.308910000, 0.259717301, 0.078368072, 0.035382907, 
+                                          0.023921785, 0.024232781, 0.036799298 , 0.083808031, 
+                                          0.286347107, 1.468232113]))
+    
+    # Test difference to model without scatter
+    assert_allclose(ModelWithG10.flux(0, G10._lam_nodes),
+                    ModelRef.flux(0, G10._lam_nodes) * 10**(-0.4 * G10._siglam_values))

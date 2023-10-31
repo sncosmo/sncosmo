@@ -2049,7 +2049,7 @@ class G10(PropagationEffect):
 
         # Draw the scattering
         self._lam_nodes, self._siglam_values = self.compute_sigma_nodes()
-
+        self._siglam_values *= np.random.normal(size=len(self._lam_nodes))
 
     def compute_sigma_nodes(self):
         """Computes the sigma nodes."""
@@ -2061,7 +2061,6 @@ class G10(PropagationEffect):
         
         siglam_values[lam_nodes < L0] *= 1 + (lam_nodes[lam_nodes < L0] - L0) * F0
         siglam_values[lam_nodes > L0] *= 1 + (lam_nodes[lam_nodes > L0] - L0) * F1
-        siglam_values *= np.random.normal(size=len(lam_nodes))
         
         return lam_nodes, siglam_values
 
