@@ -282,8 +282,8 @@ The C11 model can be added to your `~sncosmo.Model` as:
 
 The C11 model parameters are:
 
-* ``C_vU`` the correlation coefficient between the v and U band that could be -1, 0 or 1.
-* ``S_f`` a scale factor fixed by default to ``S_f=1.3`` according to Kessler et al. 2012.
+* ``CvU`` the correlation coefficient between the v and U band that could be -1, 0 or 1.
+* ``Sf`` a scale factor fixed by default to ``S_f=1.3`` according to Kessler et al. 2012.
 
 
 
