@@ -57,7 +57,7 @@ def get_rootdir():
     return data_dir
 
 
-DATADIR = DataMirror(get_rootdir, "http://sncosmo.github.io/data")
+DATADIR = DataMirror(get_rootdir, "https://sncosmo.github.io/data")
 
 
 # =============================================================================
