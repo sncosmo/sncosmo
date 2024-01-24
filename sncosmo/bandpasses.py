@@ -37,9 +37,10 @@ def get_bandpass(name, **kwargs):
     assert type(interp) is GeneralBandpassInterpolator
     x = kwargs.get('x', 0.)
     y = kwargs.get('y', 0.)
+    filter_frame = kwargs.get('filter_frame', False)
     sensor_id = kwargs.get('sensor_id', 1)
     wavegrid = kwargs.get('wave', interp.wavegrid)
-    trans = interp.eval_at(x, y, sensor_id, wavegrid)
+    trans = interp.eval_at(x, y, sensor_id, wavegrid, filter_frame=filter_frame)
 
     if trans.shape[0] == 1:
         return Bandpass(wavegrid, trans.squeeze(), name=name)
@@ -634,14 +635,41 @@ class GeneralBandpassInterpolator(object):
 
     def eval_at(self, x, y, sensor_id, wl, **keys):
         """evaluate a series of transmissions at the requested positions
+
+        Parameters:
+        -----------
+        x : ndarray
+          array of x-coordinates (in pixels) in the ccd frame
+          if filter_pos is True, the x's are interpreted as x-coordinates on the filter frame.
+        y : ndarray
+          array of y-coordinates (in pixels) in the ccd frame
+          if filter_pos is True, the y's are interpreted as y-coordinates in the filter frame,
+        sensor_id : ndarray
+          list of sensor_ids for the requested positions
+        wl : ndarray
+          wavelength grid on which to evaluate the transmissions
+        filter_frame : boolean (default, False)
+          whether to interpret the x,y positions as ccd positions (in pixels)
+          or filter positions (in mm in the filter frame)
+          Used mainly for debugging.
+
+        Returns
+        -------
+        ndarray of floats
+          a 2D array of shape (Nwl, Np) where Np is the number of filter evaluations
+          and Nwl is the size of the wavelength grid.
         """
         trans = None
 
         x = np.atleast_1d(x).astype(float)
         y = np.atleast_1d(y).astype(float)
         sensor_id = np.atleast_1d(sensor_id).astype(int)
+        filter_frame = keys.get('filter_frame', False)
 
-        X,Y = self.transforms.to_filter(x, y, sensor_id)
+        if not filter_frame:
+            X, Y = self.transforms.to_filter(x, y, sensor_id)
+        else:
+            X, Y = x, y
 
         if self.variable_transmission:
             if not self.radial:
