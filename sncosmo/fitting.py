@@ -396,7 +396,11 @@ def _run_iminuit(chisq, parameter_names, start_values, start_errors, bounds,
 
     # The iminuit API changed significantly in version 2. Handle both the new
     # and old APIs.
-    from distutils.version import LooseVersion
+    try:
+        from distutils.version import LooseVersion
+    except ModuleNotFoundError:
+        # distutils was dropped in python 2.12
+        from looseversion import LooseVersion
     iminuit_version = LooseVersion(iminuit.__version__)
 
     if verbose:
