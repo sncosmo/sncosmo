@@ -9,6 +9,12 @@ exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
 
+v2.10.3 (2024-01-31)
+====================
+
+- Fix issue with Python 3.12. Added dependency, `looseversion`, to replace removed `distutil` module (#387).
+
+
 v2.10.2 (2023-09-29)
 ====================
 
