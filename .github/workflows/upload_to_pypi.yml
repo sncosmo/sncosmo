@@ -59,17 +59,17 @@ jobs:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.1.1
         with:
           name: sdist
           path: dist
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.1.1
         with:
           path: dist
           pattern: wheels-*
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
+      - uses: pypa/gh-action-pypi-publish@v1.8.11
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
