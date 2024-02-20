@@ -67,6 +67,7 @@ jobs:
       - uses: actions/download-artifact@v4.1.1
         with:
           path: dist
+          merge-multiple: true  # put contents of each wheel folder into dist/
           pattern: wheels-*
 
       - uses: pypa/gh-action-pypi-publish@v1.8.11
