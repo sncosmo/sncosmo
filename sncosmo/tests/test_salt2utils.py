@@ -109,7 +109,7 @@ def test_salt2colorlaw_vs_python():
 
 def test_salt2colorlaw_pickle():
 
-    colorlaw_coeffs = [-0.504294, 0.787691, -0.461715, 0.0815619]
+    colorlaw_coeffs = [-0.504294, 0.787691, -0.461715, 0.0815619, 0.0, 0.0]
     colorlaw_range = (2800., 7000.)
     colorlaw = SALT2ColorLaw(colorlaw_range, colorlaw_coeffs)
 
