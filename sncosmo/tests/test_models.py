@@ -367,3 +367,65 @@ def test_effect_phase_dependent():
                                 effect_frames=['rest'],
                                 effect_names=['micro'])
     assert_approx_equal(model_micro.flux(50., 5000.).flatten(), flux*10.)
+
+
+def test_G10():
+    """Test Model with G10 color dependant scatter"""
+
+    SALT2Source = sncosmo.models.get_source('salt2', version='2.4')
+    ModelRef = sncosmo.Model(SALT2Source)
+
+    G10 = sncosmo.models.G10(SALT2Source)
+    ModelWithG10 = sncosmo.Model(source=SALT2Source,
+                                 effects=[G10],
+                                 effect_frames=['rest'],
+                                 effect_names=['G10'])
+
+    lam_nodes, siglam_values = G10.compute_sigma_nodes()
+
+    # Test how nodes are computed
+    assert_allclose(lam_nodes, np.array([2000., 2800., 3600., 4400.,
+                                         5200., 6000., 6800., 7600.,
+                                         8400., 9200.]))
+
+    # Test how siglam values are computed
+    assert_allclose(siglam_values, np.array([1.308910000, 0.259717301,
+                                             0.078368072, 0.035382907,
+                                             0.023921785, 0.024232781,
+                                             0.036799298, 0.083808031,
+                                             0.286347107, 1.468232113]))
+
+    # Compare with and without G10
+    random = np.random.default_rng(G10._seed).normal(size=len(lam_nodes))
+    assert_allclose(ModelWithG10.flux(0, lam_nodes),
+                    ModelRef.flux(0, lam_nodes) *
+                    10**(-0.4 * siglam_values * random))
+
+
+def test_C11():
+    """Test Model with C11 color dependant scatter"""
+    SALT2Source = sncosmo.models.get_source('salt2', version='2.4')
+    ModelRef = sncosmo.Model(SALT2Source)
+
+    C11 = sncosmo.models.C11()
+    ModelWithC11 = sncosmo.Model(source=SALT2Source,
+                                 effects=[C11],
+                                 effect_frames=['rest'],
+                                 effect_names=['C11_'])
+
+    for CvU in [-1, 0, 1]:
+        ModelWithC11.set(C11_CvU=CvU, C11_Sf=1)
+        cov = ModelWithC11.effects[0].build_cov()
+
+        # Test construvtion of cov matrix
+        corr = cov / np.outer(C11._variance, C11._variance)
+        assert_allclose(corr[0, 1:], CvU * C11._corr_matrix[1, 1:])
+        assert_allclose(corr[1:, 0], CvU * C11._corr_matrix[1, 1:])
+        assert_allclose(corr[1:, 1:], C11._corr_matrix[1:, 1:])
+
+        # Compare to model without C11
+        random = np.random.default_rng(
+            C11._seed).multivariate_normal(np.zeros(len(C11._lam_nodes)),
+                                           cov)
+        assert_allclose(ModelWithC11.flux(0, C11._lam_nodes),
+                        ModelRef.flux(0, C11._lam_nodes) * 10**(-0.4 * random))

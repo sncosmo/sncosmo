@@ -246,6 +246,47 @@ this value is perfectly known from the dust map. Therefore, when using
 a function such as `~sncosmo.fit_lc` to fit the parameters, be sure *not* to
 include ``'mwebv'`` in the list of parameters to vary.
 
+Adding color dependant scatter model
+====================================
+
+The intrinsic scattering of SNe Ia is color dependant it can be modelled for simulation purpose
+by G10 or C11 models. The implemention is based on Kessler et al. 2012.
+They both act as random variation in the spectra model of a `~sncosmo.SALT2Source` or `~sncosmo.SALT3Source`.
+
+The G10 model relies on SALT2 residuals, thus it needs to take a `SALTSource` as an argument. It can be added to your `~sncosmo.Model` as:
+
+.. code:: python
+
+    >>> source = 'salt2'
+    >>> SALTSource = sncosmo.models.get_source(name=source)
+    >>> G10 = sncosmo.models.G10(SALTsource=SALTSource)
+    >>> SALTwithG10 = sncosmo.Model(source='salt2',
+                                    effects=[G10],
+                                    effect_names=['G10'],
+                                    effect_frames=['rest'])
+
+The G10 model parameters are:   
+
+* ``L0``, ``F0`` and ``F1`` are used in the multiplicative factor introduced in Kessler et al. 2012. Their default values are ``L0=2157.3``, ``F0=0`` and ``F1=1.08e-4``.
+* ``dL`` the wavelength range between each scatter node. Following Kessler et al. 2012 it is set by default to 800A.
+
+Since the C11 model does not relies on SALT2 residuals, it does not need a `SALTSource`. It can be added to your `~sncosmo.Model` as:
+
+.. code:: python
+
+    >>> C11 = sncosmo.models.C11()
+    >>> SALTwithC11 = sncosmo.Model(source='salt2',
+                                    effects=[C11],
+                                    effect_names=['C11'],
+                                    effect_frames=['rest'])
+
+The C11 model parameters are:
+
+* ``CvU`` the correlation coefficient between the v and U band that could be -1, 0 or 1.
+* ``Sf`` a scale factor fixed by default to ``S_f=1.3`` according to Kessler et al. 2012.
+
+
+
 Phase Dependant effects
 =======================
 
