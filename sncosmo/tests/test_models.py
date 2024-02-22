@@ -377,27 +377,29 @@ def test_G10():
 
     G10 = sncosmo.models.G10(SALT2Source)
     ModelWithG10 = sncosmo.Model(source=SALT2Source,
-                                effects=[G10],
-                                effect_frames=['rest'],
-                                effect_names=['G10'])
+                                 effects=[G10],
+                                 effect_frames=['rest'],
+                                 effect_names=['G10'])
 
     lam_nodes, siglam_values = G10.compute_sigma_nodes()
 
     # Test how nodes are computed
     assert_allclose(lam_nodes, np.array([2000., 2800., 3600., 4400., 
-                                            5200., 6000., 6800., 7600.,
-                                            8400., 9200.])) 
+                                         5200., 6000., 6800., 7600.,
+                                         8400., 9200.])) 
 
     # Test how siglam values are computed
-    assert_allclose(siglam_values, np.array([1.308910000, 0.259717301, 0.078368072, 0.035382907, 
-                                            0.023921785, 0.024232781, 0.036799298 , 0.083808031, 
-                                            0.286347107, 1.468232113]))
-
+    assert_allclose(siglam_values, np.array([1.308910000, 0.259717301,
+                                             0.078368072, 0.035382907,
+                                             0.023921785, 0.024232781,
+                                             0.036799298, 0.083808031,
+                                             0.286347107, 1.468232113]))
 
     # Compare with and without G10
     random = np.random.default_rng(G10._seed).normal(size=len(lam_nodes))
-    assert_allclose(ModelWithG10.flux(0, lam_nodes), 
-                    ModelRef.flux(0, lam_nodes) * 10**(-0.4 * siglam_values * random))
+    assert_allclose(ModelWithG10.flux(0, lam_nodes),
+                    ModelRef.flux(0, lam_nodes) *
+                    10**(-0.4 * siglam_values * random))
     
 
 def test_C11():
@@ -407,9 +409,9 @@ def test_C11():
 
     C11 = sncosmo.models.C11()
     ModelWithC11 = sncosmo.Model(source=SALT2Source,
-                                effects=[C11],
-                                effect_frames=['rest'],
-                                effect_names=['C11_'])
+                                 effects=[C11],
+                                 effect_frames=['rest'],
+                                 effect_names=['C11_'])
 
     for CvU in [-1, 0, 1]:
         ModelWithC11.set(C11_CvU=CvU, C11_Sf=1)
@@ -422,7 +424,8 @@ def test_C11():
         assert_allclose(corr[1:, 1:], C11._corr_matrix[1:, 1:])
 
         # Compare to model without C11 
-        random = np.random.default_rng(C11._seed).multivariate_normal(np.zeros(len(C11._lam_nodes)), 
-                                                                      cov)
+        random = np.random.default_rng(
+            C11._seed).multivariate_normal(np.zeros(len(C11._lam_nodes)),
+                                           cov)
         assert_allclose(ModelWithC11.flux(0, C11._lam_nodes), 
                         ModelRef.flux(0, C11._lam_nodes) * 10**(-0.4 * random))

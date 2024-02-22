@@ -2034,7 +2034,7 @@ class F99Dust(PropagationEffect):
 
 class G10(PropagationEffect):
     """Guy (2010) SNe Ia non-coherent scattering.
-    
+
     Implementation is done following arxiv:1209.2482."""
 
     _param_names = ['L0', 'F0', 'F1', 'dL']
@@ -2048,7 +2048,6 @@ class G10(PropagationEffect):
         self._maxwave = SALTsource.maxwave()
 
         self._seed = np.random.SeedSequence()
-        
 
     def compute_sigma_nodes(self):
         """Computes the sigma nodes."""
@@ -2057,16 +2056,21 @@ class G10(PropagationEffect):
         if lam_nodes.max() < self._maxwave:
             lam_nodes = np.append(lam_nodes, self._maxwave)
         siglam_values = self._colordisp(lam_nodes) 
-        
-        siglam_values[lam_nodes < L0] *= 1 + (lam_nodes[lam_nodes < L0] - L0) * F0
-        siglam_values[lam_nodes > L0] *= 1 + (lam_nodes[lam_nodes > L0] - L0) * F1
+
+        siglam_values[lam_nodes < L0] *= (1 +
+                                          (lam_nodes[lam_nodes < L0] - L0) * F0
+                                          )
+        siglam_values[lam_nodes > L0] *= (1 + 
+                                          (lam_nodes[lam_nodes > L0] - L0) * F1
+                                          )
         
         return lam_nodes, siglam_values
 
     def propagate(self, wave, flux):
-        """Propagate the effect to the flux."""# Draw the scattering
+        """Propagate the effect to the flux."""  # Draw the scattering
         lam_nodes, siglam_values = self.compute_sigma_nodes()
-        siglam_values *= np.random.default_rng(self._seed).normal(size=len(lam_nodes))
+        siglam_values *= np.random.default_rng(
+                                        self._seed).normal(size=len(lam_nodes))
         magscat = sine_interp(wave, lam_nodes, siglam_values)
         return flux * 10**(-0.4 * magscat)
 
@@ -2086,30 +2090,32 @@ class C11(PropagationEffect):
         self._parameters = np.array([0., 1.3])
 
         # vUBVRI lambda eff
-        self._lam_nodes = np.array([2500.0, 3560.0, 4390.0, 5490.0, 6545.0, 8045.0])
+        self._lam_nodes = np.array([2500.0, 3560.0, 4390.0, 
+                                    5490.0, 6545.0, 8045.0])
         
-        # vUBVRI correlation matrix extract from SNANA, came from N.Chotard thesis
+        # vUBVRI correlation matrix extract from SNANA from N.Chotard thesis
         self._corr_matrix = np.array(
-            [
-                [+1.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000],
-                [ 0.000000, +1.000000, -0.118516, -0.768635, -0.908202, -0.219447],
-                [ 0.000000, -0.118516, +1.000000, +0.570333, -0.238470, -0.888611],
-                [ 0.000000, -0.768635, +0.570333, +1.000000, +0.530320, -0.399538],
-                [ 0.000000, -0.908202, -0.238470, +0.530320, +1.000000, +0.490134],
-                [ 0.000000, -0.219447, -0.888611, -0.399538, +0.490134, +1.000000]
-            ]
+          [
+            [+1.000000,  0.000000,  0.000000,  0.000000,  0.000000, 0.000000],
+            [0.000000, +1.000000, -0.118516, -0.768635, -0.908202, -0.219447],
+            [0.000000, -0.118516, +1.000000, +0.570333, -0.238470, -0.888611],
+            [0.000000, -0.768635, +0.570333, +1.000000, +0.530320, -0.399538],
+            [0.000000, -0.908202, -0.238470, +0.530320, +1.000000, +0.490134],
+            [0.000000, -0.219447, -0.888611, -0.399538, +0.490134, +1.000000]
+          ]
             ) 
 
         # vUBVRI sigma
-        self._variance = np.array([0.5900, 0.06001, 0.040034, 0.050014, 0.040017, 0.080007])
-        
+        self._variance = np.array([0.5900, 0.06001, 0.040034, 
+                                   0.050014, 0.040017, 0.080007])
+
         self._seed = np.random.SeedSequence()
 
     def build_cov(self):
         CvU, Sf = self._parameters
-        
+
         cov_matrix = self._corr_matrix.copy()
-        
+
         # Set up the vU correlation
         cov_matrix[0, 1:] = CvU * self._corr_matrix[1, 1:]
         cov_matrix[1:, 0] = CvU * self._corr_matrix[1:, 1]
@@ -2117,7 +2123,7 @@ class C11(PropagationEffect):
         # Convert corr to cov
         cov_matrix *= np.outer(self._variance, 
                                self._variance)
-        
+
         # Rescale covariance as in arXiv:1209.2482
         cov_matrix *= Sf
         return cov_matrix
@@ -2128,16 +2134,18 @@ class C11(PropagationEffect):
         cov_matrix = self.build_cov()
         
         # Draw the scattering
-        siglam_values = np.random.default_rng(self._seed).multivariate_normal(np.zeros(len(self._lam_nodes)), 
-                                                                              cov_matrix)
+        siglam_values = np.random.default_rng(
+            self._seed).multivariate_normal(np.zeros(len(self._lam_nodes)), 
+                                            cov_matrix)
 
         inf_mask = wave <= self._lam_nodes[0]
         sup_mask = wave >= self._lam_nodes[-1]
-        
+
         magscat = np.zeros(len(wave))
         magscat[inf_mask] = siglam_values[0]
         magscat[sup_mask] = siglam_values[-1]
-        magscat[~inf_mask & ~sup_mask] = sine_interp(wave[~inf_mask & ~sup_mask], 
-                                                     self._lam_nodes, siglam_values)
-        
+        magscat[~inf_mask & ~sup_mask] = sine_interp(
+                                            wave[~inf_mask & ~sup_mask], 
+                                            self._lam_nodes, siglam_values)
+
         return flux * 10**(-0.4 * magscat)
