@@ -384,9 +384,9 @@ def test_G10():
     lam_nodes, siglam_values = G10.compute_sigma_nodes()
 
     # Test how nodes are computed
-    assert_allclose(lam_nodes, np.array([2000., 2800., 3600., 4400., 
+    assert_allclose(lam_nodes, np.array([2000., 2800., 3600., 4400.,
                                          5200., 6000., 6800., 7600.,
-                                         8400., 9200.])) 
+                                         8400., 9200.]))
 
     # Test how siglam values are computed
     assert_allclose(siglam_values, np.array([1.308910000, 0.259717301,
@@ -400,7 +400,7 @@ def test_G10():
     assert_allclose(ModelWithG10.flux(0, lam_nodes),
                     ModelRef.flux(0, lam_nodes) *
                     10**(-0.4 * siglam_values * random))
-    
+
 
 def test_C11():
     """Test Model with C11 color dependant scatter"""
@@ -415,17 +415,17 @@ def test_C11():
 
     for CvU in [-1, 0, 1]:
         ModelWithC11.set(C11_CvU=CvU, C11_Sf=1)
-        cov = ModelWithC11.effects[0].build_cov() 
-        
+        cov = ModelWithC11.effects[0].build_cov()
+
         # Test construvtion of cov matrix
         corr = cov / np.outer(C11._variance, C11._variance)
         assert_allclose(corr[0, 1:], CvU * C11._corr_matrix[1, 1:])
         assert_allclose(corr[1:, 0], CvU * C11._corr_matrix[1, 1:])
         assert_allclose(corr[1:, 1:], C11._corr_matrix[1:, 1:])
 
-        # Compare to model without C11 
+        # Compare to model without C11
         random = np.random.default_rng(
             C11._seed).multivariate_normal(np.zeros(len(C11._lam_nodes)),
                                            cov)
-        assert_allclose(ModelWithC11.flux(0, C11._lam_nodes), 
+        assert_allclose(ModelWithC11.flux(0, C11._lam_nodes),
                         ModelRef.flux(0, C11._lam_nodes) * 10**(-0.4 * random))
