@@ -8,6 +8,14 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.11.0 (2024-07-05)
+====================
+
+- Drop support for Python 3.8
+- New `add_effect` for G10 and C11 SNIa intrinsic scatter models (#378)
+- Salt2 ColorLaw function correction (#389)
+
+
 v2.10.4 (2024-02-20)
 ====================
 
