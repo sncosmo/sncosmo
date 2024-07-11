@@ -8,7 +8,12 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
-v2.11.0 (2024-07-05)
+v2.11.1 (2024-07-11)
+====================
+
+- Add Nugent Type Ia Super-Chandra model from Fitz Axen and Nugent, (2023) ApJ, v. 953, p. 13
+
+v2.11.0 (2024-07-11)
 ====================
 
 - Drop support for Python 3.8

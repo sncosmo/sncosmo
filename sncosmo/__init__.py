@@ -7,7 +7,7 @@ import os
 
 from astropy.config import ConfigItem, ConfigNamespace
 
-__version__ = "2.11.0"
+__version__ = "2.11.1"
 
 
 def test(
