@@ -686,10 +686,13 @@ l05ref = ('L05', 'Levan et al. 2005 '
           '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>')
 g99ref = ('G99', 'Gilliland, Nugent & Phillips 1999 '
           '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>')
+fa23ref = ('F23', 'Fitz Axen and Nugent 2023 '
+           '<https://ui.adsabs.harvard.edu/abs/2023ApJ...953...13F>')
 
 nugent_models = [('sn1a', '1.2', 'SN Ia', n02ref, 3),
                  ('sn91t', '1.1', 'SN Ia', s04ref, 3),
                  ('sn91bg', '1.1', 'SN Ia', n02ref, 3),
+                 ('sn1superc', '1.0', 'SN Ia', fa23ref, 1),
                  ('sn1bc', '1.1', 'SN Ib/c', l05ref, 3),
                  ('hyper', '1.2', 'SN Ib/c', l05ref, 1),
                  ('sn2p', '1.2', 'SN IIP', g99ref, 1),
