@@ -2,9 +2,6 @@
 """Run benchmarks for model synthetic photometry"""
 
 import time
-import os
-import glob
-import argparse
 from collections import OrderedDict
 import numpy as np
 import sncosmo
