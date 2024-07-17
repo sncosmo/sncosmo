@@ -6,7 +6,6 @@ Subsample the Hsiao spectral time series, for use as a small demonstration
 model that can be included with source code."""
 
 from optparse import OptionParser
-import numpy as np
 from sncosmo.io import read_griddata_fits, write_griddata_fits
 
 parser = OptionParser()
