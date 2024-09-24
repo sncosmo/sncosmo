@@ -20,19 +20,18 @@ _BANDPASSES = Registry()
 _BANDPASS_INTERPOLATORS = Registry()
 
 
-def get_bandpass(name, **kwargs):
-    """Get a Bandpass from the registry by name
-    """
+def get_bandpass(name, *args, **kwargs):
+    """Get a Bandpass from the registry by name."""
     if isinstance(name, Bandpass):
         return name
     # static bandpass
-    if len(kwargs) == 0:
+    if len(kwargs) + len(args) == 0:
         return _BANDPASSES.retrieve(name)
     # radially variable bandpass (snfit-like version)
     interp = _BANDPASS_INTERPOLATORS.retrieve(name)
     if type(interp) is BandpassInterpolator:
-        radius = kwargs.get('radius', 0.)
-        return interp.at(radius)
+        return interp.at(*args)
+
     # general case (e.g. ZTF, MegaCam, HSC)
     assert type(interp) is GeneralBandpassInterpolator
     x = kwargs.get('x', 0.)
@@ -505,7 +504,7 @@ class Transforms(object):
         elif len(keys.shape) == 2:
             return [tuple(k) for k in keys]
         return None
-    
+
     def to_focalplane(self, x, y, sensor_id):
         """map x,y,key to focalplane coordinates
         """
