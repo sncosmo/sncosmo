@@ -32,7 +32,8 @@ def get_bandpass(name, *args, **kwargs):
     # radially variable bandpass (snfit-like version)
     interp = _BANDPASS_INTERPOLATORS.retrieve(name)
     if isinstance(interp, BandpassInterpolator):
-        return interp.at(*args)
+        # if no args, take radius from kwargs, default to 0
+        return interp.at(*args or (kwargs.get('radius', 0.),))
 
     # general case (e.g. ZTF, MegaCam, HSC), at this point we must have a
     # GeneralBandpassInterpolator
