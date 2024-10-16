@@ -560,6 +560,68 @@ for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
                                             load_megacampsf, args=(letter,),
                                             meta=megacam_meta)
 
+
+def load_general_bandpass_interpolator(filename, band, version, name=None):
+    """Extract variable bandpass information from the HDF5 archive.
+
+    .. note: In the final version, this function will use DATADIR to fetch
+    the HDF5 file from a specific online location. For now, the loader code
+    is included here for review purposes.
+    """
+    ret = {}
+
+    with h5py.File(filename, 'r') as f:
+        static = f['static']
+        static_transmissions = [static[k][...] for k in static]
+
+        if 'qe' in f:
+            qemap = f['/qe/map']
+            # specific_sensor_qe = dict([(tuple(map(int, k.split('_'))), v[...]) for k,v in f['/qe/map'].items()])
+            specific_sensor_qe = dict([(int(k), v[...]) for k,v in f['/qe/map'].items()])
+        else:
+            specific_sensor_qe = None
+
+        to_focalplane = dict([(int(k), v[...]) \
+                              for k,v in f['/transforms/to_focalplane'].items()])
+        to_filter = dict([(int(k), v[...]) \
+                          for k,v in f['/transforms/to_filter'].items()])
+        tr = Transforms(to_focalplane, to_filter)
+
+        g = f['bandpasses'][band]
+        if 'radii' in g:
+            vtrans = g['radii'][...], g['wave'][...], g['trans'][...]
+            ret = GeneralBandpassInterpolator(static_transmissions=static_transmissions,
+                                              specific_sensor_qe=specific_sensor_qe,
+                                              variable_transmission=vtrans,
+                                              transforms=tr,
+                                              bounds_error=False,
+                                              fill_value=0.)
+        elif 'X' in g and 'Y' in g:
+            vtrans = g['X'][...], g['Y'][...], g['wave'][...], g['trans'][...]
+            ret = GeneralBandpassInterpolator(static_transmissions=static_transmissions,
+                                              specific_sensor_qe=specific_sensor_qe,
+                                              variable_transmission=vtrans,
+                                              transforms=tr,
+                                              bounds_error=False,
+                                              fill_value=0.)
+
+        return ret
+
+def load_default_bandpasses(filename, band, version, name=None):
+    """extract the static (averaged) bandpass information from the hdf5 archive.
+
+    .. note: In the final version, this function will use DATADIR to fetch the
+    HDF5 file from a specific online location. For now, the loader code is
+    included here for review purposes.
+    """
+    with h5py.File(filename, 'r') as f:
+        bp = f['averaged_bandpasses'][band]
+        wave = bp['wave'][...]
+        trans = bp['trans'][...]
+        ret = Bandpass(wave, trans, name=name)
+    return ret
+
+
 # =============================================================================
 # Sources
 
