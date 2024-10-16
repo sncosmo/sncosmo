@@ -151,9 +151,11 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
     for b in set(band):
         mask = band == b
         b = get_bandpass(b)
-
-        fsum = _bandflux_single(model, b, time_or_phase[mask])
-
+        try:
+            fsum = _bandflux_single(model, b, time_or_phase[mask])
+        except ValueError:
+            continue
+            
         if zp is not None:
             zpnorm = 10.**(0.4 * zp[mask])
             bandzpsys = zpsys[mask]
@@ -957,6 +959,7 @@ class SALT2Source(Source):
         # Get colorlaw coeffecients.
         ncoeffs = int(words[0])
         colorlaw_coeffs = [float(word) for word in words[1: 1 + ncoeffs]]
+        self._colorlaw_coeffs = colorlaw_coeffs
 
         # If there are more than 1+ncoeffs words in the file, we expect them to
         # be of the form `keyword value`.
