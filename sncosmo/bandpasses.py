@@ -522,7 +522,7 @@ class Transforms(object):
             idx = s_id == sensor_id
             X[idx] = polyval2d(x[idx], y[idx], self.to_fp[s_id][0])
             Y[idx] = polyval2d(x[idx], y[idx], self.to_fp[s_id][1])
-        return X,Y
+        return X, Y
 
     def to_filter(self, x, y, sensor_id):
         """Map x,y,key to filter coordinates"""
@@ -532,7 +532,7 @@ class Transforms(object):
             idx = s_id == sensor_id
             X[idx] = polyval2d(x[idx], y[idx], self.to_filt[s_id][0])
             Y[idx] = polyval2d(x[idx], y[idx], self.to_filt[s_id][1])
-        return X,Y
+        return X, Y
 
 
 class GeneralBandpassInterpolator(object):
@@ -549,8 +549,8 @@ class GeneralBandpassInterpolator(object):
         # we also need to track the wavelength range on which all the static
         # transmissions are defined
         wl = np.array(
-            [(tr[:,0].min(), tr[:,0].max()) for tr in static_transmissions])
-        static_wl_range = wl[:,0].max(), wl[:,1].min()
+            [(tr[:, 0].min(), tr[:, 0].max()) for tr in static_transmissions])
+        static_wl_range = wl[:, 0].max(), wl[:, 1].min()
 
         # specific sensor quantum efficiencies
         if specific_sensor_qe is not None:
@@ -567,8 +567,8 @@ class GeneralBandpassInterpolator(object):
         if variable_transmission is not None:
             if len(variable_transmission) == 3:
                 rad, wl, tr = variable_transmission
-                idx = (wl>=static_wl_range[0]) & (wl<=static_wl_range[1])
-                wl, tr = wl[idx], tr[:,idx]
+                idx = (wl >= static_wl_range[0]) & (wl <= static_wl_range[1])
+                wl, tr = wl[idx], tr[:, idx]
                 self.wavegrid = wl
                 self.wave = (wl.min(), wl.max())
                 self.pos = (rad.min(), rad.max())
@@ -577,8 +577,8 @@ class GeneralBandpassInterpolator(object):
                 self.radial = True
             elif len(variable_transmission) == 4:
                 x, y, wl, tr = variable_transmission
-                idx = (wl>=static_wl_range[0]) & (wl<=static_wl_range[1])
-                wl, tr = wl[idx], tr[:,:,idx]
+                idx = (wl >= static_wl_range[0]) & (wl <= static_wl_range[1])
+                wl, tr = wl[idx], tr[:, :, idx]
                 self.wavegrid = wl
                 self.wave = (wl.min(), wl.max())
                 self.pos = (x.min(), y.min()), (x.max(), y.max())
@@ -666,12 +666,12 @@ class GeneralBandpassInterpolator(object):
 
         if self.variable_transmission:
             if not self.radial:
-                XY = np.vstack((X,Y))
+                XY = np.vstack((X, Y))
                 v = np.array([
                     self.variable_transmission(np.array([
                         np.full(len(wl), x),
                         np.full(len(wl), y), wl]).T)
-                    for x,y in XY.T])
+                    for x, y in XY.T])
                 trans = trans * v if trans is not None else v
             else:
                 rad = np.sqrt(X**2 + Y**2)
