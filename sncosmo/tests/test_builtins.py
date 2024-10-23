@@ -52,6 +52,36 @@ def test_builtins_megacampsf():
 
 
 @pytest.mark.might_download
+def test_builtins_ztf_average():
+    sncosmo.get_bandpass('ztf::g')
+
+
+@pytest.mark.might_download
+def test_builtins_ztf_variable():
+    sncosmo.get_bandpass('ztf::g', x=0, y=0, sensor_id=1)
+
+
+@pytest.mark.might_download
+def test_builtins_megacam_average():
+    sncosmo.get_bandpass('megacam6::g')
+
+
+@pytest.mark.might_download
+def test_builtins_megacam_variable():
+    sncosmo.get_bandpass('megacam6::g', x=1000, y=1000, sensor_id=12)
+
+
+@pytest.mark.might_download
+def test_builtins_hsc_average():
+    sncosmo.get_bandpass('hsc::g')
+
+
+@pytest.mark.might_download
+def test_builtins_hsc_variable():
+    sncosmo.get_bandpass('hsc::g', x=0, y=0, sensor_id=1)
+
+
+@pytest.mark.might_download
 def test_builtins_timeseries_ascii():
     sncosmo.get_source('nugent-sn1a')
 

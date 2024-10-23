@@ -10,6 +10,7 @@ import os
 import warnings
 from os.path import join
 
+import h5py
 import numpy as np
 from astropy import units as u, wcs
 from astropy.config import get_cache_dir
@@ -20,7 +21,8 @@ from . import conf
 from . import io
 from . import snfitio
 from .bandpasses import (
-    Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass)
+    Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass,
+    GeneralBandpassInterpolator, Transforms)
 
 from .constants import BANDPASS_TRIM_LEVEL
 from .magsystems import (
@@ -561,14 +563,15 @@ for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
                                             meta=megacam_meta)
 
 
-def load_general_bandpass_interpolator(filename, band, version, name=None):
-    """Extract variable bandpass information from the HDF5 archive
+def load_general_bandpass_interpolator(relpath, band, version, name=None):
+    """Extract variable bandpass information from an HDF5 file.
 
-    .. note: In the final version, this function will use DATADIR to fetch
-    the HDF5 file from a specific online location. For now, the loader code
-    is included here for review purposes.
+    Return an instance of GeneralBandpassInterpolator created from the HDF5
+    file located at `DATADIR / relpath` for a given `band`.
 
     """
+    filename = DATADIR.abspath(relpath)
+
     with h5py.File(filename, 'r') as f:
         static = f['static']
         static_transmissions = [static[k][...] for k in static]
@@ -590,34 +593,31 @@ def load_general_bandpass_interpolator(filename, band, version, name=None):
         g = f['bandpasses'][band]
         if 'radii' in g:
             vtrans = g['radii'][...], g['wave'][...], g['trans'][...]
-            return GeneralBandpassInterpolator(
-                static_transmissions=static_transmissions,
-                specific_sensor_qe=specific_sensor_qe,
-                variable_transmission=vtrans,
-                transforms=tr,
-                bounds_error=False,
-                fill_value=0.)
         elif 'X' in g and 'Y' in g:
             vtrans = g['X'][...], g['Y'][...], g['wave'][...], g['trans'][...]
-            return GeneralBandpassInterpolator(
-                static_transmissions=static_transmissions,
-                specific_sensor_qe=specific_sensor_qe,
-                variable_transmission=vtrans,
-                transforms=tr,
-                bounds_error=False,
-                fill_value=0.)
+        else:  # pragma: no cover
+            raise ValueError(
+                'failed to load interpolator from {} for band {}'.format(
+                    relpath, band))
 
-        return {}
+        return GeneralBandpassInterpolator(
+            static_transmissions=static_transmissions,
+            specific_sensor_qe=specific_sensor_qe,
+            variable_transmission=vtrans,
+            transforms=tr,
+            bounds_error=False,
+            fill_value=0.)
 
 
-def load_default_bandpasses(filename, band, version, name=None):
-    """Extract the static (averaged) bandpass information from the HDF5 archive
+def load_default_bandpasses(relpath, band, version, name=None):
+    """Extract the static (averaged) bandpass information from an HDF5 file.
 
-    .. note: In the final version, this function will use DATADIR to fetch the
-    HDF5 file from a specific online location. For now, the loader code is
-    included here for review purposes.
+    Return an instance of Bandpass created from the HDF5 file located at
+    `DATADIR / relpath` for a given `band`.
 
     """
+    filename = DATADIR.abspath(relpath)
+
     with h5py.File(filename, 'r') as f:
         bandpass = f['averaged_bandpasses'][band]
         return Bandpass(
@@ -625,6 +625,107 @@ def load_default_bandpasses(filename, band, version, name=None):
             bandpass['trans'][...],
             name=name)
 
+
+# ZTF variable bandpasses
+ztfv_meta = {
+    'filterset': 'ztf',
+    'retrieved': '22 December 2023',
+    'description': (
+        'A re-determination of the ZTF filters by P. Rosnet et al '
+        '(ZTF-II IN2P3 participation group)')}
+for band in ('g', 'r', 'I'):
+    name = 'ztf::' + band
+    relpath = 'bandpasses/ztf/ztf_v0.hdf5'
+    _BANDPASS_INTERPOLATORS.register_loader(name,
+                                            load_general_bandpass_interpolator,
+                                            args=(relpath, band),
+                                            version='0.1',
+                                            meta=ztfv_meta)
+
+
+# ZTF default bandpasses
+ztfd_meta = {
+    'filterset': 'ztf',
+    'retrieved': '22 December 2023',
+    'description': (
+        'A re-determination of the ZTF filters by P. Rosnet et al '
+        '(ZTF-II IN2P3 participation group) - focal plane average')}
+for band in ('g', 'r', 'I'):
+    name = 'ztf::' + band
+    relpath = 'bandpasses/ztf/ztf_v0.hdf5'
+    _BANDPASSES.register_loader(name,
+                                load_default_bandpasses,
+                                args=(relpath, band),
+                                version='0.1',
+                                meta=ztfd_meta)
+
+
+# megacam6 (re-measurements of the decommissioned MegaCam filters @ LMA)
+megacamv_meta = {
+    'filterset': 'megacam6',
+    'retrieved': '22 December 2023',
+    'description': (
+        'A re-determination of the decommissioned MegaCam '
+        'filters by M. Betoule and LMA')}
+for band in ('g', 'r', 'i', 'i2', 'z'):
+    name = 'megacam6::' + band
+    relpath = 'bandpasses/megacam/megacam6_v0.hdf5'
+    _BANDPASS_INTERPOLATORS.register_loader(name,
+                                            load_general_bandpass_interpolator,
+                                            args=(relpath, band),
+                                            version='0.1',
+                                            meta=megacamv_meta)
+
+
+# megacam6 default bandpasses
+megacamd_meta = {
+    'filterset': 'megacam6',
+    'retrieved': '22 December 2023',
+    'description': (
+        'A re-determination of the decommissioned MegaCam '
+        'filters by M. Betoule and LMA -- focal plane average')}
+for band in ('g', 'r', 'i', 'i2', 'z'):
+    name = 'megacam6::' + band
+    relpath = 'bandpasses/megacam/megacam6_v0.hdf5'
+    _BANDPASSES.register_loader(name,
+                                load_default_bandpasses,
+                                args=(relpath, band),
+                                version='0.1',
+                                meta=megacamd_meta)
+
+
+# HSC - Tanaki  version
+hscv_meta = {
+    'filterset': 'hsc',
+    'retrieved': '22 December 2023',
+    'description': (
+        'A model of the HSC filters - '
+        'built on a series of measurements by et al.')}
+for band in ('g', 'r', 'r2', 'i', 'i2', 'z', 'Y'):
+    name = 'hsc::' + band
+    relpath = 'bandpasses/hsc/hsc_v0.hdf5'
+    _BANDPASS_INTERPOLATORS.register_loader(name,
+                                            load_general_bandpass_interpolator,
+                                            args=(relpath, band),
+                                            version='0.1',
+                                            meta=hscv_meta)
+
+
+hscd_meta = {
+    'filterset': 'hsc',
+    'retrieved': '22 December 2023',
+    'description': (
+        'A model of the HSC filters - '
+        'built on a series of measurements by et al. -- '
+        'focal plane average')}
+for band in ('g', 'r', 'r2', 'i', 'i2', 'z', 'Y'):
+    name = 'hsc::' + band
+    relpath = 'bandpasses/hsc/hsc_v0.hdf5'
+    _BANDPASSES.register_loader(name,
+                                load_default_bandpasses,
+                                args=(relpath, band),
+                                version='0.1',
+                                meta=hscd_meta)
 
 # =============================================================================
 # Sources
