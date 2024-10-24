@@ -625,6 +625,8 @@ def load_default_bandpasses(relpath, band, version, name=None):
             bandpass['trans'][...],
             name=name)
 
+# TODO(mbernard) implement support for versions as for sources
+
 
 # ZTF variable bandpasses
 ztfv_meta = {
