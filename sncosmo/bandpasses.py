@@ -20,10 +20,22 @@ _BANDPASSES = Registry()
 _BANDPASS_INTERPOLATORS = Registry()
 
 
-# TODO docstring for that, explaining possible combinations of *args and
-# **kwargs
 def get_bandpass(name, *args, **kwargs):
-    """Get a Bandpass from the registry by name."""
+    """Get a Bandpass from the registry by name.
+
+    When `name` corresponds to a static bandpass, no other argument is
+    accepted. When `name` correponds to a variable bandpass the following
+    arguments are accepted:
+
+    - for megacampsf, the position is specified either as a positional argument
+      or with the keyword argument `radius`.
+
+    - for ztf, megacam6 and hsc, when no arguments are provided an averaged
+      bandpass is returned. A position on the focal plane can be specified with
+      the keyword arguments `x`, `y` and `sensor_id`. TODO explain
+      `wave`argument.
+
+    """
     if isinstance(name, Bandpass):
         return name
 
@@ -498,7 +510,8 @@ class BandpassInterpolator(object):
 
 
 class Transforms(object):
-    """Map pixel to focal plane and filter coordinates
+    """Map the (x, y, sensor_id) coordinates of a star to the corresponding
+    focal plane or filter coordinates
 
     .. note:
 
@@ -530,10 +543,32 @@ class Transforms(object):
         return self._to_coords(x, y, sensor_id, self._to_filter)
 
 
-# TODO docstring for class
+# TODO remove the **keys in constructor
 class GeneralBandpassInterpolator(object):
-    """A slightly modified, and more general interpolator"""
+    """Bandpass generator that supports sensor-to-sensor variations as well as
+    general non-radial patterns in bandpasses.
 
+    Instances of this class are not Bandpasses themselves, but generate
+    Bandpasses at a given (x, y, sensor_id) position. This class stores the
+    transmission as a function of position and interpolates between the defined
+    positions to return the bandpass at an arbitrary position.
+
+    Parameters
+    ----------
+    static_transmissions : list of np.ndarray
+        TODO
+    specific_sensor_qe : dict, optional
+        TODO
+    variable_transmission : tuple of np.ndarray, optional
+        TODO
+    transforms : Transforms, optional
+        mapping of the (x, y, sensor) coordinates to the corresponding focal
+        plane or filter coordinates.
+    prefactor : float, optional
+        Scalar multiplying factor.
+    name : str
+
+    """
     def __init__(self, static_transmissions, specific_sensor_qe=None,
                  variable_transmission=None, transforms=None, prefactor=1.0,
                  name=None, **keys):
