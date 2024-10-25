@@ -497,7 +497,6 @@ class BandpassInterpolator(object):
                                  name=name, family=self.name)
 
 
-# TODO(mbernard) docstring for the class
 class Transforms(object):
     """Map pixel to focal plane and filter coordinates
 
@@ -509,32 +508,28 @@ class Transforms(object):
 
     """
     def __init__(self, to_focalplane, to_filter):
-        self.to_fp = to_focalplane
-        self.to_filt = to_filter
+        self._to_focalplane = to_focalplane
+        self._to_filter = to_filter
+
+    @staticmethod
+    def _to_coords(x, y, sensor_id, coords):
+        x_out = np.zeros_like(x)
+        y_out = np.zeros_like(y)
+        for s_id in np.unique(sensor_id):
+            idx = s_id == sensor_id
+            x_out[idx] = polyval2d(x[idx], y[idx], coords[s_id][0])
+            y_out[idx] = polyval2d(x[idx], y[idx], coords[s_id][1])
+        return x_out, y_out
 
     def to_focalplane(self, x, y, sensor_id):
         """Map x, y, sensor_id to focalplane coordinates"""
-        X = np.zeros_like(x)
-        Y = np.zeros_like(y)
-        for s_id in np.unique(sensor_id):
-            idx = s_id == sensor_id
-            X[idx] = polyval2d(x[idx], y[idx], self.to_fp[s_id][0])
-            Y[idx] = polyval2d(x[idx], y[idx], self.to_fp[s_id][1])
-        return X, Y
+        return self._to_coords(x, y, sensor_id, self._to_focalplane)
 
     def to_filter(self, x, y, sensor_id):
         """Map x, y, sensor_id to filter coordinates"""
-        X = np.zeros_like(x)
-        Y = np.zeros_like(y)
-        for s_id in np.unique(sensor_id):
-            idx = s_id == sensor_id
-            X[idx] = polyval2d(x[idx], y[idx], self.to_filt[s_id][0])
-            Y[idx] = polyval2d(x[idx], y[idx], self.to_filt[s_id][1])
-        return X, Y
+        return self._to_coords(x, y, sensor_id, self._to_filter)
 
 
-# TODO interp1d from scipy is deprecated, use np.interp instead
-# (https://docs.scipy.org/doc/scipy/tutorial/interpolate/1D.html#tutorial-interpolate-1dsection)
 # TODO docstring for class
 class GeneralBandpassInterpolator(object):
     """A slightly modified, and more general interpolator"""
