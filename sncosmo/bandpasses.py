@@ -35,6 +35,33 @@ def get_bandpass(name, *args, **kwargs):
       the keyword arguments `x`, `y` and `sensor_id`. TODO explain
       `wave`argument.
 
+    Examples
+    --------
+    >>> import sncosmo
+
+    Get the "standard" bandpass in the u band
+
+    >>> sncosmo.get_bandpass("standard::u")
+    <Bandpass 'standard::u' at 0x77d6a75f25a0>
+
+    Get the megacampsf variable bandpass in the u band, interpolated at radius 0
+
+    >>> sncosmo.get_bandpass("megacampsf::u", 0.)
+    <AggregateBandpass 'megacampsf::u at 0.000000' at 0x77d6ba059f40>
+
+    >>> sncosmo.get_bandpass('megacampsf::u', radius=0.)
+    <AggregateBandpass 'megacampsf::u at 0.000000' at 0x77d6bac69ca0>
+
+    Get the ztf bandpass in the g band, averaged over the the focal plane
+
+    >>> sncosmo.get_bandpass('ztf::g')
+    <Bandpass 'ztf::g' at 0x708335df3e30>
+
+    Get the ztf bandpass in the g band, interpolated at pixel (0, 0) of sensor 1
+
+    >>> sncosmo.get_bandpass('ztf::g', x=0, y=0, sensor_id=1)
+    <Bandpass 'ztf::g' at 0x7e0605f3b920>
+
     """
     if isinstance(name, Bandpass):
         return name
@@ -47,7 +74,7 @@ def get_bandpass(name, *args, **kwargs):
     interp = _BANDPASS_INTERPOLATORS.retrieve(name)
     if isinstance(interp, BandpassInterpolator):
         # arguments check: the `pos` argument to BandpassInterpolator.at can be
-        # passed as a positional argument or the 'radius' keyword argument
+        # passed as a positional argument or by the 'radius' keyword argument
         if args and kwargs:
             raise TypeError(
                 'keyword and positional arguments cannot be mixed')
