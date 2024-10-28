@@ -44,7 +44,7 @@ def get_bandpass(name, *args, **kwargs):
     >>> sncosmo.get_bandpass("standard::u")
     <Bandpass 'standard::u' at 0x77d6a75f25a0>
 
-    Get the megacampsf variable bandpass in the u band, interpolated at radius 0
+    Get the megacampsf variable bandpass in the u band interpolated at radius 0
 
     >>> sncosmo.get_bandpass("megacampsf::u", 0.)
     <AggregateBandpass 'megacampsf::u at 0.000000' at 0x77d6ba059f40>
@@ -57,7 +57,7 @@ def get_bandpass(name, *args, **kwargs):
     >>> sncosmo.get_bandpass('ztf::g')
     <Bandpass 'ztf::g' at 0x708335df3e30>
 
-    Get the ztf bandpass in the g band, interpolated at pixel (0, 0) of sensor 1
+    Get the ztf bandpass in the g band interpolated at pixel (0, 0) of sensor 1
 
     >>> sncosmo.get_bandpass('ztf::g', x=0, y=0, sensor_id=1)
     <Bandpass 'ztf::g' at 0x7e0605f3b920>
