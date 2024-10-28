@@ -558,7 +558,7 @@ class GeneralBandpassInterpolator(object):
         TODO
     specific_sensor_qe : dict, optional
         TODO
-    variable_transmission : tuple of np.ndarray, optional
+    variable_transmission : list of np.ndarray, optional
         TODO
     transforms : Transforms, optional
         mapping of the (x, y, sensor) coordinates to the corresponding focal
