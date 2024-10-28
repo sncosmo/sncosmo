@@ -543,7 +543,6 @@ class Transforms(object):
         return self._to_coords(x, y, sensor_id, self._to_filter)
 
 
-# TODO remove the **keys in constructor
 class GeneralBandpassInterpolator(object):
     """Bandpass generator that supports sensor-to-sensor variations as well as
     general non-radial patterns in bandpasses.
@@ -571,11 +570,12 @@ class GeneralBandpassInterpolator(object):
     """
     def __init__(self, static_transmissions, specific_sensor_qe=None,
                  variable_transmission=None, transforms=None, prefactor=1.0,
-                 name=None, **keys):
+                 name=None):
 
         # static transmissions
         self.static_transmissions = [
-            interp1d(*tr.T, **keys) for tr in static_transmissions]
+            interp1d(*tr.T, bounds_error=False, fill_value=0.)
+            for tr in static_transmissions]
 
         # we also need to track the wavelength range on which all the static
         # transmissions are defined
@@ -585,10 +585,12 @@ class GeneralBandpassInterpolator(object):
 
         # specific sensor quantum efficiencies
         if specific_sensor_qe is not None:
-            self.specific_sensor_qe = {}
-            for key in specific_sensor_qe:
-                self.specific_sensor_qe[key] = interp1d(
-                    *specific_sensor_qe[key].T, **keys)
+            self.specific_sensor_qe = {
+                key: interp1d(
+                    *specific_sensor_qe[key].T,
+                    bounds_error=False,
+                    fill_value=0.)
+                for key in specific_sensor_qe}
         else:
             self.specific_sensor_qe = None
 
@@ -604,7 +606,11 @@ class GeneralBandpassInterpolator(object):
                 self.wave = (wl.min(), wl.max())
                 self.pos = (rad.min(), rad.max())
                 self.variable_transmission = \
-                    RegularGridInterpolator([rad, wl], tr, **keys)
+                    RegularGridInterpolator(
+                        [rad, wl],
+                        tr,
+                        bounds_error=False,
+                        fill_value=0.)
                 self.radial = True
             elif len(variable_transmission) == 4:
                 x, y, wl, tr = variable_transmission
@@ -614,7 +620,11 @@ class GeneralBandpassInterpolator(object):
                 self.wave = (wl.min(), wl.max())
                 self.pos = (x.min(), y.min()), (x.max(), y.max())
                 self.variable_transmission = \
-                    RegularGridInterpolator([x, y, wl], tr, **keys)
+                    RegularGridInterpolator(
+                        [x, y, wl],
+                        tr,
+                        bounds_error=False,
+                        fill_value=0.)
                 self.radial = False
             else:
                 raise ValueError('unable to handle the transmission data')

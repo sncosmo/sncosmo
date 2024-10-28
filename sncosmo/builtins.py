@@ -588,13 +588,20 @@ def load_general_bandpass_interpolator(relpath, band, name=None, version=None):
         to_filter = {
             int(k): v[...] for k, v in f['/transforms/to_filter'].items()}
 
-        tr = Transforms(to_focalplane, to_filter)
+        transforms = Transforms(to_focalplane, to_filter)
 
         g = f['bandpasses'][band]
         if 'radii' in g:
-            vtrans = g['radii'][...], g['wave'][...], g['trans'][...]
+            variable_transmission = (
+                g['radii'][...],
+                g['wave'][...],
+                g['trans'][...])
         elif 'X' in g and 'Y' in g:
-            vtrans = g['X'][...], g['Y'][...], g['wave'][...], g['trans'][...]
+            variable_transmission = (
+                g['X'][...],
+                g['Y'][...],
+                g['wave'][...],
+                g['trans'][...])
         else:  # pragma: no cover
             raise ValueError(
                 'failed to load interpolator from {} for band {}'.format(
@@ -603,10 +610,8 @@ def load_general_bandpass_interpolator(relpath, band, name=None, version=None):
         return GeneralBandpassInterpolator(
             static_transmissions=static_transmissions,
             specific_sensor_qe=specific_sensor_qe,
-            variable_transmission=vtrans,
-            transforms=tr,
-            bounds_error=False,
-            fill_value=0.,
+            variable_transmission=variable_transmission,
+            transforms=transforms,
             name=name)
 
 
