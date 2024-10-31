@@ -151,7 +151,7 @@ def get_bandpass(name, *args, **kwargs):
         kwargs.get('y', 0.),
         kwargs.get('sensor_id', 1),
         wavegrid,
-        filter_frame=False)
+        filter_frame=kwargs.get('filter_frame', False)
     if trans.shape[0] == 1:
         return Bandpass(wavegrid, trans.squeeze(), name=name)
     return trans
