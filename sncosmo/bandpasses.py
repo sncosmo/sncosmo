@@ -21,7 +21,99 @@ _BANDPASS_INTERPOLATORS = Registry()
 
 
 def get_bandpass(name, *args, **kwargs):
-    """Get a Bandpass from the registry by name."""
+    """Get a Bandpass from the registry by name.
+
+    This function can return several types of Bandpass objects depending on
+    the bandpass's variability on the focal plane:
+
+    - **Static Bandpass:** If the bandpass does not vary spatially on the
+      focal plane, `get_bandpass` returns a `Bandpass` instance directly.
+
+    - **Radially Variable Bandpass:** For bandpasses with radial variability
+      (e.g., `megacampsf`), an `AggregateBandpass` instance is returned, which
+      adjusts the bandpass shape based on the specified radius.
+
+    - **Position-Dependent Bandpass:** For bandpasses that vary with position
+      on the sensor plane (e.g., `ztf`, `megacam6`, `hsc`), the returned
+      object depends on the specified coordinates and sensor ID. If a single
+      location is requested, an interpolated `Bandpass` instance is returned;
+      if multiple positions are specified, an array of bandpass objects is
+      generated to represent the spatial variations.
+
+    Refer to the Examples section for more detailed usage scenarios.
+
+    Parameters
+    ----------
+    name : str or `Bandpass`
+        The name of the Bandpass to retrieve from the registry, or an existing
+        Bandpass object. If a Bandpass object is passed, it is returned directly.
+
+    *args : tuple, optional
+        Additional positional arguments, used primarily for radially variable
+        bandpasses (e.g., radius for radial interpolations).
+
+    **kwargs : dict, optional
+        Named arguments to customize the Bandpass retrieval:
+            - 'radius' : float, optional
+                Radius for radial bandpasses (default: 0).
+            - 'wave' : array-like, optional
+                Wavelength grid for an interpolated Bandpass.
+            - 'x', 'y' : float, optional
+                Spatial coordinates for 2D interpolation.
+            - 'sensor_id' : int, optional
+                Sensor ID for multi-sensor configurations (default: 1).
+            - 'filter_frame' : bool, optional
+                If True, applies a filter frame (default: False).
+
+    Returns
+    -------
+    Bandpass or ndarray
+        - If the name corresponds to a static Bandpass: returns the Bandpass object.
+        - If the Bandpass is radially variable: returns the interpolated Bandpass
+          object at the specified radius.
+        - For general interpolated Bandpasses (2D or multi-sensor): returns an array
+          of transmission values, or a Bandpass object if only one spatial filter
+          is evaluated.
+
+    Raises
+    ------
+    Exception
+        If the retrieved interpolator type is neither BandpassInterpolator nor
+        GeneralBandpassInterpolator.
+
+    Notes
+    -----
+    - Uses _BANDPASSES and _BANDPASS_INTERPOLATORS to retrieve static
+      and interpolated Bandpasses, respectively.
+    - The general case applies to configurations like ZTF, MegaCam, and HSC,
+      where multidimensional interpolation grids are used.
+
+    Examples
+    --------
+    Basic usage with a static Bandpass:
+    >>> bandpass = get_bandpass('ztfg')
+
+    Using a radial Bandpass with a specific radius:
+    >>> radial_bandpass = get_bandpass('megacampsf::r', radius=1.2)
+
+    Specifying spatial coordinates and a sensor ID for the Bandpasses managed
+    by a `GeneralBandpassInterpolator`
+    >>> interpolated_bandpass = get_bandpass('megacam6::g', x=2355.22, y=1222.4, sensor_id=12)
+
+    Specifying a vector of spatial coordinates and sensor ids
+    >>> x = numpy.random.uniform(0., 2048., size=100)
+    >>> y = numpy.random.uniform(0., 4600., size=100)
+    >>> sensor_id = numpy.random.randint(0, 36, size=100)
+    >>> interpolated_bandpasses = get_bandpass('megacam6::z', x=x, y=y, sensor_id=sensor_id)
+
+    Using a custom wavelength grid
+    >>> x = numpy.random.uniform(0., 3000., size=100)
+    >>> y = numpy.random.uniform(0., 3000., size=100)
+    >>> sensor_id = numpy.random.randint(0, 65, size=100)
+    >>> wave_grid = numpy.random.linspace(3000., 11000., 8000)
+    >>> custom_wave_bandpass = get_bandpass('ztf::r', wave=wave_grid)
+
+    """
     if isinstance(name, Bandpass):
         return name
 
