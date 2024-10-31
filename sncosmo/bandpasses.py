@@ -628,7 +628,47 @@ class Transforms(object):
 
 
 class GeneralBandpassInterpolator(object):
-    """A slightly modified, and more general interpolator"""
+    """A general-purpose interpolator for bandpasses with spatial or sensor-specific variability.
+
+    This class provides a flexible interpolation for bandpass transmissions that
+    may vary across the focal plane due to spatial position, sensor-specific
+    quantum efficiency (QE), and/or radial dependence.
+
+    Instances of this class are not Bandpasses themselves, but generate
+    Bandpasses at a given focal plane position. This class stores the
+    transmission as a function of focal plane position and interpolates between
+    the defined positions to return the bandpass at an arbitrary position.
+
+    Parameters
+    ----------
+    static_transmissions : list of arrays
+        Each element is an array representing a static bandpass transmission profile over
+        wavelength. The static transmissions are defined independently of sensor position.
+
+    specific_sensor_qe : dict, optional
+        Dictionary of sensor-specific quantum efficiency (QE) profiles. Keys are sensor IDs,
+        and values are arrays defining the wavelength and QE values.
+
+    variable_transmission : tuple, optional
+        Defines position-dependent transmission. Can be either a radial transmission or a
+        2D spatial transmission, specified as:
+            - Radial: (radius, wavelength, transmission)
+            - Spatial: (x, y, wavelength, transmission)
+
+    transforms : object, optional
+        Transformation object for converting between coordinate frames (e.g., CCD and filter frames).
+
+    prefactor : float, default=1.0
+        Scaling factor applied to the transmission values.
+
+    name : str, optional
+        Name identifier for the bandpass interpolator instance.
+
+    **keys : additional keyword arguments
+        Additional parameters passed to the interpolation functions.
+
+
+    """
 
     def __init__(self, static_transmissions, specific_sensor_qe=None,
                  variable_transmission=None, transforms=None, prefactor=1.0,
@@ -685,31 +725,38 @@ class GeneralBandpassInterpolator(object):
         self.name = name
 
     def minwave(self):
+        """Returns the minimum wavelength over which the bandpass is defined."""
         return self.wave[0]
 
     def maxwave(self):
+        """Returns the maximum wavelength over which the bandpass is defined."""
         return self.wave[1]
 
     def minpos(self):
+        """Returns the minimum position in the spatial grid for variable bandpasses."""
         return self.pos[0]
 
     def maxpos(self):
+        """Returns the maximim position in the spatial grid for variable bandpasses."""
         return self.pos[1]
 
     def at(self, *args, **kwargs):
-        """Return the bandpass at the given position
+        """Return the bandpass at the specified position
+
 
         Parameters
         ----------
-        pos : (numpy.ndarray)
-          list of position parameters one which to interpolate the filters
+        x : float or ndarray, optional
+            X-coordinate in pixels or mm, depending on `filter_frame`.
+        y : float or ndarray, optional
+            Y-coordinate in pixels or mm, depending on `filter_frame`.
+        key : optional
+            Identifier for sensor-specific configurations.
 
-          if the transmissions are indexed with just one position parameter
-          (e.g. radially variable transmissions), then pos is either a float,
-          or a 1D ndarray. If the transmissions are defined on a 2D grid (non
-          radially variable transmissions) then, pos is either of the form:
-          [x,y] or of the form: [(x,y), (x,y), (x,y)]
-
+        Returns
+        -------
+        Bandpass
+            The interpolated Bandpass at the specified position.
         """
         x = kwargs.get('x')
         y = kwargs.get('y')
@@ -718,31 +765,26 @@ class GeneralBandpassInterpolator(object):
         return Bandpass(self.wl, trans)
 
     def eval_at(self, x, y, sensor_id, wl, **keys):
-        """Evaluate a series of transmissions at the requested positions
+        """Evaluates transmission values at given positions and wavelengths.
 
-        Parameters:
-        -----------
-        x : ndarray
-          array of x-coordinates (in pixels) in the ccd frame. If filter_pos is
-          True, the x's are interpreted as x-coordinates on the filter frame.
-        y : ndarray
-          array of y-coordinates (in pixels) in the ccd frame. If filter_pos is
-          True, the y's are interpreted as y-coordinates in the filter frame,
-        sensor_id : ndarray
-          list of sensor_ids for the requested positions
+        Parameters
+        ----------
+        x : float or ndarray
+            X-coordinates in pixels or mm (depending on `filter_frame`).
+        y : float or ndarray
+            Y-coordinates in pixels or mm (depending on `filter_frame`).
+        sensor_id : int or ndarray
+            Sensor ID(s) to specify the quantum efficiency profile.
         wl : ndarray
-          wavelength grid on which to evaluate the transmissions
-        filter_frame : boolean (default, False)
-          whether to interpret the x,y positions as ccd positions (in pixels)
-          or filter positions (in mm in the filter frame). Used mainly for
-          debugging.
+            Wavelength grid for transmission evaluation.
+        filter_frame : bool, default=False
+            If True, interprets x and y as coordinates in the filter frame (mm),
+            otherwise assumes CCD coordinates (pixels).
 
         Returns
         -------
-        ndarray of floats
-          a 2D array of shape (Nwl, Np) where Np is the number of filter
-          evaluations and Nwl is the size of the wavelength grid.
-
+        ndarray
+            Transmission values array of shape `(len(wl), len(x))`.
         """
         trans = None
 
