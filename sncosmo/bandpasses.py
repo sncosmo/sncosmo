@@ -46,7 +46,8 @@ def get_bandpass(name, *args, **kwargs):
     ----------
     name : str or `Bandpass`
         The name of the Bandpass to retrieve from the registry, or an existing
-        Bandpass object. If a Bandpass object is passed, it is returned directly.
+        Bandpass object. If a Bandpass object is passed, it is returned
+        directly.
 
     *args : tuple, optional
         Additional positional arguments, used primarily for radially variable
@@ -68,18 +69,18 @@ def get_bandpass(name, *args, **kwargs):
     Returns
     -------
     Bandpass or ndarray
-        - If the name corresponds to a static Bandpass: returns the Bandpass object.
-        - If the Bandpass is radially variable: returns the interpolated Bandpass
-          object at the specified radius.
-        - For general interpolated Bandpasses (2D or multi-sensor): returns an array
-          of transmission values, or a Bandpass object if only one spatial filter
-          is evaluated.
+        - If the name corresponds to a static Bandpass: returns the Bandpass
+          object.
+        - If the Bandpass is radially variable: returns the interpolated
+          Bandpass object at the specified radius.
+        - For general interpolated Bandpasses (2D or multi-sensor): returns an
+          array of transmission values, or a Bandpass object if only one
+          spatial filter is evaluated.
 
     Raises
     ------
-    Exception
-        If the retrieved interpolator type is neither BandpassInterpolator nor
-        GeneralBandpassInterpolator.
+    TypeError
+        If the parameters provided in `*args` and `**kwargs` are invalid
 
     Notes
     -----
@@ -98,13 +99,15 @@ def get_bandpass(name, *args, **kwargs):
 
     Specifying spatial coordinates and a sensor ID for the Bandpasses managed
     by a `GeneralBandpassInterpolator`
-    >>> interpolated_bandpass = get_bandpass('megacam6::g', x=2355.22, y=1222.4, sensor_id=12)
+    >>> interpolated_bandpass = get_bandpass(
+    ...     'megacam6::g', x=2355.22, y=1222.4, sensor_id=12)
 
     Specifying a vector of spatial coordinates and sensor ids
     >>> x = numpy.random.uniform(0., 2048., size=100)
     >>> y = numpy.random.uniform(0., 4600., size=100)
     >>> sensor_id = numpy.random.randint(0, 36, size=100)
-    >>> interpolated_bandpasses = get_bandpass('megacam6::z', x=x, y=y, sensor_id=sensor_id)
+    >>> interpolated_bandpasses = get_bandpass(
+    ...     'megacam6::z', x=x, y=y, sensor_id=sensor_id)
 
     Using a custom wavelength grid
     >>> x = numpy.random.uniform(0., 3000., size=100)
@@ -151,7 +154,7 @@ def get_bandpass(name, *args, **kwargs):
         kwargs.get('y', 0.),
         kwargs.get('sensor_id', 1),
         wavegrid,
-        filter_frame=kwargs.get('filter_frame', False)
+        filter_frame=kwargs.get('filter_frame', False))
     if trans.shape[0] == 1:
         return Bandpass(wavegrid, trans.squeeze(), name=name)
     return trans
@@ -593,13 +596,13 @@ class Transforms(object):
 
     The `Transforms` class is designed to map x, y pixel coordinates to
     corresponding focal plane and filter coordinates based on simple polynomial
-    transformations. These transformations are accurate within a few millimeters
-    and do not account for astrometric distortion, focusing instead on efficient
-    and approximate coordinate mappings.
+    transformations. These transformations are accurate within a few
+    millimeters and do not account for astrometric distortion, focusing instead
+    on efficient and approximate coordinate mappings.
 
-    Bandpasses managed with the `GeneralBandpassInterpolator` class are distributed
-    with `Transforms` to map (x, y, sensor) coordinates (typically, what we measure)
-    to filter-frame coordinates.
+    Bandpasses managed with the `GeneralBandpassInterpolator` class are
+    distributed with `Transforms` to map (x, y, sensor) coordinates (typically,
+    what we measure) to filter-frame coordinates.
 
     .. note::
        These transformations are not intended for astrometric precision.
@@ -782,19 +785,21 @@ class GeneralBandpassInterpolator(object):
         self.name = name
 
     def minwave(self):
-        """Returns the minimum wavelength over which the bandpass is defined."""
+        """Returns the minimum wavelength over which the bandpass is defined"""
         return self.wave[0]
 
     def maxwave(self):
-        """Returns the maximum wavelength over which the bandpass is defined."""
+        """Returns the maximum wavelength over which the bandpass is defined"""
         return self.wave[1]
 
     def minpos(self):
-        """Returns the minimum position in the spatial grid for variable bandpasses."""
+        """Returns the minimum position in the spatial grid for variable
+        bandpasses"""
         return self.pos[0]
 
     def maxpos(self):
-        """Returns the maximim position in the spatial grid for variable bandpasses."""
+        """Returns the maximim position in the spatial grid for variable
+        bandpasses"""
         return self.pos[1]
 
     def at(self, x, y, sensor_id):
@@ -831,13 +836,14 @@ class GeneralBandpassInterpolator(object):
         wl : ndarray
             Wavelength grid for transmission evaluation.
         filter_frame : bool, default=False
-            If True, interprets x and y as coordinates in the filter frame (mm),
-            otherwise assumes CCD coordinates (pixels).
+            If True, interprets x and y as coordinates in the filter frame
+            (mm), otherwise assumes CCD coordinates (pixels).
 
         Returns
         -------
         ndarray
             Transmission values array of shape `(len(wl), len(x))`.
+
         """
         trans = None
 
