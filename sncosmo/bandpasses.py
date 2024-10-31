@@ -577,14 +577,33 @@ class BandpassInterpolator(object):
 
 
 class Transforms(object):
-    """Map pixel to focal plane and filter coordinates
+    """
+    Provides transformations from pixel coordinates to focal plane and filter coordinates.
 
-    .. note:
+    The `Transforms` class is designed to map x, y pixel coordinates to
+    corresponding focal plane and filter coordinates based on simple polynomial
+    transformations. These transformations are accurate within a few millimeters
+    and do not account for astrometric distortion, focusing instead on efficient
+    and approximate coordinate mappings.
 
-       These are /not/ astrometric transformations. The goal is to have simple,
-       compact transforms that allow to obtain filter coordinates with an
-       accuracy of a few millimeters.
+    Bandpasses managed with the `GeneralBandpassInterpolator` class are distributed
+    with `Transforms` to map (x, y, sensor) coordinates (typically, what we measure)
+    to filter-frame coordinates.
 
+    .. note::
+       These transformations are not intended for astrometric precision.
+
+    Parameters
+    ----------
+    to_focalplane : dict
+        Dictionary mapping each sensor ID to polynomial coefficients for
+        conversion from pixel coordinates to focal plane coordinates. The
+        coefficients are used for 2D polynomial evaluation.
+
+    to_filter : dict
+        Dictionary mapping each sensor ID to polynomial coefficients for
+        conversion from pixel coordinates to filter frame coordinates. The
+        coefficients are used for 2D polynomial evaluation.
     """
     def __init__(self, to_focalplane, to_filter):
         self.to_fp = to_focalplane
@@ -607,7 +626,24 @@ class Transforms(object):
         return None
 
     def to_focalplane(self, x, y, sensor_id):
-        """Map x,y,key to focalplane coordinates"""
+        """
+        Maps (x, y, sensor) coordinates to focal plane coordinates.
+
+        Parameters
+        ----------
+        x : array-like
+            x-coordinates in the sensor frame (in pixels)
+        y : array-like
+            y-coordinates in the sensor frame (in pixels)
+        sensor_id : array-like
+            Sensor IDs for each x, y coordinate, used to select the appropriate
+            focal plane transformation.
+
+        Returns
+        -------
+        tuple of arrays
+            Transformed X, Y coordinates in the focal plane frame.
+        """
         X = np.zeros_like(x)
         Y = np.zeros_like(y)
         for s_id in np.unique(sensor_id):
@@ -617,7 +653,24 @@ class Transforms(object):
         return X,Y
 
     def to_filter(self, x, y, sensor_id):
-        """Map x,y,key to filter coordinates"""
+        """
+        Maps (x, y sensor_id) coordinates to filter frame coordinates.
+
+        Parameters
+        ----------
+        x : array-like
+            x-coordinates in the sensor frame (pixels)
+        y : array-like
+            Y-coordinates in the sensor frame (pixels)
+        sensor_id : array-like
+            Sensor IDs for each x, y coordinate, used to select the appropriate
+            filter transformation.
+
+        Returns
+        -------
+        tuple of arrays
+            Transformed X, Y coordinates in the filter frame.
+        """
         X = np.zeros_like(x)
         Y = np.zeros_like(y)
         for s_id in np.unique(sensor_id):
