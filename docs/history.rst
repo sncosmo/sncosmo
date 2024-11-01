@@ -8,6 +8,11 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.11.2 (2024-11-01)
+====================
+
+- Add SkyMapper filters
+
 v2.11.1 (2024-07-11)
 ====================
 
