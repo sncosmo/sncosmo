@@ -545,6 +545,20 @@ for filt in ['B', 'G', 'L', 'R']:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=goto_meta)
 
+# SkyMapper
+skymapper_meta = {
+    'filterset': 'skymapper',
+    'retrieved': '1 Novermber 2024',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': ('Normalized SkyMapper filters from SVO (includes filter,'
+                    'optics, detector and atmosphere.)')}
+for filt in ['u', 'g', 'r', 'i', 'z']:
+    name = 'skymapper' + filt[0].lower()
+    relpath = 'bandpasses/skymapper/skymapper.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=skymapper_meta)
+
 # =============================================================================
 # interpolators
 
