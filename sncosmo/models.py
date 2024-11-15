@@ -151,10 +151,8 @@ def _bandflux(model, band, time_or_phase, zp, zpsys):
     for b in set(band):
         mask = band == b
         b = get_bandpass(b)
-        try:
-            fsum = _bandflux_single(model, b, time_or_phase[mask])
-        except ValueError:
-            continue
+
+        fsum = _bandflux_single(model, b, time_or_phase[mask])
 
         if zp is not None:
             zpnorm = 10.**(0.4 * zp[mask])
