@@ -482,6 +482,6 @@ cdef class SALT2ColorLaw(object):
         # reconstruct input wavelengths
         wave_lo = self.l_lo * SALT2CL_V_MINUS_B + SALT2CL_B
         wave_hi = self.l_hi * SALT2CL_V_MINUS_B + SALT2CL_B
-        coeffs = [self.coeffs[i+1] for i in range(self.ncoeffs)]
+        coeffs = [self.coeffs[i+1] for i in range(self.ncoeffs - 1)]
 
         return (wave_lo, wave_hi), coeffs

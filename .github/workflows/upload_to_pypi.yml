@@ -27,8 +27,9 @@ jobs:
         continue-on-error: true
         uses: pypa/cibuildwheel@v2.1.1
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
+          name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -48,8 +49,9 @@ jobs:
       - name: Build sdist
         run: python -m build --sdist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
+          name: sdist
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -57,12 +59,18 @@ jobs:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
-          name: artifact
+          name: sdist
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
+      - uses: actions/download-artifact@v4.1.7
+        with:
+          path: dist
+          merge-multiple: true  # put contents of each wheel folder into dist/
+          pattern: wheels-*
+
+      - uses: pypa/gh-action-pypi-publish@v1.8.11
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}

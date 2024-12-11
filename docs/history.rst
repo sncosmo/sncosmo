@@ -8,6 +8,38 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.11.2 (2024-11-01)
+====================
+
+- Add SkyMapper filters
+
+v2.11.1 (2024-07-11)
+====================
+
+- Add Nugent Type Ia Super-Chandra model from Fitz Axen and Nugent, (2023) ApJ, v. 953, p. 13
+
+v2.11.0 (2024-07-11)
+====================
+
+- Drop support for Python 3.8
+- New `add_effect` for G10 and C11 SNIa intrinsic scatter models (#378)
+- Salt2 ColorLaw function correction (#389)
+
+
+v2.10.4 (2024-02-20)
+====================
+
+- Fix issue with Python 3.12. Added dependency, `looseversion`, to replace removed `distutil` module (#387).
+
+v2.10.3 (unreleased)
+====================
+
+v2.10.2 (2023-09-29)
+====================
+
+- Add ultrasat_ bandpasses (#381).
+
+.._ultrasat: https://www.weizmann.ac.il/ultrasat/
 
 v2.10.1 (2023-06-28)
 ====================

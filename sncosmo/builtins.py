@@ -22,7 +22,7 @@ from . import io
 from . import snfitio
 from .bandpasses import (
     Bandpass, _BANDPASSES, _BANDPASS_INTERPOLATORS, read_bandpass,
-    GeneralBandpassInterpolator, Transforms)
+    BandpassInterpolator, GeneralBandpassInterpolator, Transforms)
 
 from .constants import BANDPASS_TRIM_LEVEL
 from .magsystems import (
@@ -58,7 +58,7 @@ def get_rootdir():
     return data_dir
 
 
-DATADIR = DataMirror(get_rootdir, "http://sncosmo.github.io/data")
+DATADIR = DataMirror(get_rootdir, "https://sncosmo.github.io/data")
 
 
 # =============================================================================
@@ -546,6 +546,20 @@ for filt in ['B', 'G', 'L', 'R']:
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=goto_meta)
 
+# SkyMapper
+skymapper_meta = {
+    'filterset': 'skymapper',
+    'retrieved': '1 Novermber 2024',
+    'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
+                'format=ascii&id=Misc'),
+    'description': ('Normalized SkyMapper filters from SVO (includes filter,'
+                    'optics, detector and atmosphere.)')}
+for filt in ['u', 'g', 'r', 'i', 'z']:
+    name = 'skymapper' + filt[0].lower()
+    relpath = 'bandpasses/skymapper/skymapper.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
+                                args=(relpath,), meta=skymapper_meta)
+
 # =============================================================================
 # interpolators
 
@@ -561,7 +575,6 @@ for letter in ('u', 'g', 'r', 'i', 'z', 'y'):
     _BANDPASS_INTERPOLATORS.register_loader('megacampsf::' + letter,
                                             load_megacampsf, args=(letter,),
                                             meta=megacam_meta)
-
 
 def load_general_bandpass_interpolator(relpath, band, name=None, version=None):
     """Extract variable bandpass information from an HDF5 file.
@@ -745,6 +758,31 @@ for version in ('0',):
             version=version,
             meta=hscd_meta)
 
+ultrasat_meta = {'filterset': 'ultrasat'}
+
+
+def load_ultrasat(name=None):
+    wavelengths = DATADIR.abspath('bandpasses/ultrasat/Wavelength.dat')
+    Rdeg = DATADIR.abspath('bandpasses/ultrasat/Rdeg.dat')
+    transmission = DATADIR.abspath('bandpasses/ultrasat/ULTRASAT_TR.dat')
+
+    wavelengths = np.loadtxt(wavelengths)
+    Rdeg = np.loadtxt(Rdeg)
+    transmission = np.loadtxt(transmission, delimiter=',').T
+
+    # transmission functions at each radius
+    radial_transmissions = []
+    for r, tr in zip(Rdeg, transmission):
+        radial_transmissions.append((r, wavelengths*u.AA, tr))
+
+    return BandpassInterpolator([], radial_transmissions, name=name)
+
+
+_BANDPASS_INTERPOLATORS.register_loader('ultrasat',
+                                        load_ultrasat,
+                                        meta=ultrasat_meta)
+
+
 # =============================================================================
 # Sources
 
@@ -846,10 +884,13 @@ l05ref = ('L05', 'Levan et al. 2005 '
           '<http://adsabs.harvard.edu/abs/2005ApJ...624..880L>')
 g99ref = ('G99', 'Gilliland, Nugent & Phillips 1999 '
           '<http://adsabs.harvard.edu/abs/1999ApJ...521...30G>')
+fa23ref = ('F23', 'Fitz Axen and Nugent 2023 '
+           '<https://ui.adsabs.harvard.edu/abs/2023ApJ...953...13F>')
 
 nugent_models = [('sn1a', '1.2', 'SN Ia', n02ref, 3),
                  ('sn91t', '1.1', 'SN Ia', s04ref, 3),
                  ('sn91bg', '1.1', 'SN Ia', n02ref, 3),
+                 ('sn1superc', '1.0', 'SN Ia', fa23ref, 1),
                  ('sn1bc', '1.1', 'SN Ib/c', l05ref, 3),
                  ('hyper', '1.2', 'SN Ib/c', l05ref, 1),
                  ('sn2p', '1.2', 'SN IIP', g99ref, 1),
