@@ -421,7 +421,6 @@ def _run_iminuit(chisq, parameter_names, start_values, start_errors, bounds,
 
         for key in fixed_parameters:
             m.fixed[key] = True
-            m.errors[key] = 0.
 
         m.migrad(ncall=maxcall)
         fmin = m.fmin
