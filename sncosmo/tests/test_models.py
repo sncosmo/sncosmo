@@ -366,7 +366,7 @@ def test_effect_phase_dependent():
                                                                 [10., 10.])],
                                 effect_frames=['rest'],
                                 effect_names=['micro'])
-    assert_approx_equal(model_micro.flux(50., 5000.).flatten(), flux*10.)
+    assert_allclose(model_micro.flux(50., 5000.).flatten(), flux*10.)
 
 
 def test_G10():
