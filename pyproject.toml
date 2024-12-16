@@ -13,5 +13,6 @@ markers = [
 ]
 filterwarnings = [
     "error",
+    "always:numpy.ndarray size changed:RuntimeWarning",
     "always::astropy.wcs.FITSFixedWarning",
 ]
