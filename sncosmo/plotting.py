@@ -200,7 +200,7 @@ def plot_lc(data=None, model=None, bands=None, zp=25., zpsys='ab',
     # Color options.
     if color is None:
         if cmap is None:
-            cmap = cm.get_cmap('jet_r')
+            cmap = plt.get_cmap('jet_r')
 
     # Standardize and normalize data.
     if data is not None:

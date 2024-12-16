@@ -3,10 +3,9 @@
 import numpy as np
 from matplotlib import rc
 from matplotlib import pyplot as plt
-from matplotlib.cm import get_cmap
 import sncosmo
 
-cmap = get_cmap('viridis')
+cmap = plt.get_cmap('viridis')
 
 def plot_bandpass_set(setname):
     """Plot the given set of bandpasses."""
