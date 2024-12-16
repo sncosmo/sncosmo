@@ -5,7 +5,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import sncosmo
 
-cmap = cm.get_cmap('gist_rainbow')
+cmap = plt.get_cmap('gist_rainbow')
 model = sncosmo.get_source('hsiao')
 
 wave = model._wave
