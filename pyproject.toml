@@ -11,3 +11,6 @@ build-backend = 'setuptools.build_meta'
 markers = [
     "might_download: marks tests that might download a file",
 ]
+filterwarnings = [
+    "error",
+]
