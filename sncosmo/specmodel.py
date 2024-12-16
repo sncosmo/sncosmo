@@ -43,7 +43,7 @@ class SpectrumModel(object):
         # internally, flux is in F_lambda:
         if unit != FLAMBDA_UNIT:
             self.flux = unit.to(FLAMBDA_UNIT, self.flux,
-                                u.spectral_density(u.AA, self.wave))
+                                u.spectral_density(self.wave * u.AA))
         self._unit = FLAMBDA_UNIT
 
         # Set up interpolation.
