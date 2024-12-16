@@ -352,6 +352,10 @@ def download_dir(remote_url, dirname):
 
     # create a tarfile with the buffer and extract
     tf = tarfile.open(fileobj=buf, mode=mode)
+    # use data_filter if available (py3.12+)
+    tf.extraction_filter = getattr(
+        tarfile, 'data_filter', (lambda member, path: member)
+    )
     tf.extractall(path=dirname)
     tf.close()
     buf.close()  # buf not closed when tf is closed.
