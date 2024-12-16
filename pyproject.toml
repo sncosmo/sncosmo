@@ -13,4 +13,5 @@ markers = [
 ]
 filterwarnings = [
     "error",
+    "always::astropy.wcs.FITSFixedWarning",
 ]
