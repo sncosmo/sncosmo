@@ -957,6 +957,7 @@ class SALT2Source(Source):
         # Get colorlaw coeffecients.
         ncoeffs = int(words[0])
         colorlaw_coeffs = [float(word) for word in words[1: 1 + ncoeffs]]
+        self._colorlaw_coeffs = colorlaw_coeffs
 
         # If there are more than 1+ncoeffs words in the file, we expect them to
         # be of the form `keyword value`.

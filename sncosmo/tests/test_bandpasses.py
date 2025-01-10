@@ -112,3 +112,33 @@ def test_megacampsf_bandpass():
             for i in range(len(trans)):
                 print(trans_ref[i], trans[i])
             assert_allclose(trans, trans_ref, rtol=1e-5)
+
+    with pytest.raises(TypeError) as err:
+        sncosmo.get_bandpass('megacampsf::u', x=0)
+    assert 'unexpected keyword argument' in str(err)
+
+    with pytest.raises(TypeError) as err:
+        sncosmo.get_bandpass('megacampsf::u', 0, x=0)
+    assert 'keyword and positional arguments cannot be mixed' in str(err)
+
+    # same bandpass with pos arg or radius kwarg
+    bp1 = sncosmo.get_bandpass('megacampsf::u', 0.)
+    bp2 = sncosmo.get_bandpass('megacampsf::u', radius=0.)
+    assert str(bp1) == str(bp2)
+
+
+@pytest.mark.might_download
+def test_ztf_bandpass():
+    assert isinstance(
+        sncosmo.get_bandpass('ztf::g'),
+        Bandpass)
+    assert isinstance(
+        sncosmo.get_bandpass('ztf::g', x=0, y=0, sensor_id=1),
+        Bandpass)
+    assert isinstance(
+        sncosmo.get_bandpass('ztf::g', x=[0, 0], y=[0, 0], sensor_id=[1, 1]),
+        np.ndarray)
+
+    with pytest.raises(TypeError) as err:
+        sncosmo.get_bandpass('ztf::g', bad_arg=0)
+    assert 'unexpected keyword argument' in str(err)

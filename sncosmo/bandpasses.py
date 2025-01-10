@@ -6,28 +6,158 @@ import astropy.units as u
 import numpy as np
 from astropy.io import ascii
 from astropy.utils import lazyproperty
-from scipy.interpolate import splev, splrep
+from scipy.interpolate import splev, splrep, interp1d, RegularGridInterpolator
+from numpy.polynomial.polynomial import polyval2d
 
 from ._registry import Registry
 from .constants import HC_ERG_AA, SPECTRUM_BANDFLUX_SPACING
 from .utils import integration_grid
 
 __all__ = ['get_bandpass', 'read_bandpass', 'Bandpass', 'AggregateBandpass',
-           'BandpassInterpolator']
+           'BandpassInterpolator', 'GeneralBandpassInterpolator', 'Transforms']
 
 _BANDPASSES = Registry()
 _BANDPASS_INTERPOLATORS = Registry()
 
 
-def get_bandpass(name, *args):
-    """Get a Bandpass from the registry by name."""
+def get_bandpass(name, *args, **kwargs):
+    """Get a Bandpass from the registry by name.
+
+    This function can return several types of Bandpass objects depending on
+    the bandpass's variability on the focal plane:
+
+    - **Static Bandpass:** If the bandpass does not vary spatially on the
+      focal plane, `get_bandpass` returns a `Bandpass` instance directly.
+
+    - **Radially Variable Bandpass:** For bandpasses with radial variability
+      (e.g., `megacampsf`), an `AggregateBandpass` instance is returned, which
+      adjusts the bandpass shape based on the specified radius.
+
+    - **Position-Dependent Bandpass:** For bandpasses that vary with position
+      on the sensor plane (e.g., `ztf`, `megacam6`, `hsc`), the returned
+      object depends on the specified coordinates and sensor ID. If a single
+      location is requested, an interpolated `Bandpass` instance is returned;
+      if multiple positions are specified, an array of bandpass objects is
+      generated to represent the spatial variations.
+
+    Refer to the Examples section for more detailed usage scenarios.
+
+    Parameters
+    ----------
+    name : str or `Bandpass`
+        The name of the Bandpass to retrieve from the registry, or an existing
+        Bandpass object. If a Bandpass object is passed, it is returned
+        directly.
+
+    *args : tuple, optional
+        Additional positional arguments, used primarily for radially variable
+        bandpasses (e.g., radius for radial interpolations).
+
+    **kwargs : dict, optional
+        Named arguments to customize the Bandpass retrieval:
+            - 'radius' : float, optional
+                Radius for radial bandpasses (default: 0).
+            - 'wave' : array-like, optional
+                Wavelength grid for an interpolated Bandpass.
+            - 'x', 'y' : float, optional
+                Spatial coordinates for 2D interpolation.
+            - 'sensor_id' : int, optional
+                Sensor ID for multi-sensor configurations (default: 1).
+            - 'filter_frame' : bool, optional
+                If True, applies a filter frame (default: False).
+
+    Returns
+    -------
+    Bandpass or ndarray
+        - If the name corresponds to a static Bandpass: returns the Bandpass
+          object.
+        - If the Bandpass is radially variable: returns the interpolated
+          Bandpass object at the specified radius.
+        - For general interpolated Bandpasses (2D or multi-sensor): returns an
+          array of transmission values, or a Bandpass object if only one
+          spatial filter is evaluated.
+
+    Raises
+    ------
+    TypeError
+        If the parameters provided in `*args` and `**kwargs` are invalid
+
+    Notes
+    -----
+    - Uses _BANDPASSES and _BANDPASS_INTERPOLATORS to retrieve static
+      and interpolated Bandpasses, respectively.
+    - The general case applies to configurations like ZTF, MegaCam, and HSC,
+      where multidimensional interpolation grids are used.
+
+    Examples
+    --------
+    Basic usage with a static Bandpass:
+    >>> bandpass = get_bandpass('ztfg')
+
+    Using a radial Bandpass with a specific radius:
+    >>> radial_bandpass = get_bandpass('megacampsf::r', radius=1.2)
+
+    Specifying spatial coordinates and a sensor ID for the Bandpasses managed
+    by a `GeneralBandpassInterpolator`
+    >>> interpolated_bandpass = get_bandpass(
+    ...     'megacam6::g', x=2355.22, y=1222.4, sensor_id=12)
+
+    Specifying a vector of spatial coordinates and sensor ids
+    >>> x = numpy.random.uniform(0., 2048., size=100)
+    >>> y = numpy.random.uniform(0., 4600., size=100)
+    >>> sensor_id = numpy.random.randint(0, 36, size=100)
+    >>> interpolated_bandpasses = get_bandpass(
+    ...     'megacam6::z', x=x, y=y, sensor_id=sensor_id)
+
+    Using a custom wavelength grid
+    >>> x = numpy.random.uniform(0., 3000., size=100)
+    >>> y = numpy.random.uniform(0., 3000., size=100)
+    >>> sensor_id = numpy.random.randint(0, 65, size=100)
+    >>> wave_grid = numpy.random.linspace(3000., 11000., 8000)
+    >>> custom_wave_bandpass = get_bandpass('ztf::r', wave=wave_grid)
+
+    """
     if isinstance(name, Bandpass):
         return name
-    if len(args) == 0:
+
+    # static bandpass
+    if len(kwargs) + len(args) == 0:
         return _BANDPASSES.retrieve(name)
-    else:
-        interp = _BANDPASS_INTERPOLATORS.retrieve(name)
-        return interp.at(*args)
+
+    # radially variable bandpass (snfit-like version)
+    interp = _BANDPASS_INTERPOLATORS.retrieve(name)
+    if isinstance(interp, BandpassInterpolator):
+        # arguments check: the `pos` argument to BandpassInterpolator.at can be
+        # passed as a positional argument or by the 'radius' keyword argument
+        if args and kwargs:
+            raise TypeError(
+                'keyword and positional arguments cannot be mixed')
+        if not args and list(kwargs.keys()) != ['radius']:
+            raise TypeError(
+                'unexpected keyword arguments {}'.format(
+                    ', '.join(set(kwargs.keys()) - {'radius'})))
+
+        return interp.at(*args or (kwargs.get('radius', 0),))
+
+    # general case (e.g. ZTF, MegaCam, HSC), at this point `interp` is an
+    # instance of GeneralBandpassInterpolator
+    unexpected_kwargs = set(
+        kwargs.keys() - {'x', 'y', 'sensor_id', 'wave'})
+    if unexpected_kwargs:
+        raise TypeError(
+            'unexpected keyword arguments {}'.format(
+                ', '.join(unexpected_kwargs)))
+
+    wavegrid = kwargs.get('wave', interp.wavegrid)
+    trans = interp.eval_at(
+        kwargs.get('x', 0.),
+        kwargs.get('y', 0.),
+        kwargs.get('sensor_id', 1),
+        wavegrid,
+        filter_frame=kwargs.get('filter_frame', False))
+    if trans.shape[0] == 1:
+        return Bandpass(wavegrid, trans.squeeze(), name=name)
+    return trans
 
 
 def read_bandpass(fname, fmt='ascii', wave_unit=u.AA,
@@ -458,3 +588,304 @@ class BandpassInterpolator(object):
 
         return AggregateBandpass(transmissions, prefactor=self.prefactor,
                                  name=name, family=self.name)
+
+
+class Transforms(object):
+    """Provides transformations from pixel coordinates to focal plane and
+    filter coordinates.
+
+    The `Transforms` class is designed to map x, y pixel coordinates to
+    corresponding focal plane and filter coordinates based on simple polynomial
+    transformations. These transformations are accurate within a few
+    millimeters and do not account for astrometric distortion, focusing instead
+    on efficient and approximate coordinate mappings.
+
+    Bandpasses managed with the `GeneralBandpassInterpolator` class are
+    distributed with `Transforms` to map (x, y, sensor) coordinates (typically,
+    what we measure) to filter-frame coordinates.
+
+    .. note::
+       These transformations are not intended for astrometric precision.
+
+    Parameters
+    ----------
+    to_focalplane : dict
+        Dictionary mapping each sensor ID to polynomial coefficients for
+        conversion from pixel coordinates to focal plane coordinates. The
+        coefficients are used for 2D polynomial evaluation.
+
+    to_filter : dict
+        Dictionary mapping each sensor ID to polynomial coefficients for
+        conversion from pixel coordinates to filter frame coordinates. The
+        coefficients are used for 2D polynomial evaluation.
+
+    """
+    def __init__(self, to_focalplane, to_filter):
+        self._to_focalplane = to_focalplane
+        self._to_filter = to_filter
+
+    @staticmethod
+    def _to_coords(x, y, sensor_id, coords):
+        x_out = np.zeros_like(x)
+        y_out = np.zeros_like(y)
+        for s_id in np.unique(sensor_id):
+            idx = s_id == sensor_id
+            x_out[idx] = polyval2d(x[idx], y[idx], coords[s_id][0])
+            y_out[idx] = polyval2d(x[idx], y[idx], coords[s_id][1])
+        return x_out, y_out
+
+    def to_focalplane(self, x, y, sensor_id):
+        """
+        Maps (x, y, sensor) coordinates to focal plane coordinates.
+
+        Parameters
+        ----------
+        x : array-like
+            x-coordinates in the sensor frame (in pixels)
+        y : array-like
+            y-coordinates in the sensor frame (in pixels)
+        sensor_id : array-like
+            Sensor IDs for each x, y coordinate, used to select the appropriate
+            focal plane transformation.
+
+        Returns
+        -------
+        tuple of arrays
+            Transformed X, Y coordinates in the focal plane frame.
+        """
+        return self._to_coords(x, y, sensor_id, self._to_focalplane)
+
+    def to_filter(self, x, y, sensor_id):
+        """
+        Maps (x, y sensor_id) coordinates to filter frame coordinates.
+
+        Parameters
+        ----------
+        x : array-like
+            x-coordinates in the sensor frame (pixels)
+        y : array-like
+            Y-coordinates in the sensor frame (pixels)
+        sensor_id : array-like
+            Sensor IDs for each x, y coordinate, used to select the appropriate
+            filter transformation.
+
+        Returns
+        -------
+        tuple of arrays
+            Transformed X, Y coordinates in the filter frame.
+        """
+        return self._to_coords(x, y, sensor_id, self._to_filter)
+
+
+class GeneralBandpassInterpolator(object):
+    """A general-purpose interpolator for bandpasses with spatial or
+    sensor-specific variability.
+
+    This class provides a flexible interpolation for bandpass transmissions
+    that may vary across the focal plane due to spatial position,
+    sensor-specific quantum efficiency (QE), and/or radial dependence.
+
+    Instances of this class are not Bandpasses themselves, but generate
+    Bandpasses at a given focal plane position. This class stores the
+    transmission as a function of focal plane position and interpolates between
+    the defined positions to return the bandpass at an arbitrary position.
+
+    Parameters
+    ----------
+    static_transmissions : list of arrays
+        Each element is an array representing a static bandpass transmission
+        profile over wavelength. The static transmissions are defined
+        independently of sensor position.
+
+    specific_sensor_qe : dict, optional
+        Dictionary of sensor-specific quantum efficiency (QE) profiles. Keys
+        are sensor IDs, and values are arrays defining the wavelength and QE
+        values.
+
+    variable_transmission : tuple, optional
+        Defines position-dependent transmission. Can be either a radial
+        transmission or a 2D spatial transmission, specified as:
+            - Radial: (radius, wavelength, transmission)
+            - Spatial: (x, y, wavelength, transmission)
+
+    transforms : object, optional
+        Transformation object for converting between coordinate frames (e.g.,
+        CCD and filter frames).
+
+    prefactor : float, default=1.0
+        Scaling factor applied to the transmission values.
+
+    name : str, optional
+        Name identifier for the bandpass interpolator instance.
+
+    """
+    def __init__(self, static_transmissions, specific_sensor_qe=None,
+                 variable_transmission=None, transforms=None, prefactor=1.0,
+                 name=None):
+
+        # static transmissions
+        self.static_transmissions = [
+            interp1d(*tr.T, bounds_error=False, fill_value=0.)
+            for tr in static_transmissions]
+
+        # we also need to track the wavelength range on which all the static
+        # transmissions are defined
+        wl = np.array(
+            [(tr[:, 0].min(), tr[:, 0].max()) for tr in static_transmissions])
+        static_wl_range = wl[:, 0].max(), wl[:, 1].min()
+
+        # specific sensor quantum efficiencies
+        if specific_sensor_qe is not None:
+            self.specific_sensor_qe = {
+                key: interp1d(
+                    *specific_sensor_qe[key].T,
+                    bounds_error=False,
+                    fill_value=0.)
+                for key in specific_sensor_qe}
+        else:
+            self.specific_sensor_qe = None
+
+        # and finally, the transmissions which vary smoothly as a function of a
+        # location parameters, which may be either a radius or a
+        self.variable_transmission = None
+        if variable_transmission is not None:
+            if len(variable_transmission) == 3:
+                rad, wl, tr = variable_transmission
+                idx = (wl >= static_wl_range[0]) & (wl <= static_wl_range[1])
+                wl, tr = wl[idx], tr[:, idx]
+                self.wavegrid = wl
+                self.wave = (wl.min(), wl.max())
+                self.pos = (rad.min(), rad.max())
+                self.variable_transmission = \
+                    RegularGridInterpolator(
+                        [rad, wl],
+                        tr,
+                        bounds_error=False,
+                        fill_value=0.)
+                self.radial = True
+            elif len(variable_transmission) == 4:
+                x, y, wl, tr = variable_transmission
+                idx = (wl >= static_wl_range[0]) & (wl <= static_wl_range[1])
+                wl, tr = wl[idx], tr[:, :, idx]
+                self.wavegrid = wl
+                self.wave = (wl.min(), wl.max())
+                self.pos = (x.min(), y.min()), (x.max(), y.max())
+                self.variable_transmission = \
+                    RegularGridInterpolator(
+                        [x, y, wl],
+                        tr,
+                        bounds_error=False,
+                        fill_value=0.)
+                self.radial = False
+            else:
+                raise ValueError('unable to handle the transmission data')
+
+        self.transforms = transforms if transforms is not None else None
+        self.prefactor = prefactor
+        self.name = name
+
+    def minwave(self):
+        """Returns the minimum wavelength over which the bandpass is defined"""
+        return self.wave[0]
+
+    def maxwave(self):
+        """Returns the maximum wavelength over which the bandpass is defined"""
+        return self.wave[1]
+
+    def minpos(self):
+        """Returns the minimum position in the spatial grid for variable
+        bandpasses"""
+        return self.pos[0]
+
+    def maxpos(self):
+        """Returns the maximim position in the spatial grid for variable
+        bandpasses"""
+        return self.pos[1]
+
+    def at(self, x, y, sensor_id):
+        """Return the bandpass at the specified position
+
+        Parameters
+        ----------
+        x : float or ndarray
+            X-coordinate in pixels or mm, depending on `filter_frame`.
+        y : float or ndarray
+            Y-coordinate in pixels or mm, depending on `filter_frame`.
+        sensor_id : int or ndarray
+            Identifier for sensor-specific configurations.
+
+        Returns
+        -------
+        Bandpass
+            The interpolated Bandpass at the specified position.
+        """
+        trans = self.eval_at(x, y, sensor_id, self.wavegrid).squeeze()
+        return Bandpass(self.wavegrid, trans)
+
+    def eval_at(self, x, y, sensor_id, wl, filter_frame=False):
+        """Evaluates transmission values at given positions and wavelengths.
+
+        Parameters
+        ----------
+        x : float or ndarray
+            X-coordinates in pixels or mm (depending on `filter_frame`).
+        y : float or ndarray
+            Y-coordinates in pixels or mm (depending on `filter_frame`).
+        sensor_id : int or ndarray
+            Sensor ID(s) to specify the quantum efficiency profile.
+        wl : ndarray
+            Wavelength grid for transmission evaluation.
+        filter_frame : bool, default=False
+            If True, interprets x and y as coordinates in the filter frame
+            (mm), otherwise assumes CCD coordinates (pixels).
+
+        Returns
+        -------
+        ndarray
+            Transmission values array of shape `(len(wl), len(x))`.
+
+        """
+        trans = None
+
+        x = np.atleast_1d(x).astype(float)
+        y = np.atleast_1d(y).astype(float)
+        sensor_id = np.atleast_1d(sensor_id).astype(int)
+
+        if not filter_frame:
+            X, Y = self.transforms.to_filter(x, y, sensor_id)
+        else:
+            X, Y = x, y
+
+        if self.variable_transmission:
+            if not self.radial:
+                XY = np.vstack((X, Y))
+                v = np.array([
+                    self.variable_transmission(np.array([
+                        np.full(len(wl), x),
+                        np.full(len(wl), y), wl]).T)
+                    for x, y in XY.T])
+                trans = trans * v if trans is not None else v
+            else:
+                rad = np.sqrt(X**2 + Y**2)
+                v = np.array(
+                    [self.variable_transmission(np.array([
+                        np.full(len(wl), r), wl]).T)
+                     for r in rad])
+                trans = trans * v if trans is not None else v
+
+        # if not defined, we assume that the qe is in the static transmissions
+        if self.specific_sensor_qe:
+            # many requested positions may be on the same senors. it is better
+            # then to pre-compute the QE's once for all
+            qe = {}
+            for s_id in np.unique(sensor_id, axis=0):
+                qe[s_id] = self.specific_sensor_qe[s_id](wl)
+            # and then, we combine them together
+            v = np.array([qe[s_id] for s_id in sensor_id])
+            trans = trans * v if trans is not None else v
+
+        for tr in self.static_transmissions:
+            v = tr(wl)
+            trans = trans * v if trans is not None else v
+
+        return trans

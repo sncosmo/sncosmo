@@ -26,7 +26,11 @@ def bandpass_table(setname):
     allrefs = []
 
     for m in bandpass_meta:
-        if m['filterset'] != setname:
+        if (
+                m['filterset'] != setname or
+                # special case of ztf position-dependent bandpass
+                (setname == 'ztf' and 'ZTF-II IN2P3 participation group' in m['description'])
+        ):
             continue
 
         reflink = ''
@@ -68,7 +72,7 @@ def bandpass_table(setname):
 setnames = []
 for m in bandpass_meta:
     setname = m['filterset']
-    if setname not in setnames:
+    if setname not in setnames and setname not in ('hsc', 'megacam6'):
         setnames.append(setname)
 
 # For each set of bandpasses, write a heading, the table, and a plot.
@@ -88,7 +92,7 @@ for setname in setnames:
 
 # Bandpass interpolators
 bandpass_interpolator_meta = _BANDPASS_INTERPOLATORS.get_loaders_metadata()
-setnames = {m['filterset'] for m in bandpass_interpolator_meta}
+setnames = {'megacampsf'}
 for setname in setnames:
     names = [m['name'] for m in bandpass_interpolator_meta
              if m['filterset'] == setname]
@@ -104,6 +108,26 @@ for setname in setnames:
    from bandpass_plot import plot_bandpass_interpolators
    plot_bandpass_interpolators({0!r})
 """.format(names))
+
+# General bandpass interpolators
+setnames = {'ztf', 'megacam6', 'hsc'}
+for setname in setnames:
+    names = [m['name'] for m in bandpass_interpolator_meta
+             if m['filterset'] == setname]
+    lines.append("")
+    lines.append(setname)
+    lines.append(len(setname) * "-")
+    lines.append("")
+    lines.append("These are focalplane variable bandpasses. To get a Bandpass at a given (x, y, sensor_id) position on the focal plane, use ``band = sncosmo.get_bandpass('{0}', x=0, y=0, sensor_id=1)``. To get the averaged Bandpass, use ``band = sncosmo.get_bandpass('{0}')``".format(names[0]))
+    lines.append("")
+    lines.append("""
+.. plot::
+
+   from bandpass_plot import plot_general_bandpass_interpolators
+   plot_general_bandpass_interpolators({0!r})
+""".format(setname))
+
+
 
 # URL links accumulated from all the tables.
 for url, urlnum in urlnums.items():
