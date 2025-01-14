@@ -2,7 +2,7 @@ import pytest
 
 import sncosmo
 
-from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS
+from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS, GeneralBandpassInterpolator
 from sncosmo.magsystems import _MAGSYSTEMS
 from sncosmo.models import _SOURCES
 
@@ -32,7 +32,13 @@ def test_builtin_bandpass(name):
 @pytest.mark.parametrize("name", bandpass_interpolators)
 def test_builtin_bandpass_interpolator(name):
     interpolator = _BANDPASS_INTERPOLATORS.retrieve(name)
-    interpolator.at(interpolator.minpos())
+    if isinstance(interpolator, GeneralBandpassInterpolator):
+        if 'megacam' in name:
+            interpolator.at(1000, 1000, 12)
+        else:
+            interpolator.at(0, 0, 1)
+    else:
+        interpolator.at(interpolator.minpos())
 
 
 @pytest.mark.might_download
