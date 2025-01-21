@@ -7,7 +7,8 @@ import sncosmo
 
 cmap = plt.get_cmap('viridis')
 
-def plot_bandpass_set(setname):
+
+def plot_bandpass_set(setname, label_prefix=''):
     """Plot the given set of bandpasses."""
 
     rc("font", family="serif")
@@ -19,9 +20,12 @@ def plot_bandpass_set(setname):
 
     nbands = 0
     for m in bandpass_meta:
-        if m['filterset'] != setname:
+        if (
+                m['filterset'] != setname or
+                # special case of ZTF position-dependent bandpasses
+                'ztf::' in m['name']
+        ):
             continue
-        print(m['name'])
         b = sncosmo.get_bandpass(m['name'])
 
         # add zeros on either side of bandpass transmission
@@ -32,7 +36,7 @@ def plot_bandpass_set(setname):
         trans = np.zeros(len(b.trans) + 2)
         trans[1:-1] = b.trans
 
-        ax.plot(wave, trans, label=m['name'])
+        ax.plot(wave, trans, label=label_prefix + m['name'])
         nbands += 1
 
     ax.set_xlabel("Wavelength ($\\AA$)")
@@ -50,6 +54,7 @@ def plot_bandpass_set(setname):
     plt.tight_layout()
     plt.show()
 
+
 def plot_bandpass_interpolators(names):
 
     # we'll figure out min and max wave as we go.
@@ -61,7 +66,7 @@ def plot_bandpass_interpolators(names):
                              sharex=True)
     for i in range(len(names)):
         bi = sncosmo.bandpasses._BANDPASS_INTERPOLATORS.retrieve(names[i])
-        
+
         radii = np.linspace(bi.minpos(), bi.maxpos()-0.000001, 8)
 
         for r in radii:
@@ -80,6 +85,59 @@ def plot_bandpass_interpolators(names):
                                                  (bi.maxpos() - bi.minpos())),
                          label=label)
 
+
+        axes[i].legend(loc='upper right')
+        axes[i].set_ylabel("Transmission")
+        axes[i].text(0.03, 0.92, names[i], transform=axes[i].transAxes,
+                     va='top', ha='left')
+
+    axes[-1].set_xlabel("Wavelength ($\\AA$)")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_general_bandpass_interpolators(name):
+    if name == 'hsc':
+        return plot_bandpass_set(name, label_prefix='averaged ')
+
+    names = [
+        m['name'] for m in sncosmo.bandpasses._BANDPASS_INTERPOLATORS.get_loaders_metadata()
+        if m['filterset'] == name]
+
+    # we'll figure out min and max wave as we go.
+    minwave = float('inf')
+    maxwave = 0.
+
+    fig, axes = plt.subplots(nrows=len(names), ncols=1,
+                             figsize=(9., 2.5*len(names)), squeeze=True,
+                             sharex=True)
+    for i in range(len(names)):
+        bi = sncosmo.bandpasses._BANDPASS_INTERPOLATORS.retrieve(names[i])
+        b = sncosmo.bandpasses._BANDPASSES.retrieve(names[i])
+
+        # add zeros on either side of bandpass transmission
+        wave = np.zeros(len(b.wave) + 2)
+        wave[0] = b.wave[0]
+        wave[1:-1] = b.wave
+        wave[-1] = b.wave[-1]
+        trans = np.zeros(len(b.trans) + 2)
+        trans[1:-1] = b.trans
+        axes[i].plot(wave, trans, label='average')
+
+        x = 1000
+        y = 1000
+        nsensors = len(bi.transforms._to_focalplane)
+        for n, sid in enumerate(np.linspace(1, nsensors-1, 4, dtype=int)):
+            band = bi.at(x=x, y=y, sensor_id=sid)
+
+            # update min,max wave
+            minwave = min(minwave, band.minwave())
+            maxwave = max(maxwave, band.maxwave())
+
+            wave = np.linspace(band.minwave(), band.maxwave(), 1000)
+            trans = band(wave)
+            label = 'x={}, y={}, sensor_id={}'.format(x, y, sid)
+            axes[i].plot(wave, trans, label=label, color=cmap(n / 4), linestyle='dotted')
 
         axes[i].legend(loc='upper right')
         axes[i].set_ylabel("Transmission")
