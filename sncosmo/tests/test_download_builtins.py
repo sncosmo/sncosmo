@@ -2,7 +2,11 @@ import pytest
 
 import sncosmo
 
-from sncosmo.bandpasses import _BANDPASSES, _BANDPASS_INTERPOLATORS, GeneralBandpassInterpolator
+from sncosmo.bandpasses import (
+    _BANDPASSES,
+    _BANDPASS_INTERPOLATORS,
+    GeneralBandpassInterpolator,
+)
 from sncosmo.magsystems import _MAGSYSTEMS
 from sncosmo.models import _SOURCES
 
