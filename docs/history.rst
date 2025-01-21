@@ -8,6 +8,21 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.12.0 (2025-01-21)
+====================
+
+Major Changes & Additions:
+
+- Add support for Numpy 2.0 (#398)
+
+- Add non-radially varability to bandpasses (#400)
+
+- Adds hdf5 dependancy (#400)
+
+Minor Changes:
+
+- Improve testing (#402)
+
 v2.11.2 (2024-11-01)
 ====================
 
