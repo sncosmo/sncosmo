@@ -60,7 +60,9 @@ def generate_chisq(data, model, spectra, signature='iminuit', modelcov=False):
                 diff = data.flux - model_flux
                 phot_chisq = np.dot(np.dot(diff, invcov), diff)
                 if math.isnan(phot_chisq):
-                    phot_chisq = float('inf') # Tell iminuit to keep away from this point (in most cases this should be inf instead of nan anyway)
+                    # Tell iminuit to keep away from this point
+                    # (in most cases this should be inf instead of nan anyway)
+                    phot_chisq = float('inf')
                 full_chisq += phot_chisq
 
             if spectra is not None:
