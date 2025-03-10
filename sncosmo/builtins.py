@@ -532,16 +532,16 @@ for filt in ['Red']:
                                 args=(relpath,), meta=tess_meta)
 
 # GALEX
-galex_meta = {           
-    'filterset': 'galex',        
-    'retrieved': '10 March 2025',                                          
+galex_meta = { 
+    'filterset': 'galex', 
+    'retrieved': '10 March 2025', 
     'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
-                'format=ascii&id=Misc'),                             
+                'format=ascii&id=Misc'),
     'description': 'GALEX filters from SVO (includes filter and instrument)'
 }
-for filt in ['fuv', 'nuv']: 
-    relpath = 'bandpasses/galex/galex.{}'.format(filt)                
-    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,  
+for filt in ['fuv', 'nuv']:
+    relpath = 'bandpasses/galex/galex.{}'.format(filt)
+    _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=galex_meta)
 
 # GOTO
