@@ -532,7 +532,7 @@ for filt in ['Red']:
                                 args=(relpath,), meta=tess_meta)
 
 # GALEX
-goto_meta = {           
+galex_meta = {           
     'filterset': 'galex',        
     'retrieved': '10 March 2025',                                          
     'dataurl': ('http://svo2.cab.inta-csic.es/svo/theory/fps/getdata.php?'
