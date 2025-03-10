@@ -540,6 +540,7 @@ galex_meta = {
     'description': 'GALEX filters from SVO (includes filter and instrument)'
 }
 for filt in ['fuv', 'nuv']:
+    name = 'galex::' + filt
     relpath = 'bandpasses/galex/galex.{}'.format(filt)
     _BANDPASSES.register_loader(name, load_bandpass_remote_aa,
                                 args=(relpath,), meta=galex_meta)
