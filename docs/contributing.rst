@@ -240,14 +240,14 @@ release:
   latest version.
 - Copy the change list into the release description.
 - Publish the release.
+- A conda build should start (with some delay) via a bot pull request
+  at https://github.com/conda-forge/sncosmo-feedstock. Merge the PR
+  once it passes all tests.
 
 **Packaging and Docs**
 
 - GitHub Actions will trigger after each release and build compiled wheels and
   source distributions. These will then be pushed to PyPI.
-- A conda build should start (with some delay) via a bot pull request
-  at https://github.com/conda-forge/sncosmo-feedstock. Merge the PR
-  once it passes all tests.
 - The docs for the release will show up on readthedocs.org as the new
   ``stable`` version.
 
