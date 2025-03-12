@@ -8,6 +8,12 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.12.1 (2025-03-12)
+====================
+
+- Add Galax fileters (#408)
+- Fix bug in fitting
+
 v2.12.0 (2025-01-21)
 ====================
 
