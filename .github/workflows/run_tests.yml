@@ -33,30 +33,35 @@ jobs:
             python: 3.x
             toxenv: py3
 
-          - name: Python 3.11 with full coverage
+          - name: Python 3.12 with full coverage
             os: ubuntu-latest
-            python: 3.11
-            toxenv: py311-alldeps-cov
+            python: "3.12"
+            toxenv: py312-alldeps-cov
 
-          - name: Python 3.8 with oldest supported version of all dependencies
-            os: ubuntu-latest
-            python: 3.8
-            toxenv: py38-oldestdeps
-
-          - name: Python 3.9 (MacOS X) with all optional dependencies
-            os: macos-latest
-            python: 3.9
-            toxenv: py39-alldeps
-
-          - name: Python 3.10 (Windows) with all optional dependencies
-            os: windows-latest
-            python: "3.10"
-            toxenv: py310-alldeps
-          
-          - name: Python 3.11 with all optional dependencies
+          - name: Python 3.11 with oldest supported version of all dependencies
             os: ubuntu-latest
             python: "3.11"
+            toxenv: py311-oldestdeps
+
+          - name: Python 3.11 (MacOS X) with all optional dependencies
+            os: macos-latest
+            python: "3.11"
             toxenv: py311-alldeps
+
+          - name: Python 3.12 (Windows) with all optional dependencies
+            os: windows-latest
+            python: "3.12"
+            toxenv: py312-alldeps
+
+          - name: Python 3.13 with all optional dependencies
+            os: ubuntu-latest
+            python: "3.13"
+            toxenv: py313-alldeps
+
+          - name: Python 3.14 with all optional dependencies
+            os: ubuntu-latest
+            python: "3.14"
+            toxenv: py314-alldeps
 
           - name: Download all of the builtins
             os: ubuntu-latest
