@@ -856,7 +856,7 @@ def load_2011fe(relpath, name=None, version=None):
                 w = wcs.WCS(hdulist[0].header)
                 nflux = len(flux_density)
                 idx = np.arange(nflux)  # pixel coords
-                idx.shape = (nflux, 1)  # make it 2-d
+                idx = np.reshape(idx, (nflux, 1))  # expand to 2-d
                 disp = w.wcs_pix2world(idx, 0)[:, 0]
 
             hdulist.close()
