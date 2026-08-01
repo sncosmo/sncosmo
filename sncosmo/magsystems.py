@@ -70,7 +70,7 @@ class MagSystem(object):
 
     def band_flux_to_mag(self, flux, band):
         """Convert flux (photons / s / cm^2) to magnitude."""
-        return -2.5 * math.log10(flux / self.zpbandflux(band))
+        return -2.5 * np.log10(flux / self.zpbandflux(band))
 
     def band_mag_to_flux(self, mag, band):
         """Convert magnitude to flux in photons / s / cm^2"""
