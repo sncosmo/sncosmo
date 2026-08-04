@@ -12,9 +12,17 @@ import sncosmo
 
 def test_abmagsystem():
     magsys = sncosmo.ABMagSystem()
+    
+    #scalar input
     m = magsys.band_flux_to_mag(1.0, 'bessellb')
     f = magsys.band_mag_to_flux(m, 'bessellb')
     assert_almost_equal(f, 1.0)
+    
+    #array input    
+    flux_in = np.array([1.0, 2.0, 3.0])
+    m_arr = magsys.band_flux_to_mag(flux_in, 'bessellb')
+    f_arr = magsys.band_mag_to_flux(m_arr, 'bessellb')
+    assert_allclose(f_arr, flux_in)
 
 
 def test_spectralmagsystem():
