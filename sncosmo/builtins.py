@@ -427,6 +427,23 @@ for name, fname in [('f062', 'roman_f062.dat'),   # R
                                 args=('bandpasses/roman-wfi/' + fname,),
                                 meta=roman_meta)
 
+# Euclid
+euclid_meta = {
+    'dataurl': 'http://svo2.cab.inta-csic.es/theory/fps/index.php?mode=browse'
+               '&gname=Euclid',
+    'retrieved': '10 Sep 2026',
+    'description': 'Euclid total throughput (optics, detector QE, dichroic) '
+                   'from the SVO Filter Profile Service.'}
+for name, instrument, fname in [
+        ('euclidvis', 'vis', 'Euclid_VIS.vis.dat'),
+        ('euclidy', 'nisp', 'Euclid_NISP.Y.dat'),
+        ('euclidj', 'nisp', 'Euclid_NISP.J.dat'),
+        ('euclidh', 'nisp', 'Euclid_NISP.H.dat')]:
+    _BANDPASSES.register_loader(
+        name, load_bandpass_remote_aa,
+        args=('bandpasses/euclid/' + fname,),
+        meta=dict(euclid_meta, filterset='euclid-' + instrument))
+
 # ZTF
 ztf_meta = {
     'filterset': 'ztf',
