@@ -8,6 +8,12 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.13.1 (2026-09-11)
+====================
+
+- Add Euclid filters to builtins (#419)
+- Add array support to sncosmo.get_magsystem().band_flux_to_mag() (#418)
+
 v2.13.0 (2026-07-01)
 ====================
 
