@@ -334,8 +334,8 @@ class Source(_ModelBase):
         flux : float or `~numpy.ndarray`
             Spectral flux density values in ergs / s / cm^2 / Angstrom.
         """
-        phase = np.asarray(phase)
-        wave = np.asarray(wave)
+        phase = np.asarray(phase, dtype=float)
+        wave = np.asarray(wave, dtype=float)
         if np.any(wave < self.minwave()) or np.any(wave > self.maxwave()):
             raise ValueError('requested wavelength value(s) outside '
                              'model range')

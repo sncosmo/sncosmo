@@ -274,6 +274,11 @@ class TestSALT3Source:
                              [0.,   0., 0.,   0.,  0.05]])
         assert_allclose(result, expected)
 
+    def test_flux_accepts_integer_wavelengths(self):
+        integer = self.source.flux(0, [4000, 4100])
+        floating = self.source.flux(0, [4000.0, 4100.0])
+        assert_allclose(integer, floating)
+
 
 class TestModel:
 
