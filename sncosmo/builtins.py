@@ -376,7 +376,7 @@ lsst_meta = {'filterset': 'lsst',
              'description': 'LSST baseline total throughputs, v1.9.'}
 for letter in ['u', 'g', 'r', 'i', 'z', 'y']:
     name = 'lsst' + letter
-    relpath = 'bandpasses/lsst/total_{}.dat'.format(letter)
+    relpath = 'bandpasses/lsst/v1.9/total_{}.dat'.format(letter)
     _BANDPASSES.register_loader(name, load_bandpass_remote_nm,
                                 args=(relpath,), meta=lsst_meta)
 
