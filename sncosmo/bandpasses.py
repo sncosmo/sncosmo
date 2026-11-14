@@ -122,7 +122,11 @@ def get_bandpass(name, *args, **kwargs):
 
     # static bandpass
     if len(kwargs) + len(args) == 0:
-        return _BANDPASSES.retrieve(name)
+        try:
+            return _BANDPASSES.retrieve(name)
+        except Exception as err:
+            if "not in registry" not in str(err):
+                raise
 
     # radially variable bandpass (snfit-like version)
     interp = _BANDPASS_INTERPOLATORS.retrieve(name)
@@ -132,7 +136,7 @@ def get_bandpass(name, *args, **kwargs):
         if args and kwargs:
             raise TypeError(
                 'keyword and positional arguments cannot be mixed')
-        if not args and list(kwargs.keys()) != ['radius']:
+        if not args and set(kwargs) - {'radius'}:
             raise TypeError(
                 'unexpected keyword arguments {}'.format(
                     ', '.join(set(kwargs.keys()) - {'radius'})))
