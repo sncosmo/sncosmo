@@ -7,6 +7,14 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
+[tool.cibuildwheel]
+# Keep building PyPy wheels (off by default since cibuildwheel 3.0).
+enable = ["pypy"]
+# Skip free-threaded builds (astropy re-enables the GIL on import, so they
+# give no benefit yet) and PyPy 3.12 (numpy>=2.5 ships no PyPy wheels, so
+# its build would compile numpy).
+skip = ["cp31?t-*", "pp312-*"]
+
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
 

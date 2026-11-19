@@ -63,6 +63,11 @@ jobs:
             python: "3.14"
             toxenv: py314-alldeps
 
+          - name: Python 3.15 with all optional dependencies
+            os: ubuntu-latest
+            python: "3.15"
+            toxenv: py315-alldeps
+
           - name: Download all of the builtins
             os: ubuntu-latest
             python: 3.x
@@ -75,6 +80,14 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+    - name: Install HDF5
+      # h5py has no wheels for the newest Python yet, so it may need to build
+      # from source. Remove once h5py ships wheels for every tested version.
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libhdf5-dev
+        echo "HDF5_DIR=/usr/lib/$(uname -m)-linux-gnu/hdf5/serial" >> "$GITHUB_ENV"
     - name: Install Python dependencies
       run: python -m pip install --upgrade tox
     - name: Run tests
