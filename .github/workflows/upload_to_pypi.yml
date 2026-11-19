@@ -3,6 +3,15 @@ name: Build and upload to PyPI
 on:
   release:
     types: [published]
+  # Build (but do not upload) wheels when the packaging config changes, or on
+  # demand, so build failures surface before a release instead of during one.
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/upload_to_pypi.yml
+      - pyproject.toml
+      - setup.py
+      - setup.cfg
 
 jobs:
   build_wheels:
@@ -10,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -21,11 +30,9 @@ jobs:
           python-version: '3.x'
 
       - name: Build wheels
-        # For very recent Python versions, wheels from e.g. numpy might not be
-        # available yet which can cause the build to fail. Keep going, and upload
-        # the wheels for all of the previous versions when that happens.
-        continue-on-error: true
-        uses: pypa/cibuildwheel@v2.23.3
+        # Fail loudly: a silently failed build previously shipped a release
+        # with no Linux wheels. Python versions are selected in pyproject.toml.
+        uses: pypa/cibuildwheel@v4.3.5
 
       - uses: actions/upload-artifact@v4
         with:
@@ -57,6 +64,7 @@ jobs:
   upload_pypi:
     name: Upload to PyPI
     needs: [build_wheels, build_sdist]
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4.1.7
