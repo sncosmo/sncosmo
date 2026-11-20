@@ -5,9 +5,10 @@ only `sncosmo/`; the sdist follows `MANIFEST.in`).
 
 ## Intent
 
-Releasing sncosmo by hand is tedious. This skill automates steps 1–5 of the
-release procedure in `docs/contributing.rst` as a Claude Code command that
-pauses for maintainer approval at each step.
+Releasing sncosmo by hand is tedious. This skill automates the release
+procedure in `docs/contributing.rst`, up to (not including) the conda-forge
+merge, as a Claude Code command that pauses for maintainer approval at each
+step.
 
 **Goals**
 - One command (`/release`): sync, changelog, version bump, push, CI/docs
@@ -38,8 +39,8 @@ without an explicit yes; tagging a commit that has not passed CI.
 | 0 | **Preflight.** On `master`, `gh` authenticated, working tree clean apart from untracked files. `git fetch origin --tags`. Behind `origin/master`: `git pull --ff-only`. Ahead or diverged: stop and ask what to do. | Only if ahead/diverged or tree dirty |
 | 1 | **Changelog.** Latest release tag from `gh release list`. Read `git log <tag>..HEAD` (every commit, so direct pushes are included); attach PR numbers where a commit came from a PR. Draft a `docs/history.rst` entry in the existing style (`- Description (#NNN)`, no PR ref for direct pushes). Housekeeping commits (CI tweaks, typo fixes) may be left out, but the draft lists what was left out. | Approve or edit the draft |
 | 2 | **Version.** Propose patch/minor/major with reasoning from the changes. Edit `__version__` in `sncosmo/__init__.py` and write the history header `vX.Y.Z (YYYY-MM-DD)`. | Approve the version |
-| 3 | **Commit and push.** Show the diff; commit `Prepare for vX.Y.Z`; push directly to `master` (maintainer decision: no PR). | Approve commit and push |
-| 4 | **Checks.** The push triggers the Tests workflow; watch the run for that exact SHA (`gh run watch`). Also trigger the wheel build (`upload_to_pypi.yml` via `workflow_dispatch`, which builds but does not upload) and confirm the ReadTheDocs `latest` build for that commit succeeded. Any failure stops the release. | Approve to continue |
+| 3 | **Commit, push, start wheel build.** Show the diff; commit `Prepare for vX.Y.Z`; push directly to `master` (maintainer decision: no PR); dispatch the build-only wheel workflow once `master` is confirmed to be the bump SHA. | Approve commit, push, and wheel build |
+| 4 | **Checks.** The push triggers the Tests workflow; watch the run for that exact SHA (`gh run watch`). Wait for every check run on the SHA to complete, watch the wheel build started in step 3, and confirm the ReadTheDocs `latest` build for that commit succeeded. Any failure stops the release. | Approve to continue |
 | 5 | **Release.** Show the exact `gh release create vX.Y.Z --target <SHA> --title "vX.Y.Z (YYYY-MM-DD)" --notes <entry>` with notes taken from the history entry. Publishing triggers the PyPI upload. | Explicit yes required |
 | 6 | **Follow-up.** Link the PyPI upload run, then remind about merging the conda-forge feedstock PR when the bot opens it. | none |
 
