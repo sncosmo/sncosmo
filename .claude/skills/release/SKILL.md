@@ -74,9 +74,11 @@ exact commands for the rest. Say "DRY RUN" at the top of every checkpoint.
 6. You may leave out pure housekeeping (CI tweaks, typo fixes, previous
    "Prepare for vX" commits), but list everything you left out.
 
-**Checkpoint:** show the draft, the commit→PR table (with possible PRs), and
-what was left out. Options: approve / edit (maintainer supplies changes, then
-re-show).
+**Checkpoint:** show the draft **exactly as it would appear in
+`docs/history.rst`**, in a code block, with a placeholder header
+`vX.Y.Z (YYYY-MM-DD)` and a note that the version is picked in the next
+step. Also show the commit→PR table (with possible PRs) and what was left
+out. Options: approve / edit (maintainer supplies changes, then re-show).
 
 ## Step 2: Version
 
@@ -85,7 +87,10 @@ re-show).
 2. Propose patch, minor, or major per the semantic-versioning note at the top
    of `docs/history.rst`, with one line of reasoning drawn from the changes.
 3. **Checkpoint:** options are the proposed version first, then the other
-   two bumps.
+   two bumps. Give each option a `preview` showing exactly what that choice
+   writes: the full `docs/history.rst` block with that version's header,
+   today's date, and a matching `=` underline, followed by the
+   `__version__ = "OLD"` → `"NEW"` change.
 4. Run the **availability check** for `vX.Y.Z`; anything found → stop:
    - tag: `git rev-parse -q --verify refs/tags/vX.Y.Z` or
      `git ls-remote --tags origin vX.Y.Z` returns anything;
