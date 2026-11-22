@@ -244,6 +244,11 @@ release:
   at https://github.com/conda-forge/sncosmo-feedstock. Merge the PR
   once it passes all tests.
 
+Maintainers using `Claude Code <https://claude.com/claude-code>`_ can run
+``/release`` from the repository root to walk through the steps above, with an
+approval checkpoint before each change. See ``.claude/skills/release/`` for
+details.
+
 **Packaging and Docs**
 
 - GitHub Actions will trigger after each release and build compiled wheels and
