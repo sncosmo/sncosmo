@@ -8,6 +8,12 @@ sncosmo v1.0 will continue to work with any v1.x version. However,
 exact results may differ between versions in the 1.x series. (For
 example, due to changes in integration method.)
 
+v2.13.2 (2026-11-23)
+====================
+
+- Update LSST bandpasses to baseline throughputs v1.9 (#422)
+- Add wheels for Python 3.14, 3.15 and Linux aarch64, and restore the Linux wheels missing from v2.13.1 (#424)
+
 v2.13.1 (2026-09-11)
 ====================
 
